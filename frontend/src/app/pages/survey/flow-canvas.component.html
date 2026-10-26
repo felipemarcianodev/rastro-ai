@@ -1,0 +1,220 @@
+@if (laidOut()) {
+<f-flow fDraggable [fCanvasMoveTrigger]="canvasMoveTrigger" class="flow-host" [class.is-panning]="panning()" [class.has-group]="groupSize() > 1" [class.is-editing]="editing()" [class.is-far]="far()" [class.is-down]="!horizontal()" [class.is-across]="horizontal()" [class.is-comparing]="comparing()" (fFullRendered)="onFullRendered()" (fSelectionChange)="onSelection($event)"
+  (fCreateConnection)="onCreateConnection($event)" (fReassignConnection)="onReassignConnection($event)"
+  (pointerdown)="onPointerDown($event)" (pointerup)="onPointerUp($event)" (scroll)="keepUnscrolled($event)">
+  <f-canvas fZoom [fZoomMinimum]="0.1" [fZoomMaximum]="2" (fCanvasChange)="onCanvasChange($event)">
+    <f-connection-for-create fType="bezier" fBehavior="fixed" />
+    <!-- Fundo do bloco do "try", atrás das ligações e dos passos, e o cabeçalho de cada galho. -->
+    <ng-container ngProjectAs="[fGroups]">
+      @for (block of shownBlocks(); track block.id) {
+        <div [class]="'flow-block is-' + blockSlug[block.kind]" aria-hidden="true" [style.left.px]="block.x" [style.top.px]="block.y" [style.width.px]="block.width" [style.height.px]="block.height">
+          @if (block.label) {
+            <span class="flow-block-label">{{ block.label }}</span>
+          }
+          @for (section of block.sections; track section.x + ',' + section.y) {
+            @if (horizontal()) {
+              <span class="flow-block-section" [style.left.px]="section.x - block.x">{{ section.label }}</span>
+            } @else {
+              <span class="flow-block-section" [style.top.px]="section.y - block.y">{{ section.label }}</span>
+            }
+          }
+        </div>
+      }
+      @for (head of shownHeads(); track head.x + ',' + head.y) {
+        <span class="flow-branch-head" aria-hidden="true" [style.left.px]="head.x" [style.top.px]="head.y">{{ head.label }}</span>
+      }
+    </ng-container>
+    <ng-container ngProjectAs="[fConnections]">
+      @for (item of edges(); track item.index) {
+        <f-connection
+          [fConnectionId]="'e' + item.index"
+          [fSourceId]="sourceId(item)"
+          [fTargetId]="targetId(item)"
+          [fType]="connectionType()"
+          fBehavior="fixed"
+          [fRadius]="10"
+          [fSelectionDisabled]="true"
+          [fReassignDisabled]="!editing()"
+          [class]="edgeClasses().get(item.index)">
+          <f-connection-marker-arrow [type]="markerEnd" />
+          <div fConnectionContent [position]="0.5" [hidden]="(!item.edge.label || quietLabels().has(item.index)) && item.edge.confidence === EdgeConfidence.Extracted">
+            <span class="edge-label">
+              @if (item.edge.confidence === EdgeConfidence.Confirmed) {
+                <span class="edge-mark is-confirmed" title="Confirmada por você">✓</span>
+              } @else if (item.edge.confidence === EdgeConfidence.Inferred) {
+                <span class="edge-mark is-inferred" title="Inferida, a conferir">?</span>
+              }
+              @if (!quietLabels().has(item.index)) {
+                {{ item.edge.label }}
+              }
+            </span>
+          </div>
+        </f-connection>
+      }
+    </ng-container>
+
+    <ng-container ngProjectAs="[fNodes]">
+      @for (item of placed(); track item.node.id) {
+        <div
+          fNode
+          fDragHandle
+          [fNodeId]="item.node.id"
+          [fNodePosition]="{ x: item.box.x, y: item.box.y }"
+          [fNodeSize]="{ width: item.box.width, height: item.box.height }"
+          [fMinimapClass]="minimapClasses().get(item.node.id) ?? ''"
+          [attr.data-node-id]="item.node.id"
+          (fNodePositionChange)="onNodeMoved(item.node.id, $event)"
+          [class]="classesOf(item)"
+          [attr.tabindex]="item.node.id === tabStop() ? 0 : -1"
+          role="button"
+          [attr.aria-pressed]="item.node.id === selectedId()"
+          [attr.aria-label]="nodeAria(item.node)"
+          aria-describedby="graph-keys-help"
+          (contextmenu)="openMenu($event, item.node.id)"
+          (keydown.enter)="selectNode.emit(item.repeatOf ?? item.node.id)" (keydown)="onFoldKey($event, item.node.id)"
+          (keydown.space)="$event.preventDefault(); selectNode.emit(item.repeatOf ?? item.node.id)"
+          (keydown.arrowleft)="walk($event, item.node.id, 'left')" (keydown.arrowright)="walk($event, item.node.id, 'right')"
+          (keydown.arrowup)="walk($event, item.node.id, 'up')" (keydown.arrowdown)="walk($event, item.node.id, 'down')"
+          (keydown.alt.arrowleft)="moveByKey($event, item, -1, 0)" (keydown.alt.arrowright)="moveByKey($event, item, 1, 0)"
+          (keydown.alt.arrowup)="moveByKey($event, item, 0, -1)" (keydown.alt.arrowdown)="moveByKey($event, item, 0, 1)">
+          <div fConnector fConnectorType="target" [fConnectorConnectableSide]="horizontal() ? 'top' : 'left'" [fConnectorDisabled]="!editing()" [fConnectorId]="'in:' + item.node.id" class="flow-port is-in"></div>
+          @if (item.number) {
+            <span class="flow-node-step" aria-hidden="true">{{ item.number }}</span>
+          }
+          @if (findingBadges().get(item.node.id) || item.node.change !== undefined || noteIds().has(item.node.id)) {
+            <span class="flow-node-marks">
+              @if (noteIds().get(item.node.id); as note) {
+                <span class="flow-node-note" [title]="'Sua anotação: ' + note">✎</span>
+              }
+              @if (item.node.change !== undefined) {
+                <span class="flow-node-change" [title]="changeLabel[item.node.change]">{{ changeLabel[item.node.change] }}</span>
+              }
+              @if (findingBadges().get(item.node.id); as badge) {
+                <span [class]="'flow-node-finding is-' + badge.slug" [title]="badge.title">{{ badge.count }}</span>
+              }
+            </span>
+          }
+          <span class="flow-node-head">
+            <span class="flow-node-glyph" aria-hidden="true">{{ item.repeatOf ? '↻' : item.node.id.startsWith(collapsedPrefix) ? '⊕' : glyph[item.node.kind] }}</span>
+            <span class="flow-node-label" [title]="item.node.label">
+              @if (item.owner) {
+                <span class="flow-node-owner">{{ item.owner }}</span>
+              }
+              <span class="flow-node-name">{{ item.name }}</span>
+            </span>
+            @if (item.outcome; as outcome) {
+              <span [class]="'flow-node-outcome is-' + outcome.slug" [title]="'Se a condição vale: ' + outcome.label"><span aria-hidden="true">→ </span>{{ outcome.label }}</span>
+            }
+            @if (item.effect !== undefined) {
+              <span [class]="'flow-node-effect is-' + effectSlug[item.effect]" [title]="effectHint[item.effect]">{{ effectLabel[item.effect] }}</span>
+            }
+            @let fold = folds().get(item.node.id);
+            @if (fold !== undefined) {
+              <span class="flow-node-fold" (pointerdown)="$event.stopPropagation()" (click)="onFold($event, item.node.id)" [title]="foldAction[fold]" aria-hidden="true">{{ foldGlyph[fold] }}</span>
+            }
+          </span>
+          @if (item.box.height > 44) {
+            <span class="flow-node-meta">{{ meta(item.node) }}</span>
+          }
+          <div fConnector fConnectorType="source" [fConnectorConnectableSide]="horizontal() ? 'right' : 'bottom'" fConnectorMultiple [fConnectorDisabled]="!editing()" [fConnectorId]="'out:' + item.node.id" class="flow-port is-out"></div>
+          <div fConnector fConnectorType="target" [fConnectorConnectableSide]="horizontal() ? 'left' : 'top'" [fConnectorDisabled]="!editing()" [fConnectorId]="'top:' + item.node.id" class="flow-port is-top"></div>
+          <div fConnector fConnectorType="source" [fConnectorConnectableSide]="horizontal() ? 'bottom' : 'right'" fConnectorMultiple [fConnectorDisabled]="!editing()" [fConnectorId]="'side:' + item.node.id" class="flow-port is-side"></div>
+        </div>
+      }
+    </ng-container>
+  </f-canvas>
+  <f-selection-area [fTrigger]="selectionTrigger" />
+  <f-minimap [fMinSize]="1000" />
+</f-flow>
+} @else {
+  <div class="canvas-status" aria-live="polite">
+    <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+      <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+    </svg>
+    <p class="muted">Desenhando o grafo…</p>
+  </div>
+}
+
+<span id="graph-keys-help" class="visually-hidden">Setas andam pelos passos seguindo as ligações; Alt+setas move o passo; Enter escolhe; Ctrl+clique ou Shift+arrastar no fundo marca vários para mover juntos.</span>
+<span class="visually-hidden" role="status">{{ walkMessage() }}</span>
+
+<div class="tools" role="toolbar" aria-label="Navegação do grafo">
+  <button type="button" class="btn btn-icon" (click)="zoomIn()" aria-label="Aproximar" title="Aproximar">+</button>
+  <button type="button" class="btn btn-icon" (click)="zoomOut()" aria-label="Afastar" title="Afastar">−</button>
+  <button type="button" class="btn btn-icon" (click)="fit()" aria-label="Enquadrar o grafo na tela" title="Enquadrar o grafo na tela">⤢</button>
+  <button type="button" class="btn btn-icon" (click)="toggleDirection()"
+    [attr.aria-label]="'Desenho ' + directionLabel[direction()] + '. Trocar para ' + directionLabel[nextDirection()]"
+    [title]="'Desenhar ' + directionLabel[nextDirection()]">{{ directionGlyph[nextDirection()] }}</button>
+  <button type="button" class="btn btn-icon" (click)="openSearch.emit()" aria-label="Buscar passo no grafo (Ctrl+F)" title="Buscar passo no grafo (Ctrl+F)">⌕</button>
+</div>
+
+<!-- Botões com texto numa linha ao lado dos ícones: a coluna fica baixa e não cruza a legenda. -->
+<div class="tools-row" role="toolbar" aria-label="Filtros do grafo">
+  @if (holes().length > 0) {
+    <button type="button" class="btn btn-g btn-small holes-button" (click)="nextHole()" title="Ir para o próximo não resolvido">
+      Não resolvidos ({{ holes().length }})
+    </button>
+  }
+  <button type="button" class="btn btn-g btn-small tools-row-button" [attr.aria-pressed]="brief()" (click)="toggleBrief()"
+    [title]="brief() ? 'Mostrar também o que cada método chama' : 'Mostrar só o código do método de entrada, com os métodos chamados fechados'">
+    {{ brief() ? 'Completo' : 'Resumo' }}
+  </button>
+  @if (hasMoved()) {
+    <button type="button" class="btn btn-g btn-small tools-row-button" (click)="resetLayout()" title="Volta os passos que você arrastou para a organização automática">Reorganizar</button>
+  }
+  @if (frameworkCount() > 0) {
+    <button type="button" class="btn btn-g btn-small framework-button" [attr.aria-pressed]="showFramework()" (click)="toggleFramework.emit()"
+      [title]="showFramework() ? 'Esconder as chamadas do .NET (LINQ, EF Core, cache, DI, HttpClient)' : 'Mostrar as chamadas do .NET (LINQ, EF Core, cache, DI, HttpClient)'">
+      {{ showFramework() ? 'Esconder' : 'Mostrar' }} chamadas do .NET ({{ frameworkCount() }})
+    </button>
+  }
+</div>
+
+@if (undoReset()) {
+  <div class="toast" role="status">
+    <span>Posições redefinidas.</span>
+    <button type="button" class="btn btn-g btn-small" (click)="undoResetLayout()">Desfazer</button>
+  </div>
+}
+
+<!-- Legenda desenhada com a mesma espessura, traço e marca das ligações do grafo. -->
+<div class="legend-box">
+<button type="button" class="btn btn-g btn-small legend-toggle" (click)="toggleLegend()" [attr.aria-expanded]="legendOpen()" aria-controls="legend">
+  {{ legendOpen() ? 'Esconder legenda' : 'Legenda' }}
+</button>
+@if (legendOpen()) {
+<dl id="legend" class="legend" aria-label="Legenda">
+  <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-extracted" /></svg></dt><dd>Extraída do código</dd></div>
+  <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-inferred" /></svg><span class="edge-mark is-inferred" aria-hidden="true">?</span></dt><dd>Inferida, a conferir</dd></div>
+  <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-confirmed" /></svg><span class="edge-mark is-confirmed" aria-hidden="true">✓</span></dt><dd>Confirmada por você</dd></div>
+  <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-trail" /></svg></dt><dd>Caminho até o nó escolhido</dd></div>
+  @if (horizontal()) {
+    <div><dt><span class="legend-glyph" aria-hidden="true">→</span></dt><dd>Linha para a direita: o passo seguinte, na ordem do código</dd></div>
+    <div><dt><span class="legend-glyph" aria-hidden="true">↓</span></dt><dd>Seta para baixo: o que o passo chama, ou o que acontece quando a condição vale</dd></div>
+  } @else {
+    <div><dt><span class="legend-glyph" aria-hidden="true">↓</span></dt><dd>Linha para baixo: o passo seguinte, na ordem do código</dd></div>
+    <div><dt><span class="legend-glyph" aria-hidden="true">→</span></dt><dd>Seta para a direita: o que o passo chama, ou o que acontece quando a condição vale</dd></div>
+  }
+  <div><dt><span class="flow-node-step is-legend" aria-hidden="true">2.1</span></dt><dd>Ordem de leitura: o passo 2.1 vem dentro do passo 2</dd></div>
+  <div><dt><span class="flow-node-effect is-legend" aria-hidden="true">banco</span></dt><dd>O que o passo faz no mundo: banco, mensagem, cache, arquivo ou fila</dd></div>
+  <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-main" /></svg></dt><dd>Linha mais grossa: o código do método de entrada; os passos mais claros estão mais fundo nas chamadas</dd></div>
+  <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-exit" /></svg></dt><dd>Vermelha tracejada: o fluxo para com erro</dd></div>
+  <div><dt><span class="swatch is-unresolved"></span></dt><dd>Não resolvido</dd></div>
+  <div><dt><span class="legend-grab" aria-hidden="true">✥</span></dt><dd>Arraste um passo para reorganizar (ou Alt+setas); setas andam pelos passos</dd></div>
+  <div><dt><span class="legend-glyph" aria-hidden="true">⬚</span></dt><dd>Arraste no fundo para mover a visão; Shift+arrastar ou Ctrl+clique marca vários passos para mover juntos</dd></div>
+  @if (comparing()) {
+    <div><dt><span class="legend-box-swatch is-added"></span></dt><dd>Passo novo na comparação</dd></div>
+    <div><dt><span class="legend-box-swatch is-removed"></span></dt><dd>Saiu do fluxo</dd></div>
+  }
+  @if (matchIds()) {
+    <div><dt><span class="legend-box-swatch is-match"></span></dt><dd>Resultado da busca</dd></div>
+  }
+  @if (hasCollapsed()) {
+    <div><dt><span class="legend-glyph" aria-hidden="true">⊕</span></dt><dd>Passos recolhidos (clique para abrir)</dd></div>
+  }
+  @if (noteIds().size > 0) {
+    <div><dt><span class="legend-glyph" aria-hidden="true">✎</span></dt><dd>Sua anotação</dd></div>
+  }
+</dl>
+}
+</div>

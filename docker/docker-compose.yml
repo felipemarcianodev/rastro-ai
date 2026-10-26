@@ -1,0 +1,31 @@
+# Rastro no Docker (opcional; o caminho principal é o "rastro" do dotnet tool, ADR-002).
+# Um container só, preso ao 127.0.0.1: http://localhost:7400. Banco SQLite no volume rastro-data.
+name: rastro-ai
+
+services:
+  rastro:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: rastro
+    environment:
+      # Repositório que o Rastro pode ler, dentro da pasta montada em /repos (padrão: a pasta acima
+      # do repositório). Para mais de um, repita com __1__, __2__.
+      Rastro__Repositories__0__Name: ${REPO_0_NAME:-meu-sistema}
+      Rastro__Repositories__0__Path: /repos/${REPO_0_FOLDER:-meu-sistema}
+      Rastro__Repositories__0__BuildCommand: ${REPO_0_BUILD_COMMAND:-}
+      Rastro__Repositories__0__TestCommand: ${REPO_0_TEST_COMMAND:-}
+      # O código montado é só leitura e o restore dele foi feito no Windows: a análise copia
+      # para /work e roda o restore lá (o cache do NuGet fica num volume).
+      Rastro__Analysis__CopyAndRestore: "true"
+      Rastro__Analysis__WorkDirectory: /work
+    ports:
+      - "127.0.0.1:${WEB_PORT:-7400}:8080"
+    volumes:
+      - rastro-data:/data
+      - ${REPOS_DIR:-../..}:/repos:ro
+      - rastro-nuget:/root/.nuget/packages
+
+volumes:
+  rastro-data:
+  rastro-nuget:

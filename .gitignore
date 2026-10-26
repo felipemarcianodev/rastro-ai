@@ -1,0 +1,11 @@
+bin/
+obj/
+node_modules/
+dist/
+.angular/
+*.user
+.vs/
+.vscode/
+.env
+artifacts/
+backend/src/Rastro.Api/wwwroot/

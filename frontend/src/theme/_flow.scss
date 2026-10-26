@@ -1,0 +1,867 @@
+// Grafo (Foblex Flow). Fica no global porque os estilos de componente não chegam
+// dentro do SVG das conexões.
+
+:root {
+  --ff-flow-font-family: var(--font-sans);
+  --ff-canvas-background-color: var(--paper);
+  --ff-flow-background-color: var(--paper);
+}
+
+.flow-host {
+  // Conectores só ancoram as linhas: sem bolinha visível (o tema padrão desenha uma).
+  --ff-connector-accent-color: transparent;
+  --ff-connector-background-color: transparent;
+  --ff-connector-border-color: transparent;
+  --ff-connector-connected-color: transparent;
+  --ff-connector-border-width: 0;
+  --ff-node-border-color-selected: var(--trail);
+  --ff-node-shadow-selected: none;
+
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--paper);
+}
+
+// Nós ------------------------------------------------------------------------
+
+// O tema do Foblex dá 24px de padding ao .f-node e vencia o nosso: o texto perdia 24px em todo
+// nó (e a largura calculada pelo nome não batia). O seletor com .flow-host vence o dele.
+.flow-host .flow-node.f-node {
+  padding: var(--space-2) var(--space-3);
+}
+
+.flow-node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  // O passo se arrasta para reorganizar o grafo; clicar continua escolhendo.
+  cursor: grab;
+  transition: opacity 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+
+  // O Foblex põe "move" na alça de arrastar: o seletor do host vence.
+  .flow-host &.f-drag-handle {
+    cursor: grab;
+  }
+
+  .flow-host &.f-drag-handle:active {
+    cursor: grabbing;
+  }
+
+  &:hover {
+    border-color: var(--ink-soft);
+  }
+
+  &.f-selected {
+    box-shadow: none;
+  }
+
+  &.is-selected {
+    border-color: var(--trail);
+    box-shadow: 0 0 0 3px var(--trail-wash), var(--shadow-lift);
+  }
+
+  &.is-on-trail {
+    border-color: var(--trail);
+  }
+
+  // Fora da trilha: recua, mas o nome ainda se lê.
+  &.is-dim {
+    opacity: 0.45;
+  }
+
+  // Foco e seleção juntos: os dois anéis aparecem (o seletor de seleção venceria o foco global).
+  &:focus-visible {
+    box-shadow: var(--focus);
+  }
+
+  &.is-selected:focus-visible {
+    box-shadow: 0 0 0 3px var(--trail-wash), var(--focus);
+  }
+
+  // Vários passos marcados (laço ou Ctrl+clique): contorno tracejado, eles se movem juntos.
+  .flow-host.has-group &.f-selected {
+    outline: 2px dashed var(--trail);
+    outline-offset: 3px;
+  }
+}
+
+// Espaço segurado: a "mão" para mover a visão.
+.flow-host.is-panning,
+.flow-host.is-panning .flow-node.f-drag-handle {
+  cursor: grab;
+}
+
+.flow-host.is-panning:active {
+  cursor: grabbing;
+}
+
+.flow-node-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.flow-node-glyph {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--surface);
+  background: var(--ink-soft);
+}
+
+.flow-node-label {
+  display: flex;
+  min-width: 0;
+  white-space: nowrap;
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+}
+
+// O dono encolhe com reticências; o nome do método fica sempre inteiro.
+.flow-node-owner {
+  min-width: 1ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--ink-soft);
+}
+
+.flow-node-name {
+  flex: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-node-meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-xs);
+  color: var(--ink-soft);
+}
+
+.flow-node.kind-entry {
+  border-width: 2px;
+  border-color: var(--ink);
+
+  .flow-node-glyph {
+    background: var(--ink);
+  }
+}
+
+// Fase 19: o método é o que dá o rumo do fluxo e fica em destaque; o comando (if, switch, laço,
+// try) fica leve, sem fundo e com contorno claro.
+.flow-node.kind-method {
+  border-color: var(--ink-soft);
+
+  .flow-node-glyph {
+    background: var(--ink-soft);
+  }
+
+  .flow-node-name {
+    font-weight: 600;
+  }
+}
+
+.flow-node.kind-decision,
+.flow-node.kind-loop,
+.flow-node.kind-try {
+  border-color: var(--line);
+  background: transparent;
+
+  .flow-node-glyph {
+    background: var(--kind-decision);
+  }
+}
+
+// Validação num passo só (Fase 19): a condição encolhe com reticências e o desfecho fica
+// inteiro, na ponta direita (alinhado entre as validações em sequência).
+.flow-node.is-guard {
+  .flow-node-label,
+  .flow-node-name {
+    flex: 0 1 auto;
+  }
+}
+
+.flow-node-outcome {
+  flex: none;
+  margin-left: auto;
+  padding-left: var(--space-2);
+  font-family: var(--font-code);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  color: var(--ink-soft);
+
+  &.is-throw {
+    color: var(--danger);
+    font-weight: 600;
+  }
+}
+
+// Bloco do "try" e do laço na árvore (Fase 19): fundo atrás do passo e do corpo; cada catch e o
+// finally ganham um cabeçalho. Não recebe clique: arrastar no fundo continua movendo a visão.
+.flow-block {
+  position: absolute;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--kind-decision);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-sunk) 70%, transparent);
+  pointer-events: none;
+}
+
+.flow-block-section {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 32px; // SECTION_HEAD em timeline-layout.ts (texto em cima, folga para o número do passo)
+  padding-left: 48px;
+  border-top: 1px dashed var(--line-strong);
+  font-family: var(--font-code);
+  font-size: 11px;
+  line-height: 20px;
+  color: var(--ink-soft);
+}
+
+.flow-host.is-far .flow-block-section {
+  display: none;
+}
+
+.flow-node.kind-return,
+.flow-node.kind-jump {
+  border-style: dashed;
+}
+
+.flow-node.kind-throw {
+  border-color: color-mix(in srgb, var(--danger) 60%, var(--line));
+
+  .flow-node-glyph {
+    background: var(--danger);
+  }
+}
+
+.flow-node.kind-external {
+  border-radius: 999px;
+  background: transparent;
+
+  .flow-node-glyph {
+    background: var(--kind-external);
+  }
+}
+
+.flow-node.kind-unresolved {
+  border: 2px dotted var(--unresolved);
+  background: var(--unresolved-wash);
+
+  .flow-node-glyph {
+    background: var(--unresolved);
+  }
+}
+
+// Portas: invisíveis, só ancoram as conexões (com tamanho próprio, exigência do Foblex).
+.flow-host .flow-port.f-connector {
+  position: absolute;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+
+  &::before,
+  &::after {
+    display: none;
+  }
+
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  pointer-events: none;
+
+  &.is-in {
+    left: -4px;
+  }
+
+  &.is-out {
+    right: -4px;
+  }
+}
+
+// Conexões --------------------------------------------------------------------
+
+.flow-host .f-connection .f-connection-path {
+  stroke: var(--edge);
+  stroke-width: 1.5;
+  fill: none;
+}
+
+// Alças de reconectar: o grafo é só leitura nesta fase.
+.flow-host .f-connection-drag-handle {
+  display: none;
+}
+
+.f-connection .f-connection-selection {
+  stroke: transparent;
+}
+
+.flow-host .edge-inferred .f-connection-path {
+  stroke: var(--inferred);
+  stroke-dasharray: 6 4;
+}
+
+.flow-host .edge-confirmed .f-connection-path {
+  stroke: var(--confirmed);
+  stroke-width: 2.5;
+}
+
+// A seta acompanha a confiança da ligação (a cor nunca é a única pista: há ✓ e ?).
+.flow-host .edge-inferred .f-connection-marker-end {
+  fill: var(--inferred);
+}
+
+.flow-host .edge-confirmed .f-connection-marker-end {
+  fill: var(--confirmed);
+}
+
+.edge-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 2px;
+  border-radius: 50%;
+  color: var(--surface);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: middle;
+
+  &.is-confirmed {
+    background: var(--confirmed);
+  }
+
+  &.is-inferred {
+    background: var(--inferred);
+  }
+}
+
+// Afastado demais para ler (escala < 0,45): rótulos somem e o nó fica só com o glifo grande
+// e as marcas, que ainda se distinguem. O nome continua no title e no leitor de tela.
+.flow-host.is-far {
+  .edge-label,
+  .flow-node-label,
+  .flow-node-meta {
+    display: none;
+  }
+
+  .flow-node {
+    align-items: center;
+  }
+
+  .flow-node-glyph {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    font-size: 20px;
+  }
+
+  .flow-node-marks {
+    top: -16px;
+    transform: scale(1.8);
+    transform-origin: top right;
+  }
+}
+
+.flow-host .f-minimap .f-minimap-node.f-component.is-on-trail {
+  fill: var(--trail);
+}
+
+.edge-dim {
+  opacity: 0.3;
+}
+
+.flow-host .edge-trail .f-connection-path {
+  stroke: var(--trail);
+  stroke-width: 3;
+}
+
+.f-connection-marker-end,
+.f-connection-selected-marker-end {
+  fill: var(--edge);
+}
+
+.edge-trail .f-connection-marker-end {
+  fill: var(--trail);
+}
+
+.edge-label {
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  color: var(--ink-soft);
+  font-family: var(--font-code);
+  font-size: 11px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.edge-trail .edge-label {
+  border-color: var(--trail);
+  color: var(--trail-ink);
+}
+
+// Minimapa --------------------------------------------------------------------
+
+.flow-host .f-minimap {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  width: 180px;
+  height: 120px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  overflow: hidden;
+
+  .f-minimap-node.f-component {
+    fill: var(--line-strong);
+  }
+
+  .f-minimap-node.f-component.is-unresolved {
+    fill: var(--unresolved);
+  }
+
+  .f-minimap-view.f-component {
+    fill: var(--trail-wash);
+    stroke: var(--trail);
+  }
+}
+
+// Edição (Fase 7) ---------------------------------------------------------------
+
+.flow-node-change {
+  flex: none;
+  padding: 0 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--surface);
+  background: var(--ink);
+}
+
+.flow-node.change-added {
+  border-style: dashed;
+  border-color: var(--ink);
+}
+
+.flow-node.change-modified .flow-node-change {
+  background: var(--kind-decision);
+}
+
+.flow-node.change-removed {
+  opacity: 0.5;
+
+  .flow-node-label {
+    text-decoration: line-through;
+  }
+
+  .flow-node-change {
+    background: var(--danger);
+  }
+}
+
+.flow-host .edge-change-added .f-connection-path {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 3 3;
+}
+
+.flow-host .edge-change-removed {
+  opacity: 0.35;
+
+  .f-connection-path {
+    stroke-dasharray: 2 6;
+  }
+}
+
+// No modo de edição as portas aparecem: é delas que se arrasta para ligar.
+.flow-host.is-editing .flow-port.f-connector {
+  width: 12px;
+  height: 12px;
+  margin-top: -6px;
+  border: 2px solid var(--ink);
+  border-radius: 50%;
+  background: var(--surface);
+  pointer-events: auto;
+  cursor: crosshair;
+
+  &.is-in {
+    left: -6px;
+  }
+
+  &.is-out {
+    right: -6px;
+  }
+}
+
+.flow-host .f-connection-for-create .f-connection-path {
+  stroke: var(--ink);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+// Marcas do nó (mudança do rascunho, achados): no canto de cima, fora da linha do nome,
+// para não espremer o dono do método.
+.flow-node-marks {
+  position: absolute;
+  top: -9px;
+  right: var(--space-2);
+  display: flex;
+  gap: 4px;
+  pointer-events: none;
+}
+
+.flow-node-marks > * {
+  pointer-events: auto;
+  box-shadow: 0 0 0 2px var(--paper);
+}
+
+// Marca de achados de qualidade no nó (Fase 10).
+.flow-node-finding {
+  flex: none;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  color: var(--surface);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+.flow-node-finding.is-critical {
+  background: var(--danger);
+}
+
+.flow-node-finding.is-warning {
+  background: var(--unresolved);
+}
+
+.flow-node-finding.is-info {
+  background: var(--ink-soft);
+}
+
+// Busca no grafo (Fase 12): passos que batem ganham um contorno; o atual, mais forte.
+.flow-node.is-match {
+  outline: 2px dashed var(--ink);
+  outline-offset: 3px;
+}
+
+.flow-node.is-match-current {
+  outline-style: solid;
+  outline-width: 3px;
+}
+
+.flow-host .f-minimap .f-minimap-node.f-component.is-match {
+  fill: var(--ink);
+}
+
+// Nó que guarda o que foi recolhido ("+34 passos"): clicar expande.
+.flow-node.is-collapsed {
+  border-style: dashed;
+  border-color: var(--ink-soft);
+  background: var(--surface-sunk);
+  cursor: pointer;
+
+  .flow-node-glyph {
+    background: var(--ink-soft);
+  }
+
+  .flow-node-name {
+    font-family: var(--font-sans);
+    font-weight: 600;
+  }
+}
+
+// Árvore (Fase 18): ▾/▸ no passo do método abre e fecha o detalhe dele.
+.flow-node-fold {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  font-size: 15px;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--surface-sunk);
+    color: var(--ink);
+  }
+}
+
+// Portas da linha do tempo (Fases 20 e 21). Para baixo (vertical e árvore): o passo seguinte sai
+// por baixo e entra por cima, a 16px da esquerda (a mesma reta); o galho sai pela direita e entra
+// pela esquerda.
+.flow-host.is-down .flow-port.f-connector {
+  &.is-out {
+    top: auto;
+    right: auto;
+    bottom: -4px;
+    left: 16px;
+    margin-top: 0;
+  }
+
+  &.is-side {
+    right: -4px;
+  }
+
+  &.is-top {
+    top: -4px;
+    left: 16px;
+    margin-top: 0;
+  }
+}
+
+// Para a direita (horizontal): o passo seguinte sai pela direita e entra pela esquerda, a 16px
+// do topo (a mesma reta); o galho sai por baixo e entra por cima.
+.flow-host.is-across .flow-port.f-connector {
+  &.is-out {
+    top: 16px;
+    right: -4px;
+    margin-top: 0;
+  }
+
+  &.is-top {
+    top: 16px;
+    left: -4px;
+    margin-top: 0;
+  }
+
+  &.is-side {
+    top: auto;
+    bottom: -4px;
+    left: 16px;
+    margin-top: 0;
+  }
+
+  &.is-in {
+    top: -4px;
+    left: 16px;
+    margin-top: 0;
+  }
+}
+
+// Seção do bloco na horizontal: uma divisão em pé, com o rótulo no alto.
+.flow-host.is-across .flow-block-section {
+  top: 0;
+  bottom: 0;
+  right: auto;
+  height: auto;
+  padding: 4px var(--space-2);
+  border-top: 0;
+  border-left: 1px dashed var(--line-strong);
+  line-height: normal;
+}
+
+// Passo que aparece de novo na linha do tempo (método chamado em dois lugares): tracejado e
+// mais leve; clicar leva ao original, onde estão os passos dele.
+.flow-node.is-repeat {
+  border-style: dashed;
+  background: transparent;
+  cursor: pointer;
+
+  .flow-node-label {
+    color: var(--ink-soft);
+  }
+
+  .flow-node-glyph {
+    background: var(--ink-soft);
+  }
+}
+
+// Cabeçalho do galho na linha do tempo ("Se sim", "Se não", "Caso ..."), logo acima do primeiro
+// passo dele. Não recebe clique: arrastar no fundo continua movendo a visão.
+.flow-branch-head {
+  position: absolute;
+  height: 22px; // TIMELINE_HEAD
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  color: var(--ink-soft);
+  pointer-events: none;
+}
+
+.flow-host.is-far .flow-branch-head {
+  display: none;
+}
+
+// Marca de anotação do usuário no nó (Fase 12).
+.flow-node-note {
+  flex: none;
+  min-width: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--trail);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+
+// Comparar antes e depois (Fase 12): novo em azul, o que saiu em vermelho e riscado.
+.flow-host.is-comparing {
+  .flow-node.change-added {
+    border: 2px solid var(--kind-decision);
+
+    .flow-node-change {
+      background: var(--kind-decision);
+    }
+  }
+
+  .flow-node.change-removed {
+    border: 2px dashed var(--danger);
+    opacity: 0.7;
+  }
+
+  .edge-change-added .f-connection-path {
+    stroke: var(--kind-decision);
+    stroke-dasharray: none;
+  }
+
+  .edge-change-removed {
+    opacity: 0.6;
+
+    .f-connection-path {
+      stroke: var(--danger);
+    }
+  }
+}
+
+// Leitura de relance (Fase 23) ---------------------------------------------------
+
+// Número de leitura do passo (1, 2, 2.1), no canto de cima, fora da linha do nome e depois da
+// porta de cima (a 16px da esquerda), onde chega a linha do passo anterior.
+.flow-node-step {
+  position: absolute;
+  top: -9px;
+  left: 30px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--paper);
+  box-shadow: 0 0 0 1px var(--line-strong);
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--ink-soft);
+  pointer-events: none;
+
+  &.is-legend {
+    position: static;
+  }
+}
+
+// O que o passo faz no mundo: etiqueta em texto, para quem não programa ler sem legenda.
+.flow-node-effect {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  color: var(--ink-soft);
+  background: var(--surface-sunk);
+
+  &.is-database {
+    border-color: color-mix(in srgb, var(--kind-decision) 55%, var(--line));
+    color: var(--kind-decision);
+  }
+
+  &.is-message {
+    border-color: color-mix(in srgb, var(--kind-external) 55%, var(--line));
+    color: var(--kind-external);
+  }
+
+  &.is-cache,
+  &.is-file,
+  &.is-queue {
+    border-color: color-mix(in srgb, var(--trail) 55%, var(--line));
+  }
+}
+
+// Profundidade na cadeia de chamadas: quanto mais fundo, mais leve.
+.flow-node.is-depth-1 {
+  opacity: 0.9;
+}
+
+.flow-node.is-depth-2 {
+  opacity: 0.72;
+}
+
+// O código do método de entrada: linha mais grossa. A chegada a um throw: vermelha e tracejada.
+.flow-host .edge-main .f-connection-path {
+  stroke: var(--ink-soft);
+  stroke-width: 2.25;
+}
+
+.flow-host .edge-exit .f-connection-path {
+  stroke: color-mix(in srgb, var(--danger) 70%, transparent);
+  stroke-dasharray: 4 3;
+}
+
+.flow-host .edge-exit .f-connection-marker-end {
+  fill: var(--danger);
+}
+
+// Moldura do laço: o que se repete, com "Repete ..." no cabeçalho.
+.flow-block.is-loop {
+  border: 1px dashed color-mix(in srgb, var(--kind-external) 60%, var(--line));
+  border-left: 3px solid var(--kind-external);
+  background: color-mix(in srgb, var(--kind-external) 6%, transparent);
+
+  .flow-block-label {
+    color: var(--kind-external);
+  }
+}
+
+.flow-block-label {
+  position: absolute;
+  top: 4px;
+  left: var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--ink-soft);
+}
+
+.flow-host.is-far {
+  .flow-node-step,
+  .flow-block-label {
+    display: none;
+  }
+}

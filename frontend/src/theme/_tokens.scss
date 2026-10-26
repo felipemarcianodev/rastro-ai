@@ -1,0 +1,551 @@
+// Tokens do Rastro AI. Referência: docs/frontend/design-system.md.
+// Papel frio de levantamento de campo, tinta ardósia e um único marcador âmbar (a trilha).
+
+:root {
+  --paper: #f2f4f1;
+  --surface: #ffffff;
+  --surface-sunk: #e8ece9;
+  --ink: #1d2a2e;
+  --ink-soft: #5c6a6e;
+  --line: #d4dbd7;
+  --line-strong: #b7c1bc;
+  // Aresta extraída: contraste >= 3:1 sobre o papel (WCAG 1.4.11).
+  --edge: #6b787c;
+
+  --trail: #d99a00;
+  --trail-ink: #6b4b00;
+  --trail-wash: rgba(217, 154, 0, 0.14);
+
+  --inferred: #6a4fb8;
+  --confirmed: #0e7a6b;
+  --unresolved: #a25a00;
+  --unresolved-wash: rgba(162, 90, 0, 0.08);
+  --danger: #b42318;
+  --danger-wash: rgba(180, 35, 24, 0.08);
+  --ok: #0e7a6b;
+
+  --kind-decision: #2f5d8a;
+  --kind-external: #5c6a6e;
+
+  --font-sans: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;
+  --font-code: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  // Escala tipográfica (razão ~1,2 a partir de 14px).
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+
+  --shadow-lift: 0 1px 2px rgba(29, 42, 46, 0.06), 0 6px 18px rgba(29, 42, 46, 0.08);
+  // Foco do teclado em tinta: o âmbar é só da trilha (seleção), para os dois não se confundirem.
+  --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
+
+  color-scheme: light;
+}
+
+@mixin dark-tokens {
+  --paper: #12191c;
+  --surface: #1a2327;
+  --surface-sunk: #151d20;
+  --ink: #e3e9e6;
+  --ink-soft: #9aa8a4;
+  --line: #2c383d;
+  --line-strong: #3d4b51;
+  --edge: #7f8d89;
+
+  --trail: #f0b429;
+  --trail-ink: #f6d27a;
+  --trail-wash: rgba(240, 180, 41, 0.16);
+
+  --inferred: #a48ef0;
+  --confirmed: #3cc2ad;
+  --unresolved: #e39a3b;
+  --unresolved-wash: rgba(227, 154, 59, 0.1);
+  --danger: #f07167;
+  --danger-wash: rgba(240, 113, 103, 0.1);
+  --ok: #3cc2ad;
+
+  --kind-decision: #7fb0e0;
+  --kind-external: #9aa8a4;
+
+  --shadow-lift: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    @include dark-tokens;
+  }
+}
+
+:root[data-theme='dark'] {
+  @include dark-tokens;
+}
+
+// Paletas alternativas (seletor na barra, a pedido do dono). "Papel" é a padrão (sem atributo).
+// Em todas, a cor forte é só da trilha; não resolvido e inferida nunca colidem com ela.
+
+@mixin nautica-light {
+  --paper: #edf1f4;
+  --surface: #ffffff;
+  --surface-sunk: #e1e8ee;
+  --ink: #0f2438;
+  --ink-soft: #56677a;
+  --line: #c9d3dc;
+  --line-strong: #aebbc8;
+  --edge: #5f7183;
+  --trail: #f26b1d;
+  --trail-ink: #8a3200;
+  --trail-wash: rgba(242, 107, 29, 0.14);
+  --inferred: #7a4fd6;
+  --confirmed: #0b8a6f;
+  --unresolved: #b0306a;
+  --unresolved-wash: rgba(176, 48, 106, 0.08);
+  --kind-decision: #1f5c99;
+}
+
+@mixin nautica-dark {
+  --paper: #0b1622;
+  --surface: #12202e;
+  --surface-sunk: #0e1a26;
+  --ink: #e4ecf3;
+  --ink-soft: #93a4b5;
+  --line: #22344a;
+  --line-strong: #314861;
+  --edge: #8a9bae;
+  --trail: #ff8a47;
+  --trail-ink: #ffc29e;
+  --trail-wash: rgba(255, 138, 71, 0.16);
+  --inferred: #a88bf0;
+  --confirmed: #3cc2a0;
+  --unresolved: #e36a9e;
+  --unresolved-wash: rgba(227, 106, 158, 0.1);
+  --kind-decision: #7fb2e8;
+}
+
+@mixin planta-light {
+  --paper: #f5f6f8;
+  --surface: #ffffff;
+  --surface-sunk: #ebedf2;
+  --ink: #1a1f36;
+  --ink-soft: #5b6178;
+  --line: #d8dbe5;
+  --line-strong: #bcc1d1;
+  --edge: #686e86;
+  --trail: #6c3bf5;
+  --trail-ink: #3a12b0;
+  --trail-wash: rgba(108, 59, 245, 0.12);
+  --inferred: #0e8fb0;
+  --confirmed: #11845b;
+  --unresolved: #b5651d;
+  --unresolved-wash: rgba(181, 101, 29, 0.08);
+  --kind-decision: #3b4a8c;
+}
+
+@mixin planta-dark {
+  --paper: #10121c;
+  --surface: #171a28;
+  --surface-sunk: #131522;
+  --ink: #e6e8f2;
+  --ink-soft: #9ca1b8;
+  --line: #272b3f;
+  --line-strong: #363b55;
+  --edge: #8c92ab;
+  --trail: #9b7cff;
+  --trail-ink: #cdbdff;
+  --trail-wash: rgba(155, 124, 255, 0.16);
+  --inferred: #4fc3e0;
+  --confirmed: #3cc28a;
+  --unresolved: #e39a3b;
+  --unresolved-wash: rgba(227, 154, 59, 0.1);
+  --kind-decision: #8c9be0;
+}
+
+:root[data-palette='nautica'] {
+  @include nautica-light;
+}
+
+:root[data-palette='planta'] {
+  @include planta-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='nautica']:not([data-theme='light']) {
+    @include nautica-dark;
+  }
+
+  :root[data-palette='planta']:not([data-theme='light']) {
+    @include planta-dark;
+  }
+}
+
+:root[data-palette='nautica'][data-theme='dark'] {
+  @include nautica-dark;
+}
+
+:root[data-palette='planta'][data-theme='dark'] {
+  @include planta-dark;
+}
+
+// Proposta de paletas de aplicação web (Fase 13, a pedido do dono): três opções a mais no
+// seletor para comparar na tela. Sem verde; contraste conferido (texto secundário >= 6,3:1 e
+// linhas >= 3,4:1 sobre o papel, nos modos claro e escuro). Trilha, não resolvido e erro em famílias
+// de cor diferentes em cada uma (levantamento de UX da Fase 13).
+
+@mixin grafite-light {
+  --paper: #f7f7f8;
+  --surface: #ffffff;
+  --surface-sunk: #ececef;
+  --ink: #18181b;
+  --ink-soft: #52525b;
+  --line: #e4e4e7;
+  --line-strong: #c9c9cf;
+  --edge: #71717a;
+  --trail: #4f46e5;
+  --trail-ink: #3730a3;
+  --trail-wash: rgba(79, 70, 229, 0.12);
+  --inferred: #c026d3;
+  --confirmed: #0369a1;
+  --unresolved: #b45309;
+  --unresolved-wash: rgba(180, 83, 9, 0.08);
+  --kind-decision: #334155;
+  --kind-external: #52525b;
+}
+
+@mixin grafite-dark {
+  --paper: #0f0f12;
+  --surface: #18181c;
+  --surface-sunk: #131317;
+  --ink: #ececf1;
+  --ink-soft: #a1a1aa;
+  --line: #27272a;
+  --line-strong: #3f3f46;
+  --edge: #8b8b94;
+  --trail: #818cf8;
+  --trail-ink: #c7d2fe;
+  --trail-wash: rgba(129, 140, 248, 0.16);
+  --inferred: #e879f9;
+  --confirmed: #38bdf8;
+  --unresolved: #f59e0b;
+  --unresolved-wash: rgba(245, 158, 11, 0.1);
+  --kind-decision: #94a3b8;
+  --kind-external: #a1a1aa;
+}
+
+@mixin cobalto-light {
+  --paper: #f6f8fc;
+  --surface: #ffffff;
+  --surface-sunk: #e9eef7;
+  --ink: #0a2540;
+  --ink-soft: #425466;
+  --line: #dbe3ef;
+  --line-strong: #c1cddd;
+  --edge: #6b7c93;
+  --trail: #e8590c;
+  --trail-ink: #9a3412;
+  --trail-wash: rgba(232, 89, 12, 0.12);
+  --inferred: #635bff;
+  --confirmed: #0570de;
+  --unresolved: #be185d;
+  --unresolved-wash: rgba(190, 24, 93, 0.08);
+  --kind-decision: #1e3a8a;
+  --kind-external: #425466;
+}
+
+@mixin cobalto-dark {
+  --paper: #0a1628;
+  --surface: #11213a;
+  --surface-sunk: #0d1a2f;
+  --ink: #e6edf7;
+  --ink-soft: #9fb0c7;
+  --line: #1c2f4d;
+  --line-strong: #2a4166;
+  --edge: #8394ad;
+  --trail: #ff8a4c;
+  --trail-ink: #ffc4a3;
+  --trail-wash: rgba(255, 138, 76, 0.16);
+  --inferred: #a5a0ff;
+  --confirmed: #4ea3ff;
+  --unresolved: #f472b6;
+  --unresolved-wash: rgba(244, 114, 182, 0.1);
+  --kind-decision: #93c5fd;
+  --kind-external: #9fb0c7;
+}
+
+@mixin vinho-light {
+  --paper: #f7f5f4;
+  --surface: #ffffff;
+  --surface-sunk: #ece8e6;
+  --ink: #1f1a17;
+  --ink-soft: #57534e;
+  --line: #e2dcd9;
+  --line-strong: #c9c1bd;
+  --edge: #78716c;
+  --trail: #9f1239;
+  --trail-ink: #881337;
+  --trail-wash: rgba(159, 18, 57, 0.1);
+  --inferred: #7c3aed;
+  --confirmed: #1d4ed8;
+  --unresolved: #a16207;
+  --unresolved-wash: rgba(180, 83, 9, 0.08);
+  --kind-decision: #44403c;
+  --kind-external: #57534e;
+  --danger: #c2410c;
+  --danger-wash: rgba(194, 65, 12, 0.08);
+}
+
+@mixin vinho-dark {
+  --paper: #141110;
+  --surface: #1d1917;
+  --surface-sunk: #181412;
+  --ink: #f2eeec;
+  --ink-soft: #a8a29e;
+  --line: #2c2623;
+  --line-strong: #423a36;
+  --edge: #8f8883;
+  --trail: #fb7185;
+  --trail-ink: #fecdd3;
+  --trail-wash: rgba(251, 113, 133, 0.16);
+  --inferred: #a78bfa;
+  --confirmed: #60a5fa;
+  --unresolved: #facc15;
+  --unresolved-wash: rgba(245, 158, 11, 0.1);
+  --kind-decision: #d6d3d1;
+  --kind-external: #a8a29e;
+  --danger: #fb923c;
+  --danger-wash: rgba(251, 146, 60, 0.1);
+}
+
+:root[data-palette='grafite'] {
+  @include grafite-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='grafite']:not([data-theme='light']) {
+    @include grafite-dark;
+  }
+}
+
+:root[data-palette='grafite'][data-theme='dark'] {
+  @include grafite-dark;
+}
+
+:root[data-palette='cobalto'] {
+  @include cobalto-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='cobalto']:not([data-theme='light']) {
+    @include cobalto-dark;
+  }
+}
+
+:root[data-palette='cobalto'][data-theme='dark'] {
+  @include cobalto-dark;
+}
+
+:root[data-palette='vinho'] {
+  @include vinho-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='vinho']:not([data-theme='light']) {
+    @include vinho-dark;
+  }
+}
+
+:root[data-palette='vinho'][data-theme='dark'] {
+  @include vinho-dark;
+}
+
+// Mais três propostas (pesquisa de referências de aplicações web, a pedido do dono): Monocromo
+// (neutros puros com azul elétrico), Rosa e carvão (rosa vivo) e Ártico (ciano frio). Sem verde;
+// contraste conferido: texto >= 4,5:1 e trilha e arestas >= 3:1 sobre o papel e a superfície.
+
+@mixin monocromo-light {
+  --paper: #fafafa;
+  --surface: #ffffff;
+  --surface-sunk: #f0f0f0;
+  --ink: #171717;
+  --ink-soft: #525252;
+  --line: #e5e5e5;
+  --line-strong: #cfcfcf;
+  --edge: #737373;
+  --trail: #0a72ef;
+  --trail-ink: #0650a8;
+  --trail-wash: rgba(10, 114, 239, 0.1);
+  --inferred: #a21caf;
+  --confirmed: #6d28d9;
+  --unresolved: #b45309;
+  --unresolved-wash: rgba(180, 83, 9, 0.08);
+  --kind-decision: #262626;
+  --kind-external: #525252;
+  --danger: #b42318;
+  --danger-wash: rgba(180, 35, 24, 0.08);
+}
+
+@mixin monocromo-dark {
+  --paper: #0a0a0a;
+  --surface: #161616;
+  --surface-sunk: #111111;
+  --ink: #ededed;
+  --ink-soft: #a3a3a3;
+  --line: #262626;
+  --line-strong: #3d3d3d;
+  --edge: #8f8f8f;
+  --trail: #3b9eff;
+  --trail-ink: #b3d7ff;
+  --trail-wash: rgba(59, 158, 255, 0.16);
+  --inferred: #e879f9;
+  --confirmed: #a78bfa;
+  --unresolved: #f59e0b;
+  --unresolved-wash: rgba(245, 158, 11, 0.1);
+  --kind-decision: #d4d4d4;
+  --kind-external: #a3a3a3;
+  --danger: #f87171;
+  --danger-wash: rgba(248, 113, 113, 0.1);
+}
+
+@mixin rosa-light {
+  --paper: #f8f6f7;
+  --surface: #ffffff;
+  --surface-sunk: #eeeaec;
+  --ink: #1c1719;
+  --ink-soft: #5b5357;
+  --line: #e5dfe2;
+  --line-strong: #cbc2c6;
+  --edge: #7a7075;
+  --trail: #db2777;
+  --trail-ink: #9d174d;
+  --trail-wash: rgba(219, 39, 119, 0.1);
+  --inferred: #6d28d9;
+  --confirmed: #1d4ed8;
+  --unresolved: #b45309;
+  --unresolved-wash: rgba(180, 83, 9, 0.08);
+  --kind-decision: #3f3a3c;
+  --kind-external: #5b5357;
+  --danger: #b91c1c;
+  --danger-wash: rgba(185, 28, 28, 0.08);
+}
+
+@mixin rosa-dark {
+  --paper: #131012;
+  --surface: #1c181a;
+  --surface-sunk: #171315;
+  --ink: #f3eef0;
+  --ink-soft: #aaa1a5;
+  --line: #2c2629;
+  --line-strong: #433a3e;
+  --edge: #8e858a;
+  --trail: #f472b6;
+  --trail-ink: #fbcfe8;
+  --trail-wash: rgba(244, 114, 182, 0.16);
+  --inferred: #a78bfa;
+  --confirmed: #60a5fa;
+  --unresolved: #f59e0b;
+  --unresolved-wash: rgba(245, 158, 11, 0.1);
+  --kind-decision: #d6d0d3;
+  --kind-external: #aaa1a5;
+  --danger: #f87171;
+  --danger-wash: rgba(248, 113, 113, 0.1);
+}
+
+@mixin artico-light {
+  --paper: #f4f7f9;
+  --surface: #ffffff;
+  --surface-sunk: #e7edf1;
+  --ink: #0f1f2a;
+  --ink-soft: #4a5c69;
+  --line: #d9e2e8;
+  --line-strong: #bccbd5;
+  --edge: #687c8a;
+  --trail: #0891b2;
+  --trail-ink: #155e75;
+  --trail-wash: rgba(8, 145, 178, 0.12);
+  --inferred: #7c3aed;
+  --confirmed: #4338ca;
+  --unresolved: #b45309;
+  --unresolved-wash: rgba(180, 83, 9, 0.08);
+  --kind-decision: #1e3a5f;
+  --kind-external: #4a5c69;
+  --danger: #b42318;
+  --danger-wash: rgba(180, 35, 24, 0.08);
+}
+
+@mixin artico-dark {
+  --paper: #0b141a;
+  --surface: #121e26;
+  --surface-sunk: #0e1920;
+  --ink: #e4eef3;
+  --ink-soft: #9cb0bd;
+  --line: #1d2d38;
+  --line-strong: #2d4250;
+  --edge: #7f95a3;
+  --trail: #22d3ee;
+  --trail-ink: #a5f3fc;
+  --trail-wash: rgba(34, 211, 238, 0.14);
+  --inferred: #c4b5fd;
+  --confirmed: #a5b4fc;
+  --unresolved: #f59e0b;
+  --unresolved-wash: rgba(245, 158, 11, 0.1);
+  --kind-decision: #93c5fd;
+  --kind-external: #9cb0bd;
+  --danger: #f87171;
+  --danger-wash: rgba(248, 113, 113, 0.1);
+}
+
+:root[data-palette='monocromo'] {
+  @include monocromo-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='monocromo']:not([data-theme='light']) {
+    @include monocromo-dark;
+  }
+}
+
+:root[data-palette='monocromo'][data-theme='dark'] {
+  @include monocromo-dark;
+}
+
+:root[data-palette='rosa'] {
+  @include rosa-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='rosa']:not([data-theme='light']) {
+    @include rosa-dark;
+  }
+}
+
+:root[data-palette='rosa'][data-theme='dark'] {
+  @include rosa-dark;
+}
+
+:root[data-palette='artico'] {
+  @include artico-light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-palette='artico']:not([data-theme='light']) {
+    @include artico-dark;
+  }
+}
+
+:root[data-palette='artico'][data-theme='dark'] {
+  @include artico-dark;
+}

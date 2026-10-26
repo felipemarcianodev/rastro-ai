@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>4f1caff5-a918-438d-8c19-db373626ce3e</UserSecretsId>
+    <AssemblyName>Rastro.Api</AssemblyName>
+  </PropertyGroup>
+
+  <!-- Pacote do produto (ADR-002): "dotnet tool install -g rastro-ai" instala o comando "rastro".
+       Gerado por scripts/empacotar.ps1 (build do front e pack); nunca à mão. Código aberto, MIT (ADR-004). -->
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>rastro</ToolCommandName>
+    <PackageId>rastro-ai</PackageId>
+    <Title>Rastro AI</Title>
+    <Authors>Felipe Marciano</Authors>
+    <Description>Segue o rastro de uma funcionalidade no seu código .NET, da entrada ao fim, mostra o fluxo como grafo editável e gera o prompt exato para a IA alterar aquele ponto. Roda só na sua máquina.</Description>
+    <PackageTags>dotnet;roslyn;architecture;code-flow;c4;mcp;ai</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/felipemarcianodev/rastro-ai</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/felipemarcianodev/rastro-ai</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageOutputPath>$(MSBuildThisFileDirectory)..\..\..\artifacts</PackageOutputPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\docs\pacote\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- O MSBuild vem do SDK instalado (MSBuildLocator); nunca copiar os assemblies dele para a saída. -->
+    <PackageReference Include="Microsoft.Build.Framework" Version="17.11.48" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.12" />
+    <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rastro.Core\Rastro.Core.csproj" />
+    <ProjectReference Include="..\Rastro.Extractor\Rastro.Extractor.csproj" />
+    <ProjectReference Include="..\Rastro.Infrastructure\Rastro.Infrastructure.csproj" />
+    <ProjectReference Include="..\Rastro.Ai\Rastro.Ai.csproj" />
+    <ProjectReference Include="..\Rastro.Mcp\Rastro.Mcp.csproj" />
+  </ItemGroup>
+
+</Project>

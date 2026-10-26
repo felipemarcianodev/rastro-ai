@@ -1,0 +1,42 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/revisao-ptbr.mjs\" commit",
+            "timeout": 10,
+            "statusMessage": "Conferindo o português da mensagem de commit"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/revisao-ptbr.mjs\" pos-edicao",
+            "timeout": 10,
+            "statusMessage": "Conferindo a acentuação do texto"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/revisao-ptbr.mjs\" parada",
+            "timeout": 20,
+            "statusMessage": "Conferindo a revisão de texto em pt-BR"
+          }
+        ]
+      }
+    ]
+  }
+}

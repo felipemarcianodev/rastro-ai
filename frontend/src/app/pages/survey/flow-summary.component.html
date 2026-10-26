@@ -1,0 +1,32 @@
+@if (summary().sentence) {
+  <p class="summary-sentence">{{ summary().sentence }}</p>
+}
+<ng-container [ngTemplateOutlet]="list" [ngTemplateOutletContext]="{ $implicit: summary().items, level: 0 }" />
+<button type="button" class="btn btn-g btn-small" (click)="showAll.set(!showAll())" [attr.aria-expanded]="showAll()">
+  {{ showAll() ? 'Mostrar só a linha principal' : 'Mostrar todos os passos' }}
+</button>
+
+<ng-template #list let-items let-level="level">
+  <ol class="summary-list" [class.is-nested]="level > 0">
+    @for (item of items; track item.number) {
+      <li>
+        @if (item.head) {
+          <span class="summary-head">{{ item.head }}</span>
+        }
+        <button type="button" class="summary-step" (click)="selectNode.emit(item.id)">
+          <span class="summary-number">{{ item.number }}</span>
+          <span class="summary-text">{{ item.repeat ? '↻ ' : '' }}{{ item.text }}</span>
+          @if (item.effect) {
+            <span class="flow-node-effect">{{ item.effect }}</span>
+          }
+        </button>
+        @if (item.detail) {
+          <span class="summary-detail code">{{ item.detail }}</span>
+        }
+        @if (item.children.length > 0 && (showAll() || level === 0)) {
+          <ng-container [ngTemplateOutlet]="list" [ngTemplateOutletContext]="{ $implicit: item.children, level: level + 1 }" />
+        }
+      </li>
+    }
+  </ol>
+</ng-template>

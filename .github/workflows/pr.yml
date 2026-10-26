@@ -1,0 +1,61 @@
+# Conferência de todo pull request contra a main: build e testes do backend e do frontend.
+# O backend roda no Windows, como a máquina de desenvolvimento (o extrator carrega solutions de
+# teste com o MSBuild do SDK); o frontend, no Linux, com o Chrome do runner.
+name: PR
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      # Actions fixadas por SHA (o Dependabot propõe as novas).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build backend/Rastro.slnx -c Release
+
+      - name: Testes
+        run: dotnet test backend/Rastro.slnx -c Release --no-build
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Dependências
+        run: npm ci --ignore-scripts
+
+      - name: Testes
+        run: npm run test:ci
+
+      - name: Build
+        run: npm run build

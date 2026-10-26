@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Rastro.Ai/Rastro.Ai.csproj" />
+    <Project Path="src/Rastro.Api/Rastro.Api.csproj" />
+    <Project Path="src/Rastro.Cli/Rastro.Cli.csproj" />
+    <Project Path="src/Rastro.Core/Rastro.Core.csproj" />
+    <Project Path="src/Rastro.Extractor/Rastro.Extractor.csproj" />
+    <Project Path="src/Rastro.Infrastructure/Rastro.Infrastructure.csproj" />
+    <Project Path="src/Rastro.Mcp/Rastro.Mcp.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Rastro.Tests/Rastro.Tests.csproj" />
+  </Folder>
+</Solution>

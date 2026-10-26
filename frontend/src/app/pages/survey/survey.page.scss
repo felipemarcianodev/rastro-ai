@@ -1,0 +1,395 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.back {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--surface-sunk);
+  }
+}
+
+.bar-title {
+  min-width: 0;
+  flex: 1;
+
+  h1 {
+    font-size: var(--text-lg);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.bar-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+// Em 1280 a barra quebra linha em vez de esmagar o título.
+.bar-side {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+.state-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.has-holes {
+  color: var(--unresolved);
+  font-weight: 500;
+}
+
+// Contagem de não resolvidos que leva ao próximo deles.
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.workspace {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(420px, 28vw, 600px);
+
+  &.is-panel-collapsed {
+    grid-template-columns: minmax(0, 1fr) 0;
+
+    app-node-panel {
+      display: none;
+    }
+
+    .panel-toggle {
+      right: 0;
+      border-right: 0;
+      border-radius: var(--radius-md) 0 0 var(--radius-md);
+    }
+  }
+}
+
+// Aba na borda do painel: recolhe e mostra de novo, no meio da altura (longe da busca e do minimapa).
+.panel-toggle {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  right: clamp(420px, 28vw, 600px);
+  width: 20px;
+  height: 56px;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 1px solid var(--line);
+  border-right: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-lg);
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover {
+    color: var(--ink);
+  }
+}
+
+.state {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  text-align: center;
+
+  .notice {
+    max-width: 560px;
+    text-align: left;
+  }
+}
+
+// O único movimento automático da tela: a trilha sendo percorrida enquanto a análise roda.
+.walking {
+  width: 160px;
+  height: 32px;
+
+  path {
+    fill: none;
+    stroke: var(--trail);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 4 6;
+    animation: walk 1.2s linear infinite;
+  }
+}
+
+@keyframes walk {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) 45%;
+
+    &.is-panel-collapsed {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(0, 1fr) 0;
+    }
+  }
+
+  // Painel embaixo: a aba fica na borda de cima dele.
+  .panel-toggle,
+  .workspace.is-panel-collapsed .panel-toggle {
+    top: auto;
+    right: 50%;
+    bottom: 45%;
+    width: 56px;
+    height: 20px;
+    transform: translateX(50%);
+    border: 1px solid var(--line);
+    border-bottom: 0;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+
+    span {
+      display: inline-block;
+      transform: rotate(90deg);
+    }
+  }
+
+  .workspace.is-panel-collapsed .panel-toggle {
+    bottom: 0;
+  }
+}
+
+.decision-error {
+  margin: var(--space-2) var(--space-5) 0;
+}
+
+.editbar {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-sunk);
+  font-size: var(--text-sm);
+}
+
+.editbar-count {
+  margin-left: var(--space-2);
+}
+
+.editbar-help {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.edit-hint {
+  flex: none;
+  margin: 0;
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-sunk);
+  font-size: var(--text-xs);
+}
+
+// Sequência da mudança: 1 gerar prompt, 2 validar. O primário é o próximo passo lógico.
+.editbar-steps {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding-right: var(--space-2);
+  border-right: 1px solid var(--line);
+}
+
+.step-number {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.step-arrow {
+  color: var(--ink-soft);
+}
+
+.next-step {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.meta-path {
+  max-width: 32ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta-details {
+  position: relative;
+
+  summary {
+    cursor: pointer;
+    color: var(--ink-soft);
+  }
+}
+
+.meta-details-body {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 40;
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-lift);
+  white-space: nowrap;
+}
+
+.editbar-ok {
+  color: var(--ok);
+}
+
+.editbar-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.newstep {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+
+  .grow {
+    flex: 1;
+  }
+}
+
+.draft-message {
+  margin: var(--space-2) var(--space-5) 0;
+  font-size: var(--text-sm);
+}
+
+.prompt-text {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: var(--space-4);
+  overflow: auto;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+  font-family: var(--font-code);
+  font-size: 12.5px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// Busca no grafo (Ctrl+F): faixa logo acima do canvas.
+.graph-search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+
+  .input {
+    flex: 1;
+    max-width: 420px;
+    height: 32px;
+  }
+}
+
+.search-count {
+  min-width: 80px;
+  font-size: var(--text-sm);
+}
+
+// Aviso de copiar e exportar (o menu já fechou): no alto, longe do "Desfazer" do canvas.
+.menu-toast {
+  position: fixed;
+  top: 72px;
+  bottom: auto;
+  margin: 0;
+  z-index: 70;
+
+  &.is-error {
+    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+    color: var(--danger);
+  }
+}
+
+.compare-added {
+  color: var(--kind-decision);
+  font-weight: 600;
+}
+
+.compare-removed {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.popover-empty {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}

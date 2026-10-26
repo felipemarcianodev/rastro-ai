@@ -1,0 +1,361 @@
+@if (selected(); as node) {
+  <section class="panel" aria-labelledby="node-title">
+    <header class="panel-head">
+      <span class="kind" [class]="'kind kind-' + kindSlug[node.kind]">
+        <span class="kind-glyph" aria-hidden="true">{{ glyph[node.kind] }}</span>
+        {{ kindLabel[node.kind] }}
+      </span>
+      <span class="panel-head-actions">
+        @if (focusId() === node.id) {
+          <button type="button" class="btn btn-g btn-small" (click)="showAll.emit()">Mostrar o grafo inteiro</button>
+        } @else {
+          <button type="button" class="btn btn-g btn-small" (click)="focusFlow.emit(node.id)" aria-describedby="focus-help" title="Esconde os outros caminhos: fica o que leva a este passo e o que roda depois">Ver somente este fluxo</button>
+          <span id="focus-help" class="visually-hidden">Esconde os outros caminhos: fica o que leva a este passo e o que roda depois.</span>
+        }
+        <button type="button" class="btn btn-icon" (click)="closePanel.emit(node.id)" aria-label="Fechar o passo e voltar à visão geral" title="Fechar (Esc)">×</button>
+      </span>
+    </header>
+
+    <h2 id="node-title" class="node-title code">{{ breakable(node.label) }}</h2>
+
+    @if (editing()) {
+      <div class="edit-block" role="group" aria-label="Editar este passo">
+        @if (node.change === ChangeKind.Removed) {
+          <p>Este passo sai do fluxo no rascunho.</p>
+          <button type="button" class="btn btn-g btn-small" (click)="restoreStep.emit(node.id)">Restaurar passo</button>
+        } @else {
+          <label class="field-label" for="intent">{{ node.change === ChangeKind.Added ? 'O que este passo deve fazer' : 'O que deve mudar neste passo' }}</label>
+          <textarea id="intent" class="input intent" rows="3" [(ngModel)]="intentText"
+            placeholder="Ex.: só confirmar quando houver estoque"></textarea>
+          <div class="edit-actions">
+            <button type="button" class="btn btn-g btn-small" (click)="applyIntent(node)">Aplicar</button>
+            @if (applied()) {
+              <span class="applied" role="status">Aplicado ao rascunho</span>
+            }
+            @if (node.id !== graph().entryNodeId) {
+              <button type="button" class="btn btn-danger-quiet btn-small remove-step" (click)="removeStep.emit(node.id)">Remover passo</button>
+            }
+          </div>
+          <label class="field-label" for="connect">Seguir para outro passo</label>
+          <div class="edit-actions">
+            <select id="connect" class="input code" [(ngModel)]="connectTarget">
+              <option value="" disabled>Escolha o passo</option>
+              @for (option of connectOptions(); track option.id) {
+                <option [value]="option.id">{{ option.label }}</option>
+              }
+            </select>
+            <button type="button" class="btn btn-g btn-small" [disabled]="!connectTarget" (click)="connectTo.emit({ from: node.id, to: connectTarget })">Ligar</button>
+          </div>
+        }
+      </div>
+    } @else if (node.intent) {
+      <div class="rule"><p>{{ node.intent }}</p><p class="rule-origin muted">Mudança pedida no rascunho</p></div>
+    }
+
+    @if (node.symbol && node.symbol !== node.label) {
+      <p class="symbol code muted">{{ breakable(node.symbol) }}</p>
+    }
+
+    <div class="rule" [class.is-empty]="!node.rule">
+      @if (node.rule; as rule) {
+        <p>{{ rule.text }}</p>
+        <p class="rule-origin muted"><span [class]="'origin-badge is-' + originSlug[rule.origin]">{{ originBadge[rule.origin] }}</span> Regra escrita por {{ originLabel[rule.origin] }}</p>
+      } @else {
+        <p class="muted">Sem regra escrita para este nó. Um agente conectado (MCP) pode escrever{{ canDescribe() ? ', ou peça à IA abaixo' : '' }}.</p>
+        @if (!aiActive()) {
+          <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
+        }
+      }
+      @if (canDescribe()) {
+        <button type="button" class="btn btn-g btn-small rule-action" [disabled]="describing()" (click)="describe.emit({ nodeId: node.id, overwrite: !!node.rule })">
+          {{ describing() ? 'Escrevendo…' : node.rule ? 'Reescrever com IA' : 'Escrever regra com IA' }}
+        </button>
+      }
+      @if (describeMessage(); as message) {
+        <p class="rule-origin muted" aria-live="polite">{{ message }}</p>
+      }
+    </div>
+
+    <div class="note-block">
+      @if (editingNote()) {
+        <label class="field-label note-label" for="note-text"><span class="note-mark" aria-hidden="true">✎</span> Sua anotação neste passo</label>
+        <textarea id="note-text" class="input note-editor" rows="3" [(ngModel)]="noteText" [maxlength]="noteMax"
+          placeholder="Ex.: cuidado, também é chamado pelo webhook" aria-describedby="note-help"></textarea>
+        <span id="note-help" class="field-help">Aparece em todo fluxo deste repositório que passa por este passo e na documentação. {{ noteText.length }}/{{ noteMax }}</span>
+        <div class="edit-actions">
+          <button type="button" class="btn btn-g btn-small" (click)="submitNote(node, noteText)" [disabled]="savingNote() || !noteText.trim()">{{ savingNote() ? 'Salvando…' : 'Salvar anotação' }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="cancelNote()">Cancelar</button>
+          @if (notes().get(node.id)) {
+            <button type="button" class="btn btn-danger-quiet btn-small remove-step" (click)="submitNote(node, '')">Excluir anotação</button>
+          }
+        </div>
+      } @else if (notes().get(node.id); as note) {
+        <p class="note-text"><span class="note-mark" aria-hidden="true">✎</span> {{ note }}</p>
+        <button type="button" class="btn btn-g btn-small" (click)="startNote(node)">Editar anotação</button>
+      } @else {
+        <button type="button" class="btn btn-g btn-small" (click)="startNote(node)">Anotar este passo</button>
+      }
+      <!-- Região viva fixa: o leitor de tela anuncia quando o texto muda. -->
+      <span [class]="noteMessage()?.ok === false ? 'field-error note-status' : 'applied note-status'" role="status">
+        {{ noteMessage()?.text ?? '' }}
+        @if (noteUndo()?.nodeId === node.id) {
+          <button type="button" class="btn btn-g btn-small" (click)="undoDelete()">Desfazer</button>
+        }
+      </span>
+    </div>
+
+    @if (placeOf(node); as location) {
+      <div class="location">
+        @if (!node.location) {
+          <span class="muted call-site">Chamado em{{ callSites(node) > 1 ? ' (1 de ' + callSites(node) + ' chamadas; as outras estão em Ligações)' : '' }}</span>
+        }
+        <code>{{ breakable(location.file) }}:{{ location.line }}</code>
+        <span class="location-actions">
+          @if (editorLink(node)) {
+            <button type="button" class="btn btn-g btn-small" (click)="openInEditor(node)" [title]="'Abre no VS Code, na pasta ' + editor.folder(repository())">Abrir no VS Code</button>
+          }
+          <button type="button" class="btn btn-g btn-small" (click)="copyLocation(node)" >{{ locationCopy.label('Copiar arquivo:linha') }}</button>
+        </span>
+        <span class="muted editor-status" role="status">{{ editorStatus() }}</span>
+        <span class="visually-hidden" role="status">{{ locationCopy.status() === 'idle' ? '' : locationCopy.label('') }}</span>
+      </div>
+    }
+
+    @if (placeOf(node) && !editorLink(node) && !editorHintDismissed()) {
+      <p class="muted editor-hint">
+        Para abrir no VS Code, o repositório precisa estar cadastrado, com a pasta, em <a routerLink="/configuracoes" fragment="editor">Configurações</a>.
+        <button type="button" class="link-quiet" (click)="dismissEditorHint()">Não mostrar de novo</button>
+      </p>
+    }
+
+    @if (node.metrics; as m) {
+      <div class="block">
+        <h3>Métricas do método</h3>
+        <p class="muted">Complexidade {{ m.cyclomatic }}, {{ m.lines }} {{ m.lines === 1 ? 'linha' : 'linhas' }}, {{ m.maxNesting }} {{ m.maxNesting === 1 ? 'nível' : 'níveis' }} de aninhamento e {{ m.dependencies }} {{ m.dependencies === 1 ? 'dependência injetada' : 'dependências injetadas' }}.</p>
+      </div>
+    }
+
+    @if (hasFindings(node.id)) {
+      <div class="block">
+        <h3>Melhorias neste passo</h3>
+        <app-findings-list [graph]="graph()" [nodeId]="node.id" (prompt)="refactorPrompt.emit($event)" />
+      </div>
+    }
+
+    @if (node.condition) {
+      <div class="block">
+        <h3>Condição</h3>
+        <code class="condition">{{ node.condition }}</code>
+      </div>
+    }
+
+    @if (node.kind === NodeKind.Unresolved && node.reason !== undefined) {
+      <div class="block hole">
+        <h3>{{ reasonLabel[node.reason] }}</h3>
+        <p>{{ reasonHelp[node.reason] }}</p>
+        @if (node.detail) {
+          <p class="code detail">{{ breakable(node.detail) }}</p>
+        }
+        @if (canFillHoles()) {
+          <button type="button" class="btn btn-g btn-small fill" [disabled]="filling()" (click)="fillHole.emit(node.id)">
+            {{ filling() ? 'Perguntando à IA…' : 'Propor destinos com IA' }}
+          </button>
+        }
+        @if (!canFillHoles() && !aiActive()) {
+          <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
+        }
+        @if (fillMessages().length > 0) {
+          <ul class="fill-messages" aria-live="polite">
+            @for (message of fillMessages(); track $index) {
+              <li>{{ message }}</li>
+            }
+          </ul>
+        }
+      </div>
+    }
+
+    @if (links().incoming.length > 0 || links().outgoing.length > 0) {
+      <div class="block">
+        <h3>Ligações</h3>
+        <ul class="links">
+          @for (link of links().incoming; track link.edge.from + '>' + link.edge.to) {
+            <li>
+              <span class="link-dir muted">vem de</span>
+              <button type="button" class="link-node code" (click)="selectNode.emit(link.edge.from)">{{ link.other?.label }}</button>
+              <span class="link-meta">
+                @if (link.edge.location; as at) { <span class="code muted" [title]="at.file + ':' + at.line">{{ fileName(at.file) }}:{{ at.line }}</span> }
+                @if (link.edge.label) { <span class="code">{{ link.edge.label }}</span> }
+                <span [class]="'conf is-' + edgeSlug(link.edge)">{{ edgeDescription(link.edge) }}</span>
+              </span>
+              @if (editing() && link.edge.change !== ChangeKind.Removed) {
+                <span class="link-actions">
+                  <button type="button" class="btn btn-g btn-small" (click)="removeEdge.emit(link.edge)" [attr.aria-label]="'Remover a ligação com ' + link.other?.label">Remover ligação</button>
+                </span>
+              } @else if (editing()) {
+                <span class="link-actions muted">Ligação sai do fluxo</span>
+              } @else if (link.edge.confidence === EdgeConfidence.Inferred) {
+                <span class="link-actions">
+                  <button type="button" class="btn btn-g btn-small" [disabled]="deciding()" (click)="decideEdge.emit({ from: link.edge.from, to: link.edge.to, confirm: true })" [attr.aria-label]="'Confirmar a ligação com ' + link.other?.label">Confirmar</button>
+                  <button type="button" class="btn btn-g btn-small" [disabled]="deciding()" (click)="decideEdge.emit({ from: link.edge.from, to: link.edge.to, confirm: false })" [attr.aria-label]="'Descartar a ligação com ' + link.other?.label">Descartar</button>
+                </span>
+              }
+            </li>
+          }
+          @for (link of links().outgoing; track link.edge.from + '>' + link.edge.to) {
+            <li>
+              <span class="link-dir muted">segue para</span>
+              <button type="button" class="link-node code" (click)="selectNode.emit(link.edge.to)">{{ link.other?.label }}</button>
+              <span class="link-meta">
+                @if (link.edge.location; as at) { <span class="code muted" [title]="at.file + ':' + at.line">{{ fileName(at.file) }}:{{ at.line }}</span> }
+                @if (link.edge.label) { <span class="code">{{ link.edge.label }}</span> }
+                <span [class]="'conf is-' + edgeSlug(link.edge)">{{ edgeDescription(link.edge) }}</span>
+              </span>
+              @if (editing() && link.edge.change !== ChangeKind.Removed) {
+                <span class="link-actions">
+                  <button type="button" class="btn btn-g btn-small" (click)="removeEdge.emit(link.edge)" [attr.aria-label]="'Remover a ligação com ' + link.other?.label">Remover ligação</button>
+                </span>
+              } @else if (editing()) {
+                <span class="link-actions muted">Ligação sai do fluxo</span>
+              } @else if (link.edge.confidence === EdgeConfidence.Inferred) {
+                <span class="link-actions">
+                  <button type="button" class="btn btn-g btn-small" [disabled]="deciding()" (click)="decideEdge.emit({ from: link.edge.from, to: link.edge.to, confirm: true })" [attr.aria-label]="'Confirmar a ligação com ' + link.other?.label">Confirmar</button>
+                  <button type="button" class="btn btn-g btn-small" [disabled]="deciding()" (click)="decideEdge.emit({ from: link.edge.from, to: link.edge.to, confirm: false })" [attr.aria-label]="'Descartar a ligação com ' + link.other?.label">Descartar</button>
+                </span>
+              }
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    @if (path().length > 1) {
+      <div class="block">
+        <h3>{{ pathTitle() }}</h3>
+        <ol class="steps">
+          @for (step of path(); track step.id) {
+            <li>
+              <button type="button" class="path-step code" [class.is-current]="step.id === node.id" (click)="selectNode.emit(step.id)">
+                {{ step.label }}
+              </button>
+            </li>
+          }
+        </ol>
+      </div>
+    }
+
+    @if (snippet(); as code) {
+      <div class="block">
+        <h3>Código</h3>
+        <pre class="snippet" tabindex="0" aria-label="Trecho do código"><code>@for (line of code.lines; track $index) {<span class="snippet-line" [class.is-target]="code.startLine + $index === code.highlightLine"><span class="snippet-number" aria-hidden="true">{{ code.startLine + $index }}</span>{{ line }}
+</span>}</code></pre>
+      </div>
+    } @else if (loadingSnippet()) {
+      <div class="block">
+        <h3>Código</h3>
+        <p class="snippet-loading muted" aria-live="polite">Carregando o trecho…</p>
+      </div>
+    } @else if (snippetError(); as error) {
+      <p class="muted">{{ error }}</p>
+    } @else if (!placeOf(node)) {
+      <p class="muted">{{ node.kind === NodeKind.External ? 'Chamada para fora da solution: o código não está no repositório.' : 'Este nó não tem posição própria no código.' }}</p>
+    }
+  </section>
+} @else {
+  <section class="panel" aria-labelledby="overview-title">
+    <h2 id="overview-title">Visão geral</h2>
+    <p class="muted">Clique num nó para ver o código e o caminho da entrada até ele.</p>
+    @if (summary(); as s) {
+      <details class="section" open>
+        <summary><h3>Resumo do fluxo</h3></summary>
+        <app-flow-summary [summary]="s" (selectNode)="selectNode.emit($event)" />
+      </details>
+    }
+
+    @if (unresolved().length > 0) {
+      <details class="section" open>
+        <summary><h3>Buracos para completar <span class="muted">({{ unresolved().length }})</span></h3></summary>
+        <p class="muted">Chamadas que o compilador não ligou sozinho. Um agente conectado (MCP) ou a IA, se ligada, propõe o destino; você confirma.</p>
+        @if (!aiActive()) {
+          <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
+        }
+        <ul class="holes">
+          @for (hole of unresolved(); track hole.id) {
+            <li>
+              <button type="button" class="hole-item" (click)="selectNode.emit(hole.id)">
+                <span class="code">{{ hole.label }}</span>
+                @if (proposedHoles().has(hole.id)) {
+                  <span class="hole-proposed">Destino proposto, aguardando você</span>
+                } @else if (hole.reason !== undefined) {
+                  <span class="muted">{{ reasonLabel[hole.reason] }}</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      </details>
+    }
+
+    <details class="section">
+      <summary><h3>Tipos de passo <span class="muted">({{ graph().nodes.length }})</span></h3></summary>
+    <ul class="counts">
+      @for (entry of kindCounts(); track entry[0]) {
+        <li>
+          <span class="kind" [class]="'kind kind-' + kindSlug[entry[0]]">
+            <span class="kind-glyph" aria-hidden="true">{{ glyph[entry[0]] }}</span>
+            {{ kindLabel[entry[0]] }}
+          </span>
+          <span class="count">{{ entry[1] }}</span>
+        </li>
+      }
+    </ul>
+    </details>
+
+    <details class="section" open>
+      <summary><h3>Regras do fluxo <span class="muted">({{ timeline().length }})</span></h3></summary>
+      @if (timeline().length === 0) {
+        <p class="muted">Nenhuma regra escrita ainda. Elas aparecem aqui na ordem em que o fluxo passa pelos nós.</p>
+      } @else {
+        <ol class="steps is-loose">
+          @for (step of timeline(); track step.id) {
+            <li>
+              <button type="button" class="timeline-node code" (click)="selectNode.emit(step.id)">{{ step.label }}</button>
+              <p><span [class]="'origin-badge is-' + originSlug[step.rule!.origin]" [title]="'Escrita por ' + originLabel[step.rule!.origin]">{{ originBadge[step.rule!.origin] }}</span> {{ step.rule!.text }}</p>
+            </li>
+          }
+        </ol>
+      }
+      @if (canDescribe()) {
+        <button type="button" class="btn btn-g btn-small rule-action" [disabled]="describing()" (click)="describe.emit({ nodeId: null, overwrite: false })">
+          {{ describing() ? 'Escrevendo…' : 'Escrever as regras que faltam com IA' }}
+        </button>
+      }
+      @if (describeMessage(); as message) {
+        <p class="rule-origin muted" aria-live="polite">{{ message }}</p>
+      }
+    </details>
+
+    @if (crossFlow().length > 0) {
+      <details class="section" open>
+        <summary><h3>Entre fluxos <span class="muted">({{ crossFlow().length }})</span></h3></summary>
+        <p class="muted">Este fluxo salva dados sem uma verificação que outros fluxos do repositório fazem antes de salvar. Confira se é de propósito.</p>
+        <ul class="cross-flow">
+          @for (item of crossFlow(); track item.nodeId + item.guard) {
+            <li>
+              <p>Salva <strong>{{ item.entity }}</strong> sem a verificação <span class="code">{{ item.guard }}</span>, que {{ item.flows.length === 1 ? 'o fluxo' : 'os fluxos' }} <span class="code">{{ item.flows.join(', ') }}</span> {{ item.flows.length === 1 ? 'faz' : 'fazem' }} antes de salvar.</p>
+              <button type="button" class="btn btn-g btn-small" (click)="selectNode.emit(item.nodeId)" [attr.aria-label]="'Ver no fluxo: ' + item.label">Ver no fluxo</button>
+            </li>
+          }
+        </ul>
+      </details>
+    }
+
+    <details class="section" open>
+      <summary><h3>Melhorias e dívida técnica <span class="muted">({{ findingCount() }})</span></h3></summary>
+      <app-findings-list [graph]="graph()" (selectNode)="selectNode.emit($event)" (prompt)="refactorPrompt.emit($event)" />
+    </details>
+
+    @if (unresolved().length === 0) {
+      <p class="muted no-holes">Sem buracos: o compilador resolveu todas as chamadas deste fluxo.</p>
+    }
+  </section>
+}

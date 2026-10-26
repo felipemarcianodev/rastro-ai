@@ -1,0 +1,224 @@
+:host {
+  position: relative;
+  display: block;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.canvas-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+.walking {
+  width: 160px;
+  height: 32px;
+
+  path {
+    fill: none;
+    stroke: var(--trail);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 4 6;
+    animation: walk 1.2s linear infinite;
+  }
+}
+
+@keyframes walk {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.framework-button {
+  height: 32px;
+  margin-top: var(--space-2);
+  padding: 0 var(--space-3);
+  background: var(--surface);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+.tools-row {
+  position: absolute;
+  top: var(--space-4);
+  left: calc(var(--space-4) + 40px);
+  right: 220px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-1);
+  pointer-events: none;
+
+  .btn {
+    pointer-events: auto;
+    background: var(--surface);
+  }
+}
+
+.holes-button {
+  height: 32px;
+  padding: 0 var(--space-3);
+  border-style: dotted;
+  border-color: var(--unresolved);
+  background: var(--surface);
+  color: var(--unresolved);
+  font-size: var(--text-sm);
+}
+
+.tools {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.legend-box {
+  position: absolute;
+  left: var(--space-4);
+  bottom: var(--space-4);
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.legend-toggle {
+  background: var(--surface);
+}
+
+.legend {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: var(--text-xs);
+
+  div {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  dt,
+  dd {
+    margin: 0;
+  }
+}
+
+.legend-grab {
+  display: block;
+  width: 28px;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.swatch-line {
+  display: block;
+  width: 28px;
+  height: 8px;
+  overflow: visible;
+
+  line {
+    stroke: var(--edge);
+    stroke-width: 1.5;
+  }
+
+  .is-inferred {
+    stroke: var(--inferred);
+    stroke-dasharray: 6 4;
+  }
+
+  .is-confirmed {
+    stroke: var(--confirmed);
+    stroke-width: 2.5;
+  }
+
+  .is-trail {
+    stroke: var(--trail);
+    stroke-width: 3;
+  }
+
+  .is-main {
+    stroke: var(--ink-soft);
+    stroke-width: 2.5;
+  }
+
+  .is-exit {
+    stroke: color-mix(in srgb, var(--danger) 70%, transparent);
+    stroke-dasharray: 4 3;
+  }
+}
+
+.legend dt {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 46px;
+}
+
+.swatch {
+  display: block;
+  width: 28px;
+  height: 0;
+  border-top: 2px solid var(--edge);
+
+  &.is-inferred {
+    border-top: 2px dashed var(--inferred);
+  }
+
+  &.is-confirmed {
+    border-top: 3px solid var(--confirmed);
+  }
+
+  &.is-trail {
+    border-top: 3px solid var(--trail);
+  }
+
+  &.is-unresolved {
+    height: 12px;
+    border: 2px dotted var(--unresolved);
+    border-radius: 3px;
+    background: var(--unresolved-wash);
+  }
+}
+
+.legend-box-swatch {
+  display: block;
+  width: 28px;
+  height: 12px;
+  border-radius: 3px;
+
+  &.is-added {
+    border: 2px solid var(--kind-decision);
+  }
+
+  &.is-removed {
+    border: 2px dashed var(--danger);
+  }
+
+  &.is-match {
+    outline: 2px dashed var(--ink);
+    outline-offset: -2px;
+  }
+}
+
+.legend-glyph {
+  display: block;
+  width: 28px;
+  color: var(--ink-soft);
+  text-align: center;
+}

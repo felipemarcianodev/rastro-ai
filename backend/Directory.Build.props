@@ -1,0 +1,15 @@
+<Project>
+  <!-- Versão única do produto: arquivo VERSION na raiz do repositório. -->
+  <PropertyGroup>
+    <RastroVersionFile>$(MSBuildThisFileDirectory)..\VERSION</RastroVersionFile>
+    <Version Condition="Exists('$(RastroVersionFile)')">$([System.IO.File]::ReadAllText('$(RastroVersionFile)').Trim())</Version>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <!-- Saída alternativa (RASTRO_BIN=backend/bin): compila e testa enquanto o Visual Studio roda a API e prende o bin de cada projeto. -->
+  <PropertyGroup Condition="'$(RASTRO_BIN)' != ''">
+    <BaseOutputPath>$(RASTRO_BIN)\$(MSBuildProjectName)\</BaseOutputPath>
+    <!-- O bin/ de sempre deixa de ser a saída, mas o código copiado para lá (fixtures) não pode compilar. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);bin/**</DefaultItemExcludes>
+  </PropertyGroup>
+</Project>

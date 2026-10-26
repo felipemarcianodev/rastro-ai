@@ -1,0 +1,29 @@
+@if (graph().findings === undefined) {
+  <p class="muted">Levantamento anterior à inspeção de qualidade. Levante o fluxo de novo para ver as melhorias.</p>
+} @else if (total() === 0) {
+  <p class="muted">{{ nodeId() ? 'Nenhum achado neste passo.' : 'Nenhum achado de qualidade neste fluxo.' }}</p>
+} @else {
+  @for (group of groups(); track group.category) {
+    <h4 class="group-title">{{ categoryLabel[group.category] }} <span class="muted">({{ group.items.length }})</span></h4>
+    <ul class="findings">
+      @for (item of group.items; track item.index) {
+        <li [class]="'finding is-' + severitySlug[item.finding.severity]">
+          <p class="finding-head">
+            <span class="severity">{{ severityLabel[item.finding.severity] }}</span>
+            <span>{{ kindLabel[item.finding.kind] }}</span>
+          </p>
+          <p class="finding-text">{{ item.finding.message }}</p>
+          @if (item.finding.location; as location) {
+            <p class="finding-where code muted" [title]="location.file + ':' + location.line">{{ fileName(location.file) }}:{{ location.line }}</p>
+          }
+          <div class="finding-actions">
+            @if (!nodeId()) {
+              <button type="button" class="btn btn-g btn-small" (click)="selectNode.emit(item.finding.nodeId)" [title]="'Ir para ' + item.nodeLabel" [attr.aria-label]="'Ver no fluxo: ' + item.nodeLabel">Ver no fluxo</button>
+            }
+            <button type="button" class="btn btn-g btn-small" (click)="prompt.emit(item.index)" [attr.aria-label]="'Prompt de refatoração: ' + kindLabel[item.finding.kind] + ' em ' + item.nodeLabel">Prompt de refatoração</button>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+}

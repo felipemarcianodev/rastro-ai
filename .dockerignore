@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+**/bin
+**/obj
+**/dist
+**/.angular
+**/wwwroot
+.git
+artifacts
+docker/.env

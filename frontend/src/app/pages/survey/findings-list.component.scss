@@ -1,0 +1,60 @@
+.group-title {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.findings {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding {
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--finding-color);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunk);
+  font-size: var(--text-sm);
+}
+
+.finding.is-critical {
+  --finding-color: var(--danger);
+}
+
+.finding.is-warning {
+  --finding-color: var(--unresolved);
+}
+
+.finding.is-info {
+  --finding-color: var(--ink-soft);
+}
+
+.finding-head {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0;
+  font-weight: 600;
+}
+
+.severity {
+  color: var(--finding-color);
+}
+
+.finding-text {
+  margin: var(--space-1) 0 0;
+}
+
+.finding-where {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+}
+
+.finding-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}

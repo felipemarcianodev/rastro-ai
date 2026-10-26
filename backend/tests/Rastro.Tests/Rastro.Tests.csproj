@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- O MSBuild vem do SDK instalado (MSBuildLocator); nunca copiar os assemblies dele para a saída. -->
+    <PackageReference Include="Microsoft.Build.Framework" Version="17.11.48" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.13" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- Código de exemplo analisado pelo extrator: copiado para a saída, nunca compilado com os testes. -->
+  <ItemGroup>
+    <Compile Remove="Fixtures/**" />
+    <None Include="Fixtures/**" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Rastro.Core\Rastro.Core.csproj" />
+    <ProjectReference Include="..\..\src\Rastro.Extractor\Rastro.Extractor.csproj" />
+    <ProjectReference Include="..\..\src\Rastro.Api\Rastro.Api.csproj" />
+    <ProjectReference Include="..\..\src\Rastro.Infrastructure\Rastro.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Rastro.Mcp\Rastro.Mcp.csproj" />
+    <ProjectReference Include="..\..\src\Rastro.Ai\Rastro.Ai.csproj" />
+  </ItemGroup>
+
+</Project>

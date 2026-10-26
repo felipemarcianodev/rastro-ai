@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Rastro.Core\Rastro.Core.csproj" />
+    <ProjectReference Include="..\Rastro.Extractor\Rastro.Extractor.csproj" />
+    <ProjectReference Include="..\Rastro.Infrastructure\Rastro.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- O MSBuild vem do SDK instalado (MSBuildLocator, registrado por quem hospeda); nunca copiar os assemblies dele para a saída. -->
+    <PackageReference Include="Microsoft.Build.Framework" Version="17.11.48" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.13" />
+    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <!-- Biblioteca: o "rastro mcp" da API hospeda. Mesmo user-secrets da API (desenvolvimento). -->
+    <UserSecretsId>4f1caff5-a918-438d-8c19-db373626ce3e</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Rastro.Tests" />
+  </ItemGroup>
+
+</Project>

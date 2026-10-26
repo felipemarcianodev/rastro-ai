@@ -1,0 +1,173 @@
+<div class="page">
+  <header class="head">
+    <button type="button" class="btn btn-g btn-small back" (click)="back()">← Voltar</button>
+    <h1>Configurações</h1>
+    <p class="muted">O Rastro funciona sem IA. Com IA, ela completa os buracos do grafo e escreve as regras; tudo o que ela propõe passa pelo compilador antes de entrar.</p>
+  </header>
+
+  <section id="editor" class="card" aria-labelledby="repos-title">
+    <h2 id="repos-title">Repositórios</h2>
+    <p>As pastas de código que o Rastro pode ler. A pasta cadastrada também serve ao botão "Abrir no VS Code", que vai direto ao arquivo e à linha.</p>
+    @if (reposState() === 'loading') {
+      <p class="muted" aria-live="polite">Carregando os repositórios…</p>
+    } @else if (reposState() === 'error') {
+      <div class="notice is-error" role="alert">
+        <p>Não deu para listar os repositórios.</p>
+        <button type="button" class="btn btn-g btn-small" (click)="loadRepositories()">Tentar de novo</button>
+      </div>
+    } @else if (repositories().length === 0) {
+      <p class="muted">Nenhum repositório cadastrado ainda. Use o formulário abaixo.</p>
+    } @else {
+      <ul class="repos">
+        @for (repo of repositories(); track repo.name) {
+          <li class="repo">
+            <div class="repo-main">
+              <strong>{{ repo.name }}</strong>
+              <code class="repo-path">{{ repo.path }}</code>
+              @if (!repo.hasGit) {
+                <span class="muted small">sem .git: o levantamento fica sem o commit</span>
+              }
+              <span class="muted small">
+                @if (repo.hasBuildCommand && repo.hasTestCommand) {
+                  Build e testes configurados.
+                } @else {
+                  Sem build e testes na validação. Eles se configuram pelo terminal: remova e cadastre de novo com <code>rastro repo add {{ repo.name }} {{ repo.path }} --build "..." --testes "..."</code>
+                }
+              </span>
+            </div>
+            <button type="button" class="btn btn-g btn-small" (click)="askRemove(repo)" [attr.aria-label]="'Remover ' + repo.name">Remover…</button>
+          </li>
+        }
+      </ul>
+    }
+    <span class="visually-hidden" role="status">{{ repoMessage()?.text }}</span>
+    @if (repoMessage(); as message) {
+      <p [class]="message.ok ? 'saved' : 'field-error'" [attr.role]="message.ok ? null : 'alert'">{{ message.text }}</p>
+    }
+
+    <form class="repo-form" (ngSubmit)="addRepository()" novalidate aria-labelledby="add-repo-title">
+      <h3 id="add-repo-title">Adicionar repositório</h3>
+      <div class="field">
+        <label class="field-label" for="repo-name">Nome</label>
+        <input id="repo-name" class="input code" name="repoName" [(ngModel)]="newName" placeholder="meu-sistema" autocomplete="off" spellcheck="false"
+          [attr.aria-invalid]="nameError() ? true : null" [attr.aria-describedby]="nameError() ? 'repo-name-error' : null" />
+        @if (nameError(); as error) {
+          <span id="repo-name-error" class="field-error">{{ error }}</span>
+        }
+      </div>
+      <div class="field">
+        <label class="field-label" for="repo-path">Pasta</label>
+        <input id="repo-path" class="input code" name="repoPath" [(ngModel)]="newPath" placeholder="C:\codigo\meu-sistema" autocomplete="off" spellcheck="false"
+          [attr.aria-invalid]="pathError() ? true : null" [attr.aria-describedby]="pathError() ? 'repo-path-error' : 'repo-path-help'" />
+        <span id="repo-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git.</span>
+        @if (pathError(); as error) {
+          <span id="repo-path-error" class="field-error">{{ error }}</span>
+        }
+      </div>
+      <div class="actions">
+        <button class="btn btn-p" type="submit" [disabled]="adding()">{{ adding() ? 'Cadastrando…' : 'Adicionar repositório' }}</button>
+      </div>
+    </form>
+  </section>
+
+  @if (pendingRemoval()) {
+    <app-confirm-dialog title="Remover o repositório?" [text]="removalText()" confirmLabel="Remover" [busy]="removing()"
+      (confirm)="confirmRemove()" (cancel)="cancelRemove()" />
+  }
+
+  @if (loadError(); as error) {
+    <p class="notice is-error" role="alert">{{ error }}</p>
+  } @else if (!loaded()) {
+    <p class="muted" aria-live="polite">Carregando a configuração…</p>
+  } @else {
+    <section class="card" aria-labelledby="agent-title">
+      <h2 id="agent-title">Modo agente (MCP)</h2>
+      <p>Um agente de código, como o Claude Code, usa o Rastro pelas ferramentas MCP e faz o papel da IA, com a assinatura dele. Não precisa de chave aqui.</p>
+      <div class="command">
+        <code>{{ mcpCommand }}</code>
+        <button type="button" class="btn btn-g btn-small" (click)="copyCommand()" aria-label="Copiar o comando do MCP">{{ commandCopy.label('Copiar') }}</button>
+        <span class="visually-hidden" role="status">{{ commandCopy.status() === 'idle' ? '' : commandCopy.label('') }}</span>
+      </div>
+      <p class="muted small">O agente usa os mesmos levantamentos e repositórios desta tela (veja a seção Repositórios). Tudo o que ele propõe aparece como inferido e espera você confirmar no fluxo.</p>
+    </section>
+
+    <form class="card" (ngSubmit)="save()" novalidate aria-labelledby="provider-title">
+      <div class="card-head">
+        <h2 id="provider-title">Modo provedor</h2>
+        <label class="switch">
+          <input type="checkbox" name="enabled" [(ngModel)]="enabled" />
+          <span>{{ enabled ? 'IA ligada' : 'IA desligada' }}</span>
+        </label>
+        @if (enabled !== loaded()!.enabled) {
+          <span class="pending" role="status">Alteração pendente, falta salvar</span>
+        }
+      </div>
+      <p>O próprio Rastro chama a IA com a sua chave de API. As chaves ficam cifradas no banco e nunca voltam para a tela.</p>
+
+      @if (!enabled) {
+        <p class="muted ai-off-note">Ligue a IA para escolher o provedor, a chave e os usos. O que já estava configurado continua guardado.</p>
+      }
+      @if (enabled) {
+      <fieldset class="providers">
+        <legend class="field-label">Provedor ativo</legend>
+        @for (p of providers; track p) {
+          <div class="provider" [class.is-active]="provider === p">
+            <label class="provider-choice">
+              <input type="radio" name="provider" [value]="p" [(ngModel)]="provider" />
+              <span>{{ providerLabel[p] }}</span>
+              @if (forms[p].hasKey && !forms[p].removeKey) {
+                <span class="key-state">chave salva</span>
+              }
+            </label>
+            @if (provider === p) {
+            <div class="provider-fields">
+              <div class="field">
+                <label class="field-label" [for]="'model-' + slug(p)">Modelo</label>
+                <input class="input code" [id]="'model-' + slug(p)" [name]="'model-' + slug(p)" [(ngModel)]="forms[p].model" autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="field">
+                <label class="field-label" [for]="'key-' + slug(p)">{{ forms[p].hasKey ? 'Trocar a chave' : 'Chave de API' }}</label>
+                <input class="input code" type="password" [id]="'key-' + slug(p)" [name]="'key-' + slug(p)" [(ngModel)]="forms[p].key"
+                  [placeholder]="forms[p].hasKey ? 'Deixe vazio para manter a atual' : 'Cole a chave'" autocomplete="off" [disabled]="forms[p].removeKey" />
+                @if (forms[p].hasKey) {
+                  <label class="check small">
+                    <input type="checkbox" [name]="'remove-' + slug(p)" [(ngModel)]="forms[p].removeKey" />
+                    Excluir a chave salva
+                  </label>
+                }
+              </div>
+            </div>
+            }
+          </div>
+        }
+      </fieldset>
+
+      <fieldset class="uses">
+        <legend class="field-label">Usos da IA</legend>
+        <label class="check"><input type="checkbox" name="useFillHoles" [(ngModel)]="useFillHoles" />
+          <span><strong>Completar buracos</strong><span class="muted"> Propor o destino de chamadas que o compilador não resolveu.</span></span></label>
+        <label class="check"><input type="checkbox" name="useDescribeRules" [(ngModel)]="useDescribeRules" />
+          <span><strong>Escrever regras</strong><span class="muted"> Descrever em português o que cada nó faz.</span></span></label>
+        <label class="check"><input type="checkbox" name="useSuggestions" [(ngModel)]="useSuggestions" />
+          <span><strong>Sugestões de melhoria</strong><span class="muted"> Refatoração, complexidade, regras de domínio puladas.</span></span></label>
+        <label class="check"><input type="checkbox" name="useContextSuggestions" [(ngModel)]="useContextSuggestions" />
+          <span><strong>Contexto do C4</strong><span class="muted"> Sugerir pessoas e sistemas externos no diagrama de contexto.</span></span></label>
+      </fieldset>
+
+      <div class="field budget">
+        <label class="field-label" for="budget">Orçamento diário de tokens</label>
+        <input id="budget" class="input" type="number" min="0" step="1000" name="budget" [(ngModel)]="budget" [disabled]="!enabled" aria-describedby="budget-help" />
+        <span id="budget-help" class="field-help">Entrada + saída por dia (UTC). 0 = sem limite. {{ usageText() }}</span>
+      </div>
+      }
+
+      <div class="actions">
+        <button class="btn btn-p" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar configuração' }}</button>
+        @if (saveMessage(); as message) {
+          <span [class]="message.ok ? 'saved' : 'field-error'" role="status">{{ message.text }}</span>
+        }
+      </div>
+      <p class="muted small">Última alteração: {{ shortDate(loaded()!.updatedAt) }}</p>
+    </form>
+  }
+</div>

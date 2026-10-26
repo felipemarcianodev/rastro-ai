@@ -1,0 +1,92 @@
+<div class="overlay" appDialog (click)="closed.emit()">
+  <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="c4-title" (click)="$event.stopPropagation()">
+    <header class="dialog-head">
+      <div>
+        <h2 id="c4-title">Diagramas C4</h2>
+        <p class="muted">Structurizr DSL com os quatro níveis: C1 contexto, C2 containers, C3 componentes e C4 a ordem das chamadas do fluxo. O agente pega o mesmo texto pelo MCP (get_c4).</p>
+      </div>
+      <button type="button" class="btn btn-icon" (click)="closed.emit()" aria-label="Fechar">×</button>
+    </header>
+
+    <div class="dialog-body">
+      <h3>Quem usa o sistema (C1)</h3>
+      <p class="muted">O compilador não sabe quem usa o sistema. Diga aqui; as pessoas ficam salvas com o levantamento.</p>
+      @if (people().length === 0) {
+        <p class="muted">Ninguém cadastrado ainda.</p>
+      }
+      <ul class="people">
+        @for (person of people(); track $index) {
+          <li>
+            <label class="visually-hidden" [for]="'c4-name-' + $index">Nome da pessoa</label>
+            <input [id]="'c4-name-' + $index" class="input" [(ngModel)]="person.name" (ngModelChange)="edited($index)" placeholder="Operador" maxlength="80" autocomplete="off"
+              [attr.aria-invalid]="nameErrors().has($index)" [attr.aria-describedby]="nameErrors().has($index) ? 'c4-name-error-' + $index : null" />
+            <label class="visually-hidden" [for]="'c4-desc-' + $index">O que ela faz</label>
+            <input [id]="'c4-desc-' + $index" class="input" [(ngModel)]="person.description" (ngModelChange)="edited($index)" placeholder="Acompanha os pedidos do dia" maxlength="200" autocomplete="off" />
+            @if (person.fromAi) {
+              <span class="origin-badge is-provider person-origin" title="Sugerida pela IA. Some quando você editar; no C1 ela sai como inferida.">IA<span class="visually-hidden">, sugerida; some quando você editar</span></span>
+            }
+            <button type="button" class="btn btn-g btn-small" (click)="removePerson($index)" [attr.aria-label]="'Remover ' + (person.name || 'esta pessoa')">Remover</button>
+            @if (nameErrors().has($index)) {
+              <span [id]="'c4-name-error-' + $index" class="field-error person-error">Dê um nome a esta pessoa.</span>
+            }
+          </li>
+        }
+      </ul>
+      @if (suggested(); as s) {
+        <section class="ai-suggestion" aria-label="Pessoas sugeridas pela IA">
+          <span class="visually-hidden" role="status">{{ s.people.length === 1 ? 'A IA sugeriu 1 pessoa.' : 'A IA sugeriu ' + s.people.length + ' pessoas.' }}</span>
+          <p class="ai-suggestion-head"><span class="origin-badge is-provider">IA</span> Sugestões de {{ providerLabel[s.provider] }}, para conferir</p>
+          @for (person of s.people; track person.name) {
+            <p><strong>{{ person.name }}</strong>{{ person.description ? ': ' + person.description : '' }}
+              <button type="button" class="btn btn-g btn-small" (click)="addSuggested(person)" [disabled]="people().length >= maxPeople">Acrescentar</button></p>
+          } @empty {
+            <p class="muted">{{ acceptedAll() ? 'Todas as sugestões foram acrescentadas. Salve as pessoas para entrarem no C1.' : 'A IA não achou outra pessoa além das já cadastradas.' }}</p>
+          }
+        </section>
+      }
+      @if (suggestError(); as message) {
+        <p class="field-error" role="alert">{{ message }}</p>
+      }
+      <div class="people-actions">
+        <button type="button" class="btn btn-g btn-small" (click)="addPerson()" [disabled]="people().length >= maxPeople">Acrescentar pessoa</button>
+        @if (canSuggest()) {
+          <button type="button" class="btn btn-g btn-small" (click)="suggestPeople()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Sugerir pessoas com IA' }}</button>
+        } @else {
+          <span class="muted">Para a IA sugerir pessoas, ligue a IA e o uso "Contexto do C4" em <a routerLink="/configuracoes" (click)="closed.emit()">Configurações</a>.</span>
+        }
+        <button type="button" class="btn btn-g btn-small" (click)="savePeople()" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar pessoas' }}</button>
+        @if (unsaved()) {
+          <span class="unsaved">Pessoas alteradas e não salvas: o DSL abaixo ainda não as inclui.</span>
+        } @else if (message(); as m) {
+          <span [class]="m.ok ? 'editbar-ok' : 'field-error'" role="status">{{ m.text }}</span>
+        }
+      </div>
+
+      <h3>workspace.dsl</h3>
+      @if (loadError(); as error) {
+        <div class="notice is-error" role="alert">
+          <p>{{ error }}</p>
+          <button type="button" class="btn btn-g btn-small" (click)="load()">Tentar de novo</button>
+        </div>
+      } @else if (dsl(); as text) {
+        <pre class="dsl" tabindex="0">{{ text }}</pre>
+      } @else {
+        <p class="muted" aria-live="polite">Montando os diagramas…</p>
+      }
+      <p class="muted hint">
+        Para ver os diagramas sem o código sair da máquina, rode o Structurizr local na pasta onde salvou o arquivo:
+        <code>docker run -it --rm -p 8080:8080 -v "%CD%:/usr/local/structurizr" structurizr/structurizr local</code>
+        e abra http://localhost:8080.
+      </p>
+    </div>
+
+    <footer class="dialog-foot">
+      @if (unsaved()) {
+        <span class="unsaved foot-warning">Salve as pessoas antes de baixar.</span>
+      }
+      <span class="visually-hidden" role="status">{{ dslCopy.status() === 'idle' ? '' : dslCopy.label('') }}</span>
+      <button type="button" class="btn btn-g" (click)="copy()" [disabled]="!dsl()">{{ dslCopy.label('Copiar DSL') }}</button>
+      <a class="btn btn-p" [href]="downloadUrl()" download="workspace.dsl" title="Baixa o arquivo workspace.dsl para abrir no Structurizr">Baixar workspace.dsl</a>
+    </footer>
+  </section>
+</div>

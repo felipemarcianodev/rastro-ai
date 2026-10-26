@@ -1,0 +1,186 @@
+<div class="page">
+  <section class="list" aria-labelledby="list-title">
+    <header class="list-head">
+      <h1 id="list-title" tabindex="-1">Levantamentos</h1>
+      <p class="muted">Cada levantamento é o fluxo de um método, do jeito que estava no commit analisado.</p>
+    </header>
+
+    <p class="saved-notice" role="status">{{ deletedNotice() ?? '' }}</p>
+
+    @if (listError(); as error) {
+      <div class="notice is-error" role="alert">
+        <p>{{ error }}</p>
+        <button type="button" class="btn btn-g retry" (click)="retryList()">Tentar de novo</button>
+      </div>
+    } @else if (surveys() === null) {
+      <p class="muted" aria-live="polite">Carregando levantamentos…</p>
+    } @else if (surveys()!.length === 0) {
+      <div class="empty">
+        <p>Nenhum levantamento ainda.</p>
+        <p class="muted">Escolha um repositório e o método de entrada ao lado para seguir o primeiro rastro.</p>
+      </div>
+    } @else {
+      <div class="list-tools">
+        <label class="visually-hidden" for="search">Buscar levantamento</label>
+        <input id="search" class="input search" type="search" placeholder="Buscar por método, repositório ou solution" autocomplete="off"
+          [ngModel]="query()" (ngModelChange)="query.set($event)" name="search" [ngModelOptions]="{ standalone: true }" />
+        <div class="chips" role="group" aria-label="Filtrar por estado">
+          @for (f of filters; track f) {
+            <button type="button" class="chip" [attr.aria-pressed]="filter() === f" (click)="filter.set(f)">
+              {{ filterLabel[f] }} <span class="chip-count">{{ filterCounts().get(f) }}</span>
+            </button>
+          }
+        </div>
+      </div>
+      <p class="visually-hidden" role="status">{{ announcement() }}</p>
+      @if (visible().length === 0) {
+        <div class="empty">
+          <p>Nenhum levantamento com esse filtro.</p>
+          <button type="button" class="btn btn-g btn-small clear" (click)="clearFilters()">Limpar a busca e o filtro</button>
+        </div>
+      }
+      <ul class="rows">
+        @for (survey of visible(); track survey.id) {
+          <li>
+            <a class="row" [routerLink]="['/surveys', survey.id]">
+              <span class="row-main">
+                <span class="row-entry code">{{ survey.entryPoint }}</span>
+                <span class="row-source">
+                  <span>{{ survey.repository }}</span>
+                  <span class="code muted">{{ survey.solutionPath }}</span>
+                  @if (survey.commitHash) {
+                    <span class="code muted" [title]="survey.commitHash">{{ shortCommit(survey.commitHash) }}</span>
+                  }
+                </span>
+              </span>
+
+              <span class="row-side">
+                <span [class]="'pill is-' + statusSlug[survey.status]">{{ statusLabel[survey.status] }}</span>
+                @if (survey.status === SurveyStatus.Completed) {
+                  <span class="row-counts muted">
+                    {{ plural(survey.nodeCount, 'nó', 'nós') }},
+                    <span [class.has-holes]="survey.unresolvedCount > 0">{{ plural(survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</span>
+                  </span>
+                } @else if (survey.status === SurveyStatus.Failed) {
+                  <span class="row-counts row-error" [title]="survey.error">{{ survey.error }}</span>
+                }
+                <time class="muted" [attr.datetime]="survey.createdAt">{{ shortDate(survey.createdAt) }}</time>
+              </span>
+            </a>
+          </li>
+        }
+      </ul>
+    }
+  </section>
+
+  <aside class="create" aria-labelledby="create-title">
+    <h2 id="create-title">Novo levantamento</h2>
+    <p class="muted">O Rastro lê a solution com o compilador e segue cada chamada a partir do método escolhido.</p>
+
+    <form class="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <div class="field-head">
+          <label class="field-label" for="repository">Repositório</label>
+          <button type="button" class="info-toggle" (click)="toggleInfo('repository')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.repository.summary"
+            [attr.aria-expanded]="openInfo() === 'repository'" [attr.aria-controls]="openInfo() === 'repository' ? 'repository-info' : null" aria-label="O que é Repositório">i</button>
+        </div>
+        @if (openInfo() === 'repository') {
+          <div id="repository-info" class="info-text" (keydown.escape)="openInfo.set(null)">
+            @for (line of fieldInfo.repository.text; track $index) {
+              <p>{{ line }}</p>
+            }
+          </div>
+        }
+        <select id="repository" class="input" name="repository" [ngModel]="repository" (ngModelChange)="selectRepository($event)" [disabled]="!hasRepositories()"
+          [attr.aria-invalid]="!!fieldErrors().repository" aria-describedby="repository-error">
+          <option value="" disabled>{{ reposState() === 'loading' ? 'Carregando repositórios…' : 'Escolha um repositório' }}</option>
+          @for (repo of repositories(); track repo.name) {
+            <option [value]="repo.name">{{ repo.name }}</option>
+          }
+        </select>
+        @if (reposState() === 'error') {
+          <span class="field-error repos-error" role="alert">
+            {{ reposError() }}
+            <button type="button" class="btn btn-g btn-small" (click)="loadRepositories()">Tentar de novo</button>
+          </span>
+        } @else if (reposState() === 'ready' && !hasRepositories()) {
+          <span class="field-help">Nenhum repositório cadastrado. Cadastre a pasta do seu código em <a routerLink="/configuracoes" fragment="editor">Configurações</a>.</span>
+        }
+        <span id="repository-error" class="field-error" [hidden]="!fieldErrors().repository">{{ fieldErrors().repository }}</span>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <label class="field-label" for="solution">Solution</label>
+          <button type="button" class="info-toggle" (click)="toggleInfo('solution')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.solution.summary"
+            [attr.aria-expanded]="openInfo() === 'solution'" [attr.aria-controls]="openInfo() === 'solution' ? 'solution-info' : null" aria-label="O que é Solution">i</button>
+        </div>
+        @if (openInfo() === 'solution') {
+          <div id="solution-info" class="info-text" (keydown.escape)="openInfo.set(null)">
+            @for (line of fieldInfo.solution.text; track $index) {
+              <p>{{ line }}</p>
+            }
+          </div>
+        }
+        <select id="solution" class="input code" name="solution" [(ngModel)]="solutionPath" [disabled]="!repository || loadingSolutions()"
+          [attr.aria-invalid]="!!fieldErrors().solution" aria-describedby="solution-error">
+          @if (loadingSolutions()) {
+            <option value="">Procurando solutions…</option>
+          } @else if (repository && solutions().length === 0) {
+            <option value="">Nenhuma solution encontrada neste repositório</option>
+          }
+          @for (solution of solutions(); track solution) {
+            <option [value]="solution">{{ solution }}</option>
+          }
+        </select>
+        <span id="solution-error" class="field-error" [hidden]="!fieldErrors().solution">{{ fieldErrors().solution }}</span>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <label class="field-label" for="entry">Ponto de entrada</label>
+          <button type="button" class="info-toggle" (click)="toggleInfo('entry')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.entry.summary"
+            [attr.aria-expanded]="openInfo() === 'entry'" [attr.aria-controls]="openInfo() === 'entry' ? 'entry-info' : null" aria-label="O que é Ponto de entrada">i</button>
+        </div>
+        @if (openInfo() === 'entry') {
+          <div id="entry-info" class="info-text" (keydown.escape)="openInfo.set(null)">
+            @for (line of fieldInfo.entry.text; track $index) {
+              <p>{{ line }}</p>
+            }
+          </div>
+        }
+        <input id="entry" class="input code" name="entry" [(ngModel)]="entryPoint" placeholder="PedidosController.Criar" autocomplete="off" spellcheck="false"
+          [attr.aria-invalid]="!!fieldErrors().entry" aria-describedby="entry-help entry-error" />
+        <span id="entry-help" class="field-help">Classe.Metodo ou Namespace.Classe.Metodo: uma action, um job, um handler.</span>
+        <span id="entry-error" class="field-error" [hidden]="!fieldErrors().entry">{{ fieldErrors().entry }}</span>
+      </div>
+
+      <div class="field">
+        <div class="field-head">
+          <label class="field-label" for="depth">Profundidade</label>
+          <button type="button" class="info-toggle" (click)="toggleInfo('depth')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.depth.summary"
+            [attr.aria-expanded]="openInfo() === 'depth'" [attr.aria-controls]="openInfo() === 'depth' ? 'depth-info' : null" aria-label="O que é Profundidade">i</button>
+        </div>
+        @if (openInfo() === 'depth') {
+          <div id="depth-info" class="info-text" (keydown.escape)="openInfo.set(null)">
+            @for (line of fieldInfo.depth.text; track $index) {
+              <p>{{ line }}</p>
+            }
+          </div>
+        }
+        <input id="depth" class="input depth" name="depth" type="number" min="1" max="40" [(ngModel)]="maxDepth"
+          [attr.aria-invalid]="!!fieldErrors().depth" aria-describedby="depth-help depth-error" />
+        <span id="depth-help" class="field-help">Quantos níveis de chamada seguir. Além disso, o caminho fica marcado para continuar depois.</span>
+        <span id="depth-error" class="field-error" [hidden]="!fieldErrors().depth">{{ fieldErrors().depth }}</span>
+      </div>
+
+      @if (formError(); as error) {
+        <p class="field-error" role="alert">{{ error }}</p>
+      }
+
+      <button class="btn btn-p" type="submit" [disabled]="submitting()">
+        {{ submitting() ? 'Enviando…' : 'Levantar o fluxo' }}
+      </button>
+    </form>
+  </aside>
+</div>

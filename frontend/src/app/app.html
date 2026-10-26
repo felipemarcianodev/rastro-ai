@@ -1,0 +1,44 @@
+<header class="topbar">
+  <a class="brand" routerLink="/" aria-label="Rastro AI, ir para os levantamentos">
+    <svg class="brand-mark" viewBox="0 0 28 20" aria-hidden="true">
+      <path d="M2 16 C 8 16, 8 4, 14 4 S 20 16, 26 16" />
+      <circle cx="2" cy="16" r="2" />
+      <circle cx="26" cy="16" r="2.5" />
+    </svg>
+    <span class="brand-name">{{ title }}</span>
+  </a>
+
+  <nav class="nav" aria-label="Principal">
+    <a routerLink="/configuracoes" routerLinkActive="is-current" class="ai-state" [class.is-on]="ai.active()" title="Configuração da IA e do modo agente">
+      {{ ai.label() }}
+    </a>
+  </nav>
+
+  <label class="palette">
+    <span class="visually-hidden">Paleta de cores</span>
+    <select class="input palette-select" [value]="theme.palette()" (change)="choosePalette($any($event.target).value)" title="Paleta de cores">
+      @for (p of palettes; track p) {
+        <option [value]="p" [selected]="p === theme.palette()">{{ paletteLabel[p] }}</option>
+      }
+    </select>
+  </label>
+
+  <button type="button" class="btn btn-icon" (click)="theme.cycle()" [attr.aria-label]="themeLabel() + '. Trocar tema'" [title]="themeLabel()">
+    @switch (theme.choice()) {
+      @case ('light') { <span aria-hidden="true">☀</span> }
+      @case ('dark') { <span aria-hidden="true">☾</span> }
+      @default { <span aria-hidden="true">◐</span> }
+    }
+  </button>
+
+  <a class="btn btn-icon gear" routerLink="/configuracoes" routerLinkActive="is-current" aria-label="Configurações" title="Configurações">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="3" />
+      <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" />
+    </svg>
+  </a>
+</header>
+
+<main class="main">
+  <router-outlet />
+</main>

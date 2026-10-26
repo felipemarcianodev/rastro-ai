@@ -1,0 +1,437 @@
+@if (error(); as message) {
+  <div class="state">
+    <h1 class="visually-hidden">Levantamento</h1>
+    <p class="notice is-error" role="alert">{{ message }}</p>
+    <div class="state-actions">
+      <button type="button" class="btn btn-g" (click)="retry()">Tentar de novo</button>
+      <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
+    </div>
+  </div>
+} @else if (detail(); as d) {
+  <div class="layout">
+    <header class="bar">
+      <a class="back" routerLink="/" aria-label="Voltar aos levantamentos">←</a>
+      <div class="bar-title">
+        <h1 class="code">{{ d.survey.entryPoint }}</h1>
+        <div class="bar-meta">
+          <span>{{ d.survey.repository }}</span>
+          <span class="code muted meta-path" [title]="d.survey.solutionPath">{{ d.survey.solutionPath }}</span>
+          @if (d.survey.branch || d.survey.commitHash) {
+            <details class="meta-details">
+              <summary>Detalhes</summary>
+              <span class="meta-details-body">
+                @if (d.survey.branch) {
+                  <span>Branch <span class="code">{{ d.survey.branch }}</span></span>
+                }
+                @if (d.survey.commitHash) {
+                  <span>Commit <span class="code" [title]="d.survey.commitHash">{{ shortCommit(d.survey.commitHash) }}</span></span>
+                }
+              </span>
+            </details>
+          }
+        </div>
+      </div>
+
+      <div class="bar-side">
+        @if (staleness()?.stale) {
+          <span class="pill is-stale" title="O repositório tem commits novos desde este levantamento.">O código mudou</span>
+          <button type="button" class="btn btn-g btn-small" (click)="resurvey()" [disabled]="resurveying()">
+            {{ resurveying() ? 'Enviando…' : 'Levantar de novo' }}
+          </button>
+        }
+        @if (validation(); as v) {
+          <button type="button" class="btn btn-g btn-small" (click)="openValidation()" title="Abrir o resultado da última validação">
+            Validação:
+            @if (v.result; as r) {
+              {{ verdictLabel[r.verdict] }} ({{ r.score }})
+            } @else {
+              {{ v.status === ValidationStatus.Failed ? 'falhou' : 'em andamento' }}
+            }
+          </button>
+        }
+        @if (d.survey.status === SurveyStatus.Completed && !editing()) {
+          <span class="popover">
+            <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null">Comparar e exportar</button>
+            @if (exportOpen()) {
+              <div class="menu-backdrop" (click)="closePopovers()"></div>
+              <ul id="export-menu" class="popover-menu" (keydown)="onMenuKey($event)">
+                <li class="popover-group" role="presentation">Exportar o que está na tela</li>
+                <li><button type="button" (click)="exportImage('png')">Imagem PNG</button></li>
+                <li><button type="button" (click)="exportImage('svg')">Imagem SVG</button></li>
+                <li><button type="button" (click)="exportMermaid(false)">Copiar como Mermaid</button></li>
+                <li><button type="button" (click)="exportMermaid(true)">Baixar como Mermaid (.mmd)</button></li>
+                <li><button type="button" (click)="openC4()">Diagramas C4 (Structurizr DSL)</button></li>
+                <li class="popover-group" role="presentation">Comparar com outro levantamento deste método</li>
+                @if (siblingsState() === 'loading') {
+                  <li class="popover-empty muted" aria-live="polite">Procurando levantamentos…</li>
+                } @else if (siblingsState() === 'error') {
+                  <li class="popover-empty field-error" role="alert">Não deu para listar os levantamentos.</li>
+                  <li><button type="button" (click)="loadSiblings()">Tentar de novo</button></li>
+                } @else {
+                  @for (other of siblings(); track other.id) {
+                    <li><button type="button" (click)="compareWith(other.id)">{{ shortDate(other.createdAt) }}, commit {{ shortCommit(other.commitHash) || 'desconhecido' }}, {{ plural(other.nodeCount, 'nó', 'nós') }}</button></li>
+                  } @empty {
+                    <li class="popover-empty muted">Nenhum outro levantamento pronto deste método.</li>
+                  }
+                }
+              </ul>
+            }
+          </span>
+          <span class="popover">
+            <button type="button" class="btn btn-g btn-small" (click)="togglePopover('more')" [attr.aria-expanded]="moreOpen()" [attr.aria-controls]="moreOpen() ? 'more-menu' : null" aria-label="Mais ações do levantamento" title="Mais ações">⋯</button>
+            @if (moreOpen()) {
+              <div class="menu-backdrop" (click)="closePopovers()"></div>
+              <ul id="more-menu" class="popover-menu" (keydown)="onMenuKey($event)">
+                <li><button type="button" class="is-danger" (click)="requestDelete()">Excluir levantamento…</button></li>
+              </ul>
+            }
+          </span>
+          @if (savedChanges() > 0) {
+            <button type="button" class="btn btn-g btn-small" (click)="validate()" [disabled]="validationBusy()"
+              [title]="'Rascunho salvo com ' + plural(savedChanges(), 'mudança', 'mudanças') + '. Depois de aplicar no código: levanta o fluxo de novo e confere'">Validar mudança</button>
+          }
+          <button type="button" class="btn btn-p btn-small" (click)="startEditing()">Editar fluxo</button>
+        }
+        <span [class]="'pill is-' + statusSlug[d.survey.status]">{{ statusLabel[d.survey.status] }}</span>
+        @if (d.survey.status === SurveyStatus.Completed) {
+          <span class="muted">
+            {{ plural(d.survey.nodeCount, 'nó', 'nós') }},
+            <span [class.has-holes]="d.survey.unresolvedCount > 0">{{ plural(d.survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</span>
+          </span>
+        }
+      </div>
+    </header>
+
+    @if (editing()) {
+      <div class="editbar" role="toolbar" aria-label="Edição do fluxo">
+        <button type="button" class="btn btn-g btn-small" (click)="toggleNewStep()" [attr.aria-expanded]="showNewStep" aria-controls="new-step">Novo passo</button>
+        <button type="button" class="btn btn-g btn-small" (click)="undo()" [disabled]="!canUndo()" title="Desfazer (Ctrl+Z)">Desfazer</button>
+        <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" title="Refazer (Ctrl+Shift+Z)">Refazer</button>
+        <span class="muted editbar-count">{{ plural(changes(), 'mudança', 'mudanças') }}{{ dirty() ? ', não salvas' : '' }}</span>
+        <button type="button" class="btn btn-icon editbar-help" (click)="hintOpen.set(!hintOpen())" [attr.aria-expanded]="hintOpen()" aria-controls="edit-hint" aria-label="Como ligar e mover passos">?</button>
+        @if (draftMessage(); as message) {
+          <span [class]="message.ok ? 'editbar-ok' : 'field-error'" role="status">{{ message.text }}</span>
+        }
+        <span class="editbar-actions">
+          <span class="editbar-steps" role="group" aria-label="Da mudança ao código">
+            <button type="button" [class]="'btn btn-small ' + (changes() > 0 && !promptReady() ? 'btn-p' : 'btn-g')" (click)="generatePrompt()" [disabled]="promptLoading()">
+              <span class="step-number" aria-hidden="true">1</span>{{ promptLoading() ? 'Gerando…' : 'Gerar prompt' }}
+            </button>
+            <span class="step-arrow" aria-hidden="true">›</span>
+            <button type="button" [class]="'btn btn-small ' + (changes() > 0 && promptReady() ? 'btn-p' : 'btn-g')" (click)="validate()" [disabled]="validationBusy()" title="Depois de aplicar a mudança no código: levanta o fluxo de novo e confere">
+              <span class="step-number" aria-hidden="true">2</span>Validar mudança
+            </button>
+          </span>
+          <button type="button" class="btn btn-g btn-small" (click)="saveDraft()" [disabled]="savingDraft() || !dirty()">{{ savingDraft() ? 'Salvando…' : 'Salvar rascunho' }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="exitEditing()">{{ dirty() ? 'Salvar e sair' : 'Sair da edição' }}</button>
+          <span class="popover">
+            <button type="button" class="btn btn-g btn-small" (click)="togglePopover('more')" [attr.aria-expanded]="moreOpen()" [attr.aria-controls]="moreOpen() ? 'more-menu' : null" aria-label="Mais ações da edição">Mais</button>
+            @if (moreOpen()) {
+              <div class="menu-backdrop" (click)="closePopovers()"></div>
+              <ul id="more-menu" class="popover-menu" (keydown)="onMenuKey($event)">
+                <li><button type="button" class="is-danger" (click)="discardFromMenu()">Descartar rascunho…</button></li>
+              </ul>
+            }
+          </span>
+        </span>
+      </div>
+      @if (hintOpen()) {
+        <p id="edit-hint" class="edit-hint muted">
+          Arraste de uma bolinha de saída até a de entrada de outro passo para ligar; arraste a ponta de uma ligação para mover o passo.
+          O caminho é: desenhar a mudança, gerar o prompt, deixar o agente aplicar no código e validar.
+        </p>
+      }
+      @if (showNewStep) {
+        <form id="new-step" class="newstep" (ngSubmit)="addNewStep()" novalidate>
+          <div class="field">
+            <label class="field-label" for="new-label">Nome do passo</label>
+            <input id="new-label" class="input code" name="label" [(ngModel)]="newLabel" placeholder="PedidoService.ValidarEstoque" autocomplete="off"
+              [attr.aria-invalid]="!!newStepErrors().label" aria-describedby="new-label-help new-label-error" />
+            <span id="new-label-help" class="field-help">Tipo.Metodo. Se houver sobrecarga, inclua os tipos: Tipo.Metodo(string, int).</span>
+            <span id="new-label-error" class="field-error" [hidden]="!newStepErrors().label">{{ newStepErrors().label }}</span>
+          </div>
+          <div class="field">
+            <label class="field-label" for="new-kind">Tipo</label>
+            <select id="new-kind" class="input" name="kind" [(ngModel)]="newKind">
+              <option [ngValue]="NodeKind.Method">Método</option>
+              <option [ngValue]="NodeKind.Decision">Decisão</option>
+            </select>
+          </div>
+          <div class="field grow">
+            <label class="field-label" for="new-intent">O que deve fazer</label>
+            <input id="new-intent" class="input" name="intent" [(ngModel)]="newIntent" placeholder="Conferir o estoque antes de confirmar o pedido" autocomplete="off"
+              [attr.aria-invalid]="!!newStepErrors().intent" aria-describedby="new-intent-help new-intent-error" />
+            <span id="new-intent-help" class="field-help">
+              @if (selectedLabel(); as after) {
+                Entra depois de <span class="code">{{ after }}</span>.
+              } @else {
+                Entra solto no grafo; escolha um passo antes para ligar a ele.
+              }
+            </span>
+            <span id="new-intent-error" class="field-error" [hidden]="!newStepErrors().intent">{{ newStepErrors().intent }}</span>
+          </div>
+          <button type="submit" class="btn btn-g btn-small">{{ selectedId() ? 'Criar depois do passo escolhido' : 'Criar passo' }}</button>
+        </form>
+      }
+    } @else if (draftMessage(); as message) {
+      <p [class]="'draft-message ' + (message.ok ? 'editbar-ok' : 'field-error')" role="status">{{ message.text }}</p>
+    }
+
+    <!-- Filtros ativos no grafo (recorte, comparação, caminho, recolhidos): uma faixa só, com chips. -->
+    @if (focusLabel() || comparar() || pathFrom() || collapsed().size > 0) {
+      <div class="active-filters" role="region" aria-label="Filtros ativos no grafo" aria-live="polite">
+        <span class="active-filters-title muted">No grafo:</span>
+        @if (focusLabel(); as label) {
+          <span class="chip-filter" [title]="'Mostrando só o fluxo de ' + label + ': os caminhos até ele e o que roda depois.'">
+            <span class="chip-text">Só o fluxo de <span class="code">{{ label }}</span></span>
+            <button type="button" class="chip-close" (click)="showAll()" aria-label="Mostrar o grafo inteiro" title="Mostrar o grafo inteiro">×</button>
+          </span>
+        }
+        @if (comparar()) {
+          <span class="chip-filter" [class.is-error]="!!compareError()">
+            @if (comparison() && visibleChanges(); as c) {
+              <span class="chip-text" [title]="'Comparando com o levantamento de ' + shortDate(compareDetail()!.survey.createdAt) + ', commit ' + (shortCommit(compareDetail()!.survey.commitHash) || 'desconhecido')">
+                Comparando com {{ shortDate(compareDetail()!.survey.createdAt) }}:
+                <span class="compare-added">+{{ plural(c.added, 'passo novo', 'passos novos') }}</span>,
+                <span class="compare-removed">−{{ c.removed === 1 ? '1 saiu' : c.removed + ' saíram' }}</span>
+              </span>
+            } @else if (compareError(); as message) {
+              <span class="chip-text">Não deu para comparar: {{ message }}</span>
+            } @else {
+              <span class="chip-text">Carregando a comparação…</span>
+            }
+            <button type="button" class="chip-close" (click)="compareWith(null)" aria-label="Parar de comparar" title="Parar de comparar">×</button>
+          </span>
+        }
+        @if (pathFrom(); as from) {
+          <span class="chip-filter" [class.is-error]="!!pathTo() && !between()">
+            @if (!pathTo()) {
+              <span class="chip-text">Caminhos a partir de <span class="code">{{ nodeLabel(from) }}</span>: clique no destino</span>
+            } @else if (between(); as b) {
+              <span class="chip-text" [title]="'O mais curto tem ' + plural(b.path.length, 'passo', 'passos')">
+                Caminhos <span class="code">{{ nodeLabel(from) }}</span> → <span class="code">{{ nodeLabel(pathTo()) }}</span> ({{ plural(b.nodeIds.size, 'passo', 'passos') }})
+              </span>
+            } @else {
+              <span class="chip-text"><span class="code">{{ nodeLabel(pathTo()) }}</span> não é alcançado a partir de <span class="code">{{ nodeLabel(from) }}</span></span>
+            }
+            <button type="button" class="chip-close" (click)="clearPath()" [attr.aria-label]="pathTo() ? 'Limpar o caminho' : 'Cancelar o caminho'" [title]="pathTo() ? 'Limpar o caminho' : 'Cancelar o caminho'">×</button>
+          </span>
+        }
+        @if (collapsed().size > 0) {
+          <span class="chip-filter" title='Clique no "+N passos" no grafo para abrir um deles'>
+            <span class="chip-text">{{ collapsed().size === 1 ? '1 passo recolhido' : collapsed().size + ' passos recolhidos' }}</span>
+            <button type="button" class="chip-close" (click)="expandAll()" aria-label="Expandir tudo" title="Expandir tudo">×</button>
+          </span>
+        }
+      </div>
+    }
+
+    @if (searchOpen()) {
+      <div class="graph-search" role="search">
+        <label class="visually-hidden" for="graph-search">Buscar passo no grafo</label>
+        <input id="graph-search" class="input code" type="search" placeholder="Buscar passo (nome do método, condição…)" autocomplete="off" spellcheck="false"
+          [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)"
+          (keydown.enter)="$event.preventDefault(); stepSearch(1)" (keydown.shift.enter)="$event.preventDefault(); stepSearch(-1)" />
+        <span class="muted search-count" role="status">
+          @if (searchQuery().trim()) {
+            {{ matches().length === 0 ? 'Nenhum passo na tela' : (searchIndex() + 1) + ' de ' + matches().length }}
+            @if (hiddenMatches() > 0) {
+              ({{ plural(hiddenMatches(), 'outro escondido', 'outros escondidos') }} pelo recorte, recolhidos ou chamadas do .NET)
+            }
+          }
+        </span>
+        @if (hiddenMatches() > 0) {
+          <button type="button" class="btn btn-g btn-small" (click)="searchEverywhere()">Buscar em tudo</button>
+        }
+        <button type="button" class="btn btn-g btn-small" (click)="stepSearch(-1)" [disabled]="matches().length < 2" aria-label="Passo anterior">↑</button>
+        <button type="button" class="btn btn-g btn-small" (click)="stepSearch(1)" [disabled]="matches().length < 2" aria-label="Próximo passo">↓</button>
+        <button type="button" class="btn btn-g btn-small" (click)="closeSearch()">Fechar busca</button>
+      </div>
+    }
+
+    @if (softError(); as message) {
+      <div class="notice is-error soft-error" role="alert">
+        <span>{{ message }}</span>
+        <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar agora</button>
+      </div>
+    }
+
+    @if (decisionError(); as message) {
+      <p class="notice is-error decision-error" role="alert">{{ message }}</p>
+    }
+
+    @if (d.survey.status === SurveyStatus.Completed && graph(); as g) {
+      <div class="workspace" [class.is-panel-collapsed]="panelCollapsed()">
+        <app-flow-canvas [graph]="g" [selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
+          [showFramework]="showFramework()" [editing]="editing()" [focusId]="focusId()" [layoutKey]="layoutKey()" [comparing]="!!comparison()" [matchIds]="matchIds()" [noteIds]="notes()" [currentMatch]="currentMatch()" (openSearch)="openSearch()" (selectNode)="select($event)" (toggleFramework)="toggleFramework()"
+          (nodeMenu)="openMenu($event)" (jumpTo)="select($event, false)" (toggleFold)="toggleCollapse($event)" (summaryChange)="summary.set($event)"
+          (createEdge)="onCreateEdge($event)" (reassignEdge)="onReassignEdge($event)" />
+        <button type="button" class="panel-toggle" (click)="togglePanel()" [attr.aria-expanded]="!panelCollapsed()" aria-controls="node-panel"
+          [attr.aria-label]="panelCollapsed() ? 'Mostrar o painel do passo' : 'Recolher o painel do passo para ver mais do grafo'"
+          [title]="panelCollapsed() ? 'Mostrar o painel' : 'Recolher o painel'"><span aria-hidden="true">{{ panelCollapsed() ? '‹' : '›' }}</span></button>
+        <app-node-panel id="node-panel" [surveyId]="d.survey.id" [repository]="d.survey.repository" [graph]="g" [summary]="summary()" [selectedId]="selectedId()" [trail]="trail()" [deciding]="deciding()"
+          [canFillHoles]="canFillHoles()" [filling]="filling()" [fillMessages]="fillMessages()"
+          [canDescribe]="canDescribe()" [describing]="describing()" [describeMessage]="describeMessage()"
+          [editing]="editing()" [focusId]="focusId()" [aiActive]="aiActive()"
+          [notes]="notes()" [crossFlow]="crossFlow()" [savingNote]="savingNote()" [noteMessage]="noteMessage()" [noteUndo]="noteUndo()" (saveNote)="saveNote($event)"
+          (focusFlow)="focusOnNode($event)" (showAll)="showAll()"
+          (selectNode)="select($event)" (closePanel)="closePanel($event)" (decideEdge)="decide($event)" (fillHole)="fillHole($event)" (describe)="describe($event)"
+          (removeEdge)="onRemoveEdge($event)" (removeStep)="onRemoveStep($event)" (restoreStep)="onRestoreStep($event)"
+          (setIntent)="onSetIntent($event)" (connectTo)="onConnectTo($event)" (refactorPrompt)="openRefactorPrompt($event)" />
+      </div>
+    } @else if (d.survey.status === SurveyStatus.Failed) {
+      <div class="state">
+        <div class="notice is-error" role="alert">
+          <h2>A análise falhou</h2>
+          <p>{{ d.survey.error }}</p>
+        </div>
+        <div class="state-actions">
+          <button type="button" class="btn btn-p" (click)="retryWithChanges()">Corrigir e levantar de novo</button>
+          <button type="button" class="btn btn-g" (click)="requestDelete()">Excluir levantamento…</button>
+        </div>
+      </div>
+    } @else {
+      <div class="state" aria-live="polite">
+        <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+          <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+        </svg>
+        <p>{{ d.survey.status === SurveyStatus.Pending ? 'Na fila para analisar.' : 'Lendo a solution e seguindo as chamadas.' }}</p>
+        <p class="muted">Solutions grandes levam até um minuto. Esta tela atualiza sozinha.</p>
+      </div>
+    }
+  </div>
+} @else {
+  <div class="state">
+    <h1 class="visually-hidden">Levantamento</h1>
+    <p class="muted" aria-live="polite">Carregando o levantamento…</p>
+  </div>
+}
+
+@if (prompt(); as p) {
+  <div class="overlay" appDialog (click)="closePrompt()">
+    <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="prompt-title" (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <div>
+          @if (promptKind() === 'refactor') {
+            <h2 id="prompt-title">Prompt de refatoração</h2>
+            <p class="muted">Cole no seu agente de código; ele também pega este texto pelo MCP (get_refactor_prompt).</p>
+          } @else {
+            <h2 id="prompt-title">Prompt da mudança</h2>
+            <p class="muted">{{ plural(p.changes, 'mudança', 'mudanças') }}. Cole no seu agente de código; ele também pega este texto pelo MCP (get_change_prompt).</p>
+          }
+        </div>
+        <button type="button" class="btn btn-icon" (click)="closePrompt()" aria-label="Fechar">×</button>
+      </header>
+      @if (p.prompt) {
+        <pre class="prompt-text" tabindex="0">{{ p.prompt }}</pre>
+      } @else if (promptLoading()) {
+        <p class="muted" aria-live="polite">Montando o prompt…</p>
+      }
+      @if (p.prompt) {
+        <p class="muted next-step">
+          {{ promptKind() === 'change'
+            ? 'Depois: cole no agente de código, deixe ele aplicar a mudança e volte aqui em Validar mudança.'
+            : 'Depois que o agente aplicar, use Levantar de novo para conferir o fluxo sem o achado.' }}
+        </p>
+      }
+      @if (promptKind() === 'refactor' && p.prompt) {
+        <section class="ai-suggestion" aria-label="Sugestão da IA">
+          <span class="visually-hidden" role="status">{{ suggestion() ? 'Sugestão de refatoração da IA pronta.' : suggestionAppended() ? 'Sugestão da IA acrescentada ao fim do prompt.' : '' }}</span>
+          @if (suggestionAppended()) {
+            <p class="muted"><span class="origin-badge is-provider">IA</span> Sugestão acrescentada ao fim do prompt.</p>
+          } @else if (suggestion(); as s) {
+            <p class="ai-suggestion-head"><span class="origin-badge is-provider">IA</span> Sugestão de {{ providerLabel[s.provider] }}, para conferir antes de aplicar</p>
+            <p>{{ s.summary }}</p>
+            <ol class="steps">
+              @for (step of s.steps; track $index) {
+                <li>{{ step }}</li>
+              }
+            </ol>
+            <button type="button" class="btn btn-g btn-small" (click)="appendSuggestion()">Acrescentar ao prompt</button>
+          } @else if (canSuggest()) {
+            <button type="button" class="btn btn-g btn-small" (click)="askSuggestion()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Pedir sugestão de refatoração à IA' }}</button>
+          } @else {
+            <p class="muted">Para a IA sugerir a refatoração, ligue a IA e o uso "Sugestões de melhoria" em <a routerLink="/configuracoes" (click)="closePrompt()">Configurações</a>.</p>
+          }
+          @if (suggestionError(); as message) {
+            <p class="field-error" role="alert">{{ message }}</p>
+          }
+        </section>
+      }
+      @if (promptError(); as message) {
+        <p class="field-error" role="alert">{{ message }}</p>
+      }
+      <footer class="dialog-foot">
+        <span class="visually-hidden" role="status">{{ promptCopy.status() === 'idle' ? '' : promptCopy.label('') }}</span>
+        @if (promptKind() === 'change') {
+          <button type="button" class="btn btn-g" (click)="generatePrompt()" [disabled]="promptLoading()">{{ promptLoading() ? 'Gerando…' : 'Regerar' }}</button>
+        }
+        <button type="button" class="btn btn-p" (click)="copyPrompt()" [disabled]="!p.prompt">{{ promptCopy.label('Copiar prompt') }}</button>
+      </footer>
+    </section>
+  </div>
+}
+
+@if (validationOpen() && validation(); as v) {
+  <app-validation-dialog [validation]="v" [document]="validationDocument()" [busy]="validationBusy()" [message]="validationMessage()"
+    (closed)="validationOpen.set(false)" (approve)="approveValidation()" (revalidate)="validate()" />
+}
+
+@if (menu(); as m) {
+  <div class="menu-backdrop" (click)="closeMenu()" (contextmenu)="$event.preventDefault(); closeMenu()"></div>
+  <ul class="context-menu" role="menu" [attr.aria-label]="'Ações de ' + menuLabel()" [style.left.px]="m.x" [style.top.px]="m.y" (keydown)="onMenuKey($event)">
+    <li class="context-menu-title code" role="presentation">{{ menuLabel() }}</li>
+    <li role="none">
+      <button type="button" role="menuitem" (click)="focusOnNode(m.nodeId)">Ver somente este fluxo</button>
+    </li>
+    <li role="none">
+      @if (pathFrom() && pathFrom() !== m.nodeId) {
+        <button type="button" role="menuitem" (click)="closeMenu(); endPath(m.nodeId)">Caminhos de {{ nodeLabel(pathFrom()) }} até aqui</button>
+      } @else {
+        <button type="button" role="menuitem" (click)="closeMenu(); startPath(m.nodeId)">Caminhos a partir daqui</button>
+      }
+    </li>
+    @if (menuNode()?.location) {
+      @if (menuEditorLink()) {
+        <li role="none">
+          <button type="button" role="menuitem" (click)="openMenuInEditor()">Abrir no VS Code</button>
+        </li>
+      }
+      <li role="none">
+        <button type="button" role="menuitem" (click)="copyMenuLocation()">Copiar arquivo:linha</button>
+      </li>
+    }
+    <li role="none">
+      <button type="button" role="menuitem" (click)="closeMenu(); toggleCollapse(m.nodeId)">{{ menuCollapsed() ? 'Expandir o que vem depois' : 'Recolher o que vem depois' }}</button>
+    </li>
+    @if (focusId()) {
+      <li role="none">
+        <button type="button" role="menuitem" (click)="closeMenu(); showAll()">Mostrar o grafo inteiro</button>
+      </li>
+    }
+  </ul>
+}
+
+@if (c4Open() && detail(); as d) {
+  <app-c4-dialog [surveyId]="d.survey.id" (closed)="c4Open.set(false)" />
+}
+
+<!-- Retorno de copiar e exportar: um aviso só, que some sozinho. -->
+@if (exportMessage(); as message) {
+  <p [class]="'toast menu-toast ' + (message.ok ? '' : 'is-error')" [attr.role]="message.ok ? 'status' : 'alert'">{{ message.text }}</p>
+} @else if (menuCopy.status() !== 'idle') {
+  <p class="toast menu-toast" role="status">{{ menuCopy.status() === 'copied' ? 'Copiado.' : menuCopy.label('') }}</p>
+}
+
+@if (confirmDiscard()) {
+  <app-confirm-dialog title="Descartar o rascunho?"
+    [text]="changes() > 0 ? 'Apaga ' + plural(changes(), 'mudança', 'mudanças') + ' do rascunho salvo e da tela. Não dá para desfazer.' : 'Apaga o rascunho salvo deste levantamento. Não dá para desfazer.'"
+    [confirmLabel]="changes() > 0 ? 'Descartar ' + plural(changes(), 'mudança', 'mudanças') : 'Descartar'"
+    (confirm)="discardDraft()" (cancel)="confirmDiscard.set(false)" />
+}
+
+@if (confirmDelete() && detail(); as d) {
+  <app-confirm-dialog title="Excluir o levantamento?"
+    [text]="'Apaga o levantamento de ' + d.survey.entryPoint + ', com o rascunho, as validações e as propostas. As anotações dos passos ficam, porque são do repositório. Não dá para desfazer.'"
+    [confirmLabel]="deleting() ? 'Excluindo…' : 'Excluir levantamento'" [busy]="deleting()" (confirm)="deleteSurvey()" (cancel)="confirmDelete.set(false)" />
+}
