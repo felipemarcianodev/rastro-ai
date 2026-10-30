@@ -1,6 +1,6 @@
 {
   "name": "rastro-web",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -28,7 +28,7 @@
     "@angular/platform-browser": "^20.1.0",
     "@angular/router": "^20.1.0",
     "@foblex/2d": "^1.2.2",
-    "@foblex/flow": "^19.3.0",
+    "@foblex/flow": "^19.4.0",
     "@foblex/mediator": "^1.1.3",
     "@foblex/platform": "^1.0.4",
     "@foblex/utils": "^1.1.1",
@@ -49,6 +49,6 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.3.0",
-    "typescript": "~5.8.2"
+    "typescript": "~5.9.3"
   }
 }
