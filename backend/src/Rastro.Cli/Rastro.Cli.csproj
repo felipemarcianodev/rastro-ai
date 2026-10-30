@@ -8,7 +8,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Build.Locator" Version="1.11.2" />
     <!-- O MSBuild vem do SDK instalado (MSBuildLocator); nunca copiar os assemblies dele para a saída. -->
-    <PackageReference Include="Microsoft.Build.Framework" Version="17.11.48" ExcludeAssets="runtime" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Build.Framework" Version="17.14.28" ExcludeAssets="runtime" PrivateAssets="all" />
   </ItemGroup>
 
   <PropertyGroup>

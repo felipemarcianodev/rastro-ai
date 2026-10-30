@@ -9,6 +9,14 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+    # Os pacotes do .NET (ASP.NET Core, EF Core, Extensions) saem juntos a cada patch e dependem uns
+    # dos outros: subir um sozinho dá NU1605 (downgrade detectado) com TreatWarningsAsErrors.
+    groups:
+      dotnet:
+        patterns:
+          - "Microsoft.AspNetCore.*"
+          - "Microsoft.EntityFrameworkCore*"
+          - "Microsoft.Extensions.*"
 
   - package-ecosystem: npm
     directory: /frontend
@@ -17,6 +25,13 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # A versão do zone.js acompanha a do Angular (o Angular 20 exige ~0.15): sobe junto com ele.
+      - dependency-name: "zone.js"
+        update-types: ["version-update:semver-minor"]
+    groups:
+      angular:
+        patterns:
+          - "@angular/*"
 
   - package-ecosystem: github-actions
     directory: /
