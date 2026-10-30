@@ -10,7 +10,7 @@
     <!-- O MSBuild vem do SDK instalado (MSBuildLocator, registrado por quem hospeda); nunca copiar os assemblies dele para a saída. -->
     <PackageReference Include="Microsoft.Build.Framework" Version="17.14.28" ExcludeAssets="runtime" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
-    <PackageReference Include="ModelContextProtocol" Version="2.2.0" />
+    <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
   </ItemGroup>
 
   <PropertyGroup>
