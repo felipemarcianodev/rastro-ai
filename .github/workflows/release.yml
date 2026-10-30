@@ -1,0 +1,121 @@
+# Release do Rastro AI: testa, empacota e publica o dotnet tool "rastro-ai" no nuget.org.
+#
+# Disparo: push de uma tag v<versão> (ex.: v0.1.0), igual ao arquivo VERSION. O nuget.org não
+# aceita a mesma versão duas vezes: suba o VERSION num PR antes de criar a tag.
+#
+# Publicação Confiável (trusted publishing) do nuget.org: sem chave guardada. O job de publicação
+# troca o token OIDC do GitHub por uma chave temporária (1 hora, uso único). A política no
+# nuget.org aponta para este repositório e para o arquivo release.yml.
+# Secret do repositório: NUGET_USER, o nome do perfil no nuget.org (não o e-mail).
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  backend:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      # Actions fixadas por SHA (o Dependabot propõe as novas).
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Build
+        run: dotnet build backend/Rastro.slnx -c Release
+
+      - name: Testes
+        run: dotnet test backend/Rastro.slnx -c Release --no-build
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Dependências
+        run: npm ci --ignore-scripts
+
+      - name: npm audit (produção)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Testes
+        run: npm run test:ci
+
+  publicar:
+    needs: [backend, frontend]
+    runs-on: windows-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write # token OIDC para a Publicação Confiável do nuget.org
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          dotnet-version: 10.0.x
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Tag igual ao VERSION
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          $version = (Get-Content VERSION -Raw).Trim()
+          if ($env:TAG -ne "v$version") { throw "A tag $env:TAG não corresponde ao VERSION ($version)." }
+          "VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Dependências do front
+        working-directory: frontend
+        run: npm ci --ignore-scripts
+
+      - name: Pacote (front no wwwroot e dotnet pack)
+        shell: pwsh
+        run: ./scripts/empacotar.ps1
+
+      # A chave temporária é pedida logo antes do push: vale 1 hora e serve uma vez.
+      - name: Login no nuget.org (OIDC)
+        id: login
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Publicar no nuget.org
+        shell: pwsh
+        env:
+          NUGET_API_KEY: ${{ steps.login.outputs.NUGET_API_KEY }}
+        run: |
+          dotnet nuget push "artifacts/rastro-ai.$env:VERSION.nupkg" --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+          if ($LASTEXITCODE -ne 0) { throw "dotnet nuget push falhou (código $LASTEXITCODE)." }
