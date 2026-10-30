@@ -3,72 +3,6 @@
   height: 100%;
 }
 
-.layout {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-
-.bar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3) var(--space-5);
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
-}
-
-.back {
-  display: inline-grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-
-  &:hover {
-    background: var(--surface-sunk);
-  }
-}
-
-.bar-title {
-  min-width: 0;
-  flex: 1;
-
-  h1 {
-    font-size: var(--text-lg);
-    font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-}
-
-.bar-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  font-size: var(--text-sm);
-}
-
-// Em 1280 a barra quebra linha em vez de esmagar o título.
-.bar-side {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  min-width: 0;
-  align-items: center;
-  gap: var(--space-3);
-  font-size: var(--text-sm);
-}
-
-.state-actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
 .has-holes {
   color: var(--unresolved);
   font-weight: 500;
@@ -132,20 +66,9 @@
   }
 }
 
-.state {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-3);
-  padding: var(--space-5);
-  text-align: center;
-
-  .notice {
-    max-width: 560px;
-    text-align: left;
-  }
+.page-state .notice {
+  max-width: 560px;
+  text-align: left;
 }
 
 // O único movimento automático da tela: a trilha sendo percorrida enquanto a análise roda.

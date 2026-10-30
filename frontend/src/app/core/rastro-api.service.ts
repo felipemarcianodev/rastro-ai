@@ -20,6 +20,7 @@ import {
   RefactorPrompt,
   C4Export,
   NodeNote,
+  SurveyDiagram,
   PeopleSuggestion,
   CrossFlowFinding,
   RefactorSuggestion,
@@ -129,6 +130,21 @@ export class RastroApi {
   // Texto vazio apaga (a API responde 204 e aqui volta null).
   saveNote(id: string, nodeId: string, text: string): Observable<NodeNote | null> {
     return this.http.put<NodeNote | null>(`/api/surveys/${id}/notes`, { nodeId, text });
+  }
+
+  // Visão consolidada (Fase 27); null quando ainda não há diagrama salvo nem anterior para herdar.
+  diagram(id: string): Observable<SurveyDiagram | null> {
+    return this.http.get<SurveyDiagram>(`/api/surveys/${id}/diagram`).pipe(
+      catchError((error) => (error instanceof HttpErrorResponse && error.status === 404 ? of(null) : throwError(() => error))),
+    );
+  }
+
+  saveDiagram(id: string, mermaid: string): Observable<SurveyDiagram> {
+    return this.http.put<SurveyDiagram>(`/api/surveys/${id}/diagram`, { mermaid });
+  }
+
+  deleteDiagram(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/surveys/${id}/diagram`);
   }
 
   saveC4People(id: string, people: C4Person[]): Observable<C4Export> {

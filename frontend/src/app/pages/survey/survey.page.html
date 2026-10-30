@@ -1,19 +1,19 @@
 @if (error(); as message) {
-  <div class="state">
+  <div class="page-state">
     <h1 class="visually-hidden">Levantamento</h1>
     <p class="notice is-error" role="alert">{{ message }}</p>
-    <div class="state-actions">
+    <div class="page-state-actions">
       <button type="button" class="btn btn-g" (click)="retry()">Tentar de novo</button>
       <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
     </div>
   </div>
 } @else if (detail(); as d) {
-  <div class="layout">
-    <header class="bar">
-      <a class="back" routerLink="/" aria-label="Voltar aos levantamentos">←</a>
-      <div class="bar-title">
+  <div class="page-layout">
+    <header class="page-bar">
+      <a class="page-back" routerLink="/" aria-label="Voltar aos levantamentos">←</a>
+      <div class="page-bar-title">
         <h1 class="code">{{ d.survey.entryPoint }}</h1>
-        <div class="bar-meta">
+        <div class="page-bar-meta">
           <span>{{ d.survey.repository }}</span>
           <span class="code muted meta-path" [title]="d.survey.solutionPath">{{ d.survey.solutionPath }}</span>
           @if (d.survey.branch || d.survey.commitHash) {
@@ -32,7 +32,7 @@
         </div>
       </div>
 
-      <div class="bar-side">
+      <div class="page-bar-side">
         @if (staleness()?.stale) {
           <span class="pill is-stale" title="O repositório tem commits novos desde este levantamento.">O código mudou</span>
           <button type="button" class="btn btn-g btn-small" (click)="resurvey()" [disabled]="resurveying()">
@@ -50,6 +50,7 @@
           </button>
         }
         @if (d.survey.status === SurveyStatus.Completed && !editing()) {
+          <a class="btn btn-g btn-small" [routerLink]="['/surveys', d.survey.id, 'visao']" title="O fluxo todo num diagrama Mermaid editável">Visão consolidada</a>
           <span class="popover">
             <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null">Comparar e exportar</button>
             @if (exportOpen()) {
@@ -280,18 +281,18 @@
           (setIntent)="onSetIntent($event)" (connectTo)="onConnectTo($event)" (refactorPrompt)="openRefactorPrompt($event)" />
       </div>
     } @else if (d.survey.status === SurveyStatus.Failed) {
-      <div class="state">
+      <div class="page-state">
         <div class="notice is-error" role="alert">
           <h2>A análise falhou</h2>
           <p>{{ d.survey.error }}</p>
         </div>
-        <div class="state-actions">
+        <div class="page-state-actions">
           <button type="button" class="btn btn-p" (click)="retryWithChanges()">Corrigir e levantar de novo</button>
           <button type="button" class="btn btn-g" (click)="requestDelete()">Excluir levantamento…</button>
         </div>
       </div>
     } @else {
-      <div class="state" aria-live="polite">
+      <div class="page-state" aria-live="polite">
         <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
           <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
         </svg>
@@ -301,7 +302,7 @@
     }
   </div>
 } @else {
-  <div class="state">
+  <div class="page-state">
     <h1 class="visually-hidden">Levantamento</h1>
     <p class="muted" aria-live="polite">Carregando o levantamento…</p>
   </div>

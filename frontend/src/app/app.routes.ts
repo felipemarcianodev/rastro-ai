@@ -12,6 +12,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/survey/survey.page').then((m) => m.SurveyPage),
   },
   {
+    path: 'surveys/:id/visao',
+    title: 'Visão consolidada | Rastro AI',
+    loadComponent: () => import('./pages/diagram/diagram.page').then((m) => m.DiagramPage),
+  },
+  {
     path: 'configuracoes',
     title: 'Configurações | Rastro AI',
     loadComponent: () => import('./pages/settings/settings.page').then((m) => m.SettingsPage),
