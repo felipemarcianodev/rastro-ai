@@ -1,0 +1,39 @@
+:host {
+  position: relative;
+  display: block;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// O palco não rola: o desenho anda por transform (arrastar e roda do mouse).
+.stage-viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: var(--paper);
+  cursor: grab;
+  touch-action: none;
+
+  &.is-dragging {
+    cursor: grabbing;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: -2px;
+  }
+}
+
+.stage-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+.stage-actual {
+  width: auto;
+  min-width: 36px;
+  padding: 0 var(--space-1);
+  font-size: var(--text-xs);
+}

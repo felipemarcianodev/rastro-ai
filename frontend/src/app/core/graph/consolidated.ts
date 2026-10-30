@@ -60,6 +60,18 @@ export function stepId(nodeId: string): string {
   return `s${(hash >>> 0).toString(36)}`;
 }
 
+// O passo repetido ganha "_r<n>" no fim; o id de base é o do passo original.
+export function baseStepId(id: string): string {
+  return id.replace(/_r\d+$/, '');
+}
+
+// Nó do grafo por trás de um passo do Mermaid (Fase 28): o painel do passo abre nele. Passo que o
+// dono escreveu à mão, sem nó no grafo, devolve null.
+export function nodeOfStep(graph: FlowGraph, id: string): string | null {
+  const base = baseStepId(id);
+  return graph.nodes.find((node) => stepId(node.id) === base)?.id ?? null;
+}
+
 // Passo que fica no diagrama e as ligações que saem dele ainda sem destino.
 interface Tail {
   from: string;

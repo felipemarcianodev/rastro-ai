@@ -1,5 +1,5 @@
 import { EdgeConfidence, FlowEdge, FlowGraph, FlowNode, NodeKind } from '../models';
-import { consolidatedMermaid, kindClassOf, mergeDiagram, nodeIdFromSvg, setKindStyle, setNodeStyle, stepId } from './consolidated';
+import { baseStepId, consolidatedMermaid, kindClassOf, mergeDiagram, nodeIdFromSvg, nodeOfStep, setKindStyle, setNodeStyle, stepId } from './consolidated';
 
 const node = (id: string, kind: NodeKind, label = id, extra: Partial<FlowNode> = {}): FlowNode => ({ id, kind, label, ...extra });
 const edge = (from: string, to: string, order: number, label?: string): FlowEdge => ({ from, to, order, label, confidence: EdgeConfidence.Extracted });
@@ -373,5 +373,26 @@ describe('visão consolidada entre sistemas (Fase 25)', () => {
     const text = consolidatedMermaid(graph([node('job', NodeKind.Entry), node('a', NodeKind.Method, 'A.B')], [edge('job', 'a', 0)]));
 
     expect(text).not.toContain('subgraph');
+  });
+});
+
+describe('passo do Mermaid e nó do grafo (Fase 28)', () => {
+  const graph: FlowGraph = {
+    schemaVersion: 1,
+    entryPoint: 'A.Run',
+    entryNodeId: 'job',
+    nodes: [
+      { id: 'job', kind: NodeKind.Entry, label: 'A.Run' },
+      { id: 'a', kind: NodeKind.Method, label: 'X.A' },
+    ],
+    edges: [],
+  };
+
+  // WEB-CON-040
+  it('nodeOfStep_achaONoInclusiveDoPassoRepetidoENuloParaPassoAMao', () => {
+    expect(nodeOfStep(graph, stepId('a'))).toBe('a');
+    expect(nodeOfStep(graph, `${stepId('a')}_r3`)).toBe('a');
+    expect(nodeOfStep(graph, 'sfeitoamao')).toBeNull();
+    expect(baseStepId(`${stepId('job')}_r12`)).toBe(stepId('job'));
   });
 });

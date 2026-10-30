@@ -1,14 +1,16 @@
-import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { catchError, forkJoin, of, switchMap } from 'rxjs';
+import { forkJoin, map, of, switchMap } from 'rxjs';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
-import { DiagramStyle, consolidatedMermaid, kindClassOf, mergeDiagram, nodeIdFromSvg, setKindStyle, setNodeStyle } from '../../core/graph/consolidated';
+import { resolveDiagram } from '../../core/diagram-source';
+import { DiagramStyle, consolidatedMermaid, kindClassOf, mergeDiagram, nodeOfStep, setKindStyle, setNodeStyle } from '../../core/graph/consolidated';
 import { DIAGRAM_RENDERER, readDiagramColors, standaloneSvg } from '../../core/mermaid-render';
 import { SurveyDetail, SurveyDiagram, SurveyStatus } from '../../core/models';
 import { shortCommit } from '../../core/format';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { ConfirmDialogComponent, ConfirmTone } from '../survey/confirm-dialog.component';
+import { DiagramStageComponent, StagePick } from './diagram-stage.component';
 
 // A prévia espera o fim da digitação antes de desenhar (o Mermaid é lento para texto grande).
 const RENDER_DELAY_MS = 300;
@@ -16,11 +18,6 @@ const HISTORY_LIMIT = 100;
 // Teclas seguidas no editor valem um passo só do desfazer.
 const TYPING_COALESCE_MS = 800;
 const MESSAGE_MS = 4000;
-// Zoom da prévia: passos de 25%, de 25% a 300%.
-const ZOOM_STEP = 25;
-const ZOOM_MIN = 25;
-const ZOOM_MAX = 300;
-const ZOOM_DEFAULT = 100;
 
 // Tokens do tema que viram sugestão de cor no painel (nada de verde na paleta).
 const SWATCH_TOKENS = ['--paper', '--surface', '--surface-sunk', '--ink', '--ink-soft', '--line-strong', '--trail', '--inferred', '--unresolved', '--danger', '--kind-decision', '--kind-external'];
@@ -41,7 +38,7 @@ const DEFAULT_PAINT: Paint = { fill: '#ffffff', stroke: '#b7c1bc', color: '#1d2a
 // fonte: o painel de cor, o desfazer e o "gerar de novo" só reescrevem esse texto.
 @Component({
   selector: 'app-diagram-page',
-  imports: [RouterLink, ConfirmDialogComponent],
+  imports: [RouterLink, ConfirmDialogComponent, DiagramStageComponent],
   templateUrl: './diagram.page.html',
   styleUrl: './diagram.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
@@ -49,7 +46,6 @@ const DEFAULT_PAINT: Paint = { fill: '#ffffff', stroke: '#b7c1bc', color: '#1d2a
 export class DiagramPage {
   private readonly api = inject(RastroApi);
   private readonly renderer = inject(DIAGRAM_RENDERER);
-  private readonly preview = viewChild<ElementRef<HTMLElement>>('preview');
 
   // Vem da rota (surveys/:id/visao).
   readonly id = input.required<string>();
@@ -80,8 +76,12 @@ export class DiagramPage {
   protected readonly swatches = signal<string[]>([]);
   protected readonly paintFields = PAINT_FIELDS;
   protected readonly tonePrimary = ConfirmTone.Primary;
-  // Zoom da prévia em %; null é "Ajustar" (cabe na largura).
-  protected readonly zoom = signal<number | null>(null);
+  // Nó do grafo por trás do passo escolhido: o "Ver no fluxo" abre o painel dele (Fase 28).
+  protected readonly selectedNode = computed(() => {
+    const id = this.selected();
+    const graph = this.detail()?.graph;
+    return id && graph ? nodeOfStep(graph, id) : null;
+  });
   protected readonly pngBusy = signal(false);
 
   private readonly generated = computed(() => {
@@ -123,36 +123,6 @@ export class DiagramPage {
       const timer = setTimeout(() => this.render(text), delay);
       onCleanup(() => clearTimeout(timer));
     });
-
-    // O SVG entra por innerHTML: o sanitizador do Angular estragaria o desenho. O modo "strict" do
-    // Mermaid já passou o SVG pelo DOMPurify, e o texto digitado nunca chega ao DOM sem passar por ele.
-    effect(() => {
-      const svg = this.svg();
-      const el = this.preview()?.nativeElement;
-      if (el) el.innerHTML = svg;
-    });
-
-    // Zoom por escala do SVG (sem desenhar de novo o Mermaid).
-    effect(() => {
-      this.svg();
-      const zoom = this.zoom();
-      const svg = this.preview()?.nativeElement.querySelector('svg');
-      if (svg) applyZoom(svg, zoom);
-    });
-
-    // Realce do passo escolhido e passos alcançáveis por teclado (depois que o SVG novo entrou).
-    effect(() => {
-      this.svg();
-      const id = this.selected();
-      const el = this.preview()?.nativeElement;
-      if (!el) return;
-      for (const node of Array.from(el.querySelectorAll('g.node'))) {
-        node.classList.toggle('is-selected', id !== null && nodeIdFromSvg(node.id) === id);
-        node.setAttribute('tabindex', '0');
-        node.setAttribute('role', 'button');
-        node.setAttribute('aria-label', `Passo: ${(node.textContent ?? '').trim()}`);
-      }
-    });
   }
 
   protected reload(): void {
@@ -166,46 +136,32 @@ export class DiagramPage {
     this.inherited.set(null);
     this.svg.set('');
     this.selected.set(null);
-    this.zoom.set(null);
     this.firstRender = true;
     this.past = [];
     this.future = [];
     this.syncHistory();
     forkJoin({ detail: this.api.survey(id), saved: this.api.diagram(id) })
       .pipe(
-        // Diagrama herdado: busca o levantamento anterior para saber o que o dono de fato editou.
-        // Se ele não carregar, o merge segue sem baseline.
         switchMap(({ detail, saved }) =>
-          saved?.fromSurveyId
-            ? this.api.survey(saved.fromSurveyId).pipe(
-                catchError(() => of(null)),
-                switchMap((previous) => of({ detail, saved, previous })),
-              )
-            : of({ detail, saved, previous: null }),
+          detail.survey.status === SurveyStatus.Completed && detail.graph
+            ? resolveDiagram(this.api, detail, saved).pipe(map((resolved) => ({ detail, resolved })))
+            : of({ detail, resolved: null }),
         ),
       )
       .subscribe({
-      next: ({ detail, saved, previous }) => {
-        if (detail.survey.status !== SurveyStatus.Completed || !detail.graph) {
-          this.error.set('Este levantamento ainda não tem um fluxo pronto para consolidar.');
-          return;
-        }
-        this.detail.set(detail);
-        const generated = consolidatedMermaid(detail.graph, detail.survey.repository);
-        if (saved?.fromSurveyId) {
-          const baseline = previous?.graph ? consolidatedMermaid(previous.graph, previous.survey.repository) : undefined;
-          const merged = mergeDiagram(saved.mermaid, generated, baseline);
-          // O diagrama é do levantamento anterior: aqui nada foi salvo ainda, o dono salva.
-          this.saved.set(null);
-          this.inherited.set({ dropped: merged.dropped });
-          this.text.set(merged.text);
-          return;
-        }
-        this.saved.set(saved);
-        this.text.set(saved?.mermaid ?? generated);
-      },
-      error: (error) => this.error.set(apiErrorMessage(error)),
-    });
+        next: ({ detail, resolved }) => {
+          if (!resolved) {
+            this.error.set('Este levantamento ainda não tem um fluxo pronto para consolidar.');
+            return;
+          }
+          this.detail.set(detail);
+          // Diagrama herdado do levantamento anterior: aqui nada foi salvo ainda, o dono salva.
+          this.saved.set(resolved.saved);
+          this.inherited.set(resolved.inherited);
+          this.text.set(resolved.text);
+        },
+        error: (error) => this.error.set(apiErrorMessage(error)),
+      });
   }
 
   private render(text: string): void {
@@ -294,54 +250,15 @@ export class DiagramPage {
 
   // Cor ----------------------------------------------------------------------------------
 
-  protected onPreviewClick(event: MouseEvent): void {
-    this.pick(event.target instanceof Element ? event.target.closest('g.node') : null);
-  }
-
-  // Enter e Espaço num passo valem o mesmo que o clique.
-  protected onPreviewKey(event: KeyboardEvent): void {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-    const node = event.target instanceof Element ? event.target.closest('g.node') : null;
-    if (!node) return;
-    event.preventDefault();
-    this.pick(node);
-  }
-
-  private pick(node: Element | null): void {
-    const id = node ? nodeIdFromSvg(node.id) : null;
-    if (!node || !id) {
+  protected onPick(pick: StagePick | null): void {
+    if (!pick) {
       this.selected.set(null);
       return;
     }
-    this.selected.set(id);
-    this.selectedLabel.set((node.textContent ?? '').trim());
-    this.paint.set(readPaint(node));
+    this.selected.set(pick.id);
+    this.selectedLabel.set(pick.label);
+    this.paint.set(readPaint(pick.element));
     this.swatches.set(readSwatches());
-  }
-
-  // Zoom ---------------------------------------------------------------------------------
-
-  protected zoomFit(): void {
-    this.zoom.set(null);
-  }
-
-  protected zoomTo(percent: number): void {
-    this.zoom.set(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, percent)));
-  }
-
-  protected zoomBy(direction: 1 | -1): void {
-    this.zoomTo((this.zoom() ?? ZOOM_DEFAULT) + direction * ZOOM_STEP);
-  }
-
-  protected zoomReset(): void {
-    this.zoomTo(ZOOM_DEFAULT);
-  }
-
-  // Ctrl + roda do mouse na prévia dá zoom; sem Ctrl a roda rola a prévia.
-  protected onWheel(event: WheelEvent): void {
-    if (!event.ctrlKey || event.deltaY === 0) return;
-    event.preventDefault();
-    this.zoomBy(event.deltaY < 0 ? 1 : -1);
   }
 
   protected setPaint(key: PaintKey, value: string): void {
@@ -472,17 +389,6 @@ export class DiagramPage {
 
 function droppedText(count: number): string {
   return count === 1 ? '1 passo editado saiu porque não existe mais no código.' : `${count} passos editados saíram porque não existem mais no código.`;
-}
-
-// Escala o SVG já desenhado: null cabe na largura, número é % do tamanho natural.
-function applyZoom(svg: SVGSVGElement, zoom: number | null): void {
-  svg.style.maxWidth = 'none';
-  if (zoom === null) {
-    svg.style.width = '100%';
-    return;
-  }
-  const natural = svg.viewBox.baseVal?.width || parseFloat(svg.getAttribute('width') ?? '') || svg.getBoundingClientRect().width;
-  svg.style.width = `${(natural * zoom) / 100}px`;
 }
 
 // Cores atuais do passo, lidas do SVG já desenhado (o que o dono está vendo).

@@ -9,6 +9,7 @@ const MERMAID_DIRECTION: Record<LayoutDirection, string> = {
   [LayoutDirection.Horizontal]: 'LR',
   [LayoutDirection.Timeline]: 'TD',
   [LayoutDirection.Tree]: 'TD',
+  [LayoutDirection.Consolidated]: 'TD',
 };
 
 // Rótulo da ligação HTTP entre sistemas (Fase 25): "POST api/estornos"; sem rota, só o verbo.

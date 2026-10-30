@@ -1,0 +1,14 @@
+<div #viewport class="stage-viewport" [class.is-dragging]="dragging()" tabindex="0" role="group"
+  [attr.aria-label]="label() + '. Arraste para mover, roda do mouse para o zoom, setas movem e + e − aproximam.'"
+  (pointerdown)="onPointerDown($event)" (pointermove)="onPointerMove($event)" (pointerup)="onPointerUp($event)" (pointercancel)="onPointerCancel()"
+  (wheel)="onWheel($event)" (keydown)="onKeydown($event)" (focusin)="onFocusIn($event)" (scroll)="onScroll()">
+  <div #content class="stage-content diagram-svg" [style.transform]="transform()"></div>
+</div>
+
+<div class="canvas-tools" role="toolbar" aria-label="Zoom do desenho">
+  <button type="button" class="btn btn-icon" (click)="zoomIn()" aria-label="Aproximar" title="Aproximar (ou roda do mouse)">+</button>
+  <button type="button" class="btn btn-icon" (click)="zoomOut()" aria-label="Afastar" title="Afastar (ou roda do mouse)">−</button>
+  <button type="button" class="btn btn-icon" (click)="fit()" aria-label="Enquadrar o desenho na tela" title="Enquadrar o desenho na tela">⤢</button>
+  <button type="button" class="btn btn-icon stage-actual" (click)="actualSize()" [attr.aria-label]="'Zoom em ' + percent() + '%. Voltar para 100%'" title="Voltar para 100%">{{ percent() }}%</button>
+  <ng-content />
+</div>

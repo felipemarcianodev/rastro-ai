@@ -50,7 +50,8 @@
           </button>
         }
         @if (d.survey.status === SurveyStatus.Completed && !editing()) {
-          <a class="btn btn-g btn-small" [routerLink]="['/surveys', d.survey.id, 'visao']" title="O fluxo todo num diagrama Mermaid editável">Visão consolidada</a>
+          <button type="button" class="btn btn-g btn-small" (click)="toggleConsolidated()" [attr.aria-pressed]="consolidated()"
+            [title]="consolidated() ? 'Voltar ao desenho do grafo' : 'O fluxo todo num desenho só, com as suas cores'">Visão consolidada</button>
           <span class="popover">
             <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null">Comparar e exportar</button>
             @if (exportOpen()) {
@@ -263,10 +264,14 @@
 
     @if (d.survey.status === SurveyStatus.Completed && graph(); as g) {
       <div class="workspace" [class.is-panel-collapsed]="panelCollapsed()">
+        @if (showConsolidated()) {
+          <app-consolidated-view [detail]="d" [focus]="focusId() ? g : null" [selectedId]="selectedId()" (selectNode)="pickConsolidated($event)" (directionChange)="onDirection($event)" />
+        } @else {
         <app-flow-canvas [graph]="g" [repository]="d.survey.repository" [systems]="systems()"[selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
           [showFramework]="showFramework()" [editing]="editing()" [focusId]="focusId()" [layoutKey]="layoutKey()" [comparing]="!!comparison()" [matchIds]="matchIds()" [noteIds]="notes()" [currentMatch]="currentMatch()" (openSearch)="openSearch()" (selectNode)="select($event)" (toggleFramework)="toggleFramework()"
           (nodeMenu)="openMenu($event)" (jumpTo)="select($event, false)" (toggleFold)="toggleCollapse($event)" (summaryChange)="summary.set($event)"
-          (createEdge)="onCreateEdge($event)" (reassignEdge)="onReassignEdge($event)" />
+          (createEdge)="onCreateEdge($event)" (reassignEdge)="onReassignEdge($event)" (directionChange)="onDirection($event)" />
+        }
         <button type="button" class="panel-toggle" (click)="togglePanel()" [attr.aria-expanded]="!panelCollapsed()" aria-controls="node-panel"
           [attr.aria-label]="panelCollapsed() ? 'Mostrar o painel do passo' : 'Recolher o painel do passo para ver mais do grafo'"
           [title]="panelCollapsed() ? 'Mostrar o painel' : 'Recolher o painel'"><span aria-hidden="true">{{ panelCollapsed() ? '‹' : '›' }}</span></button>

@@ -81,18 +81,7 @@
       </section>
 
       <section class="pane stage" aria-labelledby="preview-title">
-        <div class="stage-head">
-          <h2 id="preview-title" class="pane-title">Prévia</h2>
-          <div class="zoom" role="group" aria-label="Zoom da prévia">
-            <button type="button" class="btn btn-g btn-small" (click)="zoomFit()" [attr.aria-pressed]="zoom() === null">Ajustar</button>
-            <button type="button" class="btn btn-g btn-small" (click)="zoomReset()" [attr.aria-pressed]="zoom() === 100">100%</button>
-            <button type="button" class="btn btn-g btn-small" (click)="zoomBy(-1)" [disabled]="zoom() !== null && zoom()! <= 25" aria-label="Diminuir o zoom" title="Diminuir o zoom">−</button>
-            <button type="button" class="btn btn-g btn-small" (click)="zoomBy(1)" [disabled]="zoom() !== null && zoom()! >= 300" aria-label="Aumentar o zoom" title="Aumentar o zoom (ou Ctrl + roda do mouse)">+</button>
-            @if (zoom() !== null) {
-              <span class="muted zoom-value">{{ zoom() }}%</span>
-            }
-          </div>
-        </div>
+        <h2 id="preview-title" class="pane-title">Prévia</h2>
         @if (renderError(); as problem) {
           <div class="notice is-error render-error" role="alert">
             <strong>O Mermaid não entendeu o texto.</strong>
@@ -104,7 +93,7 @@
           </div>
         }
         <div class="preview-wrap">
-          <div #preview class="preview" role="group" aria-label="Prévia do diagrama. Escolha um passo para mudar a cor." (click)="onPreviewClick($event)" (keydown)="onPreviewKey($event)" (wheel)="onWheel($event)"></div>
+          <app-diagram-stage class="preview" [svg]="svg()" [selected]="selected()" label="Prévia do diagrama. Escolha um passo para mudar a cor" (pick)="onPick($event)" />
           @if (!text().trim()) {
             <p class="muted preview-status" role="status">Escreva o diagrama ou use Gerar de novo.</p>
           } @else if (rendering() || (!svg() && !renderError())) {
@@ -133,6 +122,9 @@
                 <button type="button" class="btn btn-g btn-small" (click)="paintKind()" [disabled]="!kindClass()"
                   [title]="kindClass() ? 'Muda a cor de todos os passos da classe ' + kindClass() : 'Este passo não tem classe de tipo'">Todos do tipo</button>
               </div>
+              @if (selectedNode(); as node) {
+                <a class="btn btn-g btn-small paint-context" [routerLink]="['/surveys', id()]" [queryParams]="{ passo: node }" title="Abre o fluxo com este passo escolhido e o painel do passo">Ver no fluxo</a>
+              }
             </div>
           }
         </div>

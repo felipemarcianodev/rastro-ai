@@ -42,6 +42,8 @@ import {
 } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { FlowCanvasComponent } from './flow-canvas.component';
+import { ConsolidatedViewComponent } from './consolidated-view.component';
+import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
 import { NodePanelComponent } from './node-panel.component';
 import { ValidationDialogComponent } from './validation-dialog.component';
@@ -63,7 +65,7 @@ const POLL_TOLERATED_FAILURES = 2;
 
 @Component({
   selector: 'app-survey-page',
-  imports: [RouterLink, FormsModule, FlowCanvasComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective],
+  imports: [RouterLink, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective],
   templateUrl: './survey.page.html',
   styleUrl: './survey.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
@@ -80,6 +82,9 @@ export class SurveyPage {
   readonly id = input.required<string>();
   // ?comparar=<id>: levantamento antigo desenhado por cima deste (Fase 12).
   readonly comparar = input<string | undefined>();
+  // ?passo=<id do nó>: abre o fluxo com o passo escolhido (o "Ver no fluxo" da visão consolidada).
+  readonly passo = input<string | undefined>();
+  private passoApplied: string | null = null;
 
   protected readonly detail = signal<SurveyDetail | null>(null);
   protected readonly error = signal<string | null>(null);
@@ -113,6 +118,10 @@ export class SurveyPage {
     return survey ? surveySystems(survey) : [];
   });
   protected readonly selectedId = signal<string | null>(null);
+  // Desenho consolidado (Fase 28): o quarto desenho do botão, no lugar do canvas. Na edição e na
+  // comparação o canvas volta, porque só ele mostra o rascunho e as diferenças.
+  protected readonly consolidated = signal(readLayoutDirection() === LayoutDirection.Consolidated);
+  protected readonly showConsolidated = computed(() => this.consolidated() && !this.editing() && !this.comparison());
   // Resumo do fluxo (Fase 23): vem do canvas, que o monta junto com o desenho.
   protected readonly summary = signal<FlowSummary | null>(null);
   protected readonly resurveying = signal(false);
@@ -247,6 +256,8 @@ export class SurveyPage {
     const graph = source && !this.showFramework() ? withoutFrameworkCalls(source) : source;
     const focus = this.focusId();
     const focused = graph && focus ? focusOn(graph, focus) : graph;
+    // O desenho consolidado não recolhe passos: o painel precisa achar qualquer passo dele.
+    if (this.showConsolidated()) return focused;
     return focused ? collapseAfter(focused, this.collapsed()) : focused;
   });
 
@@ -314,6 +325,18 @@ export class SurveyPage {
       });
     });
 
+    // ?passo=: escolhe o passo quando o fluxo carrega (uma vez por passo pedido).
+    effect(() => {
+      const passo = this.passo();
+      const graph = this.graph();
+      if (!passo || !graph || this.passoApplied === passo || !graph.nodes.some((n) => n.id === passo)) return;
+      this.passoApplied = passo;
+      untracked(() => {
+        if (this.panelCollapsed()) this.togglePanel();
+        this.select(passo, false);
+      });
+    });
+
     // A rota reaproveita o componente ao trocar de levantamento: recarrega a cada id.
     effect(() => {
       this.id();
@@ -331,6 +354,23 @@ export class SurveyPage {
         this.retry();
       });
     });
+  }
+
+  // Troca de desenho pelo botão do canvas ou do consolidado (Fase 28).
+  protected onDirection(direction: LayoutDirection): void {
+    saveLayoutDirection(direction);
+    this.consolidated.set(direction === LayoutDirection.Consolidated);
+  }
+
+  // Clique num passo do desenho consolidado: o contexto é o painel do passo, então ele abre.
+  protected pickConsolidated(id: string | null): void {
+    if (id && this.panelCollapsed()) this.togglePanel();
+    this.select(id);
+  }
+
+  // O botão "Visão consolidada" da barra liga e desliga o desenho consolidado.
+  protected toggleConsolidated(): void {
+    this.onDirection(this.consolidated() ? LayoutDirection.Horizontal : LayoutDirection.Consolidated);
   }
 
   protected toggleFramework(): void {

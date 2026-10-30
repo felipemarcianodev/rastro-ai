@@ -1,4 +1,4 @@
-# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 27); Fases 15, 16 e 22 esperam o uso real
+# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 28); Fases 15, 16 e 22 esperam o uso real
 
 > Criado em 2026-10-15. Visão e decisões: [`visao.md`](visao.md).
 > Execução fase a fase, no mesmo molde da skill `executar-plano-faseado` de outro projeto do dono: **uma fase por vez, portões verdes, commit, e só então a próxima.**
@@ -638,6 +638,31 @@ O exemplo que o dono mandou vem de um sistema privado e não entra no repositór
 - [x] A barra e o estado de página (voltar, título, dados, ações) subiram para o tema (`theme/_page.scss`), usados pelo fluxo e pela visão consolidada.
 - [x] Levantamento de UX da tela nova ([`plano-ux-2026-10-30-visao-consolidada.md`](../frontend/plano-ux-2026-10-30-visao-consolidada.md)): os achados de risco baixo e médio entraram na fase (escolha do passo pelo teclado, painel de cor flutuante, zoom da prévia, erro que não some, um botão primário só).
 - [ ] **Alto risco, espera aprovação do dono (D15):** trocar o texto de ajuda do link "Visão consolidada" ("O fluxo todo num diagrama Mermaid editável") por algo sem jargão, como "Um desenho único do fluxo, que você pode editar e exportar", e deixar "Mermaid" só nos botões de exportação.
+
+## Fase 28: a visão consolidada entra no fluxo `[x]` (pedido do dono em 2026-10-30, no uso da 0.2.0)
+
+**Status: concluída em 2026-10-30.** Prints em `docs/telas/fase-28/` (loja fictícia).
+
+O dono usou a visão consolidada da Fase 27 e achou três problemas: o zoom é difícil (a prévia só rola, e o zoom muda a largura em passos de 25%); clicar num passo só abre a cor, sem o contexto que as outras visões dão no painel do passo; e ele esperava a visão como um desenho a mais do fluxo, como já são o horizontal, a linha do tempo e a árvore, e não como uma tela à parte.
+
+**Desenho a mais do fluxo:**
+- [x] O botão que troca o desenho passa por quatro: horizontal, linha do tempo, árvore e consolidado (Mermaid), e volta ao horizontal. A escolha fica guardada no navegador, como as outras.
+- [x] No desenho consolidado, clicar num passo escolhe o mesmo passo do grafo e abre o painel do passo (código, regra, ligações, anotação), como nas outras visões. O passo escolhido no painel (ou pela busca) acende no desenho e, se estiver fora da vista, o desenho vai até ele.
+- [x] O desenho usa a edição salva da visão (cores e textos do dono) e, sem edição, o gerado do fluxo. Um botão leva à tela de edição da Fase 27, que continua sendo onde se mudam o texto e as cores.
+- [x] Na edição do fluxo (Fase 7) e na comparação de levantamentos (Fase 12) o desenho é o do grafo, que mostra o rascunho e as diferenças; o consolidado volta quando elas acabam.
+- [x] O link "Visão consolidada" da barra passa a trocar o desenho do fluxo, no lugar de abrir a outra tela.
+
+**Zoom e movimento, nas duas telas:**
+- [x] Um palco comum para o SVG do Mermaid: arrastar o fundo move o desenho; a roda do mouse (e a pinça do touchpad) aproxima e afasta em volta do cursor; botões de aproximar, afastar, enquadrar e 100%, como os do grafo. O desenho abre enquadrado e não perde o zoom quando o texto muda.
+
+**Contexto na tela de edição:**
+- [x] Com um passo escolhido, o painel de cor ganha "Ver no fluxo", que abre o fluxo com aquele passo escolhido e o painel do passo aberto (parâmetro `passo` na rota do fluxo).
+
+**Aceite:**
+- [x] Testes do palco (arrastar move, roda dá zoom em volta do cursor, enquadrar cabe na vista), do desenho consolidado no fluxo (clique escolhe o nó certo do grafo, inclusive passo repetido; seleção de fora acende o passo) e da troca de desenho com quatro estados.
+- [x] Verificação no navegador com clique de verdade, num repositório público.
+- [x] Feito: `pages/diagram/diagram-stage.component.ts` (o palco, nas duas telas), `pages/survey/consolidated-view.component.ts` (o desenho no fluxo), `core/diagram-source.ts` (a edição salva, herdada ou o gerado, igual nas duas telas), `LayoutDirection.Consolidated` com a escolha guardada em `core/graph/layout.ts`, e `nodeOfStep` em `core/graph/consolidated.ts`. A coluna de botões do canto subiu para o tema (`.canvas-tools`), e o botão que liga e desliga ganhou o estado ligado no tema.
+- [x] **Achados na verificação:** no consolidado, clicar num passo com o painel recolhido não mostrava contexto nenhum; agora o clique abre o painel. O "Ver somente este fluxo" vale também no consolidado: o desenho é o do recorte, com as cores do dono nos passos que ficam. Fluxo alto abria enquadrado inteiro em 25%, ilegível; agora abre na largura, a partir do topo, e o ⤢ continua enquadrando tudo.
 
 ## Levantamento de UX do fim do plano `[x]`
 
