@@ -64,30 +64,6 @@
   overflow: hidden;
 }
 
-.stage-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.zoom {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-
-.zoom-value {
-  min-width: 40px;
-  font-size: var(--text-sm);
-  text-align: right;
-}
-
-.zoom [aria-pressed='true'] {
-  background: var(--surface-sunk);
-}
-
 // A prévia mantém a altura; o painel de cor flutua sobre ela e o status fica no canto.
 .preview-wrap {
   position: relative;
@@ -100,8 +76,6 @@
   flex: 1;
   min-width: 0;
   min-height: 0;
-  overflow: auto;
-  padding: var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
   background: var(--paper);
@@ -109,7 +83,7 @@
 
 .preview-status {
   position: absolute;
-  top: var(--space-3);
+  bottom: var(--space-3);
   left: var(--space-3);
   margin: 0;
   padding: 2px var(--space-2);
@@ -204,4 +178,8 @@
 .paint-actions {
   display: flex;
   gap: var(--space-2);
+}
+
+.paint-context {
+  justify-self: start;
 }

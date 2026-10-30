@@ -72,6 +72,11 @@ function answer(http: HttpTestingController, saved: SurveyDiagram | null, survey
 const wait = (ms = 30) => new Promise((resolve) => setTimeout(resolve, ms));
 const button = (el: HTMLElement, text: string) => Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes(text)) as HTMLButtonElement;
 const editor = (el: HTMLElement) => el.querySelector('textarea') as HTMLTextAreaElement;
+// O palco escolhe o passo no soltar do ponteiro sem arrastar (Fase 28).
+function pointerClick(target: Element): void {
+  target.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerId: 1, clientX: 10, clientY: 10 }));
+  target.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, button: 0, pointerId: 1, clientX: 10, clientY: 10 }));
+}
 function type(el: HTMLElement, value: string): void {
   const area = editor(el);
   area.value = value;
@@ -189,7 +194,7 @@ describe('DiagramPage (Fase 27)', () => {
     const { fixture, el } = await loaded();
     const id = stepId('if');
 
-    (el.querySelector(`.preview g.node[id^="flowchart-${id}-"]`) as SVGElement).dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    pointerClick(el.querySelector(`.preview g.node[id^="flowchart-${id}-"]`)!);
     fixture.detectChanges();
     expect(el.querySelector('.paint')).not.toBeNull();
     expect(el.querySelector('.paint-title')!.textContent).toContain(id);
@@ -316,33 +321,30 @@ describe('DiagramPage (Fase 27)', () => {
     expect(el.querySelector('.paint')).not.toBeNull();
   });
 
-  // WEB-DIA-032
-  it('zoom_mudaAEscalaDoSvgSemDesenharDeNovo', async () => {
-    const calls: string[] = [];
-    const { fixture, el } = await loaded(null, detail(), (text) => {
-      calls.push(text);
-      return Promise.resolve(svgOf(text));
-    });
-    const svg = () => el.querySelector('.preview svg') as SVGElement;
-    const before = calls.length;
+  // WEB-DIA-035
+  it('passoEscolhido_verNoFluxoLevaAoPassoDoGrafo', async () => {
+    const { fixture, el } = await loaded();
 
-    expect(svg().style.width).toBe('100%');
-    button(el, '+').click();
+    pointerClick(el.querySelector(`.preview g.node[id^="flowchart-${stepId('if')}-"]`)!);
     fixture.detectChanges();
-    expect(svg().style.width).toBe('125px');
-    button(el, '100%').click();
+    const link = Array.from(el.querySelectorAll('.paint a')).find((a) => a.textContent?.includes('Ver no fluxo')) as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toBe('/surveys/s1?passo=if');
+  });
+
+  // WEB-DIA-036
+  it('editarOTexto_naoMudaOZoomDaPrevia', async () => {
+    const { fixture, el } = await loaded();
+    const content = () => el.querySelector('.preview .stage-content') as HTMLElement;
+
+    (el.querySelector('[aria-label="Aproximar"]') as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(svg().style.width).toBe('100px');
-    button(el, '−').click();
+    const zoomed = content().style.transform;
+    type(el, editor(el).value + '  %% comentário\n');
     fixture.detectChanges();
-    expect(svg().style.width).toBe('75px');
-    el.querySelector('.preview')!.dispatchEvent(new WheelEvent('wheel', { ctrlKey: true, deltaY: -100, bubbles: true, cancelable: true }));
+    await wait(400);
     fixture.detectChanges();
-    expect(svg().style.width).toBe('100px');
-    button(el, 'Ajustar').click();
-    fixture.detectChanges();
-    expect(svg().style.width).toBe('100%');
-    expect(calls.length).toBe(before);
+    expect(content().style.transform).toBe(zoomed);
   });
 
   // WEB-DIA-033

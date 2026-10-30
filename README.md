@@ -112,6 +112,8 @@ Limite do leitor de template: as bifurcações da tela vêm de uma leitura leve 
 
 Em `surveys/:id/visao` o fluxo aparece resumido em poucos passos, em frase, como um `flowchart` Mermaid: a entrada, as bifurcações com o texto de cada ramo, as chamadas externas e os retornos antecipados. A geração é determinística, sem IA. O texto do Mermaid fica ao lado da prévia e pode ser editado; clicar num passo abre a escolha de cor (fundo, borda e texto), que vira `classDef` no próprio texto. A versão editada fica salva no levantamento, e "Gerar de novo" mantém as cores e os textos dos passos que ainda existem.
 
+A visão também é o quarto desenho do fluxo: o botão que troca o desenho passa pelo horizontal, a linha do tempo, a árvore e o consolidado (ou o botão "Visão consolidada" da barra). Nele, clicar num passo abre o painel do passo, com o código, as ligações e o caminho desde a entrada. Arrastar o fundo move o desenho e a roda do mouse aproxima em volta do cursor. "Editar texto e cores" leva à tela de edição, onde "Ver no fluxo" volta ao passo escolhido.
+
 ## Como funciona
 
 - **Extrator (Roslyn e MSBuild):** carrega a solution real, com os tipos resolvidos, segue as chamadas a partir do ponto de entrada e resolve as interfaces pelo registro do DI. O que o compilador não alcança (reflection, despacho dinâmico) vira um passo "não resolvido", com o motivo.
