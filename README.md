@@ -1,5 +1,9 @@
 # Rastro AI
 
+[![NuGet](https://img.shields.io/nuget/v/rastro-ai?label=NuGet)](https://www.nuget.org/packages/rastro-ai)
+[![PR](https://github.com/felipemarcianodev/rastro-ai/actions/workflows/pr.yml/badge.svg)](https://github.com/felipemarcianodev/rastro-ai/actions/workflows/pr.yml)
+[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
+
 Segue o rastro de uma funcionalidade no seu código .NET, da entrada (controller, job, handler) até o fim, com cada decisão, cada laço e a implementação real atrás de cada interface do DI. Mostra o fluxo como um grafo que se lê de relance e gera o prompt exato para a IA alterar aquele ponto.
 
 O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona sem IA; com IA, ela só propõe, e quem confirma é você.
@@ -14,11 +18,18 @@ O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona 
 
 ## Instalar e usar
 
-Requer o SDK do .NET 10 (o Rastro carrega a sua solution com o MSBuild dele).
+Requer o SDK do .NET 10 (o Rastro carrega a sua solution com o MSBuild dele). O pacote está no NuGet: [`rastro-ai`](https://www.nuget.org/packages/rastro-ai).
 
 ```bash
 dotnet tool install -g rastro-ai
 rastro                      # tela em http://127.0.0.1:7450 (só nesta máquina; --porta troca)
+```
+
+Para atualizar ou remover, pare o `rastro` antes (no Windows, o executável em uso não pode ser trocado):
+
+```bash
+dotnet tool update -g rastro-ai
+dotnet tool uninstall -g rastro-ai
 ```
 
 Cadastre os repositórios em Configurações (a engrenagem no alto da tela) ou pelo terminal. Os comandos de build e de testes, usados na validação de uma mudança, só se informam pelo terminal:
@@ -103,6 +114,14 @@ cd frontend && npm run build && npm run test:ci
 Pacote local: `powershell -File scripts/empacotar.ps1` gera `artifacts/rastro-ai.<versão>.nupkg` (front embutido no `wwwroot` da API), e `dotnet tool install -g rastro-ai --add-source artifacts` instala para testar.
 
 **Docker (opcional):** `docker compose -f docker/docker-compose.yml up -d --build` sobe em http://localhost:7400, com o banco no volume `rastro-data` e os repositórios montados só para leitura (`REPOS_DIR`, `REPO_0_NAME` e `REPO_0_FOLDER`).
+
+### Publicar uma versão
+
+A publicação no NuGet é pelo workflow [`release.yml`](.github/workflows/release.yml), com a Publicação Confiável do nuget.org (sem chave de API guardada):
+
+1. Suba o [`VERSION`](VERSION) (e a versão do `frontend/package.json`) num pull request. O nuget.org não aceita a mesma versão duas vezes, e uma versão publicada não se apaga, só se oculta.
+2. Depois do merge, crie a tag na `main`: `git tag -a v0.1.2 -m "Rastro AI 0.1.2"` e `git push origin v0.1.2`. Tag diferente do `VERSION` é recusada.
+3. O workflow roda os testes do backend e do front, gera o pacote e para no environment `release`, esperando a aprovação do mantenedor ("Review deployments" na execução). Aprovado, publica.
 
 ## Como foi construído
 
