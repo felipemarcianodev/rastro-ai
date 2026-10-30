@@ -31,6 +31,14 @@
     <None Include="..\..\..\docs\pacote\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
+  <!-- Extrator Angular (ADR-005): o script Node e os módulos que ele importa viajam com o executável e com o
+       pacote (publish). Sem node_modules nem test: o compilador do TypeScript vem do repositório analisado. -->
+  <ItemGroup>
+    <None Include="..\..\..\extractor-ts\extract.mjs" Link="extractor-ts\extract.mjs" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\..\extractor-ts\lib\*.mjs" Link="extractor-ts\lib\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <None Include="..\..\..\extractor-ts\package.json" Link="extractor-ts\package.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- O MSBuild vem do SDK instalado (MSBuildLocator); nunca copiar os assemblies dele para a saída. -->
     <PackageReference Include="Microsoft.Build.Framework" Version="17.14.28" ExcludeAssets="runtime" PrivateAssets="all" />

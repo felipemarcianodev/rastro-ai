@@ -23,6 +23,8 @@ import {
   PROPOSAL_ORIGIN_BADGE,
   PROPOSAL_ORIGIN_LABEL,
   PROPOSAL_ORIGIN_SLUG,
+  SOURCE_LANGUAGE_LABEL,
+  SourceLanguage,
   SourceLocation,
   SourceSnippet,
   SurveySegment,
@@ -55,6 +57,8 @@ export class NodePanelComponent {
   // Commit do primeiro trecho e trechos de outros sistemas (Fase 25), para dizer de onde o passo vem.
   readonly commitHash = input<string | undefined>(undefined);
   readonly segments = input<SurveySegment[]>([]);
+  // Linguagem do primeiro trecho (o do levantamento); os outros trazem a deles em "segments".
+  readonly language = input<SourceLanguage>(SourceLanguage.DotNet);
   protected readonly foreignMessage = FOREIGN_EDIT_MESSAGE;
   protected readonly editor = inject(EditorLinks);
   readonly graph = input.required<FlowGraph>();
@@ -280,13 +284,15 @@ export class NodePanelComponent {
 
   // De onde o passo vem: o sistema (repositório) e o commit do trecho. Só aparece quando o fluxo
   // passa por mais de um sistema; o primeiro usa o repositório e o commit do levantamento.
-  protected origin(node: FlowNode): { system: string; commit?: string } | null {
+  protected origin(node: FlowNode): { system: string; language: string; commit?: string } | null {
     // Levantamento antigo pode vir sem "segments": tratado como um sistema só.
     const segments = this.segments() ?? [];
     if (segments.length === 0) return null;
     const system = node.system ?? this.repository();
-    const commit = node.system ? segments.find((s) => s.repository === node.system)?.commitHash : this.commitHash();
-    return { system, commit: commit ? shortCommit(commit) : undefined };
+    const segment = node.system ? segments.find((s) => s.repository === node.system) : undefined;
+    const commit = node.system ? segment?.commitHash : this.commitHash();
+    const language = node.system ? (segment?.language ?? SourceLanguage.DotNet) : this.language();
+    return { system, language: SOURCE_LANGUAGE_LABEL[language], commit: commit ? shortCommit(commit) : undefined };
   }
 
   // O link vscode:// abre pelo próprio navegador (sem passar pelo sanitizador do [href]).

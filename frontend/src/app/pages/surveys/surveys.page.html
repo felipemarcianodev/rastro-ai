@@ -149,9 +149,16 @@
             }
           </div>
         }
-        <input id="entry" class="input code" name="entry" [(ngModel)]="entryPoint" placeholder="PedidosController.Criar" autocomplete="off" spellcheck="false"
+        <input id="entry" class="input code" name="entry" [(ngModel)]="entryPoint" [placeholder]="isTsconfig() ? 'DetalhePedidoComponent.cancelar' : 'PedidosController.Criar'" autocomplete="off" spellcheck="false"
           [attr.aria-invalid]="!!fieldErrors().entry" aria-describedby="entry-help entry-error" />
-        <span id="entry-help" class="field-help">Classe.Metodo ou Namespace.Classe.Metodo: uma action, um job, um handler.</span>
+        @if (isTsconfig()) {
+          <span id="entry-help" class="field-help">Componente.metodo: o método que o clique da tela chama.</span>
+        } @else {
+          <span id="entry-help" class="field-help">Classe.Metodo ou Namespace.Classe.Metodo: uma action, um job, um handler.</span>
+        }
+        @if (nodeNotice()) {
+          <span id="node-notice" class="field-help">Fluxos Angular precisam do Node instalado nesta máquina.</span>
+        }
         <span id="entry-error" class="field-error" [hidden]="!fieldErrors().entry">{{ fieldErrors().entry }}</span>
       </div>
 

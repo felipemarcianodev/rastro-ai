@@ -8,6 +8,7 @@ import { EditorLinks } from '../../core/editor-links';
 import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
 import { addStep, changeCount, connect, reassign, removeEdge, removeStep, restoreStep, setIntent } from '../../core/graph/draft-editor';
 import { trailTo } from '../../core/graph/trail';
+import { surveySystems } from '../../core/graph/timeline-layout';
 import { focusOn } from '../../core/graph/focus';
 import { searchNodes } from '../../core/graph/search';
 import { collapseAfter, collapsedOwner } from '../../core/graph/collapse';
@@ -105,6 +106,11 @@ export class SurveyPage {
     if (!stale?.stale || !survey || (stale.segments ?? []).length === 0) return [];
     const main = stale.surveyCommit !== stale.currentCommit ? [survey.repository] : [];
     return [...main, ...stale.segments.filter((s) => s.stale).map((s) => s.repository)];
+  });
+  // Sistemas do fluxo com a linguagem de cada um, para a moldura e o painel (Fase 26).
+  protected readonly systems = computed(() => {
+    const survey = this.detail()?.survey;
+    return survey ? surveySystems(survey) : [];
   });
   protected readonly selectedId = signal<string | null>(null);
   // Resumo do fluxo (Fase 23): vem do canvas, que o monta junto com o desenho.

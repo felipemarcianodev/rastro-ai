@@ -40,4 +40,7 @@ public class AnalysisOptions
     public string WorkDirectory { get; set; } = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "rastro-work");
     public int RestoreTimeoutSeconds { get; set; } = 600;
     public int ValidationCommandTimeoutSeconds { get; set; } = 1200;
+
+    // Tempo máximo da leitura de um repositório Angular pelo Node (Fase 26).
+    public int TypeScriptTimeoutSeconds { get; set; } = 120;
 }

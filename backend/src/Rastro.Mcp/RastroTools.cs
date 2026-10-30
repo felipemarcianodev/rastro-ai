@@ -63,6 +63,7 @@ public class RastroTools(
 
         var resolved = catalog.Resolve(repository, solutionPath);
         if (resolved.Target is not { } target) return $"Não consegui usar essa solution: {resolved.Error}.";
+        if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet) return "O levantamento de código Angular é feito pela tela do Rastro, não por esta ferramenta.";
 
         var head = await git.HeadAsync(target.RepositoryRoot, ct);
         var survey = Survey.Create(target.RepositoryName, target.SolutionRelativePath, entryPoint.Trim(), maxDepth, head?.Commit, head?.Branch, clock.GetUtcNow());
@@ -235,10 +236,11 @@ public class RastroTools(
         {
             var cross = survey.ReadCrossRepositories().FirstOrDefault(r => string.Equals(r, system.Trim(), StringComparison.OrdinalIgnoreCase));
             if (cross is null) return $"{system} não está na costura deste levantamento. Repositórios da costura: {(survey.ReadCrossRepositories().Count == 0 ? "nenhum" : string.Join(", ", survey.ReadCrossRepositories()))}.";
-            var solution = catalog.Solutions(cross)?.FirstOrDefault();
+            var solution = catalog.DotNetSolutions(cross)?.FirstOrDefault();
             resolved = solution is null ? CatalogResult.Fail(CatalogError.SolutionNotFound) : catalog.Resolve(cross, solution);
         }
         if (resolved.Target is not { } target) return "O repositório ou a solution não estão mais disponíveis.";
+        if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet) return "A busca de métodos ainda não lê código Angular.";
 
         var handle = await solutions.OpenAsync(target, fresh: false, ct);
         var found = await ProofValidator.SearchMethodsAsync(handle.Solution, handle.BaseDirectory, query, 30, ct);

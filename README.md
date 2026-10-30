@@ -4,7 +4,7 @@
 [![PR](https://github.com/felipemarcianodev/rastro-ai/actions/workflows/pr.yml/badge.svg)](https://github.com/felipemarcianodev/rastro-ai/actions/workflows/pr.yml)
 [![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
 
-Segue o rastro de uma funcionalidade no seu código .NET, da entrada (controller, job, handler) até o fim, com cada decisão, cada laço e a implementação real atrás de cada interface do DI. Mostra o fluxo como um grafo que se lê de relance e gera o prompt exato para a IA alterar aquele ponto.
+Segue o rastro de uma funcionalidade no seu código .NET, da entrada (controller, job, handler) até o fim (ou do clique numa tela Angular até o controller), com cada decisão, cada laço e a implementação real atrás de cada interface do DI. Mostra o fluxo como um grafo que se lê de relance e gera o prompt exato para a IA alterar aquele ponto.
 
 O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona sem IA; com IA, ela só propõe, e quem confirma é você.
 
@@ -12,6 +12,7 @@ O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona 
 - **Para quem não programa também:** os comandos aparecem em português ("Se ...", "Para cada ... em ..."), com o nome legível do método e uma etiqueta do que o passo faz no mundo (banco, mensagem, cache, arquivo, fila). Um resumo em frase abre a visão geral.
 - **Prova do compilador:** cada ligação mostra a origem (extraída do código, inferida pela IA ou confirmada por você). O que a IA propõe passa pelo Roslyn antes de entrar.
 - **Entre sistemas:** o levantamento segue a chamada HTTP de uma API .NET para outra cadastrada no Rastro, com as bifurcações de cada sistema no mesmo desenho.
+- **Da tela ao gateway:** o levantamento pode começar num componente Angular (opcional, precisa do Node), e o clique no botão chega ao controller e às APIs seguintes.
 - **Visão consolidada:** o fluxo resumido em poucos passos de leitura de negócio, em Mermaid editável, com as cores que você escolher.
 - **Mudança desenhada no grafo:** você edita o fluxo, o Rastro gera o prompt da mudança e, depois que o agente aplica, valida contra o código novo (build, testes e o fluxo de novo).
 - **Arquitetura:** exporta o fluxo em Mermaid e SVG e a arquitetura em C4 (Structurizr), e aponta melhorias e dívida técnica (DDD, código limpo, métricas).
@@ -20,7 +21,7 @@ O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona 
 
 ## Instalar e usar
 
-Requer o SDK do .NET 10 (o Rastro carrega a sua solution com o MSBuild dele). O pacote está no NuGet: [`rastro-ai`](https://www.nuget.org/packages/rastro-ai).
+Requer o SDK do .NET 10 (o Rastro carrega a sua solution com o MSBuild dele). O **Node** (20 ou mais novo) é opcional: só é preciso para levantar fluxos Angular (veja a seção própria). O pacote está no NuGet: [`rastro-ai`](https://www.nuget.org/packages/rastro-ai).
 
 ```bash
 dotnet tool install -g rastro-ai
@@ -92,6 +93,21 @@ Quem completa é a IA (modo provedor, que recebe os repositórios marcados e as 
 
 Limites: a edição do fluxo e a validação de uma mudança valem só para o primeiro sistema do levantamento, e o Rastro mantém uma solution aberta por vez.
 
+## Fluxo Angular (opcional)
+
+O levantamento pode começar no clique de uma tela Angular. Requisitos: o **Node** no PATH (o Rastro confere ao subir; sem ele, a tela não oferece o Angular) e o **`npm install` já feito no repositório Angular**, porque o Rastro lê o código com o compilador do TypeScript do próprio projeto (o pacote não leva o compilador, e a versão é a que o projeto usa).
+
+Ao criar o levantamento, no lugar da solution escolha o `tsconfig` do app (a tela sugere o `tsconfig.app.json` das pastas com `angular.json`; qualquer `tsconfig.json` ou `tsconfig.*.json` dentro do repositório serve) e informe o ponto de entrada no formato `Componente.metodo`, por exemplo `DetalhePedidoComponent.cancelar`. O Rastro mostra, no começo do fluxo, as condições da tela que guardam o botão (`@if`, `*ngIf`, `[disabled]`), segue o método pelos services e pelo `HttpClient` e liga cada chamada ao controller que a atende, como no fluxo entre sistemas. Para atravessar até as APIs, marque os repositórios .NET em **Seguir chamadas HTTP para**. Sem essa lista, o levantamento mostra só o trecho Angular, com a chamada HTTP no ponto onde ela sai.
+
+O que o Rastro não consegue ler vira um passo "não resolvido", com o motivo, como no .NET:
+
+- **rota montada fora do código:** a URL vem de configuração ou de uma variável que o código não fixa (o endereço base da API, no começo da URL, é descartado e não atrapalha);
+- **sem destino ou mais de um destino:** nenhum repositório marcado atende a chamada, ou mais de um atende;
+- **classe escolhida só em tempo de execução:** mais de uma implementação possível, ou nenhuma;
+- **limite de profundidade:** a cadeia passou do limite escolhido.
+
+Limite do leitor de template: as bifurcações da tela vêm de uma leitura leve do HTML do componente (blocos `@if`, `*ngIf` e `[disabled]` ao redor do elemento com o evento do método), sem o compilador do Angular. Condições montadas de outro jeito (por exemplo, dentro de um componente filho) não aparecem. O tempo máximo da leitura é 120 s e se troca em `Rastro:Analysis:TypeScriptTimeoutSeconds`. A edição do fluxo e a validação de uma mudança, por enquanto, valem só para fluxos .NET.
+
 ## Visão consolidada
 
 Em `surveys/:id/visao` o fluxo aparece resumido em poucos passos, em frase, como um `flowchart` Mermaid: a entrada, as bifurcações com o texto de cada ramo, as chamadas externas e os retornos antecipados. A geração é determinística, sem IA. O texto do Mermaid fica ao lado da prévia e pode ser editado; clicar num passo abre a escolha de cor (fundo, borda e texto), que vira `classDef` no próprio texto. A versão editada fica salva no levantamento, e "Gerar de novo" mantém as cores e os textos dos passos que ainda existem.
@@ -99,6 +115,7 @@ Em `surveys/:id/visao` o fluxo aparece resumido em poucos passos, em frase, como
 ## Como funciona
 
 - **Extrator (Roslyn e MSBuild):** carrega a solution real, com os tipos resolvidos, segue as chamadas a partir do ponto de entrada e resolve as interfaces pelo registro do DI. O que o compilador não alcança (reflection, despacho dinâmico) vira um passo "não resolvido", com o motivo.
+- **Extrator Angular (Node e TypeScript):** um script (`extractor-ts`, que vai dentro do pacote) roda no Node com o compilador do TypeScript do repositório analisado e devolve o mesmo grafo. É determinístico e não usa IA ([ADR-005](docs/adr/adr-005-extrator-angular.md)).
 - **Grafo como visão:** o código é a fonte da verdade. Cada levantamento guarda o hash do commit, e o grafo é refeito a cada análise.
 - **Desenho próprio:** a linha do tempo é calculada pelo Rastro (sem ELK), na ordem do código, e desenhada com o Foblex Flow.
 - **Segurança:** a API só escuta em `127.0.0.1`, recusa pedido de outro site e só lê pastas cadastradas. Build e testes da validação rodam sem shell, com o comando da configuração.
@@ -111,6 +128,7 @@ Visão e decisões em [`docs/arquitetura/visao.md`](docs/arquitetura/visao.md) e
 |---|---|
 | [`backend/`](backend/) | .NET 10: extrator (Roslyn), núcleo, API, MCP, IA (provedores) e testes (xUnit) |
 | [`frontend/`](frontend/) | a tela em Angular 20 e Foblex Flow, com testes no Karma |
+| [`extractor-ts/`](extractor-ts/) | o extrator Angular (script Node com o compilador do TypeScript), com testes em `node --test` |
 | [`docker/`](docker/) | imagem opcional, para rodar o Rastro num container |
 | [`docs/`](docs/) | visão, ADRs, plano faseado e prints das telas |
 | [`scripts/`](scripts/) | geração do pacote e conferência do que vai a público |
@@ -129,7 +147,10 @@ Antes de abrir um pull request:
 ```bash
 dotnet build backend/Rastro.slnx && dotnet test backend/Rastro.slnx
 cd frontend && npm run build && npm run test:ci
+cd extractor-ts && npm ci && npm test
 ```
+
+O teste de integração do backend roda o extrator Angular de verdade: precisa do Node e do `npm ci` feito em `extractor-ts`.
 
 Pacote local: `powershell -File scripts/empacotar.ps1` gera `artifacts/rastro-ai.<versão>.nupkg` (front embutido no `wwwroot` da API), e `dotnet tool install -g rastro-ai --add-source artifacts` instala para testar.
 

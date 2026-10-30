@@ -1,12 +1,12 @@
 # Rastro AI
 
-Segue o rastro de uma funcionalidade no seu código .NET, da entrada (controller, job, handler) ao fim, com todas as bifurcações e a implementação real atrás de cada interface do DI. Mostra o fluxo como grafo editável e gera o prompt exato para a IA alterar aquele ponto.
+Segue o rastro de uma funcionalidade no seu código .NET, da entrada (controller, job, handler) ao fim (ou do clique numa tela Angular até o controller), com todas as bifurcações e a implementação real atrás de cada interface do DI. Mostra o fluxo como grafo editável e gera o prompt exato para a IA alterar aquele ponto.
 
 O Rastro roda só na sua máquina: o código nunca sai dela.
 
 ## Instalar
 
-Requer o SDK do .NET 10.
+Requer o SDK do .NET 10. O Node (20 ou mais novo) é opcional: só é preciso para levantar fluxos Angular.
 
 ```
 dotnet tool install -g rastro-ai
@@ -37,6 +37,16 @@ Quando uma API chama outra por HTTP, o fluxo continua do outro lado. Ao criar o 
 O que não dá para casar vira um passo "não resolvido", com o motivo: rota montada em tempo de execução, sem destino, ou mais de um destino. A IA (com uma chave de API em Configurações) ou o seu agente completa esse passo, e você confirma na tela.
 
 Limites: a edição e a validação de uma mudança valem só para o primeiro sistema do levantamento, e o Rastro mantém uma solution aberta por vez.
+
+## Fluxo Angular (opcional)
+
+O levantamento pode começar no clique de uma tela Angular, passar pelo service e pelo `HttpClient` e chegar ao controller .NET, com as bifurcações da tela (`@if`, `*ngIf`, `[disabled]`) no começo do fluxo.
+
+Requisitos: o Node no PATH (sem ele, a tela não oferece o Angular) e o `npm install` já feito no repositório Angular, porque o Rastro usa o compilador do TypeScript do próprio projeto.
+
+Ao criar o levantamento, escolha o `tsconfig` do app no lugar da solution (a tela sugere o `tsconfig.app.json` das pastas com `angular.json`) e informe o ponto de entrada como `Componente.metodo`, por exemplo `DetalhePedidoComponent.cancelar`. Para atravessar até as APIs, marque os repositórios .NET em **Seguir chamadas HTTP para**; sem a lista, o levantamento mostra só o trecho Angular.
+
+O que não dá para ler (URL montada fora do código, classe escolhida só em tempo de execução, sem destino ou mais de um destino, profundidade passada) vira um passo "não resolvido", com o motivo. O leitor de template é leve: só enxerga as condições escritas no HTML do próprio componente, sem o compilador do Angular. A edição e a validação de uma mudança valem só para fluxos .NET.
 
 ## Visão consolidada
 
