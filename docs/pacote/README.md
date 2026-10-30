@@ -50,7 +50,7 @@ O que não dá para ler (URL montada fora do código, classe escolhida só em te
 
 ## Visão consolidada
 
-Cada levantamento tem uma visão resumida em poucos passos, em frase, como um diagrama Mermaid que você edita ao lado da prévia. Clique num passo para escolher a cor dele. A versão editada fica salva no levantamento.
+Cada levantamento tem uma visão resumida em poucos passos, em frase, como um diagrama Mermaid que você edita ao lado da prévia. Clique num passo para escolher a cor dele. A versão editada fica salva no levantamento. No fluxo, a visão também é um dos desenhos do botão que troca o desenho: clicar num passo abre o painel com o contexto dele, arrastar move o desenho e a roda do mouse aproxima.
 
 ## Com o seu agente de IA (MCP)
 

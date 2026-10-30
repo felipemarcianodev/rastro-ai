@@ -36,6 +36,12 @@
   &:hover:not(:disabled) {
     background: var(--surface-sunk);
   }
+
+  // Botão que liga e desliga (a "Visão consolidada" da barra): ligado fica afundado e com borda forte.
+  &[aria-pressed='true'] {
+    background: var(--surface-sunk);
+    border-color: var(--ink-soft);
+  }
 }
 
 // 32px: alvo de toque confortável (WCAG 2.5.8 pede 24px no mínimo).

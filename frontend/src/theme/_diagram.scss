@@ -1,13 +1,12 @@
-// Visão consolidada (Fase 27). O SVG da prévia entra por innerHTML e não recebe o atributo de
-// estilo do componente, então o que mexe nele mora aqui, com escopo no .preview.
-.preview {
+// Visão consolidada (Fases 27 e 28). O SVG do Mermaid entra por innerHTML e não recebe o atributo de
+// estilo do componente, então o que mexe nele mora aqui, com escopo no .diagram-svg do palco.
+.diagram-svg {
   svg {
     display: block;
     max-width: none;
-    margin: 0 auto;
   }
 
-  // O passo clica (escolhe a cor) e o escolhido ganha um halo, sem depender da cor do passo.
+  // O passo clica e o escolhido ganha um halo, sem depender da cor do passo.
   g.node {
     cursor: pointer;
   }
