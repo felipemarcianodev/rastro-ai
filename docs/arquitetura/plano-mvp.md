@@ -666,6 +666,8 @@ O dono usou a visão consolidada da Fase 27 e achou três problemas: o zoom é d
 
 ## Levantamento de UX do fim do plano `[x]`
 
+- [x] **Revisão geral de 2026-10-30** (pedido do dono, depois da Fase 28): [`plano-ux-2026-10-30-revisao-geral.md`](../frontend/plano-ux-2026-10-30-revisao-geral.md). O botão desalinhado era o "Mostrar chamadas do .NET" (8px abaixo dos vizinhos); as três alturas de controle viraram dois tokens; o texto do passo, o rótulo da moldura na abertura e o desenho consolidado foram acertados. Os itens de risco alto (fase A) esperam aprovação.
+
 - [x] Frontend inteiro levantado em 2026-10-16 (3 agentes de leitura, padrão `ux-refactor-process`): plano em [`docs/frontend/plano-ux-2026-10-16.md`](../frontend/plano-ux-2026-10-16.md), com 46 achados em 4 fases. As Fases A a C (risco baixo e médio) podem ser executadas; a Fase D (texto, esconder, reorganizar) espera aprovação do dono item a item.
 
 ## Fora de escopo deste plano

@@ -15,7 +15,12 @@
     <a class="btn btn-g btn-small" [routerLink]="['/surveys', detail().survey.id, 'visao']">Corrigir na edição</a>
   </div>
 } @else if (loading()) {
-  <p class="muted consolidated-status" role="status">Desenhando a visão consolidada…</p>
+  <div class="canvas-status" role="status">
+    <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+      <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+    </svg>
+    <p class="muted">Desenhando a visão consolidada…</p>
+  </div>
 } @else if (selectedHidden()) {
   <p class="muted consolidated-status" role="status">O passo escolhido não aparece neste desenho (ele só repassa a chamada). O painel mostra o contexto dele.</p>
 }

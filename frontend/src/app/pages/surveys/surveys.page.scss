@@ -172,7 +172,7 @@ h1 {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 32px;
+  height: var(--control-h-sm);
   padding: 0 var(--space-3);
   border: 1px solid var(--line-strong);
   border-radius: 999px;

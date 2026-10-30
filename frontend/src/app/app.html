@@ -16,7 +16,7 @@
 
   <label class="palette">
     <span class="visually-hidden">Paleta de cores</span>
-    <select class="input palette-select" [value]="theme.palette()" (change)="choosePalette($any($event.target).value)" title="Paleta de cores">
+    <select class="input is-small palette-select" [value]="theme.palette()" (change)="choosePalette($any($event.target).value)" title="Paleta de cores">
       @for (p of palettes; track p) {
         <option [value]="p" [selected]="p === theme.palette()">{{ paletteLabel[p] }}</option>
       }
