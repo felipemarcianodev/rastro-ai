@@ -1,0 +1,165 @@
+@if (error(); as message) {
+  <div class="page-state">
+    <h1 class="visually-hidden">Visão consolidada</h1>
+    <p class="notice is-error" role="alert">{{ message }}</p>
+    <div class="page-state-actions">
+      <button type="button" class="btn btn-g" (click)="reload()">Tentar de novo</button>
+      <a class="btn btn-g" [routerLink]="['/surveys', id()]">Voltar ao fluxo</a>
+      <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
+    </div>
+  </div>
+} @else if (detail(); as d) {
+  <div class="page-layout">
+    <header class="page-bar">
+      <a class="page-back" [routerLink]="['/surveys', id()]" aria-label="Voltar ao fluxo">←</a>
+      <div class="page-bar-title">
+        <h1>Visão consolidada</h1>
+        <div class="page-bar-meta">
+          <span>{{ d.survey.repository }}</span>
+          <span class="code">{{ d.survey.entryPoint }}</span>
+          @if (saved() === null && inherited()) {
+            <span class="pill is-stale">Alterações não salvas</span>
+          } @else if (saved() === null) {
+            <span class="muted">Gerada do fluxo, ainda não salva</span>
+          } @else if (dirty()) {
+            <span class="pill is-stale">Alterações não salvas</span>
+          } @else {
+            <span class="muted">Salva</span>
+          }
+        </div>
+      </div>
+      <div class="page-bar-side">
+        <button type="button" class="btn btn-g btn-small" (click)="undo()" [disabled]="!canUndo()" title="Desfazer (Ctrl+Z)">Desfazer</button>
+        <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" title="Refazer (Ctrl+Y)">Refazer</button>
+        <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()" title="Refaz o diagrama a partir do fluxo e mantém suas cores e textos">Gerar de novo</button>
+        @if (saved() !== null) {
+          <button type="button" class="btn btn-g btn-small" (click)="confirmDiscard.set(true)">Descartar edição</button>
+        }
+        <button type="button" class="btn btn-p btn-small" (click)="save()" [disabled]="saving() || nothingToSave() || (saved() !== null && !dirty())">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+      </div>
+    </header>
+
+    @if (outdated(); as old) {
+      <p class="notice is-warning" role="status">
+        Editado no commit <span class="code">{{ shortCommit(old.saved) }}</span>; o levantamento é do commit <span class="code">{{ shortCommit(old.survey) }}</span>.
+        <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()">Gerar de novo</button>
+      </p>
+    }
+    @if (inherited(); as from) {
+      <p class="notice" role="status">
+        {{ inheritedNotice }}
+        @if (from.dropped > 0) {
+          {{ droppedText(from.dropped) }}
+        }
+      </p>
+    }
+    @if (message(); as m) {
+      <p class="toast is-fixed" [class.is-error]="!m.ok" [attr.role]="m.ok ? 'status' : 'alert'">
+        {{ m.text }}
+        @if (!m.ok) {
+          <button type="button" class="btn btn-g btn-small" (click)="message.set(null)">Fechar</button>
+        }
+      </p>
+    }
+
+    <div class="panes">
+      <section class="pane editor" aria-labelledby="editor-title">
+        <h2 id="editor-title" class="pane-title">Texto Mermaid</h2>
+        <textarea
+          class="input code source"
+          spellcheck="false"
+          aria-label="Texto do diagrama em Mermaid"
+          [value]="text()"
+          (input)="onType($event)"
+        ></textarea>
+        <div class="export" role="group" aria-label="Exportar">
+          <button type="button" class="btn btn-g btn-small" (click)="copyMermaid()">{{ copy.label('Copiar Mermaid') }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="downloadMermaid()">Baixar .mmd</button>
+          <button type="button" class="btn btn-g btn-small" (click)="exportImage('svg')" [disabled]="!svg()" [attr.title]="svg() ? null : 'Aguarde a prévia'">SVG</button>
+          <button type="button" class="btn btn-g btn-small" (click)="exportImage('png')" [disabled]="!svg() || pngBusy()" [attr.title]="svg() ? null : 'Aguarde a prévia'">{{ pngBusy() ? 'Gerando PNG…' : 'PNG' }}</button>
+        </div>
+      </section>
+
+      <section class="pane stage" aria-labelledby="preview-title">
+        <div class="stage-head">
+          <h2 id="preview-title" class="pane-title">Prévia</h2>
+          <div class="zoom" role="group" aria-label="Zoom da prévia">
+            <button type="button" class="btn btn-g btn-small" (click)="zoomFit()" [attr.aria-pressed]="zoom() === null">Ajustar</button>
+            <button type="button" class="btn btn-g btn-small" (click)="zoomReset()" [attr.aria-pressed]="zoom() === 100">100%</button>
+            <button type="button" class="btn btn-g btn-small" (click)="zoomBy(-1)" [disabled]="zoom() !== null && zoom()! <= 25" aria-label="Diminuir o zoom" title="Diminuir o zoom">−</button>
+            <button type="button" class="btn btn-g btn-small" (click)="zoomBy(1)" [disabled]="zoom() !== null && zoom()! >= 300" aria-label="Aumentar o zoom" title="Aumentar o zoom (ou Ctrl + roda do mouse)">+</button>
+            @if (zoom() !== null) {
+              <span class="muted zoom-value">{{ zoom() }}%</span>
+            }
+          </div>
+        </div>
+        @if (renderError(); as problem) {
+          <div class="notice is-error render-error" role="alert">
+            <strong>O Mermaid não entendeu o texto.</strong>
+            <span>Corrija o texto à esquerda ou use Desfazer.</span>
+            <pre class="code">{{ problem }}</pre>
+            @if (svg()) {
+              <span class="muted">A prévia abaixo é a última que deu certo.</span>
+            }
+          </div>
+        }
+        <div class="preview-wrap">
+          <div #preview class="preview" role="group" aria-label="Prévia do diagrama. Escolha um passo para mudar a cor." (click)="onPreviewClick($event)" (keydown)="onPreviewKey($event)" (wheel)="onWheel($event)"></div>
+          @if (!text().trim()) {
+            <p class="muted preview-status" role="status">Escreva o diagrama ou use Gerar de novo.</p>
+          } @else if (rendering() || (!svg() && !renderError())) {
+            <p class="muted preview-status" role="status">Desenhando o diagrama…</p>
+          }
+          @if (selected()) {
+            <div class="paint" role="group" aria-label="Cor do passo escolhido">
+              <p class="paint-title">
+                <span>Passo: <strong>{{ selectedLabel() }}</strong></span>
+                <button type="button" class="btn btn-g btn-small" (click)="selected.set(null)" aria-label="Fechar o painel de cor">Fechar</button>
+              </p>
+              @for (field of paintFields; track field.key) {
+                <div class="paint-row">
+                  <label class="paint-label" [for]="'paint-' + field.key">{{ field.label }}</label>
+                  <input type="color" [id]="'paint-' + field.key" [value]="paint()[field.key]" (input)="onColor(field.key, $event)" />
+                  <span class="code paint-hex">{{ paint()[field.key] }}</span>
+                  <span class="swatches" role="radiogroup" [attr.aria-label]="'Cores sugeridas para ' + field.hint">
+                    @for (swatch of swatches(); track swatch) {
+                      <button type="button" class="swatch" role="radio" [attr.aria-checked]="paint()[field.key] === swatch" [style.background]="swatch" [attr.aria-label]="field.label + ' ' + swatch" [title]="swatch" (click)="setPaint(field.key, swatch)"></button>
+                    }
+                  </span>
+                </div>
+              }
+              <div class="paint-actions">
+                <button type="button" class="btn btn-g btn-small" (click)="paintStep()">Só este passo</button>
+                <button type="button" class="btn btn-g btn-small" (click)="paintKind()" [disabled]="!kindClass()"
+                  [title]="kindClass() ? 'Muda a cor de todos os passos da classe ' + kindClass() : 'Este passo não tem classe de tipo'">Todos do tipo</button>
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    </div>
+  </div>
+
+  @if (confirmRegenerate(); as merged) {
+    <app-confirm-dialog
+      title="Gerar o diagrama de novo?"
+      [text]="'O texto volta ao que o fluxo gera hoje. Suas cores e os textos que você deu aos passos que ainda existem são mantidos.' + (merged.dropped > 0 ? ' ' + droppedText(merged.dropped) : '') + ' Dá para desfazer.'"
+      confirmLabel="Gerar de novo"
+      [tone]="tonePrimary"
+      (confirm)="regenerate()"
+      (cancel)="confirmRegenerate.set(null)"
+    />
+  }
+  @if (confirmDiscard()) {
+    <app-confirm-dialog
+      title="Descartar a edição?"
+      text="O diagrama salvo é apagado e a tela volta ao diagrama gerado do fluxo. Isso não tem volta."
+      confirmLabel="Descartar edição"
+      [busy]="busy()"
+      (confirm)="discard()"
+      (cancel)="confirmDiscard.set(false)"
+    />
+  }
+} @else {
+  <p class="page-state muted" role="status">Carregando a visão consolidada…</p>
+}

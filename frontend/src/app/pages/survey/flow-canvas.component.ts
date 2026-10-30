@@ -39,7 +39,7 @@ import {
   flowDrawing,
   timelineRoutes,
 } from '../../core/graph/timeline-layout';
-import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, entryCodeOnly, humanName } from '../../core/graph/reading';
+import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, entryCodeOnly, humanName, splitLabel } from '../../core/graph/reading';
 import { FlowSummary, SummaryItem, summarySentence } from '../../core/graph/summary';
 import { TREE_CONNECTION, TreeConnectionBuilder } from '../../core/graph/tree-connection';
 import { Trail } from '../../core/graph/trail';
@@ -847,14 +847,8 @@ export function pickedFromSelection(nodeIds: readonly string[]): string | null {
   return nodeIds.length === 1 ? nodeIds[0] : null;
 }
 
-// "OrderNotificationService.SendAsync" -> dono "OrderNotificationService." e nome "SendAsync".
-// Só métodos e chamadas externas têm dono; bifurcações e afins mostram o texto inteiro.
-export function splitLabel(node: FlowNode): { owner: string; name: string } {
-  const splittable = node.kind === NodeKind.Entry || node.kind === NodeKind.Method || node.kind === NodeKind.External;
-  const dot = node.label.lastIndexOf('.');
-  if (!splittable || dot <= 0) return { owner: '', name: node.label };
-  return { owner: node.label.slice(0, dot + 1), name: node.label.slice(dot + 1) };
-}
+// Mora em core/graph/reading (a visão consolidada também usa); reexportada para quem já importa daqui.
+export { splitLabel };
 
 // "Para com erro X" na ponta da validação vira "para com erro X" (segue a condição).
 function lowerFirst(text: string): string {

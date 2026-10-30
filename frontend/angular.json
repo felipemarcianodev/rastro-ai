@@ -26,6 +26,18 @@
               "zone.js"
             ],
             "tsConfig": "tsconfig.app.json",
+            "allowedCommonJsDependencies": [
+              "@braintree/sanitize-url",
+              "cytoscape-cose-bilkent",
+              "cytoscape-fcose",
+              "dayjs",
+              "dayjs/plugin/advancedFormat.js",
+              "dayjs/plugin/customParseFormat.js",
+              "dayjs/plugin/duration.js",
+              "dayjs/plugin/isoWeek.js",
+              "fastdom",
+              "fastdom/extensions/fastdom-promised.js"
+            ],
             "inlineStyleLanguage": "scss",
             "assets": [
               {

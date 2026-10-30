@@ -50,6 +50,10 @@ public record NodeNoteView(string NodeId, string Text, DateTimeOffset UpdatedAt)
 
 public record NodeNoteInput(string? NodeId, string? Text);
 
+public record SurveyDiagramView(string Mermaid, string? CommitHash, DateTimeOffset UpdatedAt, Guid? FromSurveyId);
+
+public record SurveyDiagramInput(string? Mermaid);
+
 // Regra cruzada entre fluxos (Fase 13): este fluxo grava a entidade sem a guarda que outros usam.
 public record CrossFlowView(string NodeId, string Label, string Entity, string Guard, IReadOnlyList<string> Flows);
 
@@ -71,6 +75,7 @@ public static class ErrorCodes
     public const string ValidationRunning = "VALIDATION_RUNNING";
     public const string ValidationNotApprovable = "VALIDATION_NOT_APPROVABLE";
     public const string NoteInvalid = "NOTE_INVALID";
+    public const string DiagramInvalid = "DIAGRAM_INVALID";
     public const string SurveyRunning = "SURVEY_RUNNING";
     public const string RepositoryNameInvalid = "REPOSITORY_NAME_INVALID";
     public const string RepositoryPathInvalid = "REPOSITORY_PATH_INVALID";
