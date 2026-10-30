@@ -9,6 +9,12 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/revisao-ptbr.mjs\" commit",
             "timeout": 10,
             "statusMessage": "Conferindo o português da mensagem de commit"
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/ambiente-cliente.mjs\"",
+            "timeout": 10,
+            "statusMessage": "Conferindo a documentação do ambiente do cliente"
           }
         ]
       }

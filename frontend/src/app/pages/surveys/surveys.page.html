@@ -174,6 +174,23 @@
         <span id="depth-error" class="field-error" [hidden]="!fieldErrors().depth">{{ fieldErrors().depth }}</span>
       </div>
 
+      @if (hasRepositories() && repository) {
+        <fieldset class="field cross">
+          <legend class="field-label">Seguir chamadas HTTP para</legend>
+          @for (repo of crossOthers(); track repo.name) {
+            <label class="check">
+              <input type="checkbox" [name]="'cross-' + repo.name" [checked]="crossChosen().has(repo.name)" (change)="toggleCross(repo.name, $any($event.target).checked)" />
+              <span>{{ repo.name }}</span>
+            </label>
+          }
+          <label class="check">
+            <input type="checkbox" name="cross-self" [checked]="crossSelf()" (change)="crossSelf.set($any($event.target).checked)" />
+            <span>o próprio repositório</span>
+          </label>
+          <span class="field-help">Quando o método chama outro serviço por HTTP, o fluxo continua no endpoint que atende a chamada. Desligado, a chamada fica como chamada externa.</span>
+        </fieldset>
+      }
+
       @if (formError(); as error) {
         <p class="field-error" role="alert">{{ error }}</p>
       }

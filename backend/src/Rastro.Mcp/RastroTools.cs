@@ -149,6 +149,48 @@ public class RastroTools(
         return text.ToString();
     }
 
+    [McpServerTool(Name = "list_cross_edges"), Description("Lista as ligações HTTP entre sistemas do levantamento (de, para, verbo, rota, sistema de origem e de destino, confiança) e as chamadas HTTP que ainda estão sem destino (nó, motivo, verbo, rota). Somente leitura. Para fechar uma chamada sem destino: search_methods com o system do destino e propose_edge com o mesmo system.")]
+    public async Task<string> ListCrossEdges([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    {
+        var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
+        if (survey?.ReadGraph() is not { } graph) return NotFound;
+
+        var handles = Handles(graph);
+        var byId = graph.Nodes.ToDictionary(n => n.Id);
+        var outgoing = graph.Edges.ToLookup(e => e.From);
+        string SystemOf(FlowNode node) => node.System ?? survey.Repository;
+
+        var links = graph.Edges
+            .Where(e => e.Http is not null && byId.TryGetValue(e.To, out var to) && (to.Kind != NodeKind.Unresolved || byId[e.From].Kind == NodeKind.Unresolved))
+            .ToList();
+        // O nó "h:" sem destino: a chamada HTTP que chega nele tem verbo e rota, e nada sai dele.
+        var open = graph.Edges
+            .Where(e => e.Http is not null && byId.TryGetValue(e.To, out var to) && to.Kind == NodeKind.Unresolved && !outgoing[to.Id].Any())
+            .ToList();
+
+        var text = new StringBuilder();
+        text.AppendLine($"Ligações HTTP entre sistemas: {links.Count}.");
+        foreach (var edge in links)
+        {
+            var from = byId[edge.From];
+            var to = byId[edge.To];
+            text.AppendLine($"- {handles[from.Id]} {from.Label} → {handles[to.Id]} {to.Label}: {HttpText(edge.Http!)} ({SystemOf(from)} → {SystemOf(to)}), {ConfidenceText(edge.Confidence)}");
+        }
+
+        text.AppendLine($"Chamadas HTTP sem destino: {open.Count}.");
+        foreach (var edge in open)
+        {
+            var hole = byId[edge.To];
+            var place = hole.Location ?? edge.Location;
+            text.AppendLine($"- {handles[hole.Id]} em {SystemOf(byId[edge.From])}, {(place is null ? "posição desconhecida" : $"{place.File}:{place.Line}")}: {HttpText(edge.Http!)}");
+            text.AppendLine($"  motivo: {ReasonText(hole.Reason)}{(hole.Detail is null ? string.Empty : $" ({hole.Detail})")}");
+        }
+
+        if (survey.ReadCrossRepositories().Count == 0)
+            text.AppendLine("Este levantamento não segue chamadas HTTP para outros repositórios (nenhum repositório na costura).");
+        return text.ToString();
+    }
+
     [McpServerTool(Name = "get_node_code"), Description("Mostra o código em volta de um nó (arquivo do repositório, numerado).")]
     public async Task<string> GetNodeCode(
         [Description("Id do levantamento.")] Guid surveyId,
@@ -161,7 +203,7 @@ public class RastroTools(
         if (FindNode(graph, node) is not { } found) return $"Nó {node} não encontrado.";
         if (found.Location is null) return $"{found.Label} não tem posição no código (externo ou estrutural).";
 
-        var path = catalog.SourceFile(survey.Repository, found.Location.File);
+        var path = catalog.SourceFile(found.System ?? survey.Repository, found.Location.File);
         if (path is null || !File.Exists(path)) return "Arquivo não encontrado no repositório.";
 
         var all = await File.ReadAllLinesAsync(path, ct);
@@ -178,11 +220,24 @@ public class RastroTools(
     public async Task<string> SearchMethods(
         [Description("Id do levantamento.")] Guid surveyId,
         [Description("Parte do nome, ex.: Notify ou EmailNotifier.Notify.")] string query,
+        [Description("Opcional: repositório da costura em que procurar (para o destino de uma chamada HTTP). Sem ele, procura no repositório do levantamento.")] string? system = null,
         CancellationToken ct = default)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
         if (survey is null) return NotFound;
-        var resolved = catalog.Resolve(survey.Repository, survey.SolutionPath);
+
+        CatalogResult resolved;
+        if (string.IsNullOrWhiteSpace(system) || string.Equals(system.Trim(), survey.Repository, StringComparison.OrdinalIgnoreCase))
+        {
+            resolved = catalog.Resolve(survey.Repository, survey.SolutionPath);
+        }
+        else
+        {
+            var cross = survey.ReadCrossRepositories().FirstOrDefault(r => string.Equals(r, system.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (cross is null) return $"{system} não está na costura deste levantamento. Repositórios da costura: {(survey.ReadCrossRepositories().Count == 0 ? "nenhum" : string.Join(", ", survey.ReadCrossRepositories()))}.";
+            var solution = catalog.Solutions(cross)?.FirstOrDefault();
+            resolved = solution is null ? CatalogResult.Fail(CatalogError.SolutionNotFound) : catalog.Resolve(cross, solution);
+        }
         if (resolved.Target is not { } target) return "O repositório ou a solution não estão mais disponíveis.";
 
         var handle = await solutions.OpenAsync(target, fresh: false, ct);
@@ -192,7 +247,7 @@ public class RastroTools(
             : string.Join('\n', found.Select(f => $"- {f.Name} ({f.File}:{f.Line})"));
     }
 
-    [McpServerTool(Name = "propose_edge"), Description("Propõe o destino de um nó não resolvido, com prova: o método de destino e o arquivo:linha onde ele está declarado. O compilador confere; se valer, entra como aresta inferida e o usuário confirma na tela.")]
+    [McpServerTool(Name = "propose_edge"), Description("Propõe o destino de um nó não resolvido, com prova: o método de destino e o arquivo:linha onde ele está declarado. O compilador confere; se valer, entra como aresta inferida e o usuário confirma na tela. Chamada HTTP sem destino (list_cross_edges) também entra aqui, com o parâmetro system.")]
     public async Task<string> ProposeEdge(
         [Description("Id do levantamento.")] Guid surveyId,
         [Description("Apelido (n12) ou id do nó não resolvido.")] string node,
@@ -201,12 +256,13 @@ public class RastroTools(
         [Description("Linha dentro da declaração do método de destino.")] int evidenceLine,
         [Description("Por que este é o destino (o que no código indica isso).")] string reason,
         [Description("Opcional: quando este destino roda, se o buraco tem vários (ex.: \"evento CheckoutCompleted\"). Vira o rótulo da aresta.")] string? when = null,
+        [Description("Repositório de destino, obrigatório quando o nó é uma chamada HTTP sem destino. Precisa estar entre os repositórios da costura do levantamento. O arquivo da prova é relativo a ele, e o verbo e a rota da chamada precisam casar com os do método.")] string? system = null,
         CancellationToken ct = default)
     {
         if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
         if (FindNode(graph, node) is not { } found) return $"Nó {node} não encontrado.";
 
-        var outcome = await proposals.ProposeEdgeAsync(surveyId, found.Id, target, evidenceFile, evidenceLine, reason, ProposalOrigin.Agent, ct, when);
+        var outcome = await proposals.ProposeEdgeAsync(surveyId, found.Id, target, evidenceFile, evidenceLine, reason, ProposalOrigin.Agent, ct, when, system);
         return (outcome.Accepted ? "Aceita. " : "Recusada. ") + outcome.Message;
     }
 
@@ -341,6 +397,7 @@ public class RastroTools(
     {
         var text = $"{KindText(node.Kind)}: {node.Label}";
         if (node.Location is not null) text += $"  [{node.Location.File}:{node.Location.Line}]";
+        if (node.System is not null) text += $"  (sistema {node.System})";
         if (node.Kind == NodeKind.Unresolved) text += $"  ← não resolvido: {ReasonText(node.Reason)}";
         if (node.Rule is not null) text += $"\n    regra: {node.Rule.Text}";
         return text;
@@ -357,6 +414,15 @@ public class RastroTools(
         if (edge.Confidence == EdgeConfidence.Confirmed) parts.Add("confirmada");
         return parts.Count == 0 ? null : string.Join(", ", parts);
     }
+
+    private static string HttpText(HttpCall call) => $"{call.Method} {call.Route ?? "?"}";
+
+    private static string ConfidenceText(EdgeConfidence confidence) => confidence switch
+    {
+        EdgeConfidence.Extracted => "extraída",
+        EdgeConfidence.Inferred => "inferida",
+        _ => "confirmada"
+    };
 
     private static string KindText(NodeKind kind) => kind switch
     {
@@ -382,6 +448,9 @@ public class RastroTools(
         UnresolvedReason.MessageDispatch => "mensagem para mediator ou barramento (o detalhe é o tipo da mensagem)",
         UnresolvedReason.Reflection => "reflection",
         UnresolvedReason.DepthLimit => "limite de profundidade",
+        UnresolvedReason.RouteNotResolved => "chamada HTTP com rota montada em tempo de execução",
+        UnresolvedReason.NoMatchingEndpoint => "chamada HTTP sem destino em nenhum repositório da costura",
+        UnresolvedReason.MultipleEndpoints => "chamada HTTP que casa com mais de um destino",
         _ => "desconhecido"
     };
 }

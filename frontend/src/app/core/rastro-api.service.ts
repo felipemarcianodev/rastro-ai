@@ -180,8 +180,10 @@ export class RastroApi {
     return this.http.get<SurveyStaleness>(`/api/surveys/${id}/stale`);
   }
 
-  source(id: string, file: string, line: number, context = 8): Observable<SourceSnippet> {
-    const params = new HttpParams().set('file', file).set('line', line).set('context', context);
+  // "system": repositório do trecho quando o passo é de outro sistema do fluxo (Fase 25).
+  source(id: string, file: string, line: number, context = 8, system?: string): Observable<SourceSnippet> {
+    let params = new HttpParams().set('file', file).set('line', line).set('context', context);
+    if (system) params = params.set('system', system);
     return this.http.get<SourceSnippet>(`/api/surveys/${id}/source`, { params });
   }
 }

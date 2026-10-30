@@ -91,3 +91,52 @@ describe('NodePanelComponent: anotação do passo', () => {
     expect(el.querySelector('#note-text')).toBeNull();
   });
 });
+
+describe('NodePanelComponent: passo de outro sistema (Fase 25)', () => {
+  const cross: FlowGraph = {
+    schemaVersion: 2,
+    entryPoint: 'Job.Run',
+    entryNodeId: 'a',
+    nodes: [
+      { id: 'a', kind: NodeKind.Entry, label: 'Job.Run' },
+      { id: 'p::b', kind: NodeKind.Method, label: 'EstornosController.Criar', system: 'pagamentos' },
+    ],
+    edges: [{ from: 'a', to: 'p::b', order: 0, confidence: 0, http: { method: 'POST', route: 'api/estornos' } }],
+  };
+
+  function open(id: string) {
+    TestBed.configureTestingModule({ imports: [NodePanelComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(NodePanelComponent);
+    fixture.componentRef.setInput('surveyId', 's1');
+    fixture.componentRef.setInput('repository', 'pedidos');
+    fixture.componentRef.setInput('commitHash', 'aaaaaaaaaaaa');
+    fixture.componentRef.setInput('segments', [{ order: 1, repository: 'pagamentos', solutionPath: 'P.slnx', entryPoint: 'x', commitHash: 'bbbbbbbbbbbb' }]);
+    fixture.componentRef.setInput('graph', cross);
+    fixture.componentRef.setInput('selectedId', id);
+    fixture.componentRef.setInput('editing', true);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  // UI-SYS-011
+  it('painel_passoDeOutroSistema_mostraSistemaECommitEBloqueiaEdicao', () => {
+    const el = open('p::b');
+
+    expect(el.querySelector('.origin')?.textContent).toContain('Sistema pagamentos');
+    expect(el.querySelector('.origin')?.textContent).toContain('bbbbbbb');
+    expect(el.querySelector('.foreign')?.textContent).toContain('Edição só no primeiro sistema do fluxo');
+    expect(el.querySelector('.remove-step')).toBeNull();
+    expect(el.querySelector('#connect')).toBeNull();
+    expect(Array.from(el.querySelectorAll('button')).some((b) => b.textContent?.includes('Remover ligação'))).toBeFalse();
+  });
+
+  // UI-SYS-012
+  it('painel_passoDoPrimeiroSistema_naoEditaLigacaoHttp', () => {
+    const el = open('a');
+
+    expect(el.querySelector('.origin')?.textContent).toContain('Sistema pedidos');
+    expect(el.querySelector('#intent')).not.toBeNull();
+    expect(Array.from(el.querySelectorAll('button')).some((b) => b.textContent?.includes('Remover ligação'))).toBeFalse();
+    expect(el.textContent).toContain('Edição só no primeiro sistema do fluxo');
+  });
+});

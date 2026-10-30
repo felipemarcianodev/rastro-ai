@@ -152,6 +152,11 @@
     stroke-width: 3;
   }
 
+  .is-http {
+    stroke: var(--kind-decision);
+    stroke-width: 2;
+  }
+
   .is-main {
     stroke: var(--ink-soft);
     stroke-width: 2.5;

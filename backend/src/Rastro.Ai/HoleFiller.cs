@@ -8,6 +8,7 @@ using Rastro.Ai.Settings;
 using Rastro.Core.Graph;
 using Rastro.Extractor;
 using Rastro.Infrastructure;
+using Rastro.Core.Http;
 using Rastro.Infrastructure.Analysis;
 using Rastro.Infrastructure.Proposals;
 using Rastro.Infrastructure.Repositories;
@@ -23,6 +24,7 @@ public partial class HoleFiller(
     RastroDbContext db,
     RepositoryCatalog catalog,
     ISolutionSource solutions,
+    RouteIndexStore routeIndexes,
     ProposalService proposals,
     AiGateway gateway)
 {
@@ -40,6 +42,10 @@ public partial class HoleFiller(
         - Para cada destino informe: target (Namespace.Tipo.Metodo ou Tipo.Metodo, igual ao candidato),
           evidenceFile e evidenceLine (arquivo e linha da DECLARAÇÃO do método, iguais aos do candidato),
           when (quando este destino roda, se houver mais de um; senão null) e reason (o que no código indica isso).
+        - Quando a chamada for HTTP (a lista de repositórios da costura vem no pedido), o destino é um
+          método de OUTRO repositório: informe em system o nome do repositório, exatamente como na lista,
+          e escolha o target entre as rotas listadas que atendam o verbo e a rota da chamada.
+          Fora de chamada HTTP, system é null.
         - Se nada no código sustenta um destino, devolva a lista vazia.
         - Toda proposta será conferida pelo compilador; prova errada é descartada.
 
@@ -61,9 +67,10 @@ public partial class HoleFiller(
                   "evidenceFile": { "type": "string" },
                   "evidenceLine": { "type": "integer" },
                   "when": { "type": ["string", "null"] },
-                  "reason": { "type": "string" }
+                  "reason": { "type": "string" },
+                  "system": { "type": ["string", "null"] }
                 },
-                "required": ["target", "evidenceFile", "evidenceLine", "when", "reason"],
+                "required": ["target", "evidenceFile", "evidenceLine", "when", "reason", "system"],
                 "additionalProperties": false
               }
             }
@@ -87,13 +94,26 @@ public partial class HoleFiller(
         var resolved = catalog.Resolve(survey.Repository, survey.SolutionPath);
         if (resolved.Target is not { } target) return new FillHoleResult(0, 0, ["O repositório ou a solution não estão mais disponíveis."]);
 
-        var snippet = await SnippetAsync(survey.Repository, hole, ct);
-        var handle = await solutions.OpenAsync(target, fresh: false, ct);
-        var candidates = await CandidatesAsync(handle, hole, snippet, ct);
+        // Nó de outro sistema da costura: o código em volta é lido do repositório dele (Fase 25).
+        var snippet = await SnippetAsync(hole.System ?? survey.Repository, hole, ct);
+        var isHttp = hole.Reason is UnresolvedReason.RouteNotResolved or UnresolvedReason.NoMatchingEndpoint or UnresolvedReason.MultipleEndpoints;
+        var cross = isHttp ? survey.ReadCrossRepositories() : [];
+        IReadOnlyList<(string Name, string File, int Line)> candidates = [];
+        IReadOnlyList<(string Repository, RouteEntry Entry)> routes = [];
+        if (isHttp)
+        {
+            var call = graph.Edges.FirstOrDefault(e => e.To == hole.Id && e.Http is not null)?.Http;
+            routes = await RoutesAsync(cross, call, ct);
+        }
+        else
+        {
+            var handle = await solutions.OpenAsync(target, fresh: false, ct);
+            candidates = await CandidatesAsync(handle, hole, snippet, ct);
+        }
         var already = graph.Edges.Where(e => e.From == hole.Id)
             .Select(e => graph.Nodes.FirstOrDefault(n => n.Id == e.To)?.Label).OfType<string>().ToList();
 
-        var user = BuildUserPrompt(hole, snippet, candidates, already);
+        var user = BuildUserPrompt(hole, snippet, candidates, already, cross, routes);
         var result = await gateway.GenerateAsync(AiUse.FillHoles, new AiRequest(SystemPrompt, user, "rastro_hole_targets", Schema), ct);
         var items = Parse(result.Json);
 
@@ -102,7 +122,7 @@ public partial class HoleFiller(
         foreach (var item in items.Take(MaxProposals))
         {
             var outcome = await proposals.ProposeEdgeAsync(surveyId, hole.Id, item.Target, item.EvidenceFile, item.EvidenceLine,
-                item.Reason, ProposalOrigin.Provider, ct, item.When);
+                item.Reason, ProposalOrigin.Provider, ct, item.When, isHttp ? item.System : null);
             if (outcome.Accepted) accepted++;
             messages.Add($"{item.Target}: {(outcome.Accepted ? "aceita" : "recusada")}. {outcome.Message}");
         }
@@ -151,8 +171,23 @@ public partial class HoleFiller(
         return found.Values.Take(MaxCandidates).ToList();
     }
 
+    private const int MaxRoutes = 60;
+
+    // Rotas dos repositórios da costura que atendem o verbo da chamada (índice de rotas da Fase 25).
+    private async Task<IReadOnlyList<(string Repository, RouteEntry Entry)>> RoutesAsync(
+        IReadOnlyList<string> repositories, HttpCall? call, CancellationToken ct)
+    {
+        var found = new List<(string, RouteEntry)>();
+        foreach (var repository in repositories)
+            foreach (var entry in await routeIndexes.GetAsync(repository, ct))
+                if (call is null || string.Equals(entry.Method, call.Method, StringComparison.OrdinalIgnoreCase))
+                    found.Add((repository, entry));
+        return found.Take(MaxRoutes).ToList();
+    }
+
     private static string BuildUserPrompt(FlowNode hole, IReadOnlyList<(int Line, string Text)> snippet,
-        IReadOnlyList<(string Name, string File, int Line)> candidates, IReadOnlyList<string> already)
+        IReadOnlyList<(string Name, string File, int Line)> candidates, IReadOnlyList<string> already,
+        IReadOnlyList<string> cross, IReadOnlyList<(string Repository, RouteEntry Entry)> routes)
     {
         var text = new StringBuilder();
         text.AppendLine($"Chamada não resolvida: {hole.Label}");
@@ -164,13 +199,22 @@ public partial class HoleFiller(
         foreach (var (line, code) in snippet) text.AppendLine($"{line,5}  {code}");
         text.AppendLine("</codigo>");
         text.AppendLine();
+        if (cross.Count > 0)
+        {
+            text.AppendLine($"Repositórios da costura (valores possíveis de system): {string.Join(", ", cross)}");
+            text.AppendLine("Rotas desses repositórios (repositório, verbo, rota, método e arquivo:linha da declaração):");
+            if (routes.Count == 0) text.AppendLine("(nenhuma)");
+            foreach (var (repository, entry) in routes)
+                text.AppendLine($"- {repository}: {entry.Method} {entry.Template} => {entry.Target} ({entry.File}:{entry.Line})");
+            return text.ToString();
+        }
         text.AppendLine("Candidatos (método e arquivo:linha da declaração):");
         if (candidates.Count == 0) text.AppendLine("(nenhum)");
         foreach (var (name, file, line) in candidates) text.AppendLine($"- {name} ({file}:{line})");
         return text.ToString();
     }
 
-    private sealed record ProposalItem(string Target, string EvidenceFile, int EvidenceLine, string? When, string Reason);
+    private sealed record ProposalItem(string Target, string EvidenceFile, int EvidenceLine, string? When, string Reason, string? System = null);
 
     private sealed record ProposalPayload(List<ProposalItem>? Proposals);
 

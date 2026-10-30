@@ -37,14 +37,16 @@
           [fReassignDisabled]="!editing()"
           [class]="edgeClasses().get(item.index)">
           <f-connection-marker-arrow [type]="markerEnd" />
-          <div fConnectionContent [position]="0.5" [hidden]="(!item.edge.label || quietLabels().has(item.index)) && item.edge.confidence === EdgeConfidence.Extracted">
-            <span class="edge-label">
+          <div fConnectionContent [position]="0.5" [hidden]="!item.edge.http && (!item.edge.label || quietLabels().has(item.index)) && item.edge.confidence === EdgeConfidence.Extracted">
+            <span class="edge-label" [class.is-http]="!!item.edge.http">
               @if (item.edge.confidence === EdgeConfidence.Confirmed) {
                 <span class="edge-mark is-confirmed" title="Confirmada por você">✓</span>
               } @else if (item.edge.confidence === EdgeConfidence.Inferred) {
                 <span class="edge-mark is-inferred" title="Inferida, a conferir">?</span>
               }
-              @if (!quietLabels().has(item.index)) {
+              @if (item.edge.http) {
+                {{ httpLabel(item.edge) }}
+              } @else if (!quietLabels().has(item.index)) {
                 {{ item.edge.label }}
               }
             </span>
@@ -200,6 +202,9 @@
   <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-main" /></svg></dt><dd>Linha mais grossa: o código do método de entrada; os passos mais claros estão mais fundo nas chamadas</dd></div>
   <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-exit" /></svg></dt><dd>Vermelha tracejada: o fluxo para com erro</dd></div>
   <div><dt><span class="swatch is-unresolved"></span></dt><dd>Não resolvido</dd></div>
+  @if (hasHttp()) {
+    <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-http" /></svg></dt><dd>Chamada HTTP para outro sistema (verbo e rota)</dd></div>
+  }
   <div><dt><span class="legend-grab" aria-hidden="true">✥</span></dt><dd>Arraste um passo para reorganizar (ou Alt+setas); setas andam pelos passos</dd></div>
   <div><dt><span class="legend-glyph" aria-hidden="true">⬚</span></dt><dd>Arraste no fundo para mover a visão; Shift+arrastar ou Ctrl+clique marca vários passos para mover juntos</dd></div>
   @if (comparing()) {

@@ -30,6 +30,18 @@ Para o build e os testes entrarem na validação de uma mudança, informe os com
 rastro repo add minha-api C:\codigo\minha-api --build "dotnet build MinhaApi.slnx" --testes "dotnet test MinhaApi.slnx"
 ```
 
+## Fluxo entre sistemas
+
+Quando uma API chama outra por HTTP, o fluxo continua do outro lado. Ao criar o levantamento, escolha **Seguir chamadas HTTP para** e marque os outros repositórios (eles precisam estar cadastrados no Rastro). O Rastro casa o verbo e a rota de cada chamada com as rotas desses repositórios e segue o rastro no método que atende, com as bifurcações de cada sistema no mesmo desenho.
+
+O que não dá para casar vira um passo "não resolvido", com o motivo: rota montada em tempo de execução, sem destino, ou mais de um destino. A IA (com uma chave de API em Configurações) ou o seu agente completa esse passo, e você confirma na tela.
+
+Limites: a edição e a validação de uma mudança valem só para o primeiro sistema do levantamento, e o Rastro mantém uma solution aberta por vez.
+
+## Visão consolidada
+
+Cada levantamento tem uma visão resumida em poucos passos, em frase, como um diagrama Mermaid que você edita ao lado da prévia. Clique num passo para escolher a cor dele. A versão editada fica salva no levantamento.
+
 ## Com o seu agente de IA (MCP)
 
 O Rastro funciona sem IA. Com um agente que fala MCP, como o Claude Code, o agente completa o que o compilador não resolveu e escreve as regras de cada passo, usando a assinatura dele:
@@ -37,6 +49,8 @@ O Rastro funciona sem IA. Com um agente que fala MCP, como o Claude Code, o agen
 ```
 claude mcp add rastro -- rastro mcp
 ```
+
+Para o fluxo entre sistemas, a ferramenta `list_cross_edges` lista as ligações HTTP e as chamadas ainda sem destino, e `propose_edge` aceita o parâmetro `system`, com o repositório de destino.
 
 Tudo o que a IA propõe chega marcado como inferido e só entra no fluxo quando você confirma.
 

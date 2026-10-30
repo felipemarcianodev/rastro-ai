@@ -36,6 +36,8 @@ const detail = (commit = 'abcdef1234567'): SurveyDetail => ({
     edgeCount: 2,
     unresolvedCount: 0,
     createdAt: '2026-10-30T10:00:00Z',
+    crossRepositories: [],
+    segments: [],
   },
   graph,
 });

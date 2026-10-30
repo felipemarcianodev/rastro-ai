@@ -34,6 +34,9 @@ export enum UnresolvedReason {
   MessageDispatch = 4,
   Reflection = 5,
   DepthLimit = 6,
+  RouteNotResolved = 7,
+  NoMatchingEndpoint = 8,
+  MultipleEndpoints = 9,
 }
 
 export enum SurveyStatus {
@@ -85,6 +88,14 @@ export interface FlowNode {
   change?: ChangeKind;
   intent?: string;
   metrics?: MethodMetrics;
+  // Repositório de onde o passo vem, quando não é o primeiro sistema do fluxo (Fase 25).
+  system?: string;
+}
+
+// Chamada HTTP entre sistemas (Fase 25): verbo em maiúsculas e rota sem host, nula se não resolveu.
+export interface HttpCall {
+  method: string;
+  route?: string;
 }
 
 export interface FlowEdge {
@@ -97,6 +108,8 @@ export interface FlowEdge {
   change?: ChangeKind;
   // Onde a chamada acontece, quando o destino não tem posição própria (nó externo, Fase 13).
   location?: SourceLocation;
+  // Presente quando a ligação é uma chamada HTTP entre sistemas.
+  http?: HttpCall;
 }
 
 export interface FlowGraph {
@@ -106,6 +119,16 @@ export interface FlowGraph {
   nodes: FlowNode[];
   edges: FlowEdge[];
   findings?: Finding[];
+}
+
+// Trecho do fluxo em outro repositório (Fase 25), na ordem em que foi costurado.
+export interface SurveySegment {
+  order: number;
+  repository: string;
+  solutionPath: string;
+  entryPoint: string;
+  commitHash?: string;
+  branch?: string;
 }
 
 export interface SurveySummary {
@@ -125,6 +148,8 @@ export interface SurveySummary {
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
+  crossRepositories: string[];
+  segments: SurveySegment[];
 }
 
 export interface SurveyDetail {
@@ -132,10 +157,19 @@ export interface SurveyDetail {
   graph?: FlowGraph;
 }
 
+export interface SegmentStaleness {
+  repository: string;
+  stale: boolean;
+  surveyCommit?: string;
+  currentCommit?: string;
+}
+
 export interface SurveyStaleness {
   stale: boolean;
   surveyCommit?: string;
   currentCommit?: string;
+  // Um por trecho além do primeiro (Fase 25).
+  segments: SegmentStaleness[];
 }
 
 export interface CreateSurveyRequest {
@@ -143,6 +177,8 @@ export interface CreateSurveyRequest {
   solutionPath: string;
   entryPoint: string;
   maxDepth?: number;
+  // Repositórios cujas chamadas HTTP o levantamento segue (Fase 25).
+  crossRepositories?: string[];
 }
 
 export interface RepositoryItem {
@@ -251,6 +287,9 @@ export const UNRESOLVED_REASON_LABEL: Record<UnresolvedReason, string> = {
   [UnresolvedReason.MessageDispatch]: 'Mensagem para mediator ou barramento',
   [UnresolvedReason.Reflection]: 'Reflection',
   [UnresolvedReason.DepthLimit]: 'Limite de profundidade',
+  [UnresolvedReason.RouteNotResolved]: 'Rota da chamada HTTP não resolvida',
+  [UnresolvedReason.NoMatchingEndpoint]: 'Nenhum endpoint atende a chamada',
+  [UnresolvedReason.MultipleEndpoints]: 'Mais de um endpoint atende a chamada',
 };
 
 // O que o motivo significa, em uma frase, para quem vai completar o buraco.
@@ -262,6 +301,9 @@ export const UNRESOLVED_REASON_HELP: Record<UnresolvedReason, string> = {
   [UnresolvedReason.MessageDispatch]: 'O handler da mensagem é escolhido em tempo de execução pelo mediator ou barramento.',
   [UnresolvedReason.Reflection]: 'O método é chamado por reflection, então o destino só existe em tempo de execução.',
   [UnresolvedReason.DepthLimit]: 'O caminho continua, mas parou no limite de profundidade escolhido.',
+  [UnresolvedReason.RouteNotResolved]: 'A rota da chamada HTTP é montada em tempo de execução, então não dá para saber qual endpoint ela alcança.',
+  [UnresolvedReason.NoMatchingEndpoint]: 'A rota foi resolvida, mas nenhum dos repositórios escolhidos tem um endpoint que a atenda.',
+  [UnresolvedReason.MultipleEndpoints]: 'A rota casa com mais de um endpoint. Escolha qual deles recebe a chamada.',
 };
 
 export const SURVEY_STATUS_SLUG: Record<SurveyStatus, string> = {
@@ -304,6 +346,7 @@ export const API_ERROR_MESSAGE: Record<string, string> = {
   REPOSITORY_FOLDER_NOT_FOUND: 'Essa pasta não existe neste computador.',
   REPOSITORY_EXISTS: 'Já existe um repositório com esse nome.',
   REPOSITORY_NOT_FOUND: 'Esse repositório não está mais cadastrado.',
+  CROSS_REPOSITORIES_INVALID: 'Escolha no máximo 10 repositórios para seguir as chamadas HTTP.',
   ORIGIN_NOT_ALLOWED: 'Pedido recusado: só a tela do próprio Rastro pode alterar dados.',
 };
 

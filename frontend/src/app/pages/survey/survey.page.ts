@@ -97,6 +97,15 @@ export class SurveyPage {
   protected readonly promptReady = signal(false);
   protected readonly aiActive = computed(() => this.ai.active());
   protected readonly staleness = signal<SurveyStaleness | null>(null);
+  // Sistemas que mudaram desde o levantamento (Fase 25): o repositório principal e os trechos.
+  // Só diz os nomes quando o fluxo passa por mais de um sistema.
+  protected readonly staleSystems = computed(() => {
+    const stale = this.staleness();
+    const survey = this.detail()?.survey;
+    if (!stale?.stale || !survey || (stale.segments ?? []).length === 0) return [];
+    const main = stale.surveyCommit !== stale.currentCommit ? [survey.repository] : [];
+    return [...main, ...stale.segments.filter((s) => s.stale).map((s) => s.repository)];
+  });
   protected readonly selectedId = signal<string | null>(null);
   // Resumo do fluxo (Fase 23): vem do canvas, que o monta junto com o desenho.
   protected readonly summary = signal<FlowSummary | null>(null);
@@ -532,6 +541,7 @@ export class SurveyPage {
       solutionPath: survey.solutionPath,
       entryPoint: survey.entryPoint,
       maxDepth: survey.maxDepth,
+      ...(survey.crossRepositories?.length ? { crossRepositories: survey.crossRepositories } : {}),
     };
     this.router.navigate(['/'], { state: { retry } });
   }
@@ -1151,6 +1161,7 @@ export class SurveyPage {
         solutionPath: survey.solutionPath,
         entryPoint: survey.entryPoint,
         maxDepth: survey.maxDepth,
+        ...(survey.crossRepositories?.length ? { crossRepositories: survey.crossRepositories } : {}),
       })
       .subscribe({
         next: (created) => {

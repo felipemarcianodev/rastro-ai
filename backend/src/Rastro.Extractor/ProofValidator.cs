@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Rastro.Core.Graph;
+using Rastro.Core.Http;
 
 namespace Rastro.Extractor;
 
@@ -50,6 +52,40 @@ public static class ProofValidator
             return ProofVerdict.Reject($"A prova não confere: {method.ToDisplayString()} vai da linha {firstLine} à {lastLine} de {actualFile}; a linha {proof.Line} está fora.");
 
         return new ProofVerdict(true, $"Prova conferida: {method.ToDisplayString()} em {actualFile}:{firstLine}.", method.ToDisplayString());
+    }
+
+    // Prova de uma ligação HTTP entre sistemas (Fase 25): além de o método existir no arquivo e na linha,
+    // ele precisa ser um destino HTTP de verdade, ou seja, estar no índice de rotas do repositório com o
+    // mesmo verbo da chamada e, quando a rota da chamada é conhecida, com um template que case.
+    public static async Task<ProofVerdict> ValidateHttpAsync(
+        Solution solution, string baseDirectory, EdgeProof proof, HttpCall call, IReadOnlyList<RouteEntry> index, CancellationToken ct = default)
+    {
+        var verdict = await ValidateAsync(solution, baseDirectory, proof, ct);
+        if (!verdict.Accepted) return verdict;
+
+        // "Ns.Tipo.Metodo(parâmetros)" -> "Ns.Tipo.Metodo", como o índice guarda.
+        var display = verdict.TargetDisplay ?? string.Empty;
+        var target = display.Contains('(') ? display[..display.IndexOf('(')] : display;
+
+        var routes = index.Where(e => e.Target == target).ToList();
+        if (routes.Count == 0)
+            return ProofVerdict.Reject($"{target} não atende nenhuma rota HTTP do repositório (não está no índice de rotas).");
+
+        if (call.Method is "GET" or "POST" or "PUT" or "PATCH" or "DELETE")
+        {
+            routes = routes.Where(e => string.Equals(e.Method, call.Method, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (routes.Count == 0)
+                return ProofVerdict.Reject($"{target} não atende {call.Method}: o verbo da chamada não confere com o do destino.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(call.Route)
+            && !routes.Any(e => RouteTemplate.Matches(e.Template, call.Route) || RouteTemplate.MatchesSuffix(e.Template, call.Route)))
+        {
+            var served = string.Join(", ", routes.Select(e => $"{e.Method} {e.Template}"));
+            return ProofVerdict.Reject($"{target} atende {served}, que não casa com a rota chamada ({call.Method} {call.Route}).");
+        }
+
+        return verdict;
     }
 
     // Métodos com corpo cujo nome (ou Tipo.Metodo) contém o texto, para o agente montar a prova.

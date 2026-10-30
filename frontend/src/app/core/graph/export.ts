@@ -11,16 +11,46 @@ const MERMAID_DIRECTION: Record<LayoutDirection, string> = {
   [LayoutDirection.Tree]: 'TD',
 };
 
-export function toMermaid(graph: FlowGraph, direction = LayoutDirection.Horizontal): string {
+// Rótulo da ligação HTTP entre sistemas (Fase 25): "POST api/estornos"; sem rota, só o verbo.
+export function httpLabel(edge: FlowEdge): string | null {
+  return edge.http ? (edge.http.route ? `${edge.http.method} ${edge.http.route}` : edge.http.method) : null;
+}
+
+// Um subgraph por sistema quando o fluxo passa por mais de um (Fase 25). O primeiro sistema leva o
+// nome do repositório do levantamento; os ids sys0, sys1... são seguros para o Mermaid (o nome do
+// repositório pode ter ponto e hífen) e o título vai entre aspas.
+export function mermaidSystems(graph: FlowGraph, firstName?: string): { id: string; title: string; nodes: FlowNode[] }[] | null {
+  const names = [...new Set(graph.nodes.map((n) => n.system ?? ''))];
+  if (names.length < 2) return null;
+  // O primeiro sistema (sem "system" no nó) vem antes dos demais.
+  names.sort((a, b) => (a === '' ? -1 : b === '' ? 1 : 0));
+  return names.map((name, index) => ({
+    id: `sys${index}`,
+    title: name === '' ? (firstName ?? 'Primeiro sistema') : name,
+    nodes: graph.nodes.filter((n) => (n.system ?? '') === name),
+  }));
+}
+
+export function toMermaid(graph: FlowGraph, direction = LayoutDirection.Horizontal, firstSystem?: string): string {
   const ids = new Map(graph.nodes.map((node, index) => [node.id, `n${index}`]));
   const lines = [`flowchart ${MERMAID_DIRECTION[direction]}`];
-  for (const node of graph.nodes) lines.push(`  ${ids.get(node.id)}${mermaidShape(node)}`);
+  const systems = mermaidSystems(graph, firstSystem);
+  if (systems) {
+    for (const system of systems) {
+      lines.push(`  subgraph ${system.id}["${mermaidText(system.title)}"]`);
+      for (const node of system.nodes) lines.push(`    ${ids.get(node.id)}${mermaidShape(node)}`);
+      lines.push('  end');
+    }
+  } else {
+    for (const node of graph.nodes) lines.push(`  ${ids.get(node.id)}${mermaidShape(node)}`);
+  }
   for (const edge of graph.edges) {
     const from = ids.get(edge.from);
     const to = ids.get(edge.to);
     if (!from || !to || from === to) continue;
     const arrow = edge.confidence === EdgeConfidence.Inferred ? '-.->' : edge.confidence === EdgeConfidence.Confirmed ? '==>' : '-->';
-    lines.push(edge.label ? `  ${from} ${arrow}|"${mermaidText(edge.label)}"| ${to}` : `  ${from} ${arrow} ${to}`);
+    const label = httpLabel(edge) ?? edge.label;
+    lines.push(label ? `  ${from} ${arrow}|"${mermaidText(label)}"| ${to}` : `  ${from} ${arrow} ${to}`);
   }
   return lines.join('\n') + '\n';
 }
@@ -58,6 +88,8 @@ export interface SvgColors {
   inferred: string;
   confirmed: string;
   unresolved: string;
+  // Cor da ligação HTTP entre sistemas; sem ela, usa a da ligação comum.
+  http?: string;
 }
 
 const PADDING = 24;
@@ -173,11 +205,17 @@ function edgePath(edge: FlowEdge, shape: EdgeShape, across: boolean, a: NodeBox,
     const mid = (a.x + a.width + b.x) / 2;
     d = `M${X(a.x + a.width)} ${Y(a.y + PORT)} H${X(mid)} V${Y(b.y + PORT)} H${X(b.x)}`;
   }
-  const color = edge.confidence === EdgeConfidence.Inferred ? colors.inferred : edge.confidence === EdgeConfidence.Confirmed ? colors.confirmed : colors.edge;
+  // A chamada HTTP entre sistemas tem cor e rótulo próprios (a confiança segue no traço e na seta).
+  const http = httpLabel(edge);
+  const base = http && colors.http ? colors.http : colors.edge;
+  const color = edge.confidence === EdgeConfidence.Inferred ? colors.inferred : edge.confidence === EdgeConfidence.Confirmed ? colors.confirmed : base;
   const dash = edge.confidence === EdgeConfidence.Inferred ? ' stroke-dasharray="6 4"' : '';
   const widthAttr = edge.confidence === EdgeConfidence.Confirmed ? 2.5 : 1.5;
   const marker = edge.confidence === EdgeConfidence.Inferred ? 'inferred' : edge.confidence === EdgeConfidence.Confirmed ? 'confirmed' : 'extracted';
-  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${widthAttr}"${dash} marker-end="url(#arrow-${marker})"/>`;
+  const path = `<path${http ? ' class="is-http"' : ''} d="${d}" fill="none" stroke="${color}" stroke-width="${widthAttr}"${dash} marker-end="url(#arrow-${marker})"/>`;
+  if (!http) return path;
+  // O rótulo "VERBO rota" fica logo acima do passo de destino, na cor da ligação.
+  return `${path}<text class="is-http" x="${X(b.x + 6)}" y="${Y(b.y - 6)}" font-size="11" fill="${color}">${xml(http)}</text>`;
 }
 
 function r(value: number): number {

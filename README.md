@@ -11,6 +11,8 @@ O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona 
 - **Linha do tempo do método:** os passos na ordem do código, numerados (1, 2, 2.1), com o que cada método chama saindo como galho. Três desenhos (horizontal, vertical e árvore), com a mesma regra.
 - **Para quem não programa também:** os comandos aparecem em português ("Se ...", "Para cada ... em ..."), com o nome legível do método e uma etiqueta do que o passo faz no mundo (banco, mensagem, cache, arquivo, fila). Um resumo em frase abre a visão geral.
 - **Prova do compilador:** cada ligação mostra a origem (extraída do código, inferida pela IA ou confirmada por você). O que a IA propõe passa pelo Roslyn antes de entrar.
+- **Entre sistemas:** o levantamento segue a chamada HTTP de uma API .NET para outra cadastrada no Rastro, com as bifurcações de cada sistema no mesmo desenho.
+- **Visão consolidada:** o fluxo resumido em poucos passos de leitura de negócio, em Mermaid editável, com as cores que você escolher.
 - **Mudança desenhada no grafo:** você edita o fluxo, o Rastro gera o prompt da mudança e, depois que o agente aplica, valida contra o código novo (build, testes e o fluxo de novo).
 - **Arquitetura:** exporta o fluxo em Mermaid e SVG e a arquitetura em C4 (Structurizr), e aponta melhorias e dívida técnica (DDD, código limpo, métricas).
 
@@ -71,10 +73,28 @@ Regra que não se quebra: `Rastro.Core` e `Rastro.Extractor` **nunca** referenci
 claude mcp add rastro -- rastro mcp
 ```
 
-Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `list_unresolved`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt` e `get_c4`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
+Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt` e `get_c4`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
 
 - Toda proposta passa pelo validador de prova: o compilador confere o método de destino e o `arquivo:linha`. Prova errada volta recusada, com o motivo.
 - Proposta aceita entra como **inferida**. **Só você confirma ou descarta**, na tela; o agente não tem ferramenta para isso.
+
+## Fluxo entre sistemas
+
+Quando uma API chama outra por HTTP, o fluxo não termina na chamada. Ao criar o levantamento, escolha **Seguir chamadas HTTP para** e marque os outros repositórios (eles precisam estar cadastrados no Rastro). O Rastro casa o verbo e a rota de cada chamada com as rotas desses repositórios, abre o método que atende e continua o rastro ali. As bifurcações de cada sistema aparecem no mesmo desenho, e cada passo mostra de qual sistema vem.
+
+O que o compilador não consegue casar vira um passo "não resolvido", com o motivo:
+
+- **rota montada em tempo de execução:** a URL é calculada, então não há rota fixa para procurar;
+- **sem destino:** nenhum dos repositórios marcados atende a chamada;
+- **mais de um destino:** a rota casa com mais de um método.
+
+Quem completa é a IA (modo provedor, que recebe os repositórios marcados e as rotas deles) ou o agente (modo agente). No MCP, `list_cross_edges` lista as ligações entre sistemas e as chamadas ainda sem destino, e `propose_edge` ganha o parâmetro `system`, com o repositório de destino. A proposta passa pela mesma prova do compilador e pelo índice de rotas: o método precisa atender o verbo e a rota da chamada. Entra como inferida, e só você confirma.
+
+Limites: a edição do fluxo e a validação de uma mudança valem só para o primeiro sistema do levantamento, e o Rastro mantém uma solution aberta por vez.
+
+## Visão consolidada
+
+Em `surveys/:id/visao` o fluxo aparece resumido em poucos passos, em frase, como um `flowchart` Mermaid: a entrada, as bifurcações com o texto de cada ramo, as chamadas externas e os retornos antecipados. A geração é determinística, sem IA. O texto do Mermaid fica ao lado da prévia e pode ser editado; clicar num passo abre a escolha de cor (fundo, borda e texto), que vira `classDef` no próprio texto. A versão editada fica salva no levantamento, e "Gerar de novo" mantém as cores e os textos dos passos que ainda existem.
 
 ## Como funciona
 

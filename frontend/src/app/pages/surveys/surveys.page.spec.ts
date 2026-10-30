@@ -111,4 +111,68 @@ describe('SurveysPage', () => {
     expect(el.textContent).not.toContain('recarregue');
     http.match(() => true).forEach((request) => request.flush([]));
   });
+
+  // UI-SYS-009
+  it('formulario_costuraMarcada_enviaCrossRepositoriesComOProprioPorUltimo', async () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    const repo = (name: string) => ({ name, path: `C:\codigo\${name}`, hasGit: true, hasBuildCommand: false, hasTestCommand: false });
+    http.expectOne('/api/repositories').flush([repo('pedidos'), repo('pagamentos')]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const select = el.querySelector('#repository') as HTMLSelectElement;
+    select.value = 'pedidos';
+    select.dispatchEvent(new Event('change'));
+    http.expectOne('/api/repositories/pedidos/solutions').flush(['Pedidos.slnx']);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const boxes = Array.from(el.querySelectorAll<HTMLInputElement>('.cross input[type=checkbox]'));
+    const names = Array.from(el.querySelectorAll('.cross .check span')).map((s) => s.textContent);
+    // Desligado por padrão, com os outros primeiro e o próprio por último.
+    expect(boxes.every((b) => !b.checked)).toBeTrue();
+    expect(names).toEqual(['pagamentos', 'o próprio repositório']);
+    boxes.forEach((b) => {
+      b.checked = true;
+      b.dispatchEvent(new Event('change'));
+    });
+    const entry = el.querySelector('#entry') as HTMLInputElement;
+    entry.value = 'PedidosController.Cancelar';
+    entry.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+
+    const post = http.expectOne((r) => r.method === 'POST' && r.url === '/api/surveys');
+    expect(post.request.body.crossRepositories).toEqual(['pagamentos', 'pedidos']);
+    post.flush({ id: 'x' });
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UI-SYS-010
+  it('formulario_semCosturaMarcada_naoEnviaCrossRepositories', async () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush([{ name: 'pedidos', path: 'C:\codigo\pedidos', hasGit: true, hasBuildCommand: false, hasTestCommand: false }]);
+    http.expectOne('/api/repositories/pedidos/solutions').flush(['Pedidos.slnx']);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const entry = el.querySelector('#entry') as HTMLInputElement;
+    entry.value = 'PedidosController.Cancelar';
+    entry.dispatchEvent(new Event('input'));
+    (el.querySelector('form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+
+    const post = http.expectOne((r) => r.method === 'POST' && r.url === '/api/surveys');
+    expect('crossRepositories' in post.request.body).toBeFalse();
+    post.flush({ id: 'x' });
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
 });

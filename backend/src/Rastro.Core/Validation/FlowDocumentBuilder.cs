@@ -43,7 +43,7 @@ public static class FlowDocumentBuilder
 
         text.AppendLine("## Diagrama");
         text.AppendLine("```mermaid");
-        text.Append(Mermaid(flow));
+        text.Append(Mermaid(flow, context.Repository));
         text.AppendLine("```");
         text.AppendLine();
 
@@ -83,7 +83,8 @@ public static class FlowDocumentBuilder
 
     private static string Suffix(string? detail) => string.IsNullOrWhiteSpace(detail) ? "" : $" ({detail.ReplaceLineEndings(" ").Trim()})";
 
-    private static string Mermaid(FlowGraph flow)
+    // Com mais de um sistema (Fase 25), um subgraph por sistema; o primeiro leva o nome do repositório do levantamento.
+    private static string Mermaid(FlowGraph flow, string firstSystem)
     {
         var visible = flow.Nodes
             .Where(n => !(n.Kind == NodeKind.External && (n.Symbol ?? "").StartsWith("System.", StringComparison.Ordinal)))
@@ -95,15 +96,35 @@ public static class FlowDocumentBuilder
         var keys = visible.ToDictionary(v => v.Node.Id, v => v.Key);
 
         var text = new StringBuilder("flowchart LR\n");
-        foreach (var (node, key) in visible)
+        string NodeLine(FlowNode node, string key, string indent)
         {
             var label = node.Label.Replace("\"", "'");
-            text.AppendLine(node.Kind is NodeKind.Decision ? $"  {key}{{\"{label}\"}}" : $"  {key}[\"{label}\"]");
+            return node.Kind is NodeKind.Decision ? $"{indent}{key}{{\"{label}\"}}" : $"{indent}{key}[\"{label}\"]";
+        }
+
+        if (visible.Any(v => v.Node.System is not null))
+        {
+            var groups = visible.GroupBy(v => v.Node.System).OrderBy(g => g.Key is null ? 0 : 1).ToList();
+            foreach (var (group, index) in groups.Select((g, i) => (g, i)))
+            {
+                text.AppendLine($"  subgraph sistema{index + 1}[\"{(group.Key ?? firstSystem).Replace("\"", "'")}\"]");
+                foreach (var (node, key) in group)
+                    text.AppendLine(NodeLine(node, key, "    "));
+                text.AppendLine("  end");
+            }
+        }
+        else
+        {
+            foreach (var (node, key) in visible)
+                text.AppendLine(NodeLine(node, key, "  "));
         }
         foreach (var edge in flow.Edges.Where(e => keys.ContainsKey(e.From) && keys.ContainsKey(e.To)))
-            text.AppendLine(edge.Label is null
+        {
+            var label = edge.Label ?? (edge.Http is null ? null : $"{edge.Http.Method} {edge.Http.Route ?? "?"}");
+            text.AppendLine(label is null
                 ? $"  {keys[edge.From]} --> {keys[edge.To]}"
-                : $"  {keys[edge.From]} -->|\"{edge.Label.Replace("\"", "'")}\"| {keys[edge.To]}");
+                : $"  {keys[edge.From]} -->|\"{label.Replace("\"", "'")}\"| {keys[edge.To]}");
+        }
         if (flow.Nodes.Count > visible.Count)
             text.AppendLine($"  %% {flow.Nodes.Count - visible.Count} nós fora do diagrama (chamadas do .NET ou acima do limite)");
         return text.ToString();

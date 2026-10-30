@@ -1,5 +1,5 @@
 import { FlowGraph, FlowNode, NodeKind } from '../models';
-import { mermaidText } from './export';
+import { httpLabel, mermaidText } from './export';
 import { NodeEffect, effectOf, humanName, splitLabel } from './reading';
 import { plainLabel } from './plain';
 import { OutlineItem, timelineDrawing } from './timeline-layout';
@@ -70,6 +70,8 @@ interface Step {
   id: string;
   shape: string;
   cls?: DiagramClass;
+  // Sistema de onde o passo vem ('' = o primeiro, do repositório do levantamento).
+  system: string;
 }
 
 interface Group {
@@ -78,7 +80,9 @@ interface Group {
   items: OutlineItem[];
 }
 
-export function consolidatedMermaid(graph: FlowGraph): string {
+// "firstSystem": nome do repositório do levantamento, o título do primeiro subgraph quando o fluxo
+// passa por mais de um sistema (Fase 25).
+export function consolidatedMermaid(graph: FlowGraph, firstSystem?: string): string {
   const shown = withoutFrameworkCalls(graph);
   const nodes = new Map(shown.nodes.map((n) => [n.id, n]));
   const entry = nodes.get(shown.entryNodeId);
@@ -93,7 +97,7 @@ export function consolidatedMermaid(graph: FlowGraph): string {
 
   const add = (id: string, node: FlowNode, repeat: boolean): void => {
     const text = mermaidText(`${repeat ? '↻ ' : ''}${stepText(node)}`);
-    steps.push({ id, shape: shapeOf(node, `"${text}"`), cls: KIND_CLASS[node.kind] });
+    steps.push({ id, shape: shapeOf(node, `"${text}"`), cls: KIND_CLASS[node.kind], system: node.system ?? '' });
   };
   const connect = (tails: Tail[], to: string): void => {
     for (const tail of tails) {
@@ -104,11 +108,20 @@ export function consolidatedMermaid(graph: FlowGraph): string {
     }
   };
 
+  // Ligação HTTP que chega em cada passo (Fase 25): vira o rótulo "VERBO rota" da seta.
+  const httpInto = new Map<string, string>();
+  for (const edge of shown.edges) {
+    const label = httpLabel(edge);
+    if (label && !httpInto.has(edge.to)) httpInto.set(edge.to, label);
+  }
+
   // Um passo do resumo: devolve as ligações que seguem dele para o passo seguinte.
-  const place = (item: OutlineItem, pending: Tail[]): Tail[] => {
+  const place = (item: OutlineItem, incoming: Tail[]): Tail[] => {
     const node = nodes.get(item.of);
-    if (!node || node.kind === NodeKind.Jump) return pending;
+    if (!node || node.kind === NodeKind.Jump) return incoming;
     const repeat = item.id !== item.of;
+    const http = httpInto.get(item.of);
+    const pending = http ? incoming.map((t) => ({ ...t, label: t.label ? `${t.label}: ${http}` : http })) : incoming;
     const children = repeat ? [] : item.children;
 
     if (node.kind === NodeKind.Try) {
@@ -123,7 +136,10 @@ export function consolidatedMermaid(graph: FlowGraph): string {
     }
     // Método de passagem (sem regra, com filhos): some, e os filhos entram no lugar dele. O
     // "return" dentro dele encerra só ele: o fluxo segue do return para o passo seguinte de quem chamou.
-    if (node.kind === NodeKind.Method && !node.rule && children.length > 0) {
+    // A entrada de outro sistema (a que a chamada HTTP alcança) nunca some: é onde o fluxo
+    // atravessa para a outra API, e sem ela a seta "VERBO rota" cairia no meio do outro sistema.
+    const crossing = !!http && node.kind === NodeKind.Method;
+    if (node.kind === NodeKind.Method && !node.rule && children.length > 0 && !crossing) {
       returns.push([]);
       const tails = emit(children, pending);
       return [...tails, ...returns.pop()!];
@@ -132,6 +148,11 @@ export function consolidatedMermaid(graph: FlowGraph): string {
     const id = repeat ? `${stepId(item.of)}_r${++repeats}` : stepId(item.of);
     add(id, node, repeat);
     connect(pending, id);
+    if (crossing && !node.rule && children.length > 0) {
+      returns.push([]);
+      const tails = emit(children, [{ from: id }]);
+      return [...tails, ...returns.pop()!];
+    }
     if (node.kind === NodeKind.Return) {
       returns[returns.length - 1].push({ from: id });
       return [];
@@ -163,7 +184,17 @@ export function consolidatedMermaid(graph: FlowGraph): string {
   emit(timelineDrawing(shown).outline, [{ from: entryId }]);
 
   const lines = ['flowchart TD'];
-  for (const step of steps) lines.push(`  ${step.id}${step.shape}`);
+  const systems = [...new Set(steps.map((s) => s.system))].sort((a, b) => (a === '' ? -1 : b === '' ? 1 : 0));
+  if (systems.length > 1) {
+    // Um subgraph por sistema; ids sys0, sys1... e título entre aspas (o nome pode ter ponto e hífen).
+    systems.forEach((system, index) => {
+      lines.push(`  subgraph sys${index}["${mermaidText(system === '' ? (firstSystem ?? 'Primeiro sistema') : system)}"]`);
+      for (const step of steps.filter((s) => s.system === system)) lines.push(`    ${step.id}${step.shape}`);
+      lines.push('  end');
+    });
+  } else {
+    for (const step of steps) lines.push(`  ${step.id}${step.shape}`);
+  }
   lines.push(...links);
   for (const cls of CLASS_ORDER) lines.push(`  classDef ${DIAGRAM_CLASS_NAME[cls]} ${CLASS_DEF[cls]}`);
   for (const cls of CLASS_ORDER) {

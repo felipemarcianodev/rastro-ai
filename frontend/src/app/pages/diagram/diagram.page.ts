@@ -86,7 +86,7 @@ export class DiagramPage {
 
   private readonly generated = computed(() => {
     const graph = this.detail()?.graph;
-    return graph ? consolidatedMermaid(graph) : '';
+    return graph ? consolidatedMermaid(graph, this.detail()?.survey.repository) : '';
   });
   protected readonly dirty = computed(() => this.saved() !== null && this.text() !== this.saved()!.mermaid);
   protected readonly kindClass = computed(() => {
@@ -191,9 +191,9 @@ export class DiagramPage {
           return;
         }
         this.detail.set(detail);
-        const generated = consolidatedMermaid(detail.graph);
+        const generated = consolidatedMermaid(detail.graph, detail.survey.repository);
         if (saved?.fromSurveyId) {
-          const baseline = previous?.graph ? consolidatedMermaid(previous.graph) : undefined;
+          const baseline = previous?.graph ? consolidatedMermaid(previous.graph, previous.survey.repository) : undefined;
           const merged = mergeDiagram(saved.mermaid, generated, baseline);
           // O diagrama é do levantamento anterior: aqui nada foi salvo ainda, o dono salva.
           this.saved.set(null);

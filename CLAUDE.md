@@ -56,6 +56,30 @@ Vale só para perguntas. Na execução de código, o rigor e a verificação nor
 - **Comandos sempre com caminho explícito** (`git -C <pasta do repositório>`, caminhos absolutos). Sessões costumam rodar com cwd em outro projeto: um `cd` dentro de uma cadeia `&&` que falhou já fez build e `git add` rodarem no repositório errado.
 - Minhas mensagens costumam chegar por voz (transcrição). Exemplos: "faro" significa "rastro"; "complexidade psicológica" significa complexidade ciclomática.
 
+## Mudança no ambiente do cliente: documentação no mesmo PR (bloqueante)
+
+O Rastro roda na máquina de quem instala o pacote. Toda mudança que mexe no que essa pessoa precisa ter, configurar ou saber atualiza, **no mesmo PR**, a documentação e a governança que tratam disso. PR que muda o ambiente do cliente sem a documentação não está pronto.
+
+Conta como mudança no ambiente do cliente:
+- dependência nova na máquina (Node, SDK, ferramenta no PATH) ou versão mínima que sobe;
+- o que vai dentro do pacote (`dotnet tool`), arquivos novos ao lado do executável, tamanho que muda muito;
+- pasta de dados (`~/.rastro`), banco, migration, `config.json`, variável de ambiente, porta, `AllowedHosts`;
+- comando da CLI, ferramenta do MCP, linguagem ou tipo de repositório suportado, rota nova da API que a tela ou um agente usa;
+- o que sai da máquina (rede, provedor de IA) e o que é guardado (chave, cache);
+- Docker, workflow de CI e de release, processo de publicação.
+
+O que conferir e atualizar, conforme o caso:
+- `README.md` da raiz (o que é, requisitos, instalação, uso, IA, MCP, arquitetura) e `docs/pacote/README.md` (o README que vai no NuGet);
+- `docs/arquitetura/visao.md`, a ADR da decisão (nova, ou a que muda de status) e o `plano-mvp.md`;
+- `SECURITY.md` quando muda o que sai da máquina, o que é guardado ou a superfície da API;
+- as instruções do MCP (`McpInstructions`) e as descrições das ferramentas, quando mudam o que um agente pode fazer;
+- este `CLAUDE.md` e as skills (`.claude/skills/`), quando muda uma regra de trabalho, um comando de portão ou um passo do ciclo da fase;
+- o workflow de PR e o de release, quando um passo novo de build ou de teste passa a ser necessário.
+
+Na dúvida se a mudança afeta o cliente, ela afeta: confira a lista acima e diga no PR o que foi atualizado.
+
+**Automático:** `.claude/hooks/ambiente-cliente.mjs`, ligado em `.claude/settings.json`, confere no `gh pr create`. Se o branch mexe em arquivo de ambiente do cliente (pacote, migration, configuração, CLI, MCP, provedor de IA, extrator Angular, empacotamento, CI) sem mexer em nenhum documento da lista, o comando é recusado com o que conferir. Quando a mudança de fato não afeta o cliente, o corpo do PR leva a linha `Ambiente do cliente: sem mudança (<motivo>)`. O hook nunca trava por defeito próprio: se ele falhar, o comando segue e o aviso vai para o stderr.
+
 ## Commits (detalhe na skill `commits`)
 
 - Em pt-BR com acentuação, no formato `tipo(escopo): resumo`. Exemplos: `feat(validacao): ...`, `fix(grafo): ...`, `docs(plano): ...`. Tipos: `feat`, `fix`, `refactor` (sem mudar comportamento), `docs`, `test`, `chore`, `build`/`ci`.

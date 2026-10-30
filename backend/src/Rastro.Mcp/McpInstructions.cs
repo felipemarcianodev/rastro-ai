@@ -15,6 +15,7 @@ public static class McpInstructions
         5. Antes de mexer em um método: impact_of mostra o que depende dele.
         6. Qualidade: list_findings mostra métricas altas, catch silencioso e violações de DDD; get_refactor_prompt dá a especificação de cada correção.
         7. Mudança desenhada pelo usuário: get_change_prompt é a especificação; depois de aplicar, check_change confere e dá a nota.
+        8. Fluxo entre sistemas: o levantamento pode seguir chamadas HTTP para outros repositórios (a costura). list_cross_edges mostra as ligações HTTP e as chamadas ainda sem destino. Para fechar uma, ache o método no repositório de destino (search_methods com system) e proponha com propose_edge informando o mesmo system; o verbo e a rota da chamada precisam casar com os do método.
 
         Regras:
         - Toda proposta é conferida pelo compilador. Prova errada é recusada com o motivo: corrija e tente de novo, não invente.

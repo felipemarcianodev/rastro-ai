@@ -56,6 +56,33 @@ namespace Rastro.Infrastructure.Migrations
                     b.ToTable("node_notes", (string)null);
                 });
 
+            modelBuilder.Entity("Rastro.Core.Surveys.RouteIndex", b =>
+                {
+                    b.Property<string>("Repository")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repository");
+
+                    b.Property<string>("CommitHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("commit_hash");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("EntriesJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("entries_json");
+
+                    b.HasKey("Repository", "CommitHash")
+                        .HasName("pk_route_indexes");
+
+                    b.ToTable("route_indexes", (string)null);
+                });
+
             modelBuilder.Entity("Rastro.Core.Surveys.Survey", b =>
                 {
                     b.Property<Guid>("Id")
@@ -80,6 +107,11 @@ namespace Rastro.Infrastructure.Migrations
                     b.Property<long>("CreatedAt")
                         .HasColumnType("INTEGER")
                         .HasColumnName("created_at");
+
+                    b.Property<string>("CrossRepositoriesJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("cross_repositories_json");
 
                     b.Property<int>("EdgeCount")
                         .HasColumnType("INTEGER")
@@ -297,6 +329,58 @@ namespace Rastro.Infrastructure.Migrations
                     b.ToTable("survey_proposals", (string)null);
                 });
 
+            modelBuilder.Entity("Rastro.Core.Surveys.SurveySegment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Branch")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("branch");
+
+                    b.Property<string>("CommitHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("commit_hash");
+
+                    b.Property<string>("EntryPoint")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("entry_point");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("order");
+
+                    b.Property<string>("Repository")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repository");
+
+                    b.Property<string>("SolutionPath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("solution_path");
+
+                    b.Property<Guid>("SurveyId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("survey_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_survey_segments");
+
+                    b.HasIndex("SurveyId", "Order")
+                        .HasDatabaseName("ix_survey_segments_survey_id_order");
+
+                    b.ToTable("survey_segments", (string)null);
+                });
+
             modelBuilder.Entity("Rastro.Core.Validation.SurveyValidation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -391,6 +475,16 @@ namespace Rastro.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_survey_proposals_surveys_survey_id");
+                });
+
+            modelBuilder.Entity("Rastro.Core.Surveys.SurveySegment", b =>
+                {
+                    b.HasOne("Rastro.Core.Surveys.Survey", null)
+                        .WithMany()
+                        .HasForeignKey("SurveyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_survey_segments_surveys_survey_id");
                 });
 
             modelBuilder.Entity("Rastro.Core.Validation.SurveyValidation", b =>

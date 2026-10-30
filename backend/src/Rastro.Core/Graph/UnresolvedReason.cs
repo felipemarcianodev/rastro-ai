@@ -23,5 +23,14 @@ public enum UnresolvedReason
     Reflection = 5,
 
     // Limite de profundidade atingido: o caminho continua, mas não foi percorrido.
-    DepthLimit = 6
+    DepthLimit = 6,
+
+    // Chamada HTTP cuja rota é montada em tempo de execução: o extrator não sabe para onde vai.
+    RouteNotResolved = 7,
+
+    // A rota resolveu, mas nenhum repositório escolhido para seguir as chamadas a atende.
+    NoMatchingEndpoint = 8,
+
+    // A rota casa com mais de um destino: o extrator não escolhe sozinho.
+    MultipleEndpoints = 9
 }

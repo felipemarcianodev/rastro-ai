@@ -837,6 +837,34 @@
   fill: var(--danger);
 }
 
+// Chamada HTTP entre sistemas (Fase 25): traço e seta na cor de decisão do tema (azul, nunca verde),
+// com o rótulo "VERBO rota" na mesma cor. A confiança segue valendo (inferida e confirmada mandam).
+.flow-host .is-http.edge-extracted .f-connection-path {
+  stroke: var(--kind-decision);
+  stroke-width: 2;
+}
+
+.flow-host .is-http.edge-extracted .f-connection-marker-end {
+  fill: var(--kind-decision);
+}
+
+.edge-label.is-http {
+  border-color: var(--kind-decision);
+  color: var(--kind-decision);
+}
+
+// Moldura de um sistema além do primeiro: contorno cheio na cor de decisão, para se distinguir da
+// moldura tracejada do laço.
+.flow-block.is-system {
+  border: 1px solid color-mix(in srgb, var(--kind-decision) 55%, var(--line));
+  border-left: 3px solid var(--kind-decision);
+  background: color-mix(in srgb, var(--kind-decision) 5%, transparent);
+
+  .flow-block-label {
+    color: var(--kind-decision);
+  }
+}
+
 // Moldura do laço: o que se repete, com "Repete ..." no cabeçalho.
 .flow-block.is-loop {
   border: 1px dashed color-mix(in srgb, var(--kind-external) 60%, var(--line));
@@ -864,4 +892,16 @@
   .flow-block-label {
     display: none;
   }
+}
+
+// Painel do passo de outro sistema (Fase 25): de onde ele vem e o aviso de que não se edita aqui.
+.origin {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.foreign {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-soft);
 }

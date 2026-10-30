@@ -16,6 +16,10 @@ public interface ISolutionSource
 {
     // fresh: ignora o cache (uma análise nova sempre lê o código atual).
     Task<SolutionHandle> OpenAsync(ResolvedTarget target, bool fresh, CancellationToken ct);
+
+    // Fecha a solution e a tira do cache. A costura entre sistemas (Fase 25) solta cada solution
+    // antes de abrir a próxima, para nunca haver duas na memória ao mesmo tempo.
+    void Release(ResolvedTarget target);
 }
 
 // Erro com mensagem que pode ir para o usuário (sem caminho do disco nem stack).
@@ -49,6 +53,19 @@ public sealed class MsBuildSolutionSource(IOptions<RastroOptions> options, ILogg
             var entry = await LoadAsync(target, ct);
             _cache[target.SolutionFullPath] = entry;
             return new SolutionHandle(entry.Loaded.Solution, entry.BaseDirectory);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    public void Release(ResolvedTarget target)
+    {
+        _gate.Wait();
+        try
+        {
+            if (_cache.Remove(target.SolutionFullPath, out var entry)) Release(entry);
         }
         finally
         {
