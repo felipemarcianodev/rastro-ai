@@ -50,6 +50,8 @@ Ficam em `~/.rastro` (banco SQLite e repositórios cadastrados). Para usar outra
 
 ## Atualizar e remover
 
+Pare o `rastro` antes (no Windows, o executável em uso não pode ser trocado):
+
 ```
 dotnet tool update -g rastro-ai
 dotnet tool uninstall -g rastro-ai
