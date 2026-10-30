@@ -19,7 +19,7 @@
     <h2 id="node-title" class="node-title code">{{ breakable(node.label) }}</h2>
 
     @if (origin(node); as from) {
-      <p class="origin code muted">Sistema {{ from.system }}@if (from.commit) { · commit {{ from.commit }}}</p>
+      <p class="origin code muted">Sistema {{ from.system }} · {{ from.language }}@if (from.commit) { · commit {{ from.commit }}}</p>
     }
 
     @if (editing()) {

@@ -34,6 +34,7 @@ import {
   FlowBlock,
   OutlineItem,
   Port,
+  SystemInfo,
   TimelineHead,
   TimelineRepeat,
   flowDrawing,
@@ -127,6 +128,8 @@ export class FlowCanvasComponent {
   readonly graph = input.required<FlowGraph>();
   // Repositório do levantamento: nomeia o primeiro sistema no Mermaid exportado (Fase 25).
   readonly repository = input<string | undefined>(undefined);
+  // Sistemas do levantamento (Fase 26): dão a linguagem de cada moldura.
+  readonly systems = input<readonly SystemInfo[]>([]);
   readonly selectedId = input<string | null>(null);
   readonly trail = input<Trail | null>(null);
   readonly selectNode = output<string | null>();
@@ -334,7 +337,7 @@ export class FlowCanvasComponent {
       const key = this.positionsKey();
       const direction = this.direction();
       const brief = this.brief();
-      const drawing = flowDrawing(graph, this.axis(), (node) => (effects.has(node.id) ? EFFECT_PX : 0));
+      const drawing = flowDrawing(graph, this.axis(), (node) => (effects.has(node.id) ? EFFECT_PX : 0), this.systems());
       this.layouts.run(Promise.resolve(drawing.boxes), (boxes) => {
         this.autoBoxes = boxes;
         this.blocks.set(drawing.blocks);

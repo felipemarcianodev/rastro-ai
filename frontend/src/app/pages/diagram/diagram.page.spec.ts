@@ -4,7 +4,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { consolidatedMermaid, stepId } from '../../core/graph/consolidated';
 import { DIAGRAM_RENDERER, DiagramRenderer } from '../../core/mermaid-render';
-import { EdgeConfidence, FlowGraph, NodeKind, SurveyDetail, SurveyDiagram, SurveyStatus } from '../../core/models';
+import { EdgeConfidence, FlowGraph, NodeKind, SourceLanguage, SurveyDetail, SurveyDiagram, SurveyStatus } from '../../core/models';
 import { DiagramPage } from './diagram.page';
 
 const graph: FlowGraph = {
@@ -27,6 +27,7 @@ const detail = (commit = 'abcdef1234567'): SurveyDetail => ({
     id: 's1',
     repository: 'repo',
     solutionPath: 'a.sln',
+    language: SourceLanguage.DotNet,
     entryPoint: 'OrderJob.Execute',
     maxDepth: 5,
     commitHash: commit,

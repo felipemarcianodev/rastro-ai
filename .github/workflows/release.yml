@@ -35,6 +35,17 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: extractor-ts/package-lock.json
+
+      # O teste de integração do backend roda o extrator Angular de verdade e acha o TypeScript aqui.
+      - name: Dependências do extrator Angular
+        run: npm ci --ignore-scripts
+        working-directory: extractor-ts
+
       - name: Build
         run: dotnet build backend/Rastro.slnx -c Release
 

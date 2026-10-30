@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { FlowGraph, NodeKind } from '../../core/models';
+import { FlowGraph, NodeKind, SourceLanguage } from '../../core/models';
 import { NodePanelComponent } from './node-panel.component';
 
 const graph: FlowGraph = {
@@ -138,5 +138,41 @@ describe('NodePanelComponent: passo de outro sistema (Fase 25)', () => {
     expect(el.querySelector('#intent')).not.toBeNull();
     expect(Array.from(el.querySelectorAll('button')).some((b) => b.textContent?.includes('Remover ligação'))).toBeFalse();
     expect(el.textContent).toContain('Edição só no primeiro sistema do fluxo');
+  });
+});
+
+describe('NodePanelComponent: linguagem do sistema (Fase 26)', () => {
+  const graph: FlowGraph = {
+    schemaVersion: 2,
+    entryPoint: 'DetalhePedidoComponent.cancelar',
+    entryNodeId: 'a',
+    nodes: [
+      { id: 'a', kind: NodeKind.Entry, label: 'DetalhePedidoComponent.cancelar' },
+      { id: 'p::b', kind: NodeKind.Method, label: 'PedidosController.Cancelar', system: 'pedidos-api' },
+    ],
+    edges: [{ from: 'a', to: 'p::b', order: 0, confidence: 0, http: { method: 'POST', route: 'api/pedidos/{}/cancelamento' } }],
+  };
+
+  function open(id: string): HTMLElement {
+    TestBed.configureTestingModule({ imports: [NodePanelComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(NodePanelComponent);
+    fixture.componentRef.setInput('surveyId', 's1');
+    fixture.componentRef.setInput('repository', 'loja-web');
+    fixture.componentRef.setInput('language', SourceLanguage.Angular);
+    fixture.componentRef.setInput('segments', [{ order: 1, language: SourceLanguage.DotNet, repository: 'pedidos-api', solutionPath: 'P.slnx', entryPoint: 'x' }]);
+    fixture.componentRef.setInput('graph', graph);
+    fixture.componentRef.setInput('selectedId', id);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  // UI-ANG-006
+  it('painel_primeiroSistemaAngular_mostraAngularNoRotulo', () => {
+    expect(open('a').querySelector('.origin')?.textContent).toContain('Sistema loja-web · Angular');
+  });
+
+  // UI-ANG-007
+  it('painel_trechoDotNet_mostraDotNetNoRotulo', () => {
+    expect(open('p::b').querySelector('.origin')?.textContent).toContain('Sistema pedidos-api · .NET');
   });
 });

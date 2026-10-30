@@ -72,13 +72,13 @@ public class SurveyWorker(
             var cross = survey.ReadCrossRepositories();
             FlowGraph graph;
             IReadOnlyList<SegmentInfo> segments = [];
-            if (cross.Count == 0)
+            if (cross.Count == 0 && resolved.Target.Language == SourceLanguage.DotNet)
             {
                 graph = await analyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, ct);
             }
             else
             {
-                // Costura entre sistemas (Fase 25): o analisador tem escopo porque usa o banco (índice de rotas).
+                // Costura entre sistemas (Fase 25) e primeiro trecho Angular (Fase 26): o analisador tem escopo porque usa o banco (índice de rotas).
                 var crossAnalyzer = scope.ServiceProvider.GetRequiredService<CrossSystemAnalyzer>();
                 var analysis = await crossAnalyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, cross, ct);
                 graph = analysis.Graph;

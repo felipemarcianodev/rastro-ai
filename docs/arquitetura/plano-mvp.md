@@ -1,4 +1,4 @@
-# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14); Fases 15 e 16 esperam o uso real
+# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 27); Fases 15, 16 e 22 esperam o uso real
 
 > Criado em 2026-10-15. Visão e decisões: [`visao.md`](visao.md).
 > Execução fase a fase, no mesmo molde da skill `executar-plano-faseado` de outro projeto do dono: **uma fase por vez, portões verdes, commit, e só então a próxima.**
@@ -577,17 +577,26 @@ A validação usa uma fixture com sistemas fictícios, no padrão da loja de tes
 - [x] Medição de memória e tempo registrada, com uma solution aberta por vez.
 - [x] Os testes de arquitetura continuam garantindo que `Rastro.Core` e `Rastro.Extractor` não referenciam IA.
 
-## Fase 26: extrator Angular `[ ]` (pedido do dono em 2026-10-30; depende da Fase 25)
+## Fase 26: extrator Angular `[x]` (pedido do dono em 2026-10-30; depende da Fase 25)
+
+**Status: concluída em 2026-10-30.** Prints em `docs/telas/fase-26/` (a loja fictícia em Angular e as duas APIs fictícias).
 
 Faz o primeiro passo do fluxo ser o clique na tela. Contraria duas decisões registradas: "Só .NET no início" (`visao.md`) e a leitura do frontend em "Fora de escopo" (abaixo). Por isso começa por uma ADR.
 
-- [ ] **ADR-005, segunda linguagem no extrator:** revoga as duas decisões acima. Opção recomendada: um processo Node com o compilador do TypeScript, chamado pelo `ProcessRunner` (sem shell, com timeout), devolvendo o mesmo `FlowGraph`. Alternativa recusada: parser próprio em C#, que não resolve tipos nem injeção. A ADR decide como o `typescript` chega à máquina sem pesar o `dotnet tool`.
-- [ ] Extrator Angular opcional: ligado só quando o Node está no PATH. Sem Node, a tela não mostra a opção (nada de botão morto).
-- [ ] Ponto de entrada do front: `Componente.metodo` (exemplo: `DetalhePedidoComponent.cancelar`), ou o `(click)` do template que aponta para ele.
-- [ ] Percurso: método, service injetado e `HttpClient.get/post/put/delete`, com `if`, `switch`, `@if` e `*ngIf` do template como bifurcação, e `subscribe` e `pipe` como sequência.
-- [ ] Injeção resolvida pelo construtor e pelo `inject()`. Provider trocado em tempo de execução vira `Unresolved`.
-- [ ] A URL vem de `environment.*` + literal, e a costura da Fase 25 liga a chamada ao controller do backend.
-- [ ] **Aceite:** a fixture `loja-web` + `api-pedidos` + `api-pagamentos` dá, num levantamento só, o fluxo do clique em "Cancelar" até o gateway de pagamento, com as bifurcações dos três sistemas.
+- [x] **ADR-005, segunda linguagem no extrator:** revoga as duas decisões acima. Opção recomendada: um processo Node com o compilador do TypeScript, chamado pelo `ProcessRunner` (sem shell, com timeout), devolvendo o mesmo `FlowGraph`. Alternativa recusada: parser próprio em C#, que não resolve tipos nem injeção. A ADR decide como o `typescript` chega à máquina sem pesar o `dotnet tool`.
+- [x] Extrator Angular opcional: ligado só quando o Node está no PATH. Sem Node, a tela não mostra a opção (nada de botão morto).
+- [x] Ponto de entrada do front: `Componente.metodo` (exemplo: `DetalhePedidoComponent.cancelar`), ou o `(click)` do template que aponta para ele.
+- [x] Percurso: método, service injetado e `HttpClient.get/post/put/delete`, com `if`, `switch`, `@if` e `*ngIf` do template como bifurcação, e `subscribe` e `pipe` como sequência.
+- [x] Injeção resolvida pelo construtor e pelo `inject()`. Provider trocado em tempo de execução vira `Unresolved`.
+- [x] A URL vem de `environment.*` + literal, e a costura da Fase 25 liga a chamada ao controller do backend.
+- [x] **Aceite:** a fixture `loja-web` + `api-pedidos` + `api-pagamentos` dá, num levantamento só, o fluxo do clique em "Cancelar" até o gateway de pagamento, com as bifurcações dos três sistemas.
+- [x] Feito: o script `extractor-ts/extract.mjs` (com `lib/`), testado com `node --test` (49 testes, fixture `loja-web`); no backend, `NodeRuntime`, `TypeScriptExtractor` (pelo `ProcessRunner`, com timeout) e o `CrossSystemAnalyzer` com o primeiro trecho Angular. O `typescript` vem do repositório analisado (ADR-005), e o pacote leva só o script. O catálogo aceita `tsconfig.json` e `tsconfig.*.json` e lê `.ts` e `.html`; sem Node, a API responde `ANGULAR_UNAVAILABLE` e o `/api/health` diz `angular: false`.
+- [x] Tela: a moldura e o painel dizem a linguagem do trecho ("Angular" ou ".NET"); com o primeiro sistema Angular e outros depois, ele também ganha moldura. O formulário troca o exemplo do ponto de entrada quando o caminho é um `tsconfig` e avisa quando falta o Node.
+- [x] CI: job `extrator-ts` no workflow de PR, e o `npm ci` do `extractor-ts` antes dos testes do backend no PR e na release (o teste de integração roda o Node de verdade).
+- [x] Documentação para o cliente: `README.md`, `docs/pacote/README.md` e `visao.md` (a decisão "Só .NET no início" revista pela ADR-005).
+- [x] Guardas onde o Angular ainda não entra: validação da mudança, prova de proposta que não é HTTP e as ferramentas do MCP que abrem a solution respondem que o Angular não é lido ali, em vez de tentar abrir um `tsconfig` no MSBuild.
+- [ ] Leitor de template: `@else` não nega a condição do `@if`, e `@switch`, `ng-template` e diretivas próprias ficam fora; só vale o primeiro elemento que dispara o método.
+- [ ] Interface com várias implementações no Angular não consulta os providers: vira não resolvido com os candidatos.
 
 ## Fase 27: visão consolidada em Mermaid, editável `[x]` (pedido do dono em 2026-10-30; não depende da Fase 25)
 
@@ -637,8 +646,8 @@ O exemplo que o dono mandou vem de um sistema privado e não entra no repositór
 ## Fora de escopo deste plano
 
 - SaaS (o código do cliente nunca sai da máquina dele; ver ADR-002).
-- Linguagens além de C#, até a ADR da Fase 26.
-- Leitura do frontend do repositório-alvo (fluxos Angular), até a ADR da Fase 26.
+- Linguagens além de C# e TypeScript (Angular): a [ADR-005](../adr/adr-005-extrator-angular.md) abriu só o Angular.
+- Frontends que não são Angular (React, Vue) e o template do Angular além do leitor leve da Fase 26 (`@switch`, `ng-template`, diretivas próprias).
 - Chamada para SaaS de terceiros (gateway, CRM, e-mail): continua `External`, porque o código deles não está na máquina.
 - Mensageria (fila e tópico) como fronteira entre sistemas: mesmo mecanismo da costura HTTP, com um índice de consumidores. Entra depois que a Fase 25 provar o modelo de trechos.
 - Edição, prompt e validação através de vários sistemas (a Fase 25 trava os três num trecho só).

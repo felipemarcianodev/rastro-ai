@@ -94,6 +94,8 @@ public class ChangeValidationService(
     {
         var target = catalog.Resolve(survey.Repository, survey.SolutionPath).Target
                      ?? throw new AnalysisException("O repositório ou a solution não estão mais disponíveis na configuração.");
+        if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet)
+            throw new AnalysisException("A validação de mudança ainda não lê código Angular.");
 
         var head = await git.HeadAsync(target.RepositoryRoot, ct);
         var handle = await solutions.OpenAsync(target, fresh: true, ct);

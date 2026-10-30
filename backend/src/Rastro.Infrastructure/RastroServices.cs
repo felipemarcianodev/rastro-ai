@@ -27,6 +27,8 @@ public static class RastroServices
         services.AddSingleton<IGitInfo, GitCli>();
         services.AddSingleton<ISolutionSource, MsBuildSolutionSource>();
         services.AddSingleton<ISolutionAnalyzer, SolutionAnalyzer>();
+        services.AddSingleton<INodeRuntime, NodeRuntime>();
+        services.AddSingleton<ITypeScriptExtractor, TypeScriptExtractor>();
         services.AddScoped<RouteIndexStore>();
         services.AddScoped<CrossSystemAnalyzer>();
         services.AddScoped<ProposalService>();

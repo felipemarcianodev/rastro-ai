@@ -175,4 +175,64 @@ describe('SurveysPage', () => {
     post.flush({ id: 'x' });
     http.match(() => true).forEach((request) => request.flush([]));
   });
+
+  async function openForm(solutions: string[], angular: boolean) {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/health').flush({ status: 'ok', version: '1', schemaVersion: 1, angular });
+    http.expectOne('/api/repositories').flush([{ name: 'loja-web', path: 'C:\\codigo\\loja-web', hasGit: true, hasBuildCommand: false, hasTestCommand: false }]);
+    http.expectOne('/api/repositories/loja-web/solutions').flush(solutions);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return { fixture, http, el: fixture.nativeElement as HTMLElement };
+  }
+
+  // UI-ANG-008
+  it('formulario_caminhoTsconfig_mostraExemploEAjudaDeComponente', async () => {
+    const { fixture, http, el } = await openForm(['tsconfig.app.json', 'Loja.slnx'], true);
+    const entry = el.querySelector('#entry') as HTMLInputElement;
+
+    expect(entry.placeholder).toBe('DetalhePedidoComponent.cancelar');
+    expect(el.querySelector('#entry-help')?.textContent).toContain('Componente.metodo: o método que o clique da tela chama.');
+    const select = el.querySelector('#solution') as HTMLSelectElement;
+    select.value = 'Loja.slnx';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(entry.placeholder).toBe('PedidosController.Criar');
+    expect(el.querySelector('#entry-help')?.textContent).toContain('Classe.Metodo');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UI-ANG-009
+  it('formulario_semNodeERepositorioSemSolution_avisaQueAngularPrecisaDoNode', async () => {
+    const { http, el } = await openForm([], false);
+
+    expect(el.querySelector('#node-notice')?.textContent).toContain('Fluxos Angular precisam do Node instalado nesta máquina.');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UI-ANG-010
+  it('formulario_semNodeMasRepositorioDotNet_naoAvisa', async () => {
+    const { fixture, http, el } = await openForm(['Loja.slnx'], false);
+
+    expect(el.querySelector('#node-notice')).toBeNull();
+    // Digitar um ponto de entrada de componente justifica o aviso.
+    const entry = el.querySelector('#entry') as HTMLInputElement;
+    entry.value = 'DetalhePedidoComponent.cancelar';
+    entry.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(el.querySelector('#node-notice')).not.toBeNull();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UI-ANG-011
+  it('formulario_comNode_naoAvisa', async () => {
+    const { http, el } = await openForm([], true);
+
+    expect(el.querySelector('#node-notice')).toBeNull();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
 });

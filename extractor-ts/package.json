@@ -1,0 +1,16 @@
+{
+  "name": "rastro-extractor-ts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Extrator Angular do Rastro AI: lê TypeScript com o compilador e devolve o FlowGraph em JSON (ADR-005).",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

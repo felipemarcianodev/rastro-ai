@@ -13,6 +13,7 @@ import {
   FlowGraph,
   EdgeDecision,
   RepositoryItem,
+  RastroHealth,
   SourceSnippet,
   SurveyDetail,
   SurveyStaleness,
@@ -46,6 +47,10 @@ export class RastroApi {
 
   solutions(repository: string): Observable<string[]> {
     return this.http.get<string[]>(`/api/repositories/${encodeURIComponent(repository)}/solutions`);
+  }
+
+  health(): Observable<RastroHealth> {
+    return this.http.get<RastroHealth>('/api/health');
   }
 
   surveys(): Observable<SurveySummary[]> {

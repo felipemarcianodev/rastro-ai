@@ -1,5 +1,5 @@
-import { EdgeConfidence, FlowEdge, FlowGraph, FlowNode, NodeKind } from '../models';
-import { BlockKind, FlowAxis, Port, flowDrawing, timelineDrawing, timelineRoutes } from './timeline-layout';
+import { EdgeConfidence, FlowEdge, FlowGraph, FlowNode, NodeKind, SourceLanguage } from '../models';
+import { BlockKind, FlowAxis, Port, SystemInfo, flowDrawing, surveySystems, systemLabel, timelineDrawing, timelineRoutes } from './timeline-layout';
 
 const node = (id: string, kind: NodeKind, label = id): FlowNode => ({ id, kind, label });
 const edge = (from: string, to: string, order: number, label?: string): FlowEdge => ({ from, to, order, label, confidence: EdgeConfidence.Extracted });
@@ -266,5 +266,81 @@ describe('moldura do sistema (Fase 25)', () => {
     for (const n of graph.nodes.filter((x) => x.system === 'pagamentos')) {
       expect(within(drawing.boxes.get(n.id)!, frame)).withContext(n.id).toBeTrue();
     }
+  });
+});
+
+describe('linguagem na moldura do sistema (Fase 26)', () => {
+  // A tela Angular chama a API de pedidos por HTTP.
+  const angularGraph = (): FlowGraph => ({
+    schemaVersion: 2,
+    entryPoint: 'DetalhePedidoComponent.cancelar',
+    entryNodeId: 'cancelar',
+    nodes: [
+      node('cancelar', NodeKind.Entry),
+      node('post', NodeKind.External, 'POST api/pedidos/{}/cancelamento'),
+      { ...node('pedidos::cancelar', NodeKind.Method, 'PedidosController.Cancelar'), system: 'pedidos-api' },
+    ],
+    edges: [
+      edge('cancelar', 'post', 0),
+      { ...edge('post', 'pedidos::cancelar', 0), http: { method: 'POST', route: 'api/pedidos/{}/cancelamento' } },
+    ],
+  });
+  const systems: SystemInfo[] = [
+    { name: 'loja-web', language: SourceLanguage.Angular },
+    { name: 'pedidos-api', language: SourceLanguage.DotNet },
+  ];
+
+  // UI-ANG-001
+  it('systemLabel_porLinguagem_escreveAngularOuDotNet', () => {
+    expect(systemLabel('loja-web', SourceLanguage.Angular)).toBe('loja-web · Angular');
+    expect(systemLabel('pedidos-api', SourceLanguage.DotNet)).toBe('pedidos-api · .NET');
+    expect(systemLabel('pedidos-api')).toBe('pedidos-api · .NET');
+  });
+
+  // UI-ANG-002
+  it('flowDrawing_primeiroSistemaAngular_ganhaMolduraEAsOutrasUsamSuaLinguagem', () => {
+    const drawing = flowDrawing(angularGraph(), FlowAxis.Down, () => 0, systems);
+    const frames = drawing.blocks.filter((b) => b.kind === BlockKind.System);
+    const web = frames.find((b) => b.label === 'loja-web · Angular')!;
+    const api = frames.find((b) => b.label === 'pedidos-api · .NET')!;
+
+    expect(frames.length).toBe(2);
+    // A moldura da tela envolve tudo, inclusive a moldura da API; o cabeçalho não cobre a entrada.
+    expect(web.x).toBeLessThanOrEqual(api.x);
+    expect(web.y).toBeLessThanOrEqual(api.y);
+    expect(web.x + web.width).toBeGreaterThanOrEqual(api.x + api.width);
+    expect(web.y + web.height).toBeGreaterThanOrEqual(api.y + api.height);
+    const entry = drawing.boxes.get('cancelar')!;
+    expect(entry.y).toBeGreaterThan(web.y);
+    expect(entry.x).toBeGreaterThanOrEqual(web.x);
+  });
+
+  // UI-ANG-003
+  it('flowDrawing_sistemaUnicoAngular_naoCriaMoldura', () => {
+    const drawing = flowDrawing(angularGraph(), FlowAxis.Down, () => 0, [systems[0]]);
+
+    expect(drawing.blocks.some((b) => b.label === 'loja-web · Angular')).toBeFalse();
+  });
+
+  // UI-ANG-004
+  it('flowDrawing_primeiroSistemaDotNet_naoGanhaMolduraNoPrimeiro', () => {
+    const drawing = flowDrawing(angularGraph(), FlowAxis.Down, () => 0, [
+      { name: 'pedidos', language: SourceLanguage.DotNet },
+      { name: 'pedidos-api', language: SourceLanguage.DotNet },
+    ]);
+
+    expect(drawing.blocks.filter((b) => b.kind === BlockKind.System).map((b) => b.label)).toEqual(['pedidos-api · .NET']);
+  });
+
+  // UI-ANG-005
+  it('surveySystems_levantamentoComTrechos_listaOPrimeiroECostura', () => {
+    const list = surveySystems({
+      repository: 'loja-web',
+      language: SourceLanguage.Angular,
+      entryPoint: 'DetalhePedidoComponent.cancelar',
+      segments: [{ order: 1, repository: 'pedidos-api', language: SourceLanguage.DotNet, solutionPath: 'P.slnx', entryPoint: 'x' }],
+    });
+
+    expect(list).toEqual(systems);
   });
 });
