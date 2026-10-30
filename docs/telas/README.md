@@ -13,3 +13,5 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | 24 | Legenda: ordem de leitura, etiquetas do que o passo faz no mundo e linhas de destaque | [fase-24/05-legenda.jpg](fase-24/05-legenda.jpg) |
 | 24 | Levantamentos e o formulário de levantamento novo, com a explicação de cada campo | [fase-24/06-levantamentos.jpg](fase-24/06-levantamentos.jpg) |
 | 24 | Configurações: cadastrar um repositório pela tela | [fase-24/07-adicionar-repositorio.png](fase-24/07-adicionar-repositorio.png) |
+| 27 | Visão consolidada: o texto Mermaid à esquerda e a prévia à direita, gerada do fluxo do `ConsultasComCache.ObterAsync` (Mirante) | [fase-27/01-visao-consolidada.jpg](fase-27/01-visao-consolidada.jpg) |
+| 27 | Cor do passo: o passo escolhido na prévia, o painel com fundo, borda e texto e o passo já pintado | [fase-27/02-cor-do-passo.jpg](fase-27/02-cor-do-passo.jpg) |

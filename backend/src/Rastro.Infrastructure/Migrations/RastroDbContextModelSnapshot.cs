@@ -15,7 +15,7 @@ namespace Rastro.Infrastructure.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.13");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
 
             modelBuilder.Entity("Rastro.Core.Surveys.NodeNote", b =>
                 {
@@ -167,6 +167,32 @@ namespace Rastro.Infrastructure.Migrations
                         .HasName("pk_survey_architectures");
 
                     b.ToTable("survey_architectures", (string)null);
+                });
+
+            modelBuilder.Entity("Rastro.Core.Surveys.SurveyDiagram", b =>
+                {
+                    b.Property<Guid>("SurveyId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("survey_id");
+
+                    b.Property<string>("CommitHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("commit_hash");
+
+                    b.Property<string>("Mermaid")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("mermaid");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("SurveyId")
+                        .HasName("pk_survey_diagrams");
+
+                    b.ToTable("survey_diagrams", (string)null);
                 });
 
             modelBuilder.Entity("Rastro.Core.Surveys.SurveyDraft", b =>
@@ -335,6 +361,16 @@ namespace Rastro.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_survey_architectures_surveys_survey_id");
+                });
+
+            modelBuilder.Entity("Rastro.Core.Surveys.SurveyDiagram", b =>
+                {
+                    b.HasOne("Rastro.Core.Surveys.Survey", null)
+                        .WithOne()
+                        .HasForeignKey("Rastro.Core.Surveys.SurveyDiagram", "SurveyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_survey_diagrams_surveys_survey_id");
                 });
 
             modelBuilder.Entity("Rastro.Core.Surveys.SurveyDraft", b =>

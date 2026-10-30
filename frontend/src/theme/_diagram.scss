@@ -1,0 +1,30 @@
+// Visão consolidada (Fase 27). O SVG da prévia entra por innerHTML e não recebe o atributo de
+// estilo do componente, então o que mexe nele mora aqui, com escopo no .preview.
+.preview {
+  svg {
+    display: block;
+    max-width: none;
+    margin: 0 auto;
+  }
+
+  // O passo clica (escolhe a cor) e o escolhido ganha um halo, sem depender da cor do passo.
+  g.node {
+    cursor: pointer;
+  }
+
+  // Foco de teclado nos passos (o :focus-visible global usa box-shadow, que não vale em SVG).
+  g.node:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
+  }
+
+  // O escolhido ganha halo e contorno, para não depender só do halo.
+  g.node.is-selected {
+    filter: drop-shadow(0 0 3px var(--trail)) drop-shadow(0 0 1px var(--trail));
+
+    :is(rect, polygon, path, ellipse, circle) {
+      stroke: var(--trail) !important;
+      stroke-width: 3px !important;
+    }
+  }
+}

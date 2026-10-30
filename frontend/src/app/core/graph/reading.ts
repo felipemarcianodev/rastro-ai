@@ -15,6 +15,15 @@ export function humanName(name: string): string {
   return words.map((word, index) => (index === 0 || /^[A-Z0-9]+$/.test(word) ? word : word.toLowerCase())).join(' ');
 }
 
+// "OrderNotificationService.SendAsync" -> dono "OrderNotificationService." e nome "SendAsync".
+// Só métodos e chamadas externas têm dono; bifurcações e afins mostram o texto inteiro.
+export function splitLabel(node: FlowNode): { owner: string; name: string } {
+  const splittable = node.kind === NodeKind.Entry || node.kind === NodeKind.Method || node.kind === NodeKind.External;
+  const dot = node.label.lastIndexOf('.');
+  if (!splittable || dot <= 0) return { owner: '', name: node.label };
+  return { owner: node.label.slice(0, dot + 1), name: node.label.slice(dot + 1) };
+}
+
 // O que o passo toca fora do próprio código.
 export enum NodeEffect {
   Database = 0,

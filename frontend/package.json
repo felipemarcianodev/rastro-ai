@@ -34,6 +34,7 @@
     "@foblex/utils": "^1.1.1",
     "@fontsource/instrument-sans": "^5.3.0",
     "@fontsource/jetbrains-mono": "^5.3.0",
+    "mermaid": "^11.17.2",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.15.0"

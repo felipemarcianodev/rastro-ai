@@ -292,6 +292,7 @@ export const API_ERROR_MESSAGE: Record<string, string> = {
   VALIDATION_NOT_APPROVABLE: 'Só uma validação concluída e não reprovada pode ser aprovada.',
   C4_PEOPLE_INVALID: 'Confira as pessoas: cada uma precisa de nome, sem repetir.',
   NOTE_INVALID: 'A anotação precisa ser de um passo deste fluxo e ter até 500 caracteres.',
+  DIAGRAM_INVALID: 'O diagrama está vazio ou grande demais.',
   SURVEY_RUNNING: 'O levantamento ainda está em análise. Espere terminar para excluir.',
   AI_SETTINGS_INVALID: 'Configuração inválida: confira modelos, chaves e orçamento.',
   AI_DISABLED: 'A IA está desligada na configuração.',
@@ -597,6 +598,15 @@ export interface NodeNote {
 }
 
 export const NOTE_MAX_LENGTH = 500;
+
+// Visão consolidada (Fase 27): o Mermaid salvo do levantamento, com a edição do dono.
+export interface SurveyDiagram {
+  mermaid: string;
+  commitHash?: string;
+  updatedAt: string;
+  // Preenchido quando o diagrama é herdado de um levantamento anterior (o próprio ainda não salvou).
+  fromSurveyId?: string;
+}
 
 // Sugestão de refactor da IA para um achado (Fase 13): texto para ler, marcado como da IA.
 export interface RefactorSuggestion {

@@ -44,7 +44,7 @@ function mermaidShape(node: FlowNode): string {
 }
 
 // Aspas e sinais que o Mermaid interpreta viram entidades.
-function mermaidText(text: string): string {
+export function mermaidText(text: string): string {
   return text.replace(/"/g, '#quot;').replace(/</g, '#lt;').replace(/>/g, '#gt;').replace(/\n/g, ' ');
 }
 

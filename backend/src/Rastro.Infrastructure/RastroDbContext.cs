@@ -14,6 +14,7 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
     public DbSet<SurveyValidation> SurveyValidations => Set<SurveyValidation>();
     public DbSet<SurveyArchitecture> SurveyArchitectures => Set<SurveyArchitecture>();
     public DbSet<NodeNote> NodeNotes => Set<NodeNote>();
+    public DbSet<SurveyDiagram> SurveyDiagrams => Set<SurveyDiagram>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -56,6 +57,14 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             architecture.HasKey(a => a.SurveyId);
             architecture.HasOne<Survey>().WithOne().HasForeignKey<SurveyArchitecture>(a => a.SurveyId).OnDelete(DeleteBehavior.Cascade);
             architecture.Property(a => a.PeopleJson).IsRequired();
+        });
+
+        modelBuilder.Entity<SurveyDiagram>(diagram =>
+        {
+            diagram.HasKey(d => d.SurveyId);
+            diagram.HasOne<Survey>().WithOne().HasForeignKey<SurveyDiagram>(d => d.SurveyId).OnDelete(DeleteBehavior.Cascade);
+            diagram.Property(d => d.Mermaid).IsRequired();
+            diagram.Property(d => d.CommitHash).HasMaxLength(64);
         });
 
         modelBuilder.Entity<NodeNote>(note =>

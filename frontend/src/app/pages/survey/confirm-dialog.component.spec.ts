@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { ConfirmDialogComponent } from './confirm-dialog.component';
+import { ConfirmDialogComponent, ConfirmTone } from './confirm-dialog.component';
 
 describe('ConfirmDialogComponent', () => {
   it('mostra a contagem e só confirma pelo botão de descartar', () => {
@@ -20,5 +20,24 @@ describe('ConfirmDialogComponent', () => {
     cancel.click();
     confirm.click();
     expect(events).toEqual(['cancel', 'confirm']);
+  });
+
+  // WEB-CONF-002
+  it('tom_padraoEPerigo_primarioUsaOBotaoPrimario', () => {
+    TestBed.configureTestingModule({ imports: [ConfirmDialogComponent] });
+    const fixture = TestBed.createComponent(ConfirmDialogComponent);
+    fixture.componentRef.setInput('title', 'T');
+    fixture.componentRef.setInput('text', 'x');
+    fixture.componentRef.setInput('confirmLabel', 'Ok');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const confirm = () => el.querySelectorAll('button')[1];
+
+    expect(confirm().classList.contains('btn-danger')).toBeTrue();
+    fixture.componentRef.setInput('tone', ConfirmTone.Primary);
+    fixture.detectChanges();
+    expect(confirm().classList.contains('btn-p')).toBeTrue();
+    expect(confirm().classList.contains('btn-danger')).toBeFalse();
+    expect(confirm().classList.contains('btn')).toBeTrue();
   });
 });

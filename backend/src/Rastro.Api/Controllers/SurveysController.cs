@@ -79,8 +79,8 @@ public class SurveysController(
         return new SurveyDetail(SurveySummary.From(survey), survey.ReadGraph());
     }
 
-    // Excluir levantamento (Fase 13): some com rascunho, propostas, validações e pessoas do C4
-    // (cascata). As anotações ficam: são do repositório e do passo, não do levantamento.
+    // Excluir levantamento (Fase 13): some com rascunho, propostas, validações, pessoas do C4 e
+    // diagrama da visão consolidada (cascata). As anotações ficam: são do repositório e do passo, não do levantamento.
     // Em análise ou com validação rodando, recusa: o worker ainda escreve nele.
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
@@ -293,6 +293,68 @@ public class SurveysController(
         }
         await db.SaveChangesAsync(ct);
         return Ok(new NodeNoteView(stored.NodeId, stored.Text, stored.UpdatedAt));
+    }
+
+    // Visão consolidada em Mermaid (Fase 27): o texto que o usuário editou, um por levantamento.
+    // A tela gera o texto do grafo; aqui só se guarda o que ele deixou. O commit registra a versão do código.
+    [HttpGet("{id:guid}/diagram")]
+    public async Task<ActionResult<SurveyDiagramView>> GetDiagram(Guid id, CancellationToken ct)
+    {
+        var diagram = await db.SurveyDiagrams.AsNoTracking().FirstOrDefaultAsync(d => d.SurveyId == id, ct);
+        if (diagram is not null) return new SurveyDiagramView(diagram.Mermaid, diagram.CommitHash, diagram.UpdatedAt, null);
+
+        // Sem diagrama próprio: herda o salvo mais recente de um levantamento anterior do mesmo
+        // repositório e ponto de entrada, para a edição do dono acompanhar o levantamento refeito.
+        var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
+        if (survey is null) return NotFound();
+        var candidates = await db.SurveyDiagrams.AsNoTracking()
+            .Join(db.Surveys.AsNoTracking(), d => d.SurveyId, s => s.Id, (d, s) => new { Diagram = d, Survey = s })
+            .Where(x => x.Survey.Repository == survey.Repository && x.Survey.EntryPoint == survey.EntryPoint && x.Survey.Id != id)
+            .ToListAsync(ct);
+        // A ordenação é em memória: o SQLite não ordena DateTimeOffset no banco.
+        var inherited = candidates
+            .Where(x => x.Survey.CreatedAt < survey.CreatedAt)
+            .OrderByDescending(x => x.Diagram.UpdatedAt)
+            .FirstOrDefault();
+        return inherited is null
+            ? NotFound()
+            : new SurveyDiagramView(inherited.Diagram.Mermaid, inherited.Diagram.CommitHash, inherited.Diagram.UpdatedAt, inherited.Survey.Id);
+    }
+
+    [HttpPut("{id:guid}/diagram")]
+    public async Task<ActionResult<SurveyDiagramView>> SaveDiagram(Guid id, SurveyDiagramInput input, CancellationToken ct)
+    {
+        var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
+        if (survey?.ReadGraph() is null) return NotFound();
+
+        // O texto é guardado como veio; só a validação ignora o espaço para achar o vazio.
+        var text = input.Mermaid ?? "";
+        if (SurveyDiagram.Validate(text) is { } problem) return Error(ErrorCodes.DiagramInvalid, problem);
+
+        var stored = await db.SurveyDiagrams.FirstOrDefaultAsync(d => d.SurveyId == id, ct);
+        if (stored is null)
+        {
+            stored = SurveyDiagram.Create(id, text, survey.CommitHash, clock.GetUtcNow());
+            db.SurveyDiagrams.Add(stored);
+        }
+        else
+        {
+            stored.Update(text, survey.CommitHash, clock.GetUtcNow());
+        }
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Diagrama do levantamento {SurveyId} salvo.", id);
+        return new SurveyDiagramView(stored.Mermaid, stored.CommitHash, stored.UpdatedAt, null);
+    }
+
+    [HttpDelete("{id:guid}/diagram")]
+    public async Task<IActionResult> DeleteDiagram(Guid id, CancellationToken ct)
+    {
+        var stored = await db.SurveyDiagrams.FirstOrDefaultAsync(d => d.SurveyId == id, ct);
+        if (stored is null) return NotFound();
+        db.SurveyDiagrams.Remove(stored);
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Diagrama do levantamento {SurveyId} apagado.", id);
+        return NoContent();
     }
 
     // Regra cruzada entre fluxos (Fase 13): compara com o levantamento pronto mais recente de cada
