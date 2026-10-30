@@ -11,12 +11,14 @@ import { after, describe, test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { normalizarRota } from '../lib/rota.mjs';
-import { acharGuardas } from '../lib/template.mjs';
+import { acharGuardas, acharMetodosDeEventos } from '../lib/template.mjs';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const extrator = path.join(aqui, '..', 'extract.mjs');
 const fixture = path.join(aqui, 'fixtures', 'loja-web');
 const stubs = path.join(fixture, 'src', 'stubs', 'angular-common-http.d.ts');
+const stubMatDialog = path.join(fixture, 'src', 'stubs', 'angular-material-dialog.d.ts');
+const stubCdkDialog = path.join(fixture, 'src', 'stubs', 'angular-cdk-dialog.d.ts');
 
 const NodeKind = { Entry: 0, Method: 1, Decision: 2, Loop: 3, Try: 4, Return: 5, Throw: 6, Unresolved: 8, Jump: 9 };
 const Reason = { MultipleImplementations: 0, NoImplementation: 1, DepthLimit: 6, RouteNotResolved: 7, NoMatchingEndpoint: 8 };
@@ -46,6 +48,8 @@ function criarProjeto(arquivos, nome = 'app-teste') {
     }),
   );
   fs.copyFileSync(stubs, path.join(raiz, 'src', 'stubs.d.ts'));
+  fs.copyFileSync(stubMatDialog, path.join(raiz, 'src', 'stubs-mat-dialog.d.ts'));
+  fs.copyFileSync(stubCdkDialog, path.join(raiz, 'src', 'stubs-cdk-dialog.d.ts'));
   for (const [arquivo, conteudo] of Object.entries(arquivos)) {
     const destino = path.join(raiz, arquivo);
     fs.mkdirSync(path.dirname(destino), { recursive: true });
@@ -604,6 +608,154 @@ describe('leitor de template (unidade)', () => {
     // EXT-TS-072
     assert.equal(acharGuardas('<button (click)="irEmbora()">x</button>', 'ir'), null);
     assert.equal(acharGuardas('<button (click)="outro.ir()">x</button>', 'ir'), null);
+  });
+});
+
+describe('abertura de modal (MatDialog e Dialog do CDK)', () => {
+  const ROTULO = 'ação do usuário no modal';
+  const Confianca = { Extracted: 0, Inferred: 1 };
+
+  // Tela que abre o modal e, depois de fechado, recarrega. O modal chama a API no botão.
+  const tela = (importacao, tipo, abertura, depois) => `
+import { Component } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+${importacao}
+import { Confirmacao } from './confirmacao';
+@Component({ selector: 'app-tela', template: '<button (click)="abrir()">Abrir</button>' })
+export class Tela {
+  constructor(private dialog: ${tipo}, private http: HttpClient) {}
+  abrir(): void {
+    ${abertura}.${depois}(ok => { if (ok) { this.recarregar(); } });
+  }
+  recarregar(): void { this.http.get('/api/lista'); }
+}`;
+
+  const modal = (decorador) => `
+import { Component } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+${decorador}
+export class Confirmacao {
+  constructor(private http: HttpClient) {}
+  confirmar(): void { this.http.post('/api/confirmar', {}); }
+  cancelar(): void { this.http.delete('/api/cancelar'); }
+  semEvento(): void { this.http.get('/api/nunca'); }
+}`;
+
+  const inline = `@Component({ selector: 'app-c', template: \`
+    <button (click)="cancelar()">Não</button>
+    <form (ngSubmit)="confirmar()"><button>Sim</button></form>
+    <button (click)="dialogRef.close()">Fechar</button>\` })`;
+
+  function levantar(arquivos, depth = 10) {
+    return rodar(criarProjeto(arquivos), 'Tela.abrir', { depth });
+  }
+
+  const rotas = (r) => r.json.httpCalls.map((c) => `${c.call.method} ${c.call.route}`);
+
+  test('MatDialog: galho "abre o modal" com os métodos dos eventos do template inline', () => {
+    // EXT-TS-090
+    const r = levantar({
+      'src/tela.ts': tela("import { MatDialog } from '@angular/material/dialog';", 'MatDialog', 'this.dialog.open(Confirmacao, {})', 'afterClosed().subscribe'),
+      'src/confirmacao.ts': modal(inline),
+    });
+    const g = r.json.graph;
+    const galho = no(g, (n) => n.id === 'modal:src/confirmacao.ts#Confirmacao');
+    assert.equal(galho.label, 'abre o modal Confirmacao');
+    assert.ok(g.edges.some((e) => e.from === g.entryNodeId && e.to === galho.id));
+    const acoes = g.edges.filter((e) => e.from === galho.id);
+    assert.deepEqual(acoes.map((e) => e.to.split('#')[1]), ['Confirmacao.cancelar', 'Confirmacao.confirmar']);
+    assert.ok(!g.nodes.some((n) => n.label === 'Confirmacao.semEvento'));
+    assert.ok(!g.nodes.some((n) => n.label.includes('dialogRef')));
+  });
+
+  test('o HTTP do botão do modal sai no levantamento, com a ação inferida', () => {
+    // EXT-TS-091
+    const r = levantar({
+      'src/tela.ts': tela("import { MatDialog } from '@angular/material/dialog';", 'MatDialog', 'this.dialog.open(Confirmacao)', 'afterClosed().subscribe'),
+      'src/confirmacao.ts': modal(inline),
+    });
+    assert.deepEqual(rotas(r).sort(), ['DELETE api/cancelar', 'GET api/lista', 'POST api/confirmar']);
+    const acoes = r.json.graph.edges.filter((e) => e.from === 'modal:src/confirmacao.ts#Confirmacao');
+    assert.ok(acoes.length === 2 && acoes.every((e) => e.confidence === Confianca.Inferred && e.label === ROTULO));
+    const aberturas = r.json.graph.edges.filter((e) => e.to === 'modal:src/confirmacao.ts#Confirmacao');
+    assert.ok(aberturas.every((e) => e.confidence === Confianca.Extracted));
+  });
+
+  test('o afterClosed continua depois do galho, na ordem da tela', () => {
+    // EXT-TS-092
+    const r = levantar({
+      'src/tela.ts': tela("import { MatDialog } from '@angular/material/dialog';", 'MatDialog', 'this.dialog.open(Confirmacao)', 'afterClosed().subscribe'),
+      'src/confirmacao.ts': modal(inline),
+    });
+    const g = r.json.graph;
+    const saidas = g.edges.filter((e) => e.from === g.entryNodeId);
+    assert.equal(saidas[0].to, 'modal:src/confirmacao.ts#Confirmacao');
+    const decisao = no(g, (n) => n.kind === NodeKind.Decision && n.label === 'if (ok)');
+    assert.ok(decisao && saidas.some((e) => e.to === decisao.id && e.order > saidas[0].order));
+    assert.ok(g.edges.some((e) => e.from === decisao.id && e.to.endsWith('#Tela.recarregar')));
+  });
+
+  test('Dialog do CDK com templateUrl e (closed)', () => {
+    // EXT-TS-093
+    const r = levantar({
+      'src/tela.ts': tela("import { Dialog } from '@angular/cdk/dialog';", 'Dialog', 'this.dialog.open(Confirmacao)', 'closed.subscribe'),
+      'src/confirmacao.ts': modal("@Component({ selector: 'app-c', templateUrl: './confirmacao.html' })"),
+      'src/confirmacao.html': '<button (click)="confirmar()">Sim</button>\n<button (click)="cancelar()">Não</button>',
+    });
+    assert.deepEqual(rotas(r).sort(), ['DELETE api/cancelar', 'GET api/lista', 'POST api/confirmar']);
+    assert.ok(r.json.graph.nodes.some((n) => n.id === 'modal:src/confirmacao.ts#Confirmacao'));
+  });
+
+  test('open de outra classe (nome parecido) não abre galho', () => {
+    // EXT-TS-094
+    const r = levantar({
+      'src/tela.ts': `
+import { Confirmacao } from './confirmacao';
+class Dialog { open(c: unknown): void {} }
+export class Tela { private dialog = new Dialog(); abrir(): void { this.dialog.open(Confirmacao); } }`,
+      'src/confirmacao.ts': modal(inline),
+    });
+    assert.ok(!r.json.graph.nodes.some((n) => n.id.startsWith('modal:')));
+    assert.deepEqual(r.json.httpCalls, []);
+  });
+
+  test('profundidade: no limite o galho mostra o limite e não entra nos métodos do modal', () => {
+    // EXT-TS-095
+    const r = levantar({
+      'src/tela.ts': tela("import { MatDialog } from '@angular/material/dialog';", 'MatDialog', 'this.dialog.open(Confirmacao)', 'afterClosed().subscribe'),
+      'src/confirmacao.ts': modal(inline),
+    }, 1);
+    const g = r.json.graph;
+    assert.ok(g.nodes.some((n) => n.id === 'modal:src/confirmacao.ts#Confirmacao'));
+    assert.ok(g.edges.some((e) => e.from === 'modal:src/confirmacao.ts#Confirmacao' && e.to.startsWith('u:depth:')));
+    assert.ok(!rotas(r).includes('POST api/confirmar'));
+  });
+
+  test('modal que abre a si mesmo não entra em laço', () => {
+    // EXT-TS-096
+    const r = levantar({
+      'src/tela.ts': tela("import { MatDialog } from '@angular/material/dialog';", 'MatDialog', 'this.dialog.open(Confirmacao)', 'afterClosed().subscribe'),
+      'src/confirmacao.ts': `
+import { Component } from '@angular/core';
+import { MatDialog } from '@angular/material/dialog';
+@Component({ selector: 'app-c', template: '<button (click)="outra()">Outra</button>' })
+export class Confirmacao {
+  constructor(private dialog: MatDialog) {}
+  outra(): void { this.dialog.open(Confirmacao); }
+}`,
+    });
+    assert.equal(r.codigo, 0);
+    const g = r.json.graph;
+    assert.equal(g.nodes.filter((n) => n.id.startsWith('modal:')).length, 1);
+    assert.ok(g.edges.some((e) => e.from === 'm:src/confirmacao.ts#Confirmacao.outra' && e.to.startsWith('modal:')));
+  });
+
+  test('leitor de eventos (unidade): chamadas diretas e com this., sem repetir', () => {
+    // EXT-TS-097
+    const nomes = acharMetodosDeEventos(
+      '<!-- (click)="velho()" --><a (click)="a(); this.b($event)"></a><f (ngSubmit)="a()" (x.y)="svc.c()"></f>',
+    );
+    assert.deepEqual(nomes, ['a', 'b']);
   });
 });
 

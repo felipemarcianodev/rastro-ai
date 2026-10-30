@@ -46,6 +46,8 @@ Requisitos: o Node no PATH (sem ele, a tela não oferece o Angular) e o `npm ins
 
 Ao criar o levantamento, escolha o `tsconfig` do app no lugar da solution (a tela sugere o `tsconfig.app.json` das pastas com `angular.json`) e informe o ponto de entrada como `Componente.metodo`, por exemplo `DetalhePedidoComponent.cancelar`. Para atravessar até as APIs, marque os repositórios .NET em **Seguir chamadas HTTP para**; sem a lista, o levantamento mostra só o trecho Angular.
 
+Se o método abre um modal com `MatDialog.open(Componente)` ou com o `Dialog` do CDK, o fluxo ganha um galho "abre o modal Componente" com os métodos que o template do modal liga a eventos (`(click)`, `(ngSubmit)`), e segue dali até o `HttpClient`. Esse vínculo vem da leitura do HTML do modal (ação do usuário), então as arestas aparecem como inferidas. O `afterClosed()` continua depois do galho. Serviço próprio que repassa para o `MatDialog` não é reconhecido.
+
 O que não dá para ler (URL montada fora do código, classe escolhida só em tempo de execução, sem destino ou mais de um destino, profundidade passada) vira um passo "não resolvido", com o motivo. O leitor de template é leve: só enxerga as condições escritas no HTML do próprio componente, sem o compilador do Angular. A edição e a validação de uma mudança valem só para fluxos .NET.
 
 ## Visão consolidada

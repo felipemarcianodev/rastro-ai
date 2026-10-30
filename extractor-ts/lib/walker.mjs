@@ -4,9 +4,9 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { GraphBuilder, NodeKind, UnresolvedReason, truncar } from './grafo.mjs';
+import { EdgeConfidence, GraphBuilder, NodeKind, UnresolvedReason, truncar } from './grafo.mjs';
 import { rotaDosPedacos } from './rota.mjs';
-import { acharGuardas, linhaEColuna } from './template.mjs';
+import { acharGuardas, acharMetodosDeEventos, linhaEColuna } from './template.mjs';
 
 // Erro com mensagem já escrita para o usuário (pt-BR). Qualquer outro erro é defeito do extrator.
 export class ErroDeUsuario extends Error {}
@@ -26,6 +26,9 @@ const VERBO_DESCONHECIDO = 'SEND';
 
 const MODULO_HTTP = '@angular/common/http';
 const NOME_HTTP_CLIENT = 'HttpClient';
+const MODULO_MAT_DIALOG = '@angular/material/dialog';
+const MODULO_CDK_DIALOG = '@angular/cdk/dialog';
+const ROTULO_ACAO_NO_MODAL = 'ação do usuário no modal';
 
 const limpar = (texto) => texto.replace(/\s+/g, ' ').trim();
 
@@ -255,6 +258,24 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
 
   // Guardas do primeiro elemento do template que dispara o método: viram uma decisão no começo do fluxo.
   function guardaDoTemplate(classe, metodo) {
+    const modelo = lerTemplate(classe);
+    if (!modelo) return null;
+    const { texto, arquivo, linhaBase, colunaBase } = modelo;
+
+    const guardas = acharGuardas(texto, metodo);
+    if (!guardas || guardas.length === 0) return null;
+
+    const juntas = guardas.length === 1
+      ? guardas[0].condicao
+      : guardas.map((g) => (/\|\||\?/.test(g.condicao) ? `(${g.condicao})` : g.condicao)).join(' && ');
+    const p = linhaEColuna(texto, guardas[0].deslocamento);
+    const linha = linhaBase + p.linha - 1;
+    const coluna = p.linha === 1 ? colunaBase + p.coluna - 1 : p.coluna;
+    return { condicao: juntas, arquivo, linha, coluna };
+  }
+
+  // Texto do template do @Component (inline ou templateUrl) e onde ele começa. Nulo se não houver.
+  function lerTemplate(classe) {
     const decorador = (ts.canHaveDecorators(classe) ? (ts.getDecorators(classe) ?? []) : []).find(
       (d) =>
         ts.isCallExpression(d.expression) &&
@@ -291,17 +312,7 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
       }
     }
     if (texto === null) return null;
-
-    const guardas = acharGuardas(texto, metodo);
-    if (!guardas || guardas.length === 0) return null;
-
-    const juntas = guardas.length === 1
-      ? guardas[0].condicao
-      : guardas.map((g) => (/\|\||\?/.test(g.condicao) ? `(${g.condicao})` : g.condicao)).join(' && ');
-    const p = linhaEColuna(texto, guardas[0].deslocamento);
-    const linha = linhaBase + p.linha - 1;
-    const coluna = p.linha === 1 ? colunaBase + p.coluna - 1 : p.coluna;
-    return { condicao: juntas, arquivo, linha, coluna };
+    return { texto, arquivo, linhaBase, colunaBase };
   }
 
   // ---------- percurso ----------
@@ -523,6 +534,7 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
     const textoDaChamada = texto(chamada.expression);
 
     if (declaracao && tratarHttp(chamada, declaracao, textoDaChamada, pai, ramo, ctx)) return;
+    if (declaracao) tratarAberturaDeModal(chamada, declaracao, pai, ramo, ctx);
 
     if (declaracao && ehDoProjeto(declaracao.getSourceFile())) {
       const container = declaracao.parent;
@@ -590,6 +602,78 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
       detail: truncar(detalhe),
     });
     grafo.addAresta(pai, id, ramo);
+  }
+
+  // ---------- modal (MatDialog e Dialog do CDK) ----------
+
+  // Classe `nome` declarada no módulo `modulo` (ou no pacote do Angular em node_modules).
+  function ehClasseDoModulo(declaracao, nome, modulo, pacote) {
+    const dono = declaracao.parent;
+    if (!dono || !(ts.isClassDeclaration(dono) || ts.isInterfaceDeclaration(dono))) return false;
+    if (dono.name?.text !== nome) return false;
+    if (pacote.test(dono.getSourceFile().fileName)) return true;
+    for (let atual = dono.parent; atual; atual = atual.parent) {
+      if (ts.isModuleDeclaration(atual) && ts.isStringLiteral(atual.name) && atual.name.text === modulo) return true;
+    }
+    return false;
+  }
+
+  function ehOpenDeDialogo(declaracao) {
+    return (
+      declaracao.name && textoDoNome(declaracao.name) === 'open' &&
+      (ehClasseDoModulo(declaracao, 'MatDialog', MODULO_MAT_DIALOG, /[\\/]@angular[\\/]material[\\/]/) ||
+        ehClasseDoModulo(declaracao, 'Dialog', MODULO_CDK_DIALOG, /[\\/]@angular[\\/]cdk[\\/]/))
+    );
+  }
+
+  // `dialog.open(Componente)`: abre o galho do modal, com os métodos que o template do modal liga a
+  // eventos. O vínculo vem da leitura do template (ação do usuário), então as arestas ficam como
+  // inferidas. O `afterClosed()` que vem depois segue como continuação normal, no mesmo pai.
+  function tratarAberturaDeModal(chamada, declaracao, pai, ramo, ctx) {
+    if (!ehOpenDeDialogo(declaracao) || chamada.arguments.length === 0) return;
+
+    const s = simbolo(chamada.arguments[0]);
+    const classe = s?.declarations?.find((d) => ts.isClassDeclaration(d) && d.name && ehDoProjeto(d.getSourceFile()));
+    if (!classe) return; // TemplateRef, variável ou serviço próprio: não dá para provar a classe.
+
+    const p = posicao(classe.name);
+    const idModal = `modal:${p.file}#${classe.name.text}`;
+    const jaExiste = grafo.temNo(idModal);
+    if (!jaExiste) {
+      grafo.addNo({
+        id: idModal,
+        kind: NodeKind.Method,
+        label: `abre o modal ${classe.name.text}`,
+        symbol: classe.name.text,
+        location: { file: p.file, line: p.line },
+        project: projectName,
+      });
+    }
+    grafo.addAresta(pai, idModal, ramo);
+    if (jaExiste) return; // modal já aberto antes (ou que abre a si mesmo): não repete nem entra em laço.
+
+    const nivelDoModal = ctx.nivel + 1;
+    if (nivelDoModal >= depth) {
+      const limite = `u:depth:${idModal}`;
+      grafo.addNo({
+        id: limite,
+        kind: NodeKind.Unresolved,
+        label: 'limite de profundidade',
+        reason: UnresolvedReason.DepthLimit,
+        detail: `MaxDepth = ${depth}`,
+      });
+      grafo.addAresta(idModal, limite, undefined);
+      return;
+    }
+
+    const modelo = lerTemplate(classe);
+    if (!modelo) return;
+    for (const nome of acharMetodosDeEventos(modelo.texto)) {
+      const desc = metodoNaClasse(classe, nome);
+      if (!desc) continue;
+      const alvo = percorrerMetodo(desc, nivelDoModal + 1, false);
+      grafo.addAresta(idModal, alvo, ROTULO_ACAO_NO_MODAL, undefined, undefined, EdgeConfidence.Inferred);
+    }
   }
 
   // ---------- HttpClient ----------

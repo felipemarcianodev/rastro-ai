@@ -643,7 +643,7 @@ O exemplo que o dono mandou vem de um sistema privado e não entra no repositór
 
 - [x] **#30, monorepo Angular:** o TypeScript e o nome do projeto são procurados da pasta do `tsconfig` escolhido até a raiz do repositório, sem sair dela. Antes, o extrator só olhava a raiz, e o app numa subpasta (`frontend/`) falhava com "rode o npm install". Teste EXT-TS-026; ADR-005, README e README do pacote atualizados.
 - [ ] **#31, Refit:** a chamada a um método de interface com `[Get]`, `[Post]`, `[Put]`, `[Patch]` ou `[Delete]` do Refit vira chamada HTTP com verbo e rota do atributo, e entra na costura da Fase 25 como o `HttpClient`.
-- [ ] **#32, modal Angular:** `open(Componente, ...)` do MatDialog ou do CDK Dialog abre um galho "abre o modal", com os métodos ligados a eventos no template do modal como ações do usuário, e o `afterClosed()` continua depois do galho. O vínculo é inferido pela leitura do template, e o grafo diz isso.
+- [x] **#32, seguir a abertura de modal:** `MatDialog.open(Componente)` e `Dialog.open(Componente)` do CDK (identificados pelo tipo resolvido, não pelo nome da variável) abrem o galho "abre o modal Componente", com os métodos que o template do modal (inline ou `templateUrl`) liga a eventos como passos "ação do usuário no modal" (arestas inferidas), e o `afterClosed()`/`closed` segue como continuação. Respeita `--depth` e não entra em laço se o modal abre a si mesmo. Testes: EXT-TS-090 a EXT-TS-097 (os IDs 030 a 033 já eram do percurso). Fica fora: serviço próprio que repassa para o `MatDialog`.
 
 ## Levantamento de UX do fim do plano `[x]`
 

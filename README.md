@@ -106,6 +106,8 @@ O que o Rastro não consegue ler vira um passo "não resolvido", com o motivo, c
 - **classe escolhida só em tempo de execução:** mais de uma implementação possível, ou nenhuma;
 - **limite de profundidade:** a cadeia passou do limite escolhido.
 
+Modais: quando o método abre um modal com `MatDialog.open(Componente)` ou com o `Dialog` do CDK, o fluxo ganha um galho "abre o modal Componente" com os métodos que o template do modal liga a eventos (`(click)`, `(ngSubmit)` e semelhantes, com `template` inline ou `templateUrl`), e o rastro segue dali até o `HttpClient`. Esse vínculo é a ação do usuário lida no HTML do modal, não prova do compilador: as arestas saem como **inferidas** e com o rótulo "ação do usuário no modal". O `afterClosed()` (ou `closed`) continua depois do galho. Um serviço próprio que repassa para o `MatDialog` não é reconhecido: o `open` precisa ser chamado direto no `MatDialog` ou no `Dialog` do CDK, com a classe do componente como primeiro argumento.
+
 Limite do leitor de template: as bifurcações da tela vêm de uma leitura leve do HTML do componente (blocos `@if`, `*ngIf` e `[disabled]` ao redor do elemento com o evento do método), sem o compilador do Angular. Condições montadas de outro jeito (por exemplo, dentro de um componente filho) não aparecem. O tempo máximo da leitura é 120 s e se troca em `Rastro:Analysis:TypeScriptTimeoutSeconds`. A edição do fluxo e a validação de uma mudança, por enquanto, valem só para fluxos .NET.
 
 ## Visão consolidada
