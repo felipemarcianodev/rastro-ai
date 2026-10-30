@@ -1,4 +1,4 @@
-# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 28); Fases 15, 16 e 22 esperam o uso real
+# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real
 
 > Criado em 2026-10-15. Visão e decisões: [`visao.md`](visao.md).
 > Execução fase a fase, no mesmo molde da skill `executar-plano-faseado` de outro projeto do dono: **uma fase por vez, portões verdes, commit, e só então a próxima.**
@@ -537,7 +537,7 @@ A validação usa uma fixture com sistemas fictícios, no padrão da loja de tes
 **Costura:**
 - [x] Na chamada HTTP (`HttpClient.*Async` e as extensões de `System.Net.Http.Json`, também dentro de client tipado), o extrator resolve o verbo e a rota: literal, constante, interpolação e concatenação.
   Mudança no caminho: em vez de ler a `BaseAddress` no `appsettings`, a parte variável no começo da URL é tratada como o endereço base e sai, e a rota casa pelo fim do template quando não casa inteira (`MatchesSuffix`, com pelo menos dois segmentos). Dá o mesmo resultado sem ler configuração por ambiente.
-- [ ] Refit (interface com atributos `[Get]`, `[Post]`): ainda vira chamada externa.
+- [x] Refit (interface com atributos `[Get]`, `[Post]`): feito na Fase 29 (issue #31).
 - [x] Rota resolvida e com par no índice de outro repositório: o percurso continua dentro dele, como um trecho novo, e o `MaxDepth` vale para o total.
 - [x] Rota não resolvida vira `Unresolved` com o motivo novo `RouteNotResolved = 7`; rota resolvida sem ninguém que a atenda vira `NoMatchingEndpoint = 8`. Fica para a IA propor e o usuário confirmar, como hoje.
 - [x] Rota que casa com mais de um destino (duas versões da mesma API cadastradas) também vira `Unresolved`, nunca uma escolha silenciosa.
@@ -663,6 +663,12 @@ O dono usou a visão consolidada da Fase 27 e achou três problemas: o zoom é d
 - [x] Verificação no navegador com clique de verdade, num repositório público.
 - [x] Feito: `pages/diagram/diagram-stage.component.ts` (o palco, nas duas telas), `pages/survey/consolidated-view.component.ts` (o desenho no fluxo), `core/diagram-source.ts` (a edição salva, herdada ou o gerado, igual nas duas telas), `LayoutDirection.Consolidated` com a escolha guardada em `core/graph/layout.ts`, e `nodeOfStep` em `core/graph/consolidated.ts`. A coluna de botões do canto subiu para o tema (`.canvas-tools`), e o botão que liga e desliga ganhou o estado ligado no tema.
 - [x] **Achados na verificação:** no consolidado, clicar num passo com o painel recolhido não mostrava contexto nenhum; agora o clique abre o painel. O "Ver somente este fluxo" vale também no consolidado: o desenho é o do recorte, com as cores do dono nos passos que ficam. Fluxo alto abria enquadrado inteiro em 25%, ilegível; agora abre na largura, a partir do topo, e o ⤢ continua enquadrando tudo.
+
+## Fase 29: issues dos extratores `[x]` (abertas pelo dono em 2026-10-30)
+
+- [x] **#30, monorepo Angular:** o TypeScript e o nome do projeto são procurados da pasta do `tsconfig` escolhido até a raiz do repositório, sem sair dela. Antes, o extrator só olhava a raiz, e o app numa subpasta (`frontend/`) falhava com "rode o npm install". Teste EXT-TS-026; ADR-005, README e README do pacote atualizados.
+- [x] **#31, Refit como chamada HTTP entre sistemas:** a chamada a um método de interface com `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]`, `[Head]` ou `[Options]` do namespace `Refit` vira um nó `h:` com verbo e template do atributo, como o `HttpClient` (`{id}` e `{**caminho}` viram o buraco `{}`; query e endereço base saem). O atributo é reconhecido pelo símbolo (namespace `Refit`); sem a dll resolvida, vale o atributo sem símbolo quando o arquivo tem `using Refit` ou o nome qualificado. Sem as chamadas HTTP ligadas, vira nó externo, nunca "sem implementação". Testes: `EXT-REFIT-001` a `EXT-REFIT-006`, `INF-REFIT-001` a `INF-REFIT-003`.
+- [x] **#32, seguir a abertura de modal:** `MatDialog.open(Componente)` e `Dialog.open(Componente)` do CDK (identificados pelo tipo resolvido, não pelo nome da variável) abrem o galho "abre o modal Componente", com os métodos que o template do modal (inline ou `templateUrl`) liga a eventos como passos "ação do usuário no modal" (arestas inferidas), e o `afterClosed()`/`closed` segue como continuação. Respeita `--depth` e não entra em laço se o modal abre a si mesmo. Testes: EXT-TS-090 a EXT-TS-097 (os IDs 030 a 033 já eram do percurso). Fica fora: serviço próprio que repassa para o `MatDialog`.
 
 ## Levantamento de UX do fim do plano `[x]`
 

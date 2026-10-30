@@ -59,7 +59,8 @@ export class GraphBuilder {
   }
 
   // Mesma chamada repetida no mesmo ramo vira uma aresta só (mesmo from, to e label).
-  addAresta(from, to, label, location, http) {
+  // `confianca` só sai de Extracted quando o vínculo é inferido (ex.: ação do usuário num modal).
+  addAresta(from, to, label, location, http, confianca = EdgeConfidence.Extracted) {
     const chave = JSON.stringify([from, to, label ?? null]);
     if (this.#chaves.has(chave)) return;
     this.#chaves.add(chave);
@@ -67,7 +68,7 @@ export class GraphBuilder {
     const order = (this.#proximaOrdem.get(from) ?? 0) + 1;
     this.#proximaOrdem.set(from, order);
     this.#arestas.push(
-      semIndefinidos({ from, to, order, confidence: EdgeConfidence.Extracted, label, location, http }),
+      semIndefinidos({ from, to, order, confidence: confianca, label, location, http }),
     );
   }
 

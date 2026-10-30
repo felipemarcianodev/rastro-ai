@@ -47,6 +47,14 @@ internal sealed partial class FlowWalker(
         ["DeleteAsync"] = "DELETE", ["DeleteFromJsonAsync"] = "DELETE"
     };
 
+    // Atributos do Refit (namespace Refit) e o verbo de cada um. Aceita o nome com ou sem o sufixo Attribute.
+    private const string RefitNamespace = "Refit";
+    private static readonly Dictionary<string, string> RefitVerbs = new(StringComparer.Ordinal)
+    {
+        ["Get"] = "GET", ["Post"] = "POST", ["Put"] = "PUT", ["Patch"] = "PATCH", ["Delete"] = "DELETE",
+        ["Head"] = "HEAD", ["Options"] = "OPTIONS"
+    };
+
     private const string HttpClientType = "System.Net.Http.HttpClient";
     private const string HttpClientJsonType = "System.Net.Http.Json.HttpClientJsonExtensions";
 
@@ -310,6 +318,10 @@ internal sealed partial class FlowWalker(
         if (options.HttpCalls && TryHttpCall(invocation, method, callText, parent, label, ctx))
             return;
 
+        // Interface do Refit: não tem implementação no código (o Refit gera em tempo de execução).
+        if (TryRefitCall(invocation, method, callText, parent, label, ctx))
+            return;
+
         if (IsInSolution(method))
         {
             if (!NeedsImplementation(method))
@@ -372,6 +384,74 @@ internal sealed partial class FlowWalker(
         graph.AddEdge(parent, id, label, location, call);
         _httpCalls.Add(new HttpCallSite(id, call, ctx.Depth));
         return true;
+    }
+
+    // Método de interface do Refit ([Get("/rota")], [Post]...): vira a mesma chamada HTTP do HttpClient, com o
+    // verbo e o template do atributo. Reconhece pelo símbolo do atributo (namespace Refit); se a dll não foi
+    // resolvida, aceita o atributo sem símbolo quando o arquivo importa ou qualifica o namespace Refit.
+    // Com as chamadas HTTP desligadas, vira um nó externo (nunca "sem implementação").
+    private bool TryRefitCall(InvocationExpressionSyntax invocation, IMethodSymbol method, string callText, string parent, string? label, WalkContext ctx)
+    {
+        if (method.ContainingType.TypeKind != TypeKind.Interface) return false;
+        var call = ReadRefitAttribute(method);
+        if (call is null) return false;
+
+        var location = ToLocation(invocation.GetLocation());
+        if (!options.HttpCalls)
+        {
+            var externalId = "x:" + (method.GetDocumentationCommentId() ?? method.ToDisplayString());
+            graph.AddNode(new FlowNode(externalId, NodeKind.External, $"{method.ContainingType.Name}.{method.Name}", method.ToDisplayString(),
+                Project: method.ContainingAssembly?.Name));
+            graph.AddEdge(parent, externalId, label, location);
+            return true;
+        }
+
+        var id = $"h:{location?.File}:{location?.Line}:{invocation.GetLocation().GetLineSpan().StartLinePosition.Character + 1}";
+        var reason = call.Route is null ? UnresolvedReason.RouteNotResolved : UnresolvedReason.NoMatchingEndpoint;
+        graph.AddNode(new FlowNode(id, NodeKind.Unresolved, Truncate($"{call.Method} {call.Route ?? "?"}"),
+            Location: location, Reason: reason, Detail: Truncate(callText)));
+        graph.AddEdge(parent, id, label, location, call);
+        _httpCalls.Add(new HttpCallSite(id, call, ctx.Depth));
+        return true;
+    }
+
+    private static HttpCall? ReadRefitAttribute(IMethodSymbol method)
+    {
+        foreach (var attribute in method.GetAttributes())
+        {
+            var syntax = attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
+            string? name;
+            if (attribute.AttributeClass is { TypeKind: not TypeKind.Error } type)
+            {
+                if (type.ContainingNamespace?.ToDisplayString() != RefitNamespace) continue;
+                name = type.Name;
+            }
+            else if (syntax is not null && ImportsRefit(syntax))
+                name = syntax.Name.ToString().Split('.')[^1];
+            else
+                continue;
+
+            if (name.EndsWith("Attribute", StringComparison.Ordinal)) name = name[..^"Attribute".Length];
+            if (!RefitVerbs.TryGetValue(name, out var verb)) continue;
+
+            var template = attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is string text
+                ? text
+                : (syntax?.ArgumentList?.Arguments.FirstOrDefault()?.Expression as LiteralExpressionSyntax)?.Token.ValueText;
+            return new HttpCall(verb, template is null ? null : RefitRoute(template));
+        }
+        return null;
+    }
+
+    private static bool ImportsRefit(AttributeSyntax syntax) =>
+        syntax.Name.ToString().StartsWith(RefitNamespace + ".", StringComparison.Ordinal)
+        || syntax.SyntaxTree.GetRoot().DescendantNodes().OfType<UsingDirectiveSyntax>()
+            .Any(u => u.Name?.ToString() == RefitNamespace);
+
+    // {id}, {**caminho} e o resto do template do Refit viram o buraco {}; endereço base, query e barras saem.
+    private static string? RefitRoute(string template)
+    {
+        var route = RouteTemplate.Normalize(RefitParameter().Replace(template, RouteTemplate.Hole));
+        return route.Length == 0 ? null : route;
     }
 
     // SendAsync(new HttpRequestMessage(HttpMethod.X, url)): só o formato inline é lido.
@@ -651,6 +731,9 @@ internal sealed partial class FlowWalker(
 
     private static string Truncate(string text) =>
         text.Length <= MaxLabelLength ? text : text[..(MaxLabelLength - 1)] + "…";
+
+    [GeneratedRegex(@"\{[^}]*\}")]
+    private static partial Regex RefitParameter();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();
