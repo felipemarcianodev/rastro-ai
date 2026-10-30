@@ -509,6 +509,102 @@ Próximo passo da Fase 21: o usuário escolhe como quer ver a ramificação, ent
 - [ ] IA com os tokens contratados pela empresa: endpoint próprio (Azure OpenAI, Bedrock ou gateway interno) no modo provedor.
 - [-] ~~Licença por assentos e emissão em lote.~~ Cancelado pela ADR-004.
 
+## Fase 25: fluxo único entre sistemas (C# para C#) `[ ]` (pedido do dono em 2026-10-30)
+
+Hoje cada sistema vira um levantamento separado: o `Survey` tem um repositório, uma solution e um commit; a chamada HTTP para outra API é uma folha (`External`); e a regra cruzada (`CrossFlow`) só olha o mesmo repositório. O dono quer um levantamento só, com um grafo só, que siga a chamada HTTP para dentro da outra API e mostre as bifurcações de cada sistema no mesmo desenho, com a numeração corrida (1, 2, 2.1...) sem recomeçar ao trocar de sistema.
+
+A validação usa uma fixture com sistemas fictícios, no padrão da loja de teste: `api-pedidos` (que cancela o pedido e pede o estorno) e `api-pagamentos` (que estorna por cartão ou boleto).
+
+**Decisões do dono (2026-10-30):**
+- **Edição, prompt e validação continuam num trecho só.** As Fases 7 a 9 assumem um repositório (rascunho, prompt, build e testes). Num levantamento com vários trechos, a tela só deixa editar e validar dentro de um trecho; editar através de sistemas fica para uma fase futura.
+- **Esta fase vem antes da Fase 26:** o fluxo entre APIs já entrega as bifurcações de regra, que ficam no backend, e o modelo de trechos precisa estar provado antes de entrar a tela.
+
+**Modelo:**
+- [ ] `Survey` passa a ter **trechos** (`SurveySegment`): repositório, solution, ponto de entrada, commit e branch. O primeiro trecho é a entrada do fluxo; os outros nascem da costura.
+- [ ] **Id e posição com o trecho:** o id do nó (`m:<símbolo>`, `x:<símbolo>`) e a `SourceLocation` passam a levar o trecho. Dois repositórios com o mesmo namespace (biblioteca compartilhada, cópia de projeto) não podem dar o mesmo id nem o mesmo `arquivo:linha`.
+- [ ] `FlowNode` ganha o sistema (nome do repositório cadastrado); `Project` continua sendo o assembly.
+- [ ] **Ligação HTTP na aresta, não no nó:** o `External` é um nó só para todas as chamadas ao mesmo método (`HttpClient.PostAsync`), por isso o verbo, a rota e o destino ficam na `FlowEdge`, junto da `Location` da chamada que já existe desde a Fase 13. Duas chamadas para APIs diferentes nunca se misturam.
+- [ ] `RastroSchema.Version` sobe; o levantamento antigo é lido como um trecho só.
+- [ ] `/stale` confere o commit de **cada** trecho e diz qual sistema mudou.
+
+**Índice de rotas:**
+- [ ] Por repositório cadastrado, o extrator monta o índice `verbo + template de rota → método` a partir de `[Route]` e `[Http*]` dos controllers e dos `Map*` das minimal APIs.
+- [ ] O índice é guardado por commit, para a costura não precisar da solution do outro sistema aberta só para achar a rota.
+
+**Costura:**
+- [ ] Na chamada HTTP (`HttpClient.*Async`, Refit, client tipado), o extrator tenta resolver o verbo e a rota: literal, interpolação com constantes e `BaseAddress` vinda de `appsettings*.json` do próprio repositório (lido pelo `RepositoryCatalog`, como todo caminho).
+- [ ] Rota resolvida e com par no índice de outro repositório: o percurso continua dentro dele, como um trecho novo, e o `MaxDepth` vale para o total.
+- [ ] Rota não resolvida vira `Unresolved` com o motivo novo `RouteNotResolved = 7`; rota resolvida sem ninguém que a atenda vira `NoMatchingEndpoint = 8`. Fica para a IA propor e o usuário confirmar, como hoje.
+- [ ] Rota que casa com mais de um destino (duas versões da mesma API cadastradas) também vira `Unresolved`, nunca uma escolha silenciosa.
+- [ ] Prova da ligação HTTP no `ProofValidator`: o método de destino existe no trecho de destino e o template da rota casa com o verbo e a rota chamados. O validador deixa de receber uma `Solution` só.
+- [ ] Ciclo entre sistemas (A chama B, que chama A) é cortado no primeiro retorno, como a recursão.
+
+**Memória e tempo (o maior risco da fase):**
+- [ ] Hoje cada análise abre um `MSBuildWorkspace` (`SolutionLoader`). A costura abre **uma solution por vez**: percorre o trecho, guarda o grafo parcial, fecha o workspace e abre o próximo. Nada de três solutions carregadas ao mesmo tempo.
+- [ ] Medição registrada neste plano: pico de memória e tempo de um levantamento com dois e com três trechos, comparados ao de um trecho.
+
+**API, MCP e tela:**
+- [ ] `POST api/surveys` aceita a lista de repositórios em que a costura pode entrar (só os cadastrados; a regra de pasta permitida continua valendo). Lista vazia significa sem costura.
+- [ ] MCP: `propose_edge` aceita a ligação HTTP com a prova nova, e uma ferramenta lista as ligações entre sistemas do levantamento.
+- [ ] A linha do tempo agrupa os passos por sistema (faixa com o nome e a linguagem), e a ligação HTTP tem desenho próprio, com verbo e rota.
+- [ ] Recolher e abrir um trecho inteiro, para o grafo com vários sistemas continuar legível.
+- [ ] O painel do passo mostra o sistema e o commit do trecho.
+- [ ] Edição e validação travadas no trecho (decisão do dono): a tela diz em qual trecho o rascunho vale e não oferece editar passo de outro sistema.
+- [ ] A regra cruzada (`CrossFlow`) passa a olhar os levantamentos que têm algum trecho em comum, e não só o mesmo repositório.
+- [ ] Export Mermaid com um `subgraph` por sistema; o C4 usa os trechos como os sistemas do C1.
+
+**Aceite:**
+- [ ] Fixture `api-pedidos` + `api-pagamentos`: um levantamento a partir de `PedidosController.Cancelar` chega a `EstornosController.Criar` e mostra as duas bifurcações (prazo e forma de pagamento), com a numeração corrida.
+- [ ] Rota montada em tempo de execução vira `Unresolved` com o motivo, e uma proposta da IA com a prova certa fecha a ligação como inferida.
+- [ ] Mudar um commit só no `api-pagamentos` marca o levantamento como desatualizado, apontando esse trecho.
+- [ ] Medição de memória e tempo registrada, com uma solution aberta por vez.
+- [ ] Os testes de arquitetura continuam garantindo que `Rastro.Core` e `Rastro.Extractor` não referenciam IA.
+
+## Fase 26: extrator Angular `[ ]` (pedido do dono em 2026-10-30; depende da Fase 25)
+
+Faz o primeiro passo do fluxo ser o clique na tela. Contraria duas decisões registradas: "Só .NET no início" (`visao.md`) e a leitura do frontend em "Fora de escopo" (abaixo). Por isso começa por uma ADR.
+
+- [ ] **ADR-005, segunda linguagem no extrator:** revoga as duas decisões acima. Opção recomendada: um processo Node com o compilador do TypeScript, chamado pelo `ProcessRunner` (sem shell, com timeout), devolvendo o mesmo `FlowGraph`. Alternativa recusada: parser próprio em C#, que não resolve tipos nem injeção. A ADR decide como o `typescript` chega à máquina sem pesar o `dotnet tool`.
+- [ ] Extrator Angular opcional: ligado só quando o Node está no PATH. Sem Node, a tela não mostra a opção (nada de botão morto).
+- [ ] Ponto de entrada do front: `Componente.metodo` (exemplo: `DetalhePedidoComponent.cancelar`), ou o `(click)` do template que aponta para ele.
+- [ ] Percurso: método, service injetado e `HttpClient.get/post/put/delete`, com `if`, `switch`, `@if` e `*ngIf` do template como bifurcação, e `subscribe` e `pipe` como sequência.
+- [ ] Injeção resolvida pelo construtor e pelo `inject()`. Provider trocado em tempo de execução vira `Unresolved`.
+- [ ] A URL vem de `environment.*` + literal, e a costura da Fase 25 liga a chamada ao controller do backend.
+- [ ] **Aceite:** a fixture `loja-web` + `api-pedidos` + `api-pagamentos` dá, num levantamento só, o fluxo do clique em "Cancelar" até o gateway de pagamento, com as bifurcações dos três sistemas.
+
+## Fase 27: visão consolidada em Mermaid, editável `[ ]` (pedido do dono em 2026-10-30; não depende da Fase 25)
+
+O grafo da tela mostra cada método, bloco e chamada, e o export Mermaid da Fase 12 (`core/graph/export.ts`) só copia esse mesmo grafo em texto. O dono quer outra coisa: uma visão consolidada, de leitura de negócio, com poucos passos em frase ("Usuário abre o detalhe do pedido", "Pedido já enviado?", "API cria o estorno"), renderizada dentro do Rastro, com o texto do Mermaid editável e, principalmente, as cores.
+
+O exemplo que o dono mandou vem de um sistema privado e não entra no repositório: testes, documentação e prints usam a loja fictícia (ADR-004). Só o código que monta a visão é público.
+
+**Geração (determinística, sem IA):**
+- [ ] O grafo vira um `flowchart` consolidado: ficam a entrada, as bifurcações (com o texto de cada ramo), as chamadas externas e HTTP, os `throw` e os retornos antecipados, e os métodos que têm regra escrita. Métodos de passagem (que só repassam a chamada) somem e a ligação atravessa.
+- [ ] O texto do passo vem da regra do nó (`NodeRule`) quando existe e, senão, do nome legível da Fase 23 (`core/graph/reading.ts`).
+- [ ] **Id estável no Mermaid:** derivado do id do nó, não da posição na lista (o export atual usa `n0`, `n1`). Assim a cor e o texto editados continuam no passo certo quando o levantamento é refeito.
+- [ ] Com a Fase 25, um `subgraph` por sistema; antes dela, o fluxo inteiro num bloco só.
+
+**Renderização:**
+- [ ] A biblioteca `mermaid` entra como dependência do front, empacotada no build (nada de CDN: o diagrama nunca sai da máquina) e carregada só quando a visão é aberta, para não pesar nas outras telas.
+- [ ] Segurança: `securityLevel: 'strict'`, sem `click` nem HTML no rótulo. O texto vem do código analisado e da edição do usuário, então o SVG passa pela sanitização antes de entrar na página.
+- [ ] Erro de sintaxe na edição mostra a mensagem e a linha, e a prévia mantém o último desenho válido.
+
+**Edição:**
+- [ ] Editor do texto ao lado da prévia, que se atualiza enquanto o usuário digita (com atraso curto).
+- [ ] **Cores:** clicar num passo da prévia abre a escolha de cor (fundo, borda e texto). A escolha vira `classDef` e `class` no próprio texto do Mermaid, que continua sendo a única fonte. As sugestões saem dos tokens das paletas do tema; o seletor livre aceita qualquer cor.
+- [ ] Estilo por tipo de passo (todas as bifurcações, todas as chamadas externas) num clique, além do estilo de um passo só.
+- [ ] Desfazer e refazer na edição.
+- [ ] A versão editada fica salva no levantamento, com o commit de onde foi gerada. "Gerar de novo" pede confirmação pelo diálogo do tema e mantém as cores e os textos dos passos que ainda existem (pelo id estável); passo que sumiu do código sai, e a tela diz quantos.
+
+**Exportação:**
+- [ ] Copiar o Mermaid, baixar `.mmd`, SVG e PNG da visão consolidada, com as cores editadas.
+
+**Aceite:**
+- [ ] Na fixture da loja, a visão consolidada do cancelamento do pedido sai com as bifurcações e as chamadas externas, sem os métodos de passagem, e o mesmo grafo dá sempre o mesmo texto.
+- [ ] Mudar a cor de um passo e de um tipo de passo, salvar, refazer o levantamento e gerar de novo: as cores continuam.
+- [ ] Texto com `<script>` ou `click` num rótulo não executa nada (teste do front).
+- [ ] A visão só carrega a biblioteca `mermaid` quando aberta (conferido no build pelos chunks).
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] Frontend inteiro levantado em 2026-10-16 (3 agentes de leitura, padrão `ux-refactor-process`): plano em [`docs/frontend/plano-ux-2026-10-16.md`](../frontend/plano-ux-2026-10-16.md), com 46 achados em 4 fases. As Fases A a C (risco baixo e médio) podem ser executadas; a Fase D (texto, esconder, reorganizar) espera aprovação do dono item a item.
@@ -516,8 +612,11 @@ Próximo passo da Fase 21: o usuário escolhe como quer ver a ramificação, ent
 ## Fora de escopo deste plano
 
 - SaaS (o código do cliente nunca sai da máquina dele; ver ADR-002).
-- Linguagens além de C#.
-- Leitura do frontend do repositório-alvo (fluxos Angular).
+- Linguagens além de C#, até a ADR da Fase 26.
+- Leitura do frontend do repositório-alvo (fluxos Angular), até a ADR da Fase 26.
+- Chamada para SaaS de terceiros (gateway, CRM, e-mail): continua `External`, porque o código deles não está na máquina.
+- Mensageria (fila e tópico) como fronteira entre sistemas: mesmo mecanismo da costura HTTP, com um índice de consumidores. Entra depois que a Fase 25 provar o modelo de trechos.
+- Edição, prompt e validação através de vários sistemas (a Fase 25 trava os três num trecho só).
 
 ## Ordem e justificativa
 
