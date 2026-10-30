@@ -1,39 +1,65 @@
 import { FlowGraph, FlowNode, NodeKind } from '../models';
 
 // Desenho do grafo: da esquerda para a direita (padrão), em linha do tempo (Fase 20, no lugar do
-// antigo "de cima para baixo") ou em árvore (a mesma regra, com ligações retas). O desenho fica em
-// timeline-layout.ts; aqui, a direção e o tamanho de cada passo.
+// antigo "de cima para baixo"), em árvore (a mesma regra, com ligações retas) ou consolidado (Fase 28:
+// o Mermaid da visão consolidada, que não passa pelo canvas). O desenho fica em timeline-layout.ts;
+// aqui, a direção e o tamanho de cada passo.
 // O valor 1 era o vertical: quem o tinha guardado passa a abrir a linha do tempo.
 export enum LayoutDirection {
   Horizontal = 0,
   Timeline = 1,
   Tree = 2,
+  Consolidated = 3,
 }
 
 export const LAYOUT_DIRECTION_SLUG: Record<LayoutDirection, string> = {
   [LayoutDirection.Horizontal]: 'horizontal',
   [LayoutDirection.Timeline]: 'linha-do-tempo',
   [LayoutDirection.Tree]: 'arvore',
+  [LayoutDirection.Consolidated]: 'consolidado',
 };
 
-// Ordem do botão que troca o desenho: horizontal, vertical, árvore e de volta.
+// Ordem do botão que troca o desenho: horizontal, vertical, árvore, consolidado e de volta.
 export const NEXT_LAYOUT_DIRECTION: Record<LayoutDirection, LayoutDirection> = {
   [LayoutDirection.Horizontal]: LayoutDirection.Timeline,
   [LayoutDirection.Timeline]: LayoutDirection.Tree,
-  [LayoutDirection.Tree]: LayoutDirection.Horizontal,
+  [LayoutDirection.Tree]: LayoutDirection.Consolidated,
+  [LayoutDirection.Consolidated]: LayoutDirection.Horizontal,
 };
 
 export const LAYOUT_DIRECTION_LABEL: Record<LayoutDirection, string> = {
   [LayoutDirection.Horizontal]: 'da esquerda para a direita',
   [LayoutDirection.Timeline]: 'em linha do tempo',
   [LayoutDirection.Tree]: 'em árvore',
+  [LayoutDirection.Consolidated]: 'consolidado, num desenho só',
 };
 
 export const LAYOUT_DIRECTION_GLYPH: Record<LayoutDirection, string> = {
   [LayoutDirection.Horizontal]: '⇉',
   [LayoutDirection.Timeline]: '↓',
   [LayoutDirection.Tree]: '┣',
+  [LayoutDirection.Consolidated]: '◇',
 };
+
+const DIRECTION_KEY = 'rastro.layoutDirection';
+
+// A escolha do desenho fica no navegador; valor desconhecido (ou armazenamento bloqueado) é o horizontal.
+export function readLayoutDirection(): LayoutDirection {
+  try {
+    const saved = Number(localStorage.getItem(DIRECTION_KEY));
+    return saved === LayoutDirection.Timeline || saved === LayoutDirection.Tree || saved === LayoutDirection.Consolidated ? saved : LayoutDirection.Horizontal;
+  } catch {
+    return LayoutDirection.Horizontal;
+  }
+}
+
+export function saveLayoutDirection(direction: LayoutDirection): void {
+  try {
+    localStorage.setItem(DIRECTION_KEY, String(direction));
+  } catch {
+    // Armazenamento bloqueado: a escolha vale só nesta visita.
+  }
+}
 
 export interface NodeBox {
   x: number;

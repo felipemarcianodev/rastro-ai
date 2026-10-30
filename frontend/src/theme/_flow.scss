@@ -29,6 +29,9 @@
 // nó (e a largura calculada pelo nome não batia). O seletor com .flow-host vence o dele.
 .flow-host .flow-node.f-node {
   padding: var(--space-2) var(--space-3);
+  // O Foblex também centraliza o texto do .f-node: a linha de baixo curta ia para o meio e a
+  // longa (cortada com reticências) encostava à esquerda. Tudo à esquerda, alinhado ao título.
+  text-align: left;
 }
 
 .flow-node {
@@ -904,4 +907,49 @@
   margin: 0;
   font-size: var(--text-sm);
   color: var(--ink-soft);
+}
+
+// Coluna de botões de ícone no canto do desenho (aproximar, afastar, enquadrar, trocar o desenho):
+// a mesma no canvas do grafo e no palco do Mermaid (Fase 28).
+.canvas-tools {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+// Desenhando: a trilha andando no meio do desenho, no canvas, no consolidado e na análise.
+.canvas-status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  pointer-events: none;
+}
+
+// O único movimento automático da tela: a trilha sendo percorrida enquanto a análise roda.
+.walking {
+  width: 160px;
+  height: 32px;
+
+  path {
+    fill: none;
+    stroke: var(--trail);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    stroke-dasharray: 4 6;
+    animation: walk 1.2s linear infinite;
+  }
+}
+
+@keyframes walk {
+  to {
+    stroke-dashoffset: -20;
+  }
 }

@@ -21,6 +21,8 @@ import {
   LAYOUT_DIRECTION_GLYPH,
   LAYOUT_DIRECTION_LABEL,
   LAYOUT_DIRECTION_SLUG,
+  readLayoutDirection,
+  saveLayoutDirection,
   LayoutDirection,
   NEXT_LAYOUT_DIRECTION,
   NodeBox,
@@ -32,7 +34,6 @@ import {
   BLOCK_KIND_SLUG,
   FlowAxis,
   FlowBlock,
-  OutlineItem,
   Port,
   SystemInfo,
   TimelineHead,
@@ -40,8 +41,8 @@ import {
   flowDrawing,
   timelineRoutes,
 } from '../../core/graph/timeline-layout';
-import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, entryCodeOnly, humanName, splitLabel } from '../../core/graph/reading';
-import { FlowSummary, SummaryItem, summarySentence } from '../../core/graph/summary';
+import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, entryCodeOnly, splitLabel } from '../../core/graph/reading';
+import { FlowSummary, flowSummary, readingLabel } from '../../core/graph/summary';
 import { TREE_CONNECTION, TreeConnectionBuilder } from '../../core/graph/tree-connection';
 import { Trail } from '../../core/graph/trail';
 import {
@@ -82,7 +83,6 @@ const WALK_END: Record<StepMove, string> = {
 // Espera a pessoa parar de digitar antes de mover a câmera até o resultado.
 const MATCH_CENTER_DELAY_MS = 250;
 const LEGEND_KEY = 'rastro.legendOpen';
-const DIRECTION_KEY = 'rastro.layoutDirection';
 const BRIEF_KEY = 'rastro.brief';
 // Largura da etiqueta "banco", "mensagem" (Fase 23) no passo.
 const EFFECT_PX = 76;
@@ -160,6 +160,8 @@ export class FlowCanvasComponent {
   readonly comparing = input(false);
   // Resumo do fluxo (Fase 23), montado junto com o desenho, para a visão geral.
   readonly summaryChange = output<FlowSummary>();
+  // Troca de desenho pelo botão: a página troca o canvas pelo desenho consolidado (Fase 28).
+  readonly directionChange = output<LayoutDirection>();
   private readonly moved = signal<Record<string, Point>>({});
   private autoBoxes = new Map<string, NodeBox>();
   protected readonly hasMoved = computed(() => Object.keys(this.moved()).length > 0);
@@ -170,7 +172,7 @@ export class FlowCanvasComponent {
   // Aviso ao leitor de tela quando a seta não tem para onde ir.
   protected readonly walkMessage = signal('');
   protected readonly legendOpen = signal(readLegendOpen());
-  protected readonly direction = signal(readDirection());
+  protected readonly direction = signal(canvasDirection(readLayoutDirection()));
   // Fase 21: a linha do tempo é a regra das três visões. A horizontal segue para a direita, com
   // os galhos descendo; a vertical e a árvore descem, com os galhos à direita. A árvore difere da
   // vertical só pela ligação: reta em ângulo, em vez de curva.
@@ -180,8 +182,7 @@ export class FlowCanvasComponent {
   protected readonly connectionType = computed(() => (this.tree() ? TREE_CONNECTION : 'bezier'));
   // Os comandos aparecem em português (Fases 20 e 21); o código fica no title e no painel do passo.
   // Fase 23: o método aparece pelo nome legível ("Get pending alerts"); a classe vai para baixo.
-  private readonly text: NodeText = (node) =>
-    plainLabel(node) ?? (node.kind === NodeKind.Method || node.kind === NodeKind.Entry ? humanName(splitLabel(node).name) : node.label);
+  private readonly text: NodeText = readingLabel;
   // Modo "Resumo" (Fase 23): só o código do método de entrada, com os métodos chamados fechados.
   protected readonly brief = signal(readBrief());
   protected readonly effectLabel = NODE_EFFECT_LABEL;
@@ -193,7 +194,11 @@ export class FlowCanvasComponent {
   );
   private readonly outcomeOf: NodeText = (node) => lowerFirst(plainLabel(node) ?? outcomeText(node));
   private readonly downward = computed(() => !this.horizontal());
-  protected readonly nextDirection = computed(() => NEXT_LAYOUT_DIRECTION[this.direction()]);
+  // Na edição e na comparação o consolidado não entra: só o canvas mostra o rascunho e as diferenças.
+  protected readonly nextDirection = computed(() => {
+    const next = NEXT_LAYOUT_DIRECTION[this.direction()];
+    return next === LayoutDirection.Consolidated && (this.editing() || this.comparing()) ? NEXT_LAYOUT_DIRECTION[next] : next;
+  });
   protected readonly directionLabel = LAYOUT_DIRECTION_LABEL;
   protected readonly directionGlyph = LAYOUT_DIRECTION_GLYPH;
   // Cada direção guarda o seu arranjo feito à mão.
@@ -345,7 +350,7 @@ export class FlowCanvasComponent {
         const repeats = drawing.repeats;
         this.repeats.set(repeats);
         this.depths.set(drawing.depths);
-        this.summaryChange.emit(this.summaryOf(drawing.outline, graph, originals));
+        this.summaryChange.emit(flowSummary(drawing.outline, graph, originals, effects));
         const moved = readPositions(key);
         this.moved.set(moved);
         this.placed.set(
@@ -568,31 +573,6 @@ export class FlowCanvasComponent {
   }
 
   // Resumo do fluxo (Fase 23): a frase e a lista numerada, com o texto que a tela mostra.
-  private summaryOf(outline: readonly OutlineItem[], drawn: FlowGraph, originals: ReadonlyMap<string, FlowNode>): FlowSummary {
-    const shown = new Map(drawn.nodes.map((n) => [n.id, n]));
-    const effects = this.effects();
-    const textOf = (item: OutlineItem) => {
-      const node = originals.get(item.of);
-      return { text: shown.get(item.of)?.label ?? node?.label ?? item.of, kind: node?.kind ?? NodeKind.Method };
-    };
-    const toItem = (item: OutlineItem): SummaryItem => {
-      const node = originals.get(item.of);
-      const method = node && (node.kind === NodeKind.Method || node.kind === NodeKind.Entry);
-      const effect = effects.get(item.of);
-      return {
-        id: item.of,
-        number: item.number,
-        text: textOf(item).text,
-        ...(method ? { detail: splitLabel(node).owner.replace(/\.$/, '') } : {}),
-        ...(effect !== undefined ? { effect: NODE_EFFECT_LABEL[effect] } : {}),
-        ...(item.head ? { head: item.head } : {}),
-        repeat: item.id !== item.of,
-        children: item.children.map(toItem),
-      };
-    };
-    return { sentence: summarySentence(outline, textOf), items: outline.map(toItem) };
-  }
-
   protected toggleBrief(): void {
     const next = !this.brief();
     this.brief.set(next);
@@ -690,7 +670,12 @@ export class FlowCanvasComponent {
       canvas.centerGroupOrNode(this.graph().entryNodeId, false, false);
       return;
     }
-    canvas._setPosition({ x: FIT_PADDING - entry.x * scale, y: FIT_PADDING - entry.y * scale });
+    // A moldura do sistema (e o rótulo dela) começa antes da entrada: sem contar com ela, o rótulo
+    // abria cortado na borda e atrás da coluna de botões.
+    const frames = this.blocks().filter((b) => b.x <= entry.x && b.y <= entry.y && b.x + b.width >= entry.x + entry.width && b.y + b.height >= entry.y + entry.height);
+    const left = Math.min(entry.x, ...frames.map((b) => b.x));
+    const top = Math.min(entry.y, ...frames.map((b) => b.y));
+    canvas._setPosition({ x: FIT_PADDING - left * scale, y: FIT_PADDING - top * scale });
     canvas.redraw();
   }
 
@@ -792,12 +777,10 @@ export class FlowCanvasComponent {
 
   protected toggleDirection(): void {
     const next = this.nextDirection();
-    this.direction.set(next);
-    try {
-      localStorage.setItem(DIRECTION_KEY, String(next));
-    } catch {
-      // Armazenamento bloqueado: a escolha vale só nesta visita.
-    }
+    saveLayoutDirection(next);
+    // O consolidado é desenhado pela página, no lugar do canvas.
+    if (next !== LayoutDirection.Consolidated) this.direction.set(next);
+    this.directionChange.emit(next);
   }
 
   protected toggleLegend(): void {
@@ -904,11 +887,8 @@ function readBrief(): boolean {
   }
 }
 
-function readDirection(): LayoutDirection {
-  try {
-    const saved = Number(localStorage.getItem(DIRECTION_KEY));
-    return saved === LayoutDirection.Timeline || saved === LayoutDirection.Tree ? saved : LayoutDirection.Horizontal;
-  } catch {
-    return LayoutDirection.Horizontal;
-  }
+// O canvas desenha três direções; o consolidado é outro componente (Fase 28) e, quando o canvas
+// aparece com ele guardado (edição, comparação), começa no horizontal.
+function canvasDirection(direction: LayoutDirection): LayoutDirection {
+  return direction === LayoutDirection.Consolidated ? LayoutDirection.Horizontal : direction;
 }

@@ -1,0 +1,26 @@
+<app-diagram-stage class="stage" [svg]="svg()" [selected]="selectedStep()" [repeats]="true" label="Visão consolidada do fluxo" (pick)="onPick($event)">
+  <button type="button" class="btn btn-icon" (click)="toggleDirection()"
+    [attr.aria-label]="'Desenho ' + directionLabel[LayoutDirection.Consolidated] + '. Trocar para ' + directionLabel[next]"
+    [title]="'Desenhar ' + directionLabel[next]">{{ directionGlyph[next] }}</button>
+</app-diagram-stage>
+
+<div class="consolidated-bar" role="group" aria-label="Visão consolidada">
+  <span class="muted consolidated-hint">{{ edited() ? 'Com as suas cores e textos.' : 'Gerada do fluxo.' }} Clique num passo para ver o contexto.</span>
+  <a class="btn btn-g btn-small" [routerLink]="['/surveys', detail().survey.id, 'visao']">Editar texto e cores</a>
+</div>
+
+@if (renderError()) {
+  <div class="notice is-error consolidated-status" role="alert">
+    <span>O texto salvo da visão não desenha.</span>
+    <a class="btn btn-g btn-small" [routerLink]="['/surveys', detail().survey.id, 'visao']">Corrigir na edição</a>
+  </div>
+} @else if (loading()) {
+  <div class="canvas-status" role="status">
+    <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+      <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+    </svg>
+    <p class="muted">Desenhando a visão consolidada…</p>
+  </div>
+} @else if (selectedHidden()) {
+  <p class="muted consolidated-status" role="status">O passo escolhido não aparece neste desenho (ele só repassa a chamada). O painel mostra o contexto dele.</p>
+}

@@ -3,7 +3,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  height: 36px;
+  height: var(--control-h);
   padding: 0 var(--space-4);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
@@ -36,6 +36,12 @@
   &:hover:not(:disabled) {
     background: var(--surface-sunk);
   }
+
+  // Botão que liga e desliga (a "Visão consolidada" da barra): ligado fica afundado e com borda forte.
+  &[aria-pressed='true'] {
+    background: var(--surface-sunk);
+    border-color: var(--ink-soft);
+  }
 }
 
 // 32px: alvo de toque confortável (WCAG 2.5.8 pede 24px no mínimo).
@@ -50,14 +56,14 @@
 }
 
 .btn-small {
-  height: 32px;
+  height: var(--control-h-sm);
   padding: 0 var(--space-3);
   font-size: var(--text-sm);
 }
 
 .btn-icon {
-  width: 32px;
-  height: 32px;
+  width: var(--control-h-sm);
+  height: var(--control-h-sm);
   padding: 0;
   justify-content: center;
   background: var(--surface);
@@ -96,8 +102,9 @@
 .info-toggle {
   display: inline-grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  // 24px: o alvo mínimo do WCAG 2.5.8 (eram 20px).
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: 1px solid var(--line-strong);
   border-radius: 50%;
@@ -136,7 +143,7 @@
 }
 
 .input {
-  height: 38px;
+  height: var(--control-h);
   padding: 0 var(--space-3);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
@@ -146,6 +153,12 @@
 
   &.code {
     font-family: var(--font-code);
+    font-size: var(--text-sm);
+  }
+
+  // Campo na linha de botões pequenos (busca do grafo, seletor de paleta).
+  &.is-small {
+    height: var(--control-h-sm);
     font-size: var(--text-sm);
   }
 
@@ -656,6 +669,15 @@ select.input {
   .btn {
     justify-self: start;
   }
+}
+
+// Uma sugestão por linha: o texto à esquerda e o botão à direita, no meio da linha (o botão dentro
+// do texto corrido ficava na linha de base e esticava a linha).
+.ai-suggestion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
 }
 
 .ai-suggestion-head {
