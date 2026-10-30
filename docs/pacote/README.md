@@ -36,15 +36,19 @@ Quando uma API chama outra por HTTP, o fluxo continua do outro lado. Ao criar o 
 
 O que não dá para casar vira um passo "não resolvido", com o motivo: rota montada em tempo de execução, sem destino, ou mais de um destino. A IA (com uma chave de API em Configurações) ou o seu agente completa esse passo, e você confirma na tela.
 
+A chamada pode sair pelo `HttpClient` ou por uma interface do Refit (`[Get]`, `[Post]` e os demais verbos); nos dois casos o Rastro casa o verbo e a rota com o controller de destino.
+
 Limites: a edição e a validação de uma mudança valem só para o primeiro sistema do levantamento, e o Rastro mantém uma solution aberta por vez.
 
 ## Fluxo Angular (opcional)
 
 O levantamento pode começar no clique de uma tela Angular, passar pelo service e pelo `HttpClient` e chegar ao controller .NET, com as bifurcações da tela (`@if`, `*ngIf`, `[disabled]`) no começo do fluxo.
 
-Requisitos: o Node no PATH (sem ele, a tela não oferece o Angular) e o `npm install` já feito no repositório Angular, porque o Rastro usa o compilador do TypeScript do próprio projeto.
+Requisitos: o Node no PATH (sem ele, a tela não oferece o Angular) e o `npm install` já feito no repositório Angular (em monorepo, na subpasta do app), porque o Rastro usa o compilador do TypeScript do próprio projeto, procurado da pasta do `tsconfig` até a raiz do repositório.
 
 Ao criar o levantamento, escolha o `tsconfig` do app no lugar da solution (a tela sugere o `tsconfig.app.json` das pastas com `angular.json`) e informe o ponto de entrada como `Componente.metodo`, por exemplo `DetalhePedidoComponent.cancelar`. Para atravessar até as APIs, marque os repositórios .NET em **Seguir chamadas HTTP para**; sem a lista, o levantamento mostra só o trecho Angular.
+
+Se o método abre um modal com `MatDialog.open(Componente)` ou com o `Dialog` do CDK, o fluxo ganha um galho "abre o modal Componente" com os métodos que o template do modal liga a eventos (`(click)`, `(ngSubmit)`), e segue dali até o `HttpClient`. Esse vínculo vem da leitura do HTML do modal (ação do usuário), então as arestas aparecem como inferidas. O `afterClosed()` continua depois do galho. Serviço próprio que repassa para o `MatDialog` não é reconhecido.
 
 O que não dá para ler (URL montada fora do código, classe escolhida só em tempo de execução, sem destino ou mais de um destino, profundidade passada) vira um passo "não resolvido", com o motivo. O leitor de template é leve: só enxerga as condições escritas no HTML do próprio componente, sem o compilador do Angular. A edição e a validação de uma mudança valem só para fluxos .NET.
 

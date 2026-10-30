@@ -89,6 +89,23 @@ function condicaoDoNgIf(valor) {
   return limpar(condicao);
 }
 
+// Nomes dos métodos chamados em eventos do template ((click)="salvar()", (ngSubmit)="enviar(f)"...),
+// na ordem em que aparecem e sem repetição. Só vale chamada direta ou por `this.`; `servico.x()` e
+// `ref.close()` ficam de fora. Também é uma leitura leve, sem o compilador do Angular: serve para
+// listar as ações do usuário num modal, que o TypeScript não prova.
+export function acharMetodosDeEventos(texto) {
+  const semComentarios = texto.replace(/<!--[\s\S]*?-->/g, ' ');
+  const nomes = [];
+  const evento = /\(([\w.:-]+)\)\s*=\s*(?:"([^"]*)"|'([^']*)')/g;
+  for (const m of semComentarios.matchAll(evento)) {
+    const expressao = (m[2] ?? m[3]).replace(/\bthis\./g, '');
+    for (const c of expressao.matchAll(/(^|[^\w.$])([A-Za-z_$][\w$]*)\s*\(/g)) {
+      if (!nomes.includes(c[2])) nomes.push(c[2]);
+    }
+  }
+  return nomes;
+}
+
 // Procura o primeiro elemento cujo evento chama `metodo(` e devolve as guardas que o cercam,
 // da mais externa para a mais interna: [{ condicao, deslocamento }]. Nulo quando nenhum
 // elemento do template chama o método.

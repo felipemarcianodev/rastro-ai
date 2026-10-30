@@ -81,7 +81,7 @@ Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `l
 
 ## Fluxo entre sistemas
 
-Quando uma API chama outra por HTTP, o fluxo não termina na chamada. Ao criar o levantamento, escolha **Seguir chamadas HTTP para** e marque os outros repositórios (eles precisam estar cadastrados no Rastro). O Rastro casa o verbo e a rota de cada chamada com as rotas desses repositórios, abre o método que atende e continua o rastro ali. As bifurcações de cada sistema aparecem no mesmo desenho, e cada passo mostra de qual sistema vem.
+Quando uma API chama outra por HTTP, o fluxo não termina na chamada. Ao criar o levantamento, escolha **Seguir chamadas HTTP para** e marque os outros repositórios (eles precisam estar cadastrados no Rastro). O Rastro reconhece a chamada pelo `HttpClient` (e pelas extensões de `System.Net.Http.Json`) e também por uma interface do Refit (métodos com `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]`, `[Head]` ou `[Options]`, com o verbo e o template tirados do atributo; o `{id}` do template casa com o parâmetro de rota do controller, e o endereço base do `AddRefitClient` é descartado). Ele casa o verbo e a rota de cada chamada com as rotas desses repositórios, abre o método que atende e continua o rastro ali. As bifurcações de cada sistema aparecem no mesmo desenho, e cada passo mostra de qual sistema vem.
 
 O que o compilador não consegue casar vira um passo "não resolvido", com o motivo:
 
@@ -95,7 +95,7 @@ Limites: a edição do fluxo e a validação de uma mudança valem só para o pr
 
 ## Fluxo Angular (opcional)
 
-O levantamento pode começar no clique de uma tela Angular. Requisitos: o **Node** no PATH (o Rastro confere ao subir; sem ele, a tela não oferece o Angular) e o **`npm install` já feito no repositório Angular**, porque o Rastro lê o código com o compilador do TypeScript do próprio projeto (o pacote não leva o compilador, e a versão é a que o projeto usa).
+O levantamento pode começar no clique de uma tela Angular. Requisitos: o **Node** no PATH (o Rastro confere ao subir; sem ele, a tela não oferece o Angular) e o **`npm install` já feito no repositório Angular**, porque o Rastro lê o código com o compilador do TypeScript do próprio projeto (o pacote não leva o compilador, e a versão é a que o projeto usa). Em monorepo, com o app numa subpasta (`frontend/`), o `npm install` vale feito na subpasta: o Rastro procura o TypeScript da pasta do `tsconfig` até a raiz do repositório. Para forçar outro compilador, suba o Rastro com `RASTRO_TYPESCRIPT` apontando para a pasta do pacote `typescript`.
 
 Ao criar o levantamento, no lugar da solution escolha o `tsconfig` do app (a tela sugere o `tsconfig.app.json` das pastas com `angular.json`; qualquer `tsconfig.json` ou `tsconfig.*.json` dentro do repositório serve) e informe o ponto de entrada no formato `Componente.metodo`, por exemplo `DetalhePedidoComponent.cancelar`. O Rastro mostra, no começo do fluxo, as condições da tela que guardam o botão (`@if`, `*ngIf`, `[disabled]`), segue o método pelos services e pelo `HttpClient` e liga cada chamada ao controller que a atende, como no fluxo entre sistemas. Para atravessar até as APIs, marque os repositórios .NET em **Seguir chamadas HTTP para**. Sem essa lista, o levantamento mostra só o trecho Angular, com a chamada HTTP no ponto onde ela sai.
 
@@ -105,6 +105,8 @@ O que o Rastro não consegue ler vira um passo "não resolvido", com o motivo, c
 - **sem destino ou mais de um destino:** nenhum repositório marcado atende a chamada, ou mais de um atende;
 - **classe escolhida só em tempo de execução:** mais de uma implementação possível, ou nenhuma;
 - **limite de profundidade:** a cadeia passou do limite escolhido.
+
+Modais: quando o método abre um modal com `MatDialog.open(Componente)` ou com o `Dialog` do CDK, o fluxo ganha um galho "abre o modal Componente" com os métodos que o template do modal liga a eventos (`(click)`, `(ngSubmit)` e semelhantes, com `template` inline ou `templateUrl`), e o rastro segue dali até o `HttpClient`. Esse vínculo é a ação do usuário lida no HTML do modal, não prova do compilador: as arestas saem como **inferidas** e com o rótulo "ação do usuário no modal". O `afterClosed()` (ou `closed`) continua depois do galho. Um serviço próprio que repassa para o `MatDialog` não é reconhecido: o `open` precisa ser chamado direto no `MatDialog` ou no `Dialog` do CDK, com a classe do componente como primeiro argumento.
 
 Limite do leitor de template: as bifurcações da tela vêm de uma leitura leve do HTML do componente (blocos `@if`, `*ngIf` e `[disabled]` ao redor do elemento com o evento do método), sem o compilador do Angular. Condições montadas de outro jeito (por exemplo, dentro de um componente filho) não aparecem. O tempo máximo da leitura é 120 s e se troca em `Rastro:Analysis:TypeScriptTimeoutSeconds`. A edição do fluxo e a validação de uma mudança, por enquanto, valem só para fluxos .NET.
 
