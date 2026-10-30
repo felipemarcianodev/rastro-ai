@@ -1,0 +1,89 @@
+# Pipeline de release do Rastro AI: testa, empacota e publica o dotnet tool "rastro-ai" no nuget.org.
+#
+# Disparo: push em release/* (ou manual). O repositório é o do GitHub (público), ligado ao
+# Azure DevOps por service connection do GitHub, como o Mirante.
+#
+# Fluxo:
+#   1. Front: dependências, npm audit (só produção) e testes (Karma no Chrome do agente).
+#   2. Backend: build e testes em Release.
+#   3. Pacote pelo scripts/empacotar.ps1 (build do front para o wwwroot e dotnet pack), o mesmo
+#      script da máquina de desenvolvimento.
+#   4. dotnet nuget push para o nuget.org.
+#
+# O agente é Windows, como o job de backend do workflow de PR: o extrator carrega as solutions de
+# teste com o MSBuild do SDK.
+#
+# Variable group "rastro-release": NUGET_API_KEY (secreta), chave do nuget.org com escopo só de
+# push e só para o pacote rastro-ai.
+#
+# A versão vem do arquivo VERSION. O nuget.org não aceita a mesma versão duas vezes: suba o
+# VERSION no PR antes de criar o branch release/<versão>.
+
+name: $(SourceBranchName)-$(Date:yyyyMMdd)$(Rev:.r)
+
+trigger:
+  branches:
+    include:
+      - release/*
+
+pr: none
+
+parameters:
+  - name: publicar
+    displayName: "Publicar o pacote no nuget.org"
+    type: boolean
+    default: true
+
+pool:
+  vmImage: windows-latest
+
+variables:
+  - group: rastro-release
+
+steps:
+  - task: UseNode@1
+    displayName: "Instalar Node.js 22"
+    inputs:
+      version: 22.x
+
+  - script: |
+      npm ci --ignore-scripts || exit /b 1
+      npm audit --omit=dev --audit-level=high || exit /b 1
+    displayName: "Front: dependências e npm audit (produção)"
+    workingDirectory: frontend
+
+  - script: npm run test:ci
+    displayName: "Front: testes"
+    workingDirectory: frontend
+
+  - task: UseDotNet@2
+    displayName: "Instalar .NET 10"
+    inputs:
+      packageType: sdk
+      version: 10.0.x
+
+  - script: |
+      dotnet build backend/Rastro.slnx -c Release || exit /b 1
+      dotnet test backend/Rastro.slnx -c Release --no-build || exit /b 1
+    displayName: "Backend: build e testes"
+
+  - pwsh: ./scripts/empacotar.ps1
+    displayName: "Pacote (front no wwwroot e dotnet pack)"
+
+  - pwsh: |
+      $ErrorActionPreference = 'Stop'
+      $version = (Get-Content VERSION -Raw).Trim()
+      $package = "artifacts/rastro-ai.$version.nupkg"
+      if (-not (Test-Path $package)) { throw "Pacote não encontrado: $package" }
+      if ([string]::IsNullOrWhiteSpace($env:NUGET_API_KEY)) { throw 'NUGET_API_KEY vazia no variable group rastro-release.' }
+      dotnet nuget push $package --api-key $env:NUGET_API_KEY --source https://api.nuget.org/v3/index.json
+      if ($LASTEXITCODE -ne 0) { throw "dotnet nuget push falhou (código $LASTEXITCODE)." }
+    displayName: "Publicar no nuget.org"
+    condition: and(succeeded(), eq('${{ parameters.publicar }}', 'true'))
+    env:
+      # Segredo só chega ao script mapeado em env (nunca aparece no log).
+      NUGET_API_KEY: $(NUGET_API_KEY)
+
+  - publish: artifacts
+    artifact: pacote
+    displayName: "Guardar o pacote como artefato do build"
