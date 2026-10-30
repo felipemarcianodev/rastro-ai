@@ -37,7 +37,7 @@
           <span class="visually-hidden" role="status">{{ s.people.length === 1 ? 'A IA sugeriu 1 pessoa.' : 'A IA sugeriu ' + s.people.length + ' pessoas.' }}</span>
           <p class="ai-suggestion-head"><span class="origin-badge is-provider">IA</span> Sugestões de {{ providerLabel[s.provider] }}, para conferir</p>
           @for (person of s.people; track person.name) {
-            <p><strong>{{ person.name }}</strong>{{ person.description ? ': ' + person.description : '' }}
+            <p class="ai-suggestion-row"><span><strong>{{ person.name }}</strong>{{ person.description ? ': ' + person.description : '' }}</span>
               <button type="button" class="btn btn-g btn-small" (click)="addSuggested(person)" [disabled]="people().length >= maxPeople">Acrescentar</button></p>
           } @empty {
             <p class="muted">{{ acceptedAll() ? 'Todas as sugestões foram acrescentadas. Salve as pessoas para entrarem no C1.' : 'A IA não achou outra pessoa além das já cadastradas.' }}</p>

@@ -71,26 +71,6 @@
   text-align: left;
 }
 
-// O único movimento automático da tela: a trilha sendo percorrida enquanto a análise roda.
-.walking {
-  width: 160px;
-  height: 32px;
-
-  path {
-    fill: none;
-    stroke: var(--trail);
-    stroke-width: 2.5;
-    stroke-linecap: round;
-    stroke-dasharray: 4 6;
-    animation: walk 1.2s linear infinite;
-  }
-}
-
-@keyframes walk {
-  to {
-    stroke-dashoffset: -20;
-  }
-}
 
 @media (max-width: 1000px) {
   .workspace {
@@ -148,8 +128,6 @@
 }
 
 .editbar-help {
-  width: 28px;
-  height: 28px;
   border-radius: 50%;
 }
 
@@ -228,6 +206,8 @@
 
 .editbar-actions {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
   margin-left: auto;
 }
@@ -235,7 +215,9 @@
 .newstep {
   flex: none;
   display: flex;
-  align-items: flex-end;
+  // Pelo topo: os campos têm ajudas de alturas diferentes, e o botão ganha um rótulo vazio para
+  // ficar na linha dos campos.
+  align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-5);
   border-bottom: 1px solid var(--line);
@@ -279,7 +261,6 @@
   .input {
     flex: 1;
     max-width: 420px;
-    height: 32px;
   }
 }
 

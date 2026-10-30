@@ -1,4 +1,6 @@
-import { NodeKind } from '../models';
+import { FlowGraph, FlowNode, NodeKind } from '../models';
+import { NODE_EFFECT_LABEL, NodeEffect, humanName, splitLabel } from './reading';
+import { plainLabel } from './plain';
 import { OutlineItem } from './timeline-layout';
 
 // Resumo do fluxo (Fase 23): uma frase com a linha principal e a lista numerada dos passos, com
@@ -53,4 +55,41 @@ export function summarySentence(outline: readonly OutlineItem[], textOf: (item: 
 function lowerFirst(text: string): string {
   // Sigla ou nome de código ("HTTP", "IMemoryCache") fica como está.
   return /^[A-Z][a-z]/.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text;
+}
+
+// Texto de leitura do passo (Fases 20 a 23): o comando em português; o método pelo nome legível.
+export function readingLabel(node: FlowNode): string {
+  return plainLabel(node) ?? (node.kind === NodeKind.Method || node.kind === NodeKind.Entry ? humanName(splitLabel(node).name) : node.label);
+}
+
+// Resumo do fluxo para a visão geral do painel (Fase 23), a partir do resumo em árvore do desenho.
+// "drawn" é o grafo desenhado (o texto dele); "originals", os nós do levantamento (Fase 28: o
+// canvas e o desenho consolidado montam o mesmo resumo).
+export function flowSummary(
+  outline: readonly OutlineItem[],
+  drawn: FlowGraph,
+  originals: ReadonlyMap<string, FlowNode>,
+  effects: ReadonlyMap<string, NodeEffect>,
+): FlowSummary {
+  const shown = new Map(drawn.nodes.map((n) => [n.id, n]));
+  const textOf = (item: OutlineItem) => {
+    const node = originals.get(item.of);
+    return { text: shown.get(item.of)?.label ?? node?.label ?? item.of, kind: node?.kind ?? NodeKind.Method };
+  };
+  const toItem = (item: OutlineItem): SummaryItem => {
+    const node = originals.get(item.of);
+    const method = node && (node.kind === NodeKind.Method || node.kind === NodeKind.Entry);
+    const effect = effects.get(item.of);
+    return {
+      id: item.of,
+      number: item.number,
+      text: textOf(item).text,
+      ...(method ? { detail: splitLabel(node).owner.replace(/\.$/, '') } : {}),
+      ...(effect !== undefined ? { effect: NODE_EFFECT_LABEL[effect] } : {}),
+      ...(item.head ? { head: item.head } : {}),
+      repeat: item.id !== item.of,
+      children: item.children.map(toItem),
+    };
+  };
+  return { sentence: summarySentence(outline, textOf), items: outline.map(toItem) };
 }
