@@ -81,7 +81,7 @@ Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `l
 
 ## Fluxo entre sistemas
 
-Quando uma API chama outra por HTTP, o fluxo não termina na chamada. Ao criar o levantamento, escolha **Seguir chamadas HTTP para** e marque os outros repositórios (eles precisam estar cadastrados no Rastro). O Rastro casa o verbo e a rota de cada chamada com as rotas desses repositórios, abre o método que atende e continua o rastro ali. As bifurcações de cada sistema aparecem no mesmo desenho, e cada passo mostra de qual sistema vem.
+Quando uma API chama outra por HTTP, o fluxo não termina na chamada. Ao criar o levantamento, escolha **Seguir chamadas HTTP para** e marque os outros repositórios (eles precisam estar cadastrados no Rastro). O Rastro reconhece a chamada pelo `HttpClient` (e pelas extensões de `System.Net.Http.Json`) e também por uma interface do Refit (métodos com `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]`, `[Head]` ou `[Options]`, com o verbo e o template tirados do atributo; o `{id}` do template casa com o parâmetro de rota do controller, e o endereço base do `AddRefitClient` é descartado). Ele casa o verbo e a rota de cada chamada com as rotas desses repositórios, abre o método que atende e continua o rastro ali. As bifurcações de cada sistema aparecem no mesmo desenho, e cada passo mostra de qual sistema vem.
 
 O que o compilador não consegue casar vira um passo "não resolvido", com o motivo:
 

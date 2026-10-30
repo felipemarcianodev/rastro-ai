@@ -537,7 +537,7 @@ A validação usa uma fixture com sistemas fictícios, no padrão da loja de tes
 **Costura:**
 - [x] Na chamada HTTP (`HttpClient.*Async` e as extensões de `System.Net.Http.Json`, também dentro de client tipado), o extrator resolve o verbo e a rota: literal, constante, interpolação e concatenação.
   Mudança no caminho: em vez de ler a `BaseAddress` no `appsettings`, a parte variável no começo da URL é tratada como o endereço base e sai, e a rota casa pelo fim do template quando não casa inteira (`MatchesSuffix`, com pelo menos dois segmentos). Dá o mesmo resultado sem ler configuração por ambiente.
-- [ ] Refit (interface com atributos `[Get]`, `[Post]`): ainda vira chamada externa.
+- [x] Refit (interface com atributos `[Get]`, `[Post]`): feito na Fase 29 (issue #31).
 - [x] Rota resolvida e com par no índice de outro repositório: o percurso continua dentro dele, como um trecho novo, e o `MaxDepth` vale para o total.
 - [x] Rota não resolvida vira `Unresolved` com o motivo novo `RouteNotResolved = 7`; rota resolvida sem ninguém que a atenda vira `NoMatchingEndpoint = 8`. Fica para a IA propor e o usuário confirmar, como hoje.
 - [x] Rota que casa com mais de um destino (duas versões da mesma API cadastradas) também vira `Unresolved`, nunca uma escolha silenciosa.
@@ -639,10 +639,10 @@ O exemplo que o dono mandou vem de um sistema privado e não entra no repositór
 - [x] Levantamento de UX da tela nova ([`plano-ux-2026-10-30-visao-consolidada.md`](../frontend/plano-ux-2026-10-30-visao-consolidada.md)): os achados de risco baixo e médio entraram na fase (escolha do passo pelo teclado, painel de cor flutuante, zoom da prévia, erro que não some, um botão primário só).
 - [ ] **Alto risco, espera aprovação do dono (D15):** trocar o texto de ajuda do link "Visão consolidada" ("O fluxo todo num diagrama Mermaid editável") por algo sem jargão, como "Um desenho único do fluxo, que você pode editar e exportar", e deixar "Mermaid" só nos botões de exportação.
 
-## Fase 29: issues dos extratores `[ ]` (abertas pelo dono em 2026-10-30)
+## Fase 29: issues dos extratores `[x]` (abertas pelo dono em 2026-10-30)
 
 - [x] **#30, monorepo Angular:** o TypeScript e o nome do projeto são procurados da pasta do `tsconfig` escolhido até a raiz do repositório, sem sair dela. Antes, o extrator só olhava a raiz, e o app numa subpasta (`frontend/`) falhava com "rode o npm install". Teste EXT-TS-026; ADR-005, README e README do pacote atualizados.
-- [ ] **#31, Refit:** a chamada a um método de interface com `[Get]`, `[Post]`, `[Put]`, `[Patch]` ou `[Delete]` do Refit vira chamada HTTP com verbo e rota do atributo, e entra na costura da Fase 25 como o `HttpClient`.
+- [x] **#31, Refit como chamada HTTP entre sistemas:** a chamada a um método de interface com `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]`, `[Head]` ou `[Options]` do namespace `Refit` vira um nó `h:` com verbo e template do atributo, como o `HttpClient` (`{id}` e `{**caminho}` viram o buraco `{}`; query e endereço base saem). O atributo é reconhecido pelo símbolo (namespace `Refit`); sem a dll resolvida, vale o atributo sem símbolo quando o arquivo tem `using Refit` ou o nome qualificado. Sem as chamadas HTTP ligadas, vira nó externo, nunca "sem implementação". Testes: `EXT-REFIT-001` a `EXT-REFIT-006`, `INF-REFIT-001` a `INF-REFIT-003`.
 - [x] **#32, seguir a abertura de modal:** `MatDialog.open(Componente)` e `Dialog.open(Componente)` do CDK (identificados pelo tipo resolvido, não pelo nome da variável) abrem o galho "abre o modal Componente", com os métodos que o template do modal (inline ou `templateUrl`) liga a eventos como passos "ação do usuário no modal" (arestas inferidas), e o `afterClosed()`/`closed` segue como continuação. Respeita `--depth` e não entra em laço se o modal abre a si mesmo. Testes: EXT-TS-090 a EXT-TS-097 (os IDs 030 a 033 já eram do percurso). Fica fora: serviço próprio que repassa para o `MatDialog`.
 
 ## Levantamento de UX do fim do plano `[x]`

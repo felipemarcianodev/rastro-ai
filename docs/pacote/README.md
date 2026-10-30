@@ -36,6 +36,8 @@ Quando uma API chama outra por HTTP, o fluxo continua do outro lado. Ao criar o 
 
 O que não dá para casar vira um passo "não resolvido", com o motivo: rota montada em tempo de execução, sem destino, ou mais de um destino. A IA (com uma chave de API em Configurações) ou o seu agente completa esse passo, e você confirma na tela.
 
+A chamada pode sair pelo `HttpClient` ou por uma interface do Refit (`[Get]`, `[Post]` e os demais verbos); nos dois casos o Rastro casa o verbo e a rota com o controller de destino.
+
 Limites: a edição e a validação de uma mudança valem só para o primeiro sistema do levantamento, e o Rastro mantém uma solution aberta por vez.
 
 ## Fluxo Angular (opcional)
