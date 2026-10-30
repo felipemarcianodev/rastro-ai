@@ -4,6 +4,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import os from 'node:os';
 import path from 'node:path';
 import { after, describe, test } from 'node:test';
@@ -233,6 +234,30 @@ describe('erros em pt-BR para o usuário', () => {
     const r = spawnSync(process.execPath, [extrator, '--root', fixture], { encoding: 'utf8' });
     assert.equal(r.status, 1);
     assert.match(JSON.parse(r.stdout).error, /Falta o argumento --project/);
+  });
+});
+
+describe('monorepo (issue #30)', () => {
+  test('o TypeScript e o nome vêm da pasta do tsconfig, não da raiz do repositório', () => {
+    // EXT-TS-026
+    const raiz = criarProjeto({ 'frontend/src/tela.ts': 'export class Tela { abrir(): void {} }' });
+    // Nada de package.json, tsconfig nem node_modules na raiz: o app Angular mora em frontend/.
+    fs.rmSync(path.join(raiz, 'package.json'));
+    fs.renameSync(path.join(raiz, 'tsconfig.json'), path.join(raiz, 'frontend', 'tsconfig.app.json'));
+    fs.renameSync(path.join(raiz, 'src', 'stubs.d.ts'), path.join(raiz, 'frontend', 'src', 'stubs.d.ts'));
+    fs.writeFileSync(path.join(raiz, 'frontend', 'package.json'), JSON.stringify({ name: 'app-do-monorepo' }));
+    // TypeScript "do projeto" na subpasta: avisa que foi ele o carregado e repassa o compilador real.
+    const pacote = path.join(raiz, 'frontend', 'node_modules', 'typescript');
+    fs.mkdirSync(pacote, { recursive: true });
+    fs.writeFileSync(path.join(pacote, 'package.json'), JSON.stringify({ name: 'typescript', main: 'index.js' }));
+    const real = createRequire(import.meta.url).resolve('typescript');
+    fs.writeFileSync(path.join(pacote, 'index.js'), `process.stderr.write('typescript-da-subpasta\\n'); module.exports = require(${JSON.stringify(real)});`);
+
+    const r = rodar(raiz, 'Tela.abrir', { project: 'frontend/tsconfig.app.json', env: { RASTRO_TYPESCRIPT: '' } });
+
+    assert.equal(r.codigo, 0, r.erro);
+    assert.match(r.erro, /typescript-da-subpasta/);
+    assert.equal(r.json.graph.entryPoint, 'Tela.abrir');
   });
 });
 

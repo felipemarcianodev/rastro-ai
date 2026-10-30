@@ -38,11 +38,29 @@ function ler(argv) {
   return { root: opcoes.root, project: opcoes.project, entry: opcoes.entry, depth };
 }
 
-// O compilador vem, nesta ordem: do repositório analisado (a versão que o projeto usa), da variável
-// RASTRO_TYPESCRIPT (caminho do pacote) e, por último, do node_modules deste extrator.
-function carregarTypeScript(raiz) {
+// Pastas do tsconfig até a raiz do repositório, da mais funda para a raiz. Em monorepo o app Angular
+// mora numa subpasta (frontend/), com o próprio package.json e node_modules. Nunca sai do repositório.
+function pastasAteARaiz(raiz, projeto) {
+  const pastas = [];
+  let pasta = path.dirname(path.resolve(raiz, projeto));
+  const dentro = (p) => p === raiz || p.startsWith(raiz + path.sep);
+  while (dentro(pasta)) {
+    pastas.push(pasta);
+    if (pasta === raiz) break;
+    pasta = path.dirname(pasta);
+  }
+  return pastas.length > 0 ? pastas : [raiz];
+}
+
+// O compilador vem, nesta ordem: do repositório analisado (a versão que o projeto usa, procurada da
+// pasta do tsconfig até a raiz), da variável RASTRO_TYPESCRIPT (caminho do pacote) e, por último, do
+// node_modules deste extrator.
+function carregarTypeScript(pastas) {
+  const doRepositorio = pastas
+    .filter((pasta) => fs.existsSync(path.join(pasta, 'node_modules', 'typescript', 'package.json')))
+    .map((pasta) => () => createRequire(path.join(pasta, 'package.json')).resolve('typescript'));
   const tentativas = [
-    () => createRequire(path.join(raiz, 'package.json')).resolve('typescript'),
+    ...doRepositorio,
     () => (process.env.RASTRO_TYPESCRIPT ? createRequire(import.meta.url).resolve(path.resolve(process.env.RASTRO_TYPESCRIPT)) : null),
     () => createRequire(import.meta.url).resolve('typescript'),
   ];
@@ -59,12 +77,17 @@ function carregarTypeScript(raiz) {
   throw new ErroDeUsuario('O TypeScript não foi encontrado no repositório. Rode o npm install nele.');
 }
 
-function nomeDoProjeto(raiz) {
-  try {
-    const pacote = JSON.parse(fs.readFileSync(path.join(raiz, 'package.json'), 'utf8'));
-    if (typeof pacote.name === 'string' && pacote.name) return pacote.name;
-  } catch (erro) {
-    process.stderr.write(`package.json da raiz não pôde ser lido (${erro.code ?? erro.message}).\n`);
+// O nome do projeto é o do package.json mais perto do tsconfig; sem nenhum, o nome da pasta da raiz.
+function nomeDoProjeto(raiz, pastas) {
+  for (const pasta of pastas) {
+    const arquivo = path.join(pasta, 'package.json');
+    if (!fs.existsSync(arquivo)) continue;
+    try {
+      const pacote = JSON.parse(fs.readFileSync(arquivo, 'utf8'));
+      if (typeof pacote.name === 'string' && pacote.name) return pacote.name;
+    } catch (erro) {
+      process.stderr.write(`package.json não pôde ser lido em ${pasta} (${erro.code ?? erro.message}).\n`);
+    }
   }
   return path.basename(raiz);
 }
@@ -76,8 +99,9 @@ function principal() {
     throw new ErroDeUsuario('A pasta do repositório não foi encontrada.');
   }
 
-  const ts = carregarTypeScript(raiz);
-  return extrair(ts, { ...opcoes, root: raiz, projectName: nomeDoProjeto(raiz) });
+  const pastas = pastasAteARaiz(raiz, opcoes.project);
+  const ts = carregarTypeScript(pastas);
+  return extrair(ts, { ...opcoes, root: raiz, projectName: nomeDoProjeto(raiz, pastas) });
 }
 
 function responder(corpo, codigo) {

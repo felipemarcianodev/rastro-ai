@@ -639,6 +639,12 @@ O exemplo que o dono mandou vem de um sistema privado e não entra no repositór
 - [x] Levantamento de UX da tela nova ([`plano-ux-2026-10-30-visao-consolidada.md`](../frontend/plano-ux-2026-10-30-visao-consolidada.md)): os achados de risco baixo e médio entraram na fase (escolha do passo pelo teclado, painel de cor flutuante, zoom da prévia, erro que não some, um botão primário só).
 - [ ] **Alto risco, espera aprovação do dono (D15):** trocar o texto de ajuda do link "Visão consolidada" ("O fluxo todo num diagrama Mermaid editável") por algo sem jargão, como "Um desenho único do fluxo, que você pode editar e exportar", e deixar "Mermaid" só nos botões de exportação.
 
+## Fase 29: issues dos extratores `[ ]` (abertas pelo dono em 2026-10-30)
+
+- [x] **#30, monorepo Angular:** o TypeScript e o nome do projeto são procurados da pasta do `tsconfig` escolhido até a raiz do repositório, sem sair dela. Antes, o extrator só olhava a raiz, e o app numa subpasta (`frontend/`) falhava com "rode o npm install". Teste EXT-TS-026; ADR-005, README e README do pacote atualizados.
+- [ ] **#31, Refit:** a chamada a um método de interface com `[Get]`, `[Post]`, `[Put]`, `[Patch]` ou `[Delete]` do Refit vira chamada HTTP com verbo e rota do atributo, e entra na costura da Fase 25 como o `HttpClient`.
+- [ ] **#32, modal Angular:** `open(Componente, ...)` do MatDialog ou do CDK Dialog abre um galho "abre o modal", com os métodos ligados a eventos no template do modal como ações do usuário, e o `afterClosed()` continua depois do galho. O vínculo é inferido pela leitura do template, e o grafo diz isso.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] Frontend inteiro levantado em 2026-10-16 (3 agentes de leitura, padrão `ux-refactor-process`): plano em [`docs/frontend/plano-ux-2026-10-16.md`](../frontend/plano-ux-2026-10-16.md), com 46 achados em 4 fases. As Fases A a C (risco baixo e médio) podem ser executadas; a Fase D (texto, esconder, reorganizar) espera aprovação do dono item a item.

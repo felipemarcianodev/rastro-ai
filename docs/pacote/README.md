@@ -42,7 +42,7 @@ Limites: a edição e a validação de uma mudança valem só para o primeiro si
 
 O levantamento pode começar no clique de uma tela Angular, passar pelo service e pelo `HttpClient` e chegar ao controller .NET, com as bifurcações da tela (`@if`, `*ngIf`, `[disabled]`) no começo do fluxo.
 
-Requisitos: o Node no PATH (sem ele, a tela não oferece o Angular) e o `npm install` já feito no repositório Angular, porque o Rastro usa o compilador do TypeScript do próprio projeto.
+Requisitos: o Node no PATH (sem ele, a tela não oferece o Angular) e o `npm install` já feito no repositório Angular (em monorepo, na subpasta do app), porque o Rastro usa o compilador do TypeScript do próprio projeto, procurado da pasta do `tsconfig` até a raiz do repositório.
 
 Ao criar o levantamento, escolha o `tsconfig` do app no lugar da solution (a tela sugere o `tsconfig.app.json` das pastas com `angular.json`) e informe o ponto de entrada como `Componente.metodo`, por exemplo `DetalhePedidoComponent.cancelar`. Para atravessar até as APIs, marque os repositórios .NET em **Seguir chamadas HTTP para**; sem a lista, o levantamento mostra só o trecho Angular.
 
