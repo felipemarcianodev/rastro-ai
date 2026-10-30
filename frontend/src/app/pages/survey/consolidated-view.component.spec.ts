@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { stepId } from '../../core/graph/consolidated';
 import { LayoutDirection } from '../../core/graph/layout';
+import { FlowSummary } from '../../core/graph/summary';
 import { DIAGRAM_RENDERER, DiagramRenderer } from '../../core/mermaid-render';
 import { EdgeConfidence, FlowGraph, NodeKind, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
 import { ConsolidatedViewComponent } from './consolidated-view.component';
@@ -58,7 +59,7 @@ function svgOf(text: string): string {
 
 @Component({
   imports: [ConsolidatedViewComponent],
-  template: `<app-consolidated-view [detail]="detail" [focus]="focus()" [selectedId]="selected()" (selectNode)="picked.push($event)" (directionChange)="directions.push($event)" />`,
+  template: `<app-consolidated-view [detail]="detail" [focus]="focus()" [selectedId]="selected()" (selectNode)="picked.push($event)" (directionChange)="directions.push($event)" (summaryChange)="summaries.push($event)" />`,
 })
 class HostComponent {
   readonly detail = detail;
@@ -66,6 +67,7 @@ class HostComponent {
   readonly focus = signal<FlowGraph | null>(null);
   readonly picked: (string | null)[] = [];
   readonly directions: LayoutDirection[] = [];
+  readonly summaries: FlowSummary[] = [];
 }
 
 const wait = () => new Promise((resolve) => setTimeout(resolve, 20));
@@ -104,6 +106,15 @@ describe('ConsolidatedViewComponent (Fase 28)', () => {
     expect(el.textContent).toContain('Gerada do fluxo.');
     pointerClick(el.querySelector(`g.node[id^="flowchart-${stepId('if')}-"]`)!);
     expect(host.picked).toEqual(['if']);
+  });
+
+  // WEB-CVW-007
+  it('abertoDireto_entregaOResumoDoFluxoParaOPainel', async () => {
+    const { host } = await setup();
+
+    expect(host.summaries.length).toBeGreaterThan(0);
+    expect(host.summaries.at(-1)!.items.length).toBeGreaterThan(0);
+    expect(host.summaries.at(-1)!.sentence).toContain('Se x');
   });
 
   // WEB-CVW-002

@@ -85,13 +85,13 @@
 }
 
 .palette {
+  display: inline-flex;
+  align-items: center;
   margin-right: var(--space-2);
 }
 
 .palette-select {
-  height: 32px;
   padding: 0 var(--space-5) 0 var(--space-2);
-  font-size: var(--text-sm);
 }
 
 .gear {

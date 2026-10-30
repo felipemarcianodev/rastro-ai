@@ -172,7 +172,10 @@
             </span>
             <span id="new-intent-error" class="field-error" [hidden]="!newStepErrors().intent">{{ newStepErrors().intent }}</span>
           </div>
-          <button type="submit" class="btn btn-g btn-small">{{ selectedId() ? 'Criar depois do passo escolhido' : 'Criar passo' }}</button>
+          <div class="field">
+            <span class="field-label" aria-hidden="true">&nbsp;</span>
+            <button type="submit" class="btn btn-g">{{ selectedId() ? 'Criar depois do passo escolhido' : 'Criar passo' }}</button>
+          </div>
         </form>
       }
     } @else if (draftMessage(); as message) {
@@ -231,7 +234,7 @@
     @if (searchOpen()) {
       <div class="graph-search" role="search">
         <label class="visually-hidden" for="graph-search">Buscar passo no grafo</label>
-        <input id="graph-search" class="input code" type="search" placeholder="Buscar passo (nome do método, condição…)" autocomplete="off" spellcheck="false"
+        <input id="graph-search" class="input is-small code" type="search" placeholder="Buscar passo (nome do método, condição…)" autocomplete="off" spellcheck="false"
           [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)"
           (keydown.enter)="$event.preventDefault(); stepSearch(1)" (keydown.shift.enter)="$event.preventDefault(); stepSearch(-1)" />
         <span class="muted search-count" role="status">
@@ -265,7 +268,7 @@
     @if (d.survey.status === SurveyStatus.Completed && graph(); as g) {
       <div class="workspace" [class.is-panel-collapsed]="panelCollapsed()">
         @if (showConsolidated()) {
-          <app-consolidated-view [detail]="d" [focus]="focusId() ? g : null" [selectedId]="selectedId()" (selectNode)="pickConsolidated($event)" (directionChange)="onDirection($event)" />
+          <app-consolidated-view [detail]="d" [focus]="focusId() ? g : null" [selectedId]="selectedId()" (selectNode)="pickConsolidated($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
         } @else {
         <app-flow-canvas [graph]="g" [repository]="d.survey.repository" [systems]="systems()"[selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
           [showFramework]="showFramework()" [editing]="editing()" [focusId]="focusId()" [layoutKey]="layoutKey()" [comparing]="!!comparison()" [matchIds]="matchIds()" [noteIds]="notes()" [currentMatch]="currentMatch()" (openSearch)="openSearch()" (selectNode)="select($event)" (toggleFramework)="toggleFramework()"

@@ -34,7 +34,6 @@ import {
   BLOCK_KIND_SLUG,
   FlowAxis,
   FlowBlock,
-  OutlineItem,
   Port,
   SystemInfo,
   TimelineHead,
@@ -42,8 +41,8 @@ import {
   flowDrawing,
   timelineRoutes,
 } from '../../core/graph/timeline-layout';
-import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, entryCodeOnly, humanName, splitLabel } from '../../core/graph/reading';
-import { FlowSummary, SummaryItem, summarySentence } from '../../core/graph/summary';
+import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, entryCodeOnly, splitLabel } from '../../core/graph/reading';
+import { FlowSummary, flowSummary, readingLabel } from '../../core/graph/summary';
 import { TREE_CONNECTION, TreeConnectionBuilder } from '../../core/graph/tree-connection';
 import { Trail } from '../../core/graph/trail';
 import {
@@ -183,8 +182,7 @@ export class FlowCanvasComponent {
   protected readonly connectionType = computed(() => (this.tree() ? TREE_CONNECTION : 'bezier'));
   // Os comandos aparecem em português (Fases 20 e 21); o código fica no title e no painel do passo.
   // Fase 23: o método aparece pelo nome legível ("Get pending alerts"); a classe vai para baixo.
-  private readonly text: NodeText = (node) =>
-    plainLabel(node) ?? (node.kind === NodeKind.Method || node.kind === NodeKind.Entry ? humanName(splitLabel(node).name) : node.label);
+  private readonly text: NodeText = readingLabel;
   // Modo "Resumo" (Fase 23): só o código do método de entrada, com os métodos chamados fechados.
   protected readonly brief = signal(readBrief());
   protected readonly effectLabel = NODE_EFFECT_LABEL;
@@ -352,7 +350,7 @@ export class FlowCanvasComponent {
         const repeats = drawing.repeats;
         this.repeats.set(repeats);
         this.depths.set(drawing.depths);
-        this.summaryChange.emit(this.summaryOf(drawing.outline, graph, originals));
+        this.summaryChange.emit(flowSummary(drawing.outline, graph, originals, effects));
         const moved = readPositions(key);
         this.moved.set(moved);
         this.placed.set(
@@ -575,31 +573,6 @@ export class FlowCanvasComponent {
   }
 
   // Resumo do fluxo (Fase 23): a frase e a lista numerada, com o texto que a tela mostra.
-  private summaryOf(outline: readonly OutlineItem[], drawn: FlowGraph, originals: ReadonlyMap<string, FlowNode>): FlowSummary {
-    const shown = new Map(drawn.nodes.map((n) => [n.id, n]));
-    const effects = this.effects();
-    const textOf = (item: OutlineItem) => {
-      const node = originals.get(item.of);
-      return { text: shown.get(item.of)?.label ?? node?.label ?? item.of, kind: node?.kind ?? NodeKind.Method };
-    };
-    const toItem = (item: OutlineItem): SummaryItem => {
-      const node = originals.get(item.of);
-      const method = node && (node.kind === NodeKind.Method || node.kind === NodeKind.Entry);
-      const effect = effects.get(item.of);
-      return {
-        id: item.of,
-        number: item.number,
-        text: textOf(item).text,
-        ...(method ? { detail: splitLabel(node).owner.replace(/\.$/, '') } : {}),
-        ...(effect !== undefined ? { effect: NODE_EFFECT_LABEL[effect] } : {}),
-        ...(item.head ? { head: item.head } : {}),
-        repeat: item.id !== item.of,
-        children: item.children.map(toItem),
-      };
-    };
-    return { sentence: summarySentence(outline, textOf), items: outline.map(toItem) };
-  }
-
   protected toggleBrief(): void {
     const next = !this.brief();
     this.brief.set(next);
@@ -697,7 +670,12 @@ export class FlowCanvasComponent {
       canvas.centerGroupOrNode(this.graph().entryNodeId, false, false);
       return;
     }
-    canvas._setPosition({ x: FIT_PADDING - entry.x * scale, y: FIT_PADDING - entry.y * scale });
+    // A moldura do sistema (e o rótulo dela) começa antes da entrada: sem contar com ela, o rótulo
+    // abria cortado na borda e atrás da coluna de botões.
+    const frames = this.blocks().filter((b) => b.x <= entry.x && b.y <= entry.y && b.x + b.width >= entry.x + entry.width && b.y + b.height >= entry.y + entry.height);
+    const left = Math.min(entry.x, ...frames.map((b) => b.x));
+    const top = Math.min(entry.y, ...frames.map((b) => b.y));
+    canvas._setPosition({ x: FIT_PADDING - left * scale, y: FIT_PADDING - top * scale });
     canvas.redraw();
   }
 

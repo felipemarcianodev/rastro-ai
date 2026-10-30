@@ -32,8 +32,8 @@
 }
 
 .stage-actual {
-  width: auto;
-  min-width: 36px;
-  padding: 0 var(--space-1);
+  // Mesma largura dos ícones da coluna; o número cabe em letra pequena e de largura fixa.
   font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
 }

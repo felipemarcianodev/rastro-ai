@@ -49,6 +49,10 @@
   --radius-sm: 4px;
   --radius-md: 8px;
 
+  // Altura dos controles: botão e campo na mesma linha batem (antes eram 38, 36 e 32px).
+  --control-h: 36px;
+  --control-h-sm: 32px;
+
   --shadow-lift: 0 1px 2px rgba(29, 42, 46, 0.06), 0 6px 18px rgba(29, 42, 46, 0.08);
   // Foco do teclado em tinta: o âmbar é só da trilha (seleção), para os dois não se confundirem.
   --focus: 0 0 0 2px var(--surface), 0 0 0 4px var(--ink);
