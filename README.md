@@ -117,11 +117,11 @@ Pacote local: `powershell -File scripts/empacotar.ps1` gera `artifacts/rastro-ai
 
 ### Publicar uma versão
 
-A publicação no NuGet é pelo workflow [`release.yml`](.github/workflows/release.yml), com a Publicação Confiável do nuget.org (sem chave de API guardada):
+A publicação no NuGet é feita pelo workflow [`release.yml`](.github/workflows/release.yml), com a Publicação Confiável do nuget.org (sem chave de API guardada):
 
 1. Suba o [`VERSION`](VERSION) (e a versão do `frontend/package.json`) num pull request. O nuget.org não aceita a mesma versão duas vezes, e uma versão publicada não se apaga, só se oculta.
 2. Depois do merge, crie a tag na `main`: `git tag -a v0.1.2 -m "Rastro AI 0.1.2"` e `git push origin v0.1.2`. Tag diferente do `VERSION` é recusada.
-3. O workflow roda os testes do backend e do front, gera o pacote e para no environment `release`, esperando a aprovação do mantenedor ("Review deployments" na execução). Aprovado, publica.
+3. O workflow roda os testes do backend e do front, gera o pacote e para no environment `release`, esperando a aprovação do mantenedor ("Review deployments" na execução). Com a aprovação, ele publica.
 
 ## Como foi construído
 
