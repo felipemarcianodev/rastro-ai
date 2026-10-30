@@ -572,6 +572,39 @@ Faz o primeiro passo do fluxo ser o clique na tela. Contraria duas decisões reg
 - [ ] A URL vem de `environment.*` + literal, e a costura da Fase 25 liga a chamada ao controller do backend.
 - [ ] **Aceite:** a fixture `loja-web` + `api-pedidos` + `api-pagamentos` dá, num levantamento só, o fluxo do clique em "Cancelar" até o gateway de pagamento, com as bifurcações dos três sistemas.
 
+## Fase 27: visão consolidada em Mermaid, editável `[ ]` (pedido do dono em 2026-10-30; não depende da Fase 25)
+
+O grafo da tela mostra cada método, bloco e chamada, e o export Mermaid da Fase 12 (`core/graph/export.ts`) só copia esse mesmo grafo em texto. O dono quer outra coisa: uma visão consolidada, de leitura de negócio, com poucos passos em frase ("Usuário abre o detalhe do pedido", "Pedido já enviado?", "API cria o estorno"), renderizada dentro do Rastro, com o texto do Mermaid editável e, principalmente, as cores.
+
+O exemplo que o dono mandou vem de um sistema privado e não entra no repositório: testes, documentação e prints usam a loja fictícia (ADR-004). Só o código que monta a visão é público.
+
+**Geração (determinística, sem IA):**
+- [ ] O grafo vira um `flowchart` consolidado: ficam a entrada, as bifurcações (com o texto de cada ramo), as chamadas externas e HTTP, os `throw` e os retornos antecipados, e os métodos que têm regra escrita. Métodos de passagem (que só repassam a chamada) somem e a ligação atravessa.
+- [ ] O texto do passo vem da regra do nó (`NodeRule`) quando existe e, senão, do nome legível da Fase 23 (`core/graph/reading.ts`).
+- [ ] **Id estável no Mermaid:** derivado do id do nó, não da posição na lista (o export atual usa `n0`, `n1`). Assim a cor e o texto editados continuam no passo certo quando o levantamento é refeito.
+- [ ] Com a Fase 25, um `subgraph` por sistema; antes dela, o fluxo inteiro num bloco só.
+
+**Renderização:**
+- [ ] A biblioteca `mermaid` entra como dependência do front, empacotada no build (nada de CDN: o diagrama nunca sai da máquina) e carregada só quando a visão é aberta, para não pesar nas outras telas.
+- [ ] Segurança: `securityLevel: 'strict'`, sem `click` nem HTML no rótulo. O texto vem do código analisado e da edição do usuário, então o SVG passa pela sanitização antes de entrar na página.
+- [ ] Erro de sintaxe na edição mostra a mensagem e a linha, e a prévia mantém o último desenho válido.
+
+**Edição:**
+- [ ] Editor do texto ao lado da prévia, que se atualiza enquanto o usuário digita (com atraso curto).
+- [ ] **Cores:** clicar num passo da prévia abre a escolha de cor (fundo, borda e texto). A escolha vira `classDef` e `class` no próprio texto do Mermaid, que continua sendo a única fonte. As sugestões saem dos tokens das paletas do tema; o seletor livre aceita qualquer cor.
+- [ ] Estilo por tipo de passo (todas as bifurcações, todas as chamadas externas) num clique, além do estilo de um passo só.
+- [ ] Desfazer e refazer na edição.
+- [ ] A versão editada fica salva no levantamento, com o commit de onde foi gerada. "Gerar de novo" pede confirmação pelo diálogo do tema e mantém as cores e os textos dos passos que ainda existem (pelo id estável); passo que sumiu do código sai, e a tela diz quantos.
+
+**Exportação:**
+- [ ] Copiar o Mermaid, baixar `.mmd`, SVG e PNG da visão consolidada, com as cores editadas.
+
+**Aceite:**
+- [ ] Na fixture da loja, a visão consolidada do cancelamento do pedido sai com as bifurcações e as chamadas externas, sem os métodos de passagem, e o mesmo grafo dá sempre o mesmo texto.
+- [ ] Mudar a cor de um passo e de um tipo de passo, salvar, refazer o levantamento e gerar de novo: as cores continuam.
+- [ ] Texto com `<script>` ou `click` num rótulo não executa nada (teste do front).
+- [ ] A visão só carrega a biblioteca `mermaid` quando aberta (conferido no build pelos chunks).
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] Frontend inteiro levantado em 2026-10-16 (3 agentes de leitura, padrão `ux-refactor-process`): plano em [`docs/frontend/plano-ux-2026-10-16.md`](../frontend/plano-ux-2026-10-16.md), com 46 achados em 4 fases. As Fases A a C (risco baixo e médio) podem ser executadas; a Fase D (texto, esconder, reorganizar) espera aprovação do dono item a item.
