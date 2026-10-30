@@ -26,7 +26,8 @@ description: Executa um plano faseado em markdown do Rastro AI (`docs/arquitetur
 1. **Contrato:** fase que mexe em backend e frontend começa pelo contrato (rotas, DTOs, enums, erros) num arquivo no scratchpad.
 2. **Agentes (até 3, `model: sonnet`, em paralelo):** posse exclusiva de pastas (Backend, Frontend, Docs). Cada prompt leva a fase, o contrato, as regras aplicáveis, "NÃO faça commit nem push", "não crie sub-agentes" e o que reportar. Não inventar trabalho.
 3. **Integração (Opus):** conferir divergências entre os agentes (nomes, rotas, enums, formatos) e alinhar a doc ao código.
-4. **Portões**, UX quando couber, **commit, push do branch e PR**, aviso ao dono em 2 a 4 linhas, próxima fase.
+4. **Ambiente do cliente:** se a fase mexe no que quem instala o Rastro precisa ter, configurar ou saber (dependência na máquina, pacote, pasta de dados, migration, porta, CLI, MCP, linguagem suportada, o que sai da máquina, CI e release), atualizar no mesmo PR o `README.md`, o `docs/pacote/README.md`, a `visao.md`, a ADR, o `SECURITY.md`, as instruções do MCP, o `CLAUDE.md` e as skills que tratam disso (lista completa na seção "Mudança no ambiente do cliente" do `CLAUDE.md`).
+5. **Portões**, UX quando couber, **commit, push do branch e PR**, aviso ao dono em 2 a 4 linhas, próxima fase.
 
 ## Fim do plano
 Marcar o plano como EXECUTADO, rodar `levantamento-ux` completo, consolidar pendências e resumir ao dono.
