@@ -1,0 +1,5 @@
+<h2>Pedido {{ pedido.id }}</h2>
+
+@if (!pedido.enviado) {
+  <button (click)="cancelar()">Cancelar</button>
+}

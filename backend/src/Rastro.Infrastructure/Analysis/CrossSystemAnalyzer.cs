@@ -16,10 +16,13 @@ public record CrossAnalysis(FlowGraph Graph, IReadOnlyList<SegmentInfo> Segments
 // Costura entre sistemas (Fase 25). Percorre o primeiro trecho, acha pelo índice de rotas quem atende cada
 // chamada HTTP e continua o percurso dentro do outro repositório, como um trecho novo, com os ids prefixados
 // pelo sistema. Abre UMA solution por vez: solta cada uma antes de abrir a próxima.
+// O primeiro trecho pode ser Angular (Fase 26): sai do extrator Node em vez da solution, e as chamadas do
+// HttpClient entram na mesma costura. Sem lista de costura, o levantamento Angular é só o trecho Angular.
 public class CrossSystemAnalyzer(
     ISolutionSource solutions,
     RepositoryCatalog catalog,
     RouteIndexStore routeIndexes,
+    ITypeScriptExtractor typeScript,
     IGitInfo git,
     ILogger<CrossSystemAnalyzer> logger)
 {
@@ -33,6 +36,9 @@ public class CrossSystemAnalyzer(
     public async Task<CrossAnalysis> AnalyzeAsync(
         ResolvedTarget first, string entryPoint, int maxDepth, IReadOnlyList<string> crossRepositories, CancellationToken ct)
     {
+        if (crossRepositories.Count == 0 && first.Language == SourceLanguage.Angular)
+            return new CrossAnalysis((await typeScript.ExtractAsync(first, entryPoint, maxDepth, ct)).Graph, []);
+
         if (crossRepositories.Count == 0)
         {
             var plain = await OpenAsync(first, ct);
@@ -54,19 +60,26 @@ public class CrossSystemAnalyzer(
 
         // Primeiro trecho: sem prefixo, o grafo sai idêntico ao de um levantamento sem costura.
         ExtractionResult firstResult;
-        var handle = await OpenAsync(first, ct);
-        try
+        if (first.Language == SourceLanguage.Angular)
         {
-            firstResult = await FlowExtractor.ExtractWithCallsAsync(handle.Solution, entryPoint,
-                new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = handle.BaseDirectory, HttpCalls = true }, ct);
+            firstResult = await typeScript.ExtractAsync(first, entryPoint, maxDepth, ct);
         }
-        catch (FlowEntryNotFoundException ex)
+        else
         {
-            throw new AnalysisException(ex.Message, ex);
-        }
-        finally
-        {
-            solutions.Release(first);
+            var handle = await OpenAsync(first, ct);
+            try
+            {
+                firstResult = await FlowExtractor.ExtractWithCallsAsync(handle.Solution, entryPoint,
+                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = handle.BaseDirectory, HttpCalls = true }, ct);
+            }
+            catch (FlowEntryNotFoundException ex)
+            {
+                throw new AnalysisException(ex.Message, ex);
+            }
+            finally
+            {
+                solutions.Release(first);
+            }
         }
 
         var nodes = firstResult.Graph.Nodes.ToList();
@@ -257,9 +270,9 @@ public class CrossSystemAnalyzer(
         }
     }
 
-    // Primeira solution do repositório, da mais rasa para a mais funda (a ordem do catálogo).
+    // Primeira solution .NET do repositório, da mais rasa para a mais funda (a ordem do catálogo).
     private ResolvedTarget? ResolveTarget(string repository) =>
-        catalog.Solutions(repository)?.Select(s => catalog.Resolve(repository, s).Target).FirstOrDefault(t => t is not null);
+        catalog.DotNetSolutions(repository)?.Select(s => catalog.Resolve(repository, s).Target).FirstOrDefault(t => t is not null);
 
     private Task<SolutionHandle> OpenAsync(ResolvedTarget target, CancellationToken ct) =>
         solutions.OpenAsync(target, fresh: true, ct);

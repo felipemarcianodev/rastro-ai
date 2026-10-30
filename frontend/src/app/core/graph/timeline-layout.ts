@@ -1,4 +1,4 @@
-import { FlowEdge, FlowGraph, FlowNode, NodeKind } from '../models';
+import { FlowEdge, FlowGraph, FlowNode, NodeKind, SOURCE_LANGUAGE_LABEL, SourceLanguage, SurveySummary } from '../models';
 import { NodeBox, nodeSize } from './layout';
 import { plainBranch } from './plain';
 import { BLOCK_INDENT, BLOCK_PAD, BranchLabel, isSection } from './branches';
@@ -72,9 +72,26 @@ export const BLOCK_KIND_SLUG: Record<BlockKind, string> = {
   [BlockKind.System]: 'system',
 };
 
-// Cabeçalho da moldura do sistema. A plataforma é sempre .NET: o Rastro só lê C# nesta fase.
-export function systemLabel(system: string): string {
-  return `${system} · .NET`;
+// Um sistema do fluxo (o repositório e a linguagem do trecho). O primeiro da lista é o do levantamento.
+export interface SystemInfo {
+  name: string;
+  language: SourceLanguage;
+}
+
+// Os sistemas de um levantamento, na ordem: o do próprio levantamento e depois os trechos
+// costurados. O primeiro trecho, quando a API o lista, repete o levantamento e não entra de novo.
+export function surveySystems(survey: Pick<SurveySummary, 'repository' | 'language' | 'entryPoint' | 'segments'>): SystemInfo[] {
+  const rest = [...(survey.segments ?? [])].sort((a, b) => a.order - b.order);
+  if (rest[0]?.repository === survey.repository && rest[0].entryPoint === survey.entryPoint) rest.shift();
+  return [
+    { name: survey.repository, language: survey.language ?? SourceLanguage.DotNet },
+    ...rest.map((s) => ({ name: s.repository, language: s.language ?? SourceLanguage.DotNet })),
+  ];
+}
+
+// Cabeçalho da moldura do sistema: "<repositório> · <linguagem>" (".NET" ou "Angular").
+export function systemLabel(system: string, language: SourceLanguage = SourceLanguage.DotNet): string {
+  return `${system} · ${SOURCE_LANGUAGE_LABEL[language]}`;
 }
 
 export interface FlowBlock {
@@ -135,6 +152,9 @@ export interface TimelineRoute {
   source: string;
   target: string;
 }
+
+// Id da moldura do primeiro sistema (os das outras levam o id da entrada de cada um).
+const PRIMARY_SYSTEM_ID = 'primary';
 
 // Prefixo do passo repetido.
 export const REPEAT_PREFIX = 'again:';
@@ -200,7 +220,20 @@ function repeatLabel(label: string): string {
 }
 
 // "extraWidth": largura a mais de um passo (a etiqueta "banco", "mensagem"), que a tela desenha.
-export function flowDrawing(graph: FlowGraph, axis: FlowAxis, extraWidth: (node: FlowNode) => number = () => 0): TimelineDrawing {
+// "systems": os sistemas do levantamento, na ordem (o primeiro é o do próprio levantamento). Dão a
+// linguagem de cada moldura; sem eles, todo trecho é .NET.
+export function flowDrawing(
+  graph: FlowGraph,
+  axis: FlowAxis,
+  extraWidth: (node: FlowNode) => number = () => 0,
+  systems: readonly SystemInfo[] = [],
+): TimelineDrawing {
+  // Os nós de outro sistema levam o nome dele; procura entre os trechos depois do primeiro (um
+  // monorepo tem o mesmo nome no primeiro e nos seguintes).
+  const languageOf = (name: string) => (systems.slice(1).find((s) => s.name === name) ?? systems.find((s) => s.name === name))?.language ?? SourceLanguage.DotNet;
+  // Tela Angular que chama outros sistemas: o primeiro também ganha moldura, para mostrar onde a
+  // tela acaba. Fluxo de um sistema só, ou .NET primeiro, segue sem moldura no primeiro.
+  const primary = systems.length > 1 && systems[0].language === SourceLanguage.Angular ? systems[0] : null;
   const down = axis === FlowAxis.Down;
   const gaps = GAPS[axis];
   const nodes = new Map(graph.nodes.map((n) => [n.id, n]));
@@ -270,7 +303,7 @@ export function flowDrawing(graph: FlowGraph, axis: FlowAxis, extraWidth: (node:
       const system = nodes.get(id)?.system;
       if (system && system !== nodes.get(edge.from)?.system) {
         next = Math.max(next, lane.end + gaps.step);
-        const label = systemLabel(system);
+        const label = systemLabel(system, languageOf(system));
         const frame = next;
         next += headLen(label) + (down ? LOOP_HEAD_GAP : 0);
         // Faixa própria: os galhos da entrada (e os de dentro deles) saem dela, e o fim dela entra na
@@ -356,20 +389,30 @@ export function flowDrawing(graph: FlowGraph, axis: FlowAxis, extraWidth: (node:
   };
 
   // A entrada abre a linha principal, logo depois dela.
+  // Com a moldura do primeiro sistema, a entrada desce/avança o cabeçalho e a folga da borda.
+  const primaryLabel = primary ? systemLabel(primary.name, primary.language) : null;
+  const originU = primaryLabel ? headLen(primaryLabel) + (down ? LOOP_HEAD_GAP : 0) : 0;
+  const originV = primaryLabel ? BLOCK_PAD : 0;
   let end = 0;
   const entry = nodes.get(graph.entryNodeId);
   if (entry) {
     const size = measure(entry.id);
-    spans.set(entry.id, { u: 0, v: 0, ...size });
+    spans.set(entry.id, { u: originU, v: originV, ...size });
     const body = (groups.get(entry.id) ?? []).flatMap((g) => g.edges);
-    end = Math.max(size.len, line(body, 0, size.len + gaps.step, { prefix: '', depth: 0, counter: { n: 0 }, into: outline }).end);
+    end = Math.max(originU + size.len, line(body, originV, originU + size.len + gaps.step, { prefix: '', depth: 0, counter: { n: 0 }, into: outline }).end);
   }
   // Passos que a entrada não alcança (um passo novo do rascunho ainda solto) ficam no fim.
   for (const node of graph.nodes) {
     if (spans.has(node.id)) continue;
     const size = measure(node.id);
-    spans.set(node.id, { u: end + gaps.step * 3, v: 0, ...size });
+    spans.set(node.id, { u: end + gaps.step * 3, v: originV, ...size });
     end += gaps.step * 3 + size.len;
+  }
+  // Moldura do primeiro sistema: envolve o desenho todo, e as molduras dos outros sistemas ficam
+  // dentro dela, para o leitor ver onde a tela acaba e a chamada ao outro sistema começa.
+  if (primaryLabel && entry) {
+    const reach = [...spans.values(), ...blocks].reduce((m, s) => ({ u: Math.max(m.u, s.u + s.len), v: Math.max(m.v, s.v + s.thick) }), { u: 0, v: 0 });
+    blocks.push({ id: `system:${PRIMARY_SYSTEM_ID}`, kind: BlockKind.System, label: primaryLabel, u: 0, v: 0, len: reach.u + BLOCK_PAD, thick: reach.v + BLOCK_PAD, sections: [] });
   }
 
   // De u/v para a tela.

@@ -6,6 +6,7 @@ using Rastro.Core.Architecture;
 using Rastro.Core.Graph;
 using Rastro.Core.Prompts;
 using Rastro.Core.Surveys;
+using Rastro.Infrastructure.Analysis;
 using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Processes;
 using Rastro.Infrastructure.Proposals;
@@ -19,6 +20,7 @@ namespace Rastro.Api.Controllers;
 public class SurveysController(
     RastroDbContext db,
     RepositoryCatalog catalog,
+    INodeRuntime node,
     IGitInfo git,
     SurveyQueue queue,
     IOptions<RastroOptions> options,
@@ -48,9 +50,12 @@ public class SurveysController(
             {
                 CatalogError.RepositoryNotAllowed => Error(ErrorCodes.RepositoryNotAllowed, "Repositório fora da lista de permitidos."),
                 CatalogError.SolutionNotFound => Error(ErrorCodes.SolutionNotFound, "Solution não encontrada no repositório."),
-                _ => Error(ErrorCodes.SolutionPathInvalid, "Caminho da solution inválido: use um .sln, .slnx ou .csproj relativo à raiz do repositório.")
+                _ => Error(ErrorCodes.SolutionPathInvalid, "Caminho inválido: use um .sln, .slnx, .csproj ou tsconfig relativo à raiz do repositório.")
             };
         }
+
+        if (target.Language == SourceLanguage.Angular && !node.Available)
+            return Error(ErrorCodes.AngularUnavailable, "O Node não foi encontrado nesta máquina. Instale o Node para levantar fluxos Angular.");
 
         var cross = (request.CrossRepositories ?? [])
             .Where(n => !string.IsNullOrWhiteSpace(n))
@@ -169,7 +174,7 @@ public class SurveysController(
         }
 
         var path = catalog.SourceFile(repository, file ?? string.Empty);
-        if (path is null) return Error(ErrorCodes.SourcePathInvalid, "Arquivo inválido: use um .cs relativo à raiz do repositório.");
+        if (path is null) return Error(ErrorCodes.SourcePathInvalid, "Arquivo inválido: use um .cs, .ts ou .html relativo à raiz do repositório.");
         if (!System.IO.File.Exists(path)) return NotFound();
 
         context = Math.Clamp(context, 0, 40);

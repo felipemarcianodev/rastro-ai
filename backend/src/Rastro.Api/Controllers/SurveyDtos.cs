@@ -7,9 +7,10 @@ namespace Rastro.Api.Controllers;
 public record CreateSurveyRequest(string? Repository, string? SolutionPath, string? EntryPoint, int? MaxDepth, IReadOnlyList<string>? CrossRepositories = null);
 
 // Trecho do levantamento além do primeiro (Fase 25): o repositório de destino de uma chamada HTTP.
-public record SurveySegmentView(int Order, string Repository, string SolutionPath, string EntryPoint, string? CommitHash, string? Branch)
+// Language sai do nome do arquivo de partida (tsconfig = Angular), como no resumo do levantamento (Fase 26).
+public record SurveySegmentView(int Order, string Repository, string SolutionPath, string EntryPoint, string? CommitHash, string? Branch, SourceLanguage Language)
 {
-    public static SurveySegmentView From(SurveySegment s) => new(s.Order, s.Repository, s.SolutionPath, s.EntryPoint, s.CommitHash, s.Branch);
+    public static SurveySegmentView From(SurveySegment s) => new(s.Order, s.Repository, s.SolutionPath, s.EntryPoint, s.CommitHash, s.Branch, SourceLanguages.FromPath(s.SolutionPath));
 }
 
 public record SurveySummary(
@@ -30,13 +31,15 @@ public record SurveySummary(
     DateTimeOffset? StartedAt,
     DateTimeOffset? CompletedAt,
     IReadOnlyList<string> CrossRepositories,
-    IReadOnlyList<SurveySegmentView> Segments)
+    IReadOnlyList<SurveySegmentView> Segments,
+    SourceLanguage Language)
 {
     public static SurveySummary From(Survey s, IEnumerable<SurveySegment>? segments = null) => new(
         s.Id, s.Repository, s.SolutionPath, s.EntryPoint, s.MaxDepth, s.CommitHash, s.Branch, s.Status, s.Error,
         s.SchemaVersion, s.NodeCount, s.EdgeCount, s.UnresolvedCount, s.CreatedAt, s.StartedAt, s.CompletedAt,
         s.ReadCrossRepositories(),
-        (segments ?? []).OrderBy(x => x.Order).Select(SurveySegmentView.From).ToList());
+        (segments ?? []).OrderBy(x => x.Order).Select(SurveySegmentView.From).ToList(),
+        SourceLanguages.FromPath(s.SolutionPath));
 }
 
 public record SurveyDetail(SurveySummary Survey, FlowGraph? Graph);
@@ -96,6 +99,7 @@ public static class ErrorCodes
     public const string RepositoryFolderNotFound = "REPOSITORY_FOLDER_NOT_FOUND";
     public const string RepositoryExists = "REPOSITORY_EXISTS";
     public const string RepositoryNotFound = "REPOSITORY_NOT_FOUND";
+    public const string AngularUnavailable = "ANGULAR_UNAVAILABLE";
     public const string CrossRepositoriesInvalid = "CROSS_REPOSITORIES_INVALID";
     public const string OriginNotAllowed = "ORIGIN_NOT_ALLOWED";
 }

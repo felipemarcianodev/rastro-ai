@@ -14,6 +14,10 @@ import {
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 const POLL_MS = 2500;
+// Caminho de projeto TypeScript escolhido no lugar de uma solution (tsconfig.json, tsconfig.app.json).
+const TSCONFIG_SUFFIX = '.json';
+// Ponto de entrada que parece de componente Angular: "DetalhePedidoComponent.cancelar".
+const COMPONENT_ENTRY = /Component\.\w/;
 const MIN_DEPTH = 1;
 const MAX_DEPTH = 40;
 
@@ -37,6 +41,7 @@ const FIELD_INFO: Record<Field, FieldInfo> = {
     text: [
       'O arquivo .sln ou .slnx que reúne os projetos do sistema. O Rastro compila por ele para saber quem chama quem, inclusive a implementação real atrás de cada interface.',
       'Se houver mais de uma, escolha a que contém o projeto onde está o ponto de entrada.',
+      'Num projeto Angular, a lista traz o tsconfig (como tsconfig.app.json) e o ponto de entrada é Componente.metodo.',
     ],
   },
   entry: {
@@ -129,6 +134,26 @@ export class SurveysPage implements OnInit {
 
   protected readonly hasRepositories = computed(() => this.repositories().length > 0);
 
+  // Fluxo Angular (Fase 26): o caminho escolhido é um tsconfig, e o ponto de entrada vira Componente.metodo.
+  protected isTsconfig(): boolean {
+    return this.solutionPath.endsWith(TSCONFIG_SUFFIX);
+  }
+
+  // null até a API responder; sem resposta, nenhum aviso (não dá para afirmar que falta o Node).
+  protected readonly nodeAvailable = signal<boolean | null>(null);
+
+  // Aviso discreto, só onde ele ajuda: sem Node, num repositório sem nenhuma solution (provável
+  // projeto só Angular) ou quando o ponto de entrada digitado parece de componente. Mostrar a
+  // todo repositório .NET seria ruído.
+  protected nodeNotice(): boolean {
+    return (
+      this.nodeAvailable() === false &&
+      !!this.repository &&
+      !this.loadingSolutions() &&
+      (this.solutions().length === 0 || COMPONENT_ENTRY.test(this.entryPoint))
+    );
+  }
+
   // Costura entre sistemas (Fase 25): desligada por padrão. Os outros repositórios vêm primeiro e
   // o próprio por último (a chamada HTTP de um serviço para ele mesmo).
   protected readonly crossChosen = signal<ReadonlySet<string>>(new Set());
@@ -174,6 +199,11 @@ export class SurveysPage implements OnInit {
     }
     this.loadSurveys();
     this.loadRepositories();
+    this.api.health().subscribe({
+      next: (health) => this.nodeAvailable.set(health?.angular ?? null),
+      // Sem o status, a tela só não avisa sobre o Node; o resto do formulário não depende dele.
+      error: () => this.nodeAvailable.set(null),
+    });
   }
 
   // Estados do campo: carregando, erro com "Tentar de novo" junto dele, vazio (falta configurar).

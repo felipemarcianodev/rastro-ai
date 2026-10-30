@@ -86,6 +86,7 @@ public sealed class RepositoryCommandTests : IDisposable
         var configuration = new ConfigurationBuilder().AddJsonFile(ConfigPath, optional: true, reloadOnChange: true).Build();
         var services = new ServiceCollection();
         services.Configure<RastroOptions>(configuration.GetSection(RastroOptions.Section));
+        services.AddSingleton<Rastro.Infrastructure.Analysis.INodeRuntime>(new Rastro.Tests.Infrastructure.FakeNodeRuntime(false));
         services.AddSingleton<RepositoryCatalog>();
         using var provider = services.BuildServiceProvider();
         var catalog = provider.GetRequiredService<RepositoryCatalog>();

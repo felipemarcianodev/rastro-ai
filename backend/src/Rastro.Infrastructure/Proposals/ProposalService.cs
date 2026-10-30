@@ -102,6 +102,8 @@ public class ProposalService(
         var resolved = catalog.Resolve(survey.Repository, survey.SolutionPath);
         if (resolved.Target is not { } target)
             return new ProposalOutcome(false, "O repositório ou a solution não estão mais disponíveis na configuração.");
+        if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet)
+            return new ProposalOutcome(false, "A prova de proposta ainda não lê código Angular: só nós .NET recebem proposta de destino.");
 
         // Prova conferida contra código diferente do levantado não vale.
         if (survey.CommitHash is not null && await git.HeadAsync(target.RepositoryRoot, ct) is { } head && head.Commit != survey.CommitHash)
@@ -152,7 +154,7 @@ public class ProposalService(
         if (call is null)
             return new ProposalOutcome(false, "A chamada HTTP deste nó não está registrada no grafo; levante o fluxo de novo.");
 
-        var firstSolution = catalog.Solutions(destination)?.FirstOrDefault();
+        var firstSolution = catalog.DotNetSolutions(destination)?.FirstOrDefault();
         var resolved = firstSolution is null ? null : catalog.Resolve(destination, firstSolution).Target;
         if (resolved is null)
             return new ProposalOutcome(false, $"O repositório {destination} não está disponível ou não tem solution na configuração.");

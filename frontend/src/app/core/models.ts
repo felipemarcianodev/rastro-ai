@@ -121,9 +121,21 @@ export interface FlowGraph {
   findings?: Finding[];
 }
 
+// Linguagem de um trecho do fluxo (Fase 26): .NET lê a solution; Angular lê o tsconfig.
+export enum SourceLanguage {
+  DotNet = 0,
+  Angular = 1,
+}
+
+export const SOURCE_LANGUAGE_LABEL: Record<SourceLanguage, string> = {
+  [SourceLanguage.DotNet]: '.NET',
+  [SourceLanguage.Angular]: 'Angular',
+};
+
 // Trecho do fluxo em outro repositório (Fase 25), na ordem em que foi costurado.
 export interface SurveySegment {
   order: number;
+  language: SourceLanguage;
   repository: string;
   solutionPath: string;
   entryPoint: string;
@@ -135,6 +147,7 @@ export interface SurveySummary {
   id: string;
   repository: string;
   solutionPath: string;
+  language: SourceLanguage;
   entryPoint: string;
   maxDepth: number;
   commitHash?: string;
@@ -170,6 +183,14 @@ export interface SurveyStaleness {
   currentCommit?: string;
   // Um por trecho além do primeiro (Fase 25).
   segments: SegmentStaleness[];
+}
+
+// Resposta de GET /api/health. "angular": o Node está instalado e dá para levantar fluxos Angular.
+export interface RastroHealth {
+  status: string;
+  version: string;
+  schemaVersion: number;
+  angular: boolean;
 }
 
 export interface CreateSurveyRequest {
@@ -322,7 +343,8 @@ export const SURVEY_STATUS_LABEL: Record<SurveyStatus, string> = {
 
 export const API_ERROR_MESSAGE: Record<string, string> = {
   REPOSITORY_NOT_ALLOWED: 'Esse repositório não está cadastrado. Cadastre a pasta em Configurações.',
-  SOLUTION_PATH_INVALID: 'Use um .sln, .slnx ou .csproj relativo à raiz do repositório.',
+  SOLUTION_PATH_INVALID: 'Use um .sln, .slnx, .csproj ou tsconfig relativo à raiz do repositório.',
+  ANGULAR_UNAVAILABLE: 'O Node não foi encontrado nesta máquina. Instale o Node para levantar fluxos Angular.',
   SOLUTION_NOT_FOUND: 'Não há solution nesse caminho.',
   ENTRY_POINT_REQUIRED: 'Informe o ponto de entrada, por exemplo PedidosController.Criar.',
   DEPTH_OUT_OF_RANGE: 'A profundidade precisa ficar entre 1 e 40.',
