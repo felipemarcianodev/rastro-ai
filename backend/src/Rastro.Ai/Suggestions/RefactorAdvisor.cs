@@ -60,7 +60,7 @@ public class RefactorAdvisor(RastroDbContext db, RepositoryCatalog catalog, AiGa
 
         var finding = findings[findingIndex];
         var node = graph.Nodes.FirstOrDefault(n => n.Id == finding.NodeId);
-        var code = node?.Location is null ? string.Empty : await CodeAsync(survey.Repository, node.Location, ct);
+        var code = node?.Location is null ? string.Empty : await CodeAsync(node.System ?? survey.Repository, node.Location, ct);
 
         var user = new StringBuilder();
         user.AppendLine($"Achado: {finding.Kind} ({finding.Severity}). {finding.Message}");

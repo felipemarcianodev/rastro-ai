@@ -18,9 +18,15 @@
 
     <h2 id="node-title" class="node-title code">{{ breakable(node.label) }}</h2>
 
+    @if (origin(node); as from) {
+      <p class="origin code muted">Sistema {{ from.system }}@if (from.commit) { · commit {{ from.commit }}}</p>
+    }
+
     @if (editing()) {
       <div class="edit-block" role="group" aria-label="Editar este passo">
-        @if (node.change === ChangeKind.Removed) {
+        @if (node.system) {
+          <p class="foreign">{{ foreignMessage }}.</p>
+        } @else if (node.change === ChangeKind.Removed) {
           <p>Este passo sai do fluxo no rascunho.</p>
           <button type="button" class="btn btn-g btn-small" (click)="restoreStep.emit(node.id)">Restaurar passo</button>
         } @else {
@@ -187,7 +193,9 @@
                 @if (link.edge.label) { <span class="code">{{ link.edge.label }}</span> }
                 <span [class]="'conf is-' + edgeSlug(link.edge)">{{ edgeDescription(link.edge) }}</span>
               </span>
-              @if (editing() && link.edge.change !== ChangeKind.Removed) {
+              @if (editing() && (node.system || link.other?.system)) {
+                <span class="link-actions muted">{{ foreignMessage }}</span>
+              } @else if (editing() && link.edge.change !== ChangeKind.Removed) {
                 <span class="link-actions">
                   <button type="button" class="btn btn-g btn-small" (click)="removeEdge.emit(link.edge)" [attr.aria-label]="'Remover a ligação com ' + link.other?.label">Remover ligação</button>
                 </span>
@@ -210,7 +218,9 @@
                 @if (link.edge.label) { <span class="code">{{ link.edge.label }}</span> }
                 <span [class]="'conf is-' + edgeSlug(link.edge)">{{ edgeDescription(link.edge) }}</span>
               </span>
-              @if (editing() && link.edge.change !== ChangeKind.Removed) {
+              @if (editing() && (node.system || link.other?.system)) {
+                <span class="link-actions muted">{{ foreignMessage }}</span>
+              } @else if (editing() && link.edge.change !== ChangeKind.Removed) {
                 <span class="link-actions">
                   <button type="button" class="btn btn-g btn-small" (click)="removeEdge.emit(link.edge)" [attr.aria-label]="'Remover a ligação com ' + link.other?.label">Remover ligação</button>
                 </span>

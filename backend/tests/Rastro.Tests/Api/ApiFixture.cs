@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -71,7 +72,7 @@ public sealed class ApiFixture : IAsyncLifetime
     }
 
     // Os mesmos serviços que o servidor MCP registra, apontando para o banco e o repositório de teste.
-    public ServiceProvider McpServices(IDictionary<string, string?>? extraSettings = null)
+    public ServiceProvider McpServices(IDictionary<string, string?>? extraSettings = null, Action<IServiceCollection>? configure = null)
     {
         var settings = new Dictionary<string, string?>
         {
@@ -87,6 +88,7 @@ public sealed class ApiFixture : IAsyncLifetime
         services.AddRastroCore(configuration);
         services.AddSingleton<ISolutionSource, FixtureSolutionSource>();
         services.AddScoped<RastroTools>();
+        configure?.Invoke(services);
         return services.BuildServiceProvider();
     }
 
@@ -142,8 +144,53 @@ public class RastroApiFactory(string connectionString) : WebApplicationFactory<R
 }
 
 // Abre a fixture Alerts no lugar da solution do repositório (mesmos caminhos relativos).
+// Repositório registrado com Use(...) abre a fixture dele (a costura entre sistemas, Fase 25) e deixa
+// o rastro de cada abertura e liberação, para o teste conferir que só uma solution fica aberta por vez.
 public class FixtureSolutionSource : ISolutionSource
 {
-    public Task<SolutionHandle> OpenAsync(ResolvedTarget target, bool fresh, CancellationToken ct) =>
-        Task.FromResult(new SolutionHandle(FixtureWorkspace.Load("Alerts"), FixtureWorkspace.FixturesRoot));
+    private static readonly ConcurrentDictionary<string, string> Fixtures = new(StringComparer.OrdinalIgnoreCase);
+
+    private readonly object _gate = new();
+    private readonly List<string> _events = [];
+    private int _open;
+    private int _maxOpen;
+
+    public static void Use(string repository, string fixture) => Fixtures[repository] = fixture;
+
+    public static void Forget(string repository) => Fixtures.TryRemove(repository, out _);
+
+    // "open:<repositório>" e "release:<repositório>", na ordem em que aconteceram (só dos repositórios registrados).
+    public IReadOnlyList<string> Events
+    {
+        get { lock (_gate) return _events.ToList(); }
+    }
+
+    // O maior número de solutions abertas ao mesmo tempo.
+    public int MaxOpen
+    {
+        get { lock (_gate) return _maxOpen; }
+    }
+
+    public Task<SolutionHandle> OpenAsync(ResolvedTarget target, bool fresh, CancellationToken ct)
+    {
+        if (!Fixtures.TryGetValue(target.RepositoryName, out var fixture))
+            return Task.FromResult(new SolutionHandle(FixtureWorkspace.Load("Alerts"), FixtureWorkspace.FixturesRoot));
+
+        lock (_gate)
+        {
+            _events.Add("open:" + target.RepositoryName);
+            _maxOpen = Math.Max(_maxOpen, ++_open);
+        }
+        return Task.FromResult(new SolutionHandle(FixtureWorkspace.Load(fixture), Path.Combine(FixtureWorkspace.FixturesRoot, fixture)));
+    }
+
+    public void Release(ResolvedTarget target)
+    {
+        if (!Fixtures.ContainsKey(target.RepositoryName)) return;
+        lock (_gate)
+        {
+            _events.Add("release:" + target.RepositoryName);
+            _open--;
+        }
+    }
 }

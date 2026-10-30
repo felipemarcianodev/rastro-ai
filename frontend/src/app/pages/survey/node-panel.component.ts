@@ -25,12 +25,14 @@ import {
   PROPOSAL_ORIGIN_SLUG,
   SourceLocation,
   SourceSnippet,
+  SurveySegment,
   UNRESOLVED_REASON_HELP,
   UNRESOLVED_REASON_LABEL,
 } from '../../core/models';
-import { breakable } from '../../core/format';
+import { breakable, shortCommit } from '../../core/format';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { EditorLinks } from '../../core/editor-links';
+import { FOREIGN_EDIT_MESSAGE } from '../../core/graph/draft-editor';
 import { rulesTimeline } from '../../core/graph/rules-timeline';
 import { collapsedOwner } from '../../core/graph/collapse';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
@@ -50,6 +52,10 @@ export class NodePanelComponent {
 
   readonly surveyId = input.required<string>();
   readonly repository = input('');
+  // Commit do primeiro trecho e trechos de outros sistemas (Fase 25), para dizer de onde o passo vem.
+  readonly commitHash = input<string | undefined>(undefined);
+  readonly segments = input<SurveySegment[]>([]);
+  protected readonly foreignMessage = FOREIGN_EDIT_MESSAGE;
   protected readonly editor = inject(EditorLinks);
   readonly graph = input.required<FlowGraph>();
   // Resumo do fluxo (Fase 23), montado pelo canvas a partir do desenho.
@@ -132,7 +138,7 @@ export class NodePanelComponent {
   // Passos para ligar a partir do selecionado (teclado no lugar de arrastar).
   protected readonly connectOptions = computed(() => {
     const node = this.selected();
-    return node ? this.graph().nodes.filter((n) => n.id !== node.id && n.change !== ChangeKind.Removed && !collapsedOwner(n.id)) : [];
+    return node ? this.graph().nodes.filter((n) => n.id !== node.id && !n.system && n.change !== ChangeKind.Removed && !collapsedOwner(n.id)) : [];
   });
 
   protected readonly timeline = computed(() => rulesTimeline(this.graph()));
@@ -203,7 +209,8 @@ export class NodePanelComponent {
 
       this.loadingSnippet.set(true);
       clearTimeout(this.snippetTimer);
-      this.snippetTimer = setTimeout(() => this.api.source(this.surveyId(), place.file, place.line).subscribe({
+      const system = node?.system;
+      this.snippetTimer = setTimeout(() => this.api.source(this.surveyId(), place.file, place.line, undefined, system).subscribe({
         next: (snippet) => {
           this.snippet.set(snippet);
           this.loadingSnippet.set(false);
@@ -268,7 +275,18 @@ export class NodePanelComponent {
 
   protected editorLink(node: FlowNode): string | null {
     const place = this.placeOf(node);
-    return place ? this.editor.link(this.repository(), place.file, place.line) : null;
+    return place ? this.editor.link(node.system ?? this.repository(), place.file, place.line) : null;
+  }
+
+  // De onde o passo vem: o sistema (repositório) e o commit do trecho. Só aparece quando o fluxo
+  // passa por mais de um sistema; o primeiro usa o repositório e o commit do levantamento.
+  protected origin(node: FlowNode): { system: string; commit?: string } | null {
+    // Levantamento antigo pode vir sem "segments": tratado como um sistema só.
+    const segments = this.segments() ?? [];
+    if (segments.length === 0) return null;
+    const system = node.system ?? this.repository();
+    const commit = node.system ? segments.find((s) => s.repository === node.system)?.commitHash : this.commitHash();
+    return { system, commit: commit ? shortCommit(commit) : undefined };
   }
 
   // O link vscode:// abre pelo próprio navegador (sem passar pelo sanitizador do [href]).

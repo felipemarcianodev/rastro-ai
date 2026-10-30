@@ -27,6 +27,7 @@ public class SurveysController(
     Rastro.Infrastructure.Architecture.DeploymentReader deployments) : ControllerBase
 {
     private const int ListLimit = 100;
+    private const int MaxCrossRepositories = 10;
 
     [HttpPost]
     public async Task<ActionResult<SurveySummary>> Create(CreateSurveyRequest request, CancellationToken ct)
@@ -51,8 +52,24 @@ public class SurveysController(
             };
         }
 
+        var cross = (request.CrossRepositories ?? [])
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .Select(n => n.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        if (cross.Count > MaxCrossRepositories)
+            return Error(ErrorCodes.CrossRepositoriesInvalid, $"A costura aceita no máximo {MaxCrossRepositories} repositórios.");
+        for (var i = 0; i < cross.Count; i++)
+        {
+            // Nome canônico da configuração: a costura compara por ele depois.
+            var registered = catalog.Names().FirstOrDefault(n => string.Equals(n, cross[i], StringComparison.OrdinalIgnoreCase));
+            if (registered is null)
+                return Error(ErrorCodes.RepositoryNotAllowed, "Repositório da costura fora da lista de permitidos.");
+            cross[i] = registered;
+        }
+
         var head = await git.HeadAsync(target.RepositoryRoot, ct);
-        var survey = Survey.Create(target.RepositoryName, target.SolutionRelativePath, entryPoint, maxDepth, head?.Commit, head?.Branch, clock.GetUtcNow());
+        var survey = Survey.Create(target.RepositoryName, target.SolutionRelativePath, entryPoint, maxDepth, head?.Commit, head?.Branch, clock.GetUtcNow(), cross);
         db.Surveys.Add(survey);
         await db.SaveChangesAsync(ct);
         await queue.EnqueueAsync(survey.Id, ct);
@@ -67,7 +84,11 @@ public class SurveysController(
             .OrderByDescending(s => s.CreatedAt)
             .Take(ListLimit)
             .ToListAsync(ct);
-        return surveys.Select(SurveySummary.From).ToList();
+        // Uma consulta só para os trechos de todos os levantamentos da página (sem N+1).
+        var ids = surveys.Select(s => s.Id).ToList();
+        var segments = (await db.SurveySegments.AsNoTracking().Where(g => ids.Contains(g.SurveyId)).ToListAsync(ct))
+            .ToLookup(g => g.SurveyId);
+        return surveys.Select(s => SurveySummary.From(s, segments[s.Id])).ToList();
     }
 
     [HttpGet("{id:guid}")]
@@ -76,7 +97,8 @@ public class SurveysController(
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
         if (survey is null) return NotFound();
 
-        return new SurveyDetail(SurveySummary.From(survey), survey.ReadGraph());
+        var segments = await db.SurveySegments.AsNoTracking().Where(g => g.SurveyId == id).ToListAsync(ct);
+        return new SurveyDetail(SurveySummary.From(survey, segments), survey.ReadGraph());
     }
 
     // Excluir levantamento (Fase 13): some com rascunho, propostas, validações, pessoas do C4 e
@@ -110,18 +132,43 @@ public class SurveysController(
         var head = root is null ? null : await git.HeadAsync(root, ct);
         var stale = survey.CommitHash is not null && head is not null && head.Commit != survey.CommitHash;
 
-        return new SurveyStaleness(stale, survey.CommitHash, head?.Commit);
+        // Um item por trecho além do primeiro (Fase 25): diz qual sistema mudou.
+        var segments = new List<SegmentStaleness>();
+        var segmentHeads = new Dictionary<string, GitHead?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var segment in await db.SurveySegments.AsNoTracking().Where(g => g.SurveyId == id).OrderBy(g => g.Order).ToListAsync(ct))
+        {
+            if (!segmentHeads.TryGetValue(segment.Repository, out var segmentHead))
+            {
+                var segmentRoot = catalog.RootOf(segment.Repository);
+                segmentHeads[segment.Repository] = segmentHead = segmentRoot is null ? null : await git.HeadAsync(segmentRoot, ct);
+            }
+            var segmentStale = segment.CommitHash is not null && segmentHead is not null && segmentHead.Commit != segment.CommitHash;
+            segments.Add(new SegmentStaleness(segment.Repository, segmentStale, segment.CommitHash, segmentHead?.Commit));
+        }
+
+        return new SurveyStaleness(stale || segments.Any(g => g.Stale), survey.CommitHash, head?.Commit, segments);
     }
 
     // Trecho do código em volta de uma linha (o arquivo atual do disco, que pode ter mudado
     // desde o levantamento: a tela avisa quando o levantamento está desatualizado).
     [HttpGet("{id:guid}/source")]
-    public async Task<ActionResult<SourceSnippet>> Source(Guid id, [FromQuery] string? file, [FromQuery] int line, [FromQuery] int context = 8, CancellationToken ct = default)
+    public async Task<ActionResult<SourceSnippet>> Source(Guid id, [FromQuery] string? file, [FromQuery] int line, [FromQuery] int context = 8, [FromQuery] string? system = null, CancellationToken ct = default)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
         if (survey is null) return NotFound();
 
-        var path = catalog.SourceFile(survey.Repository, file ?? string.Empty);
+        // O arquivo é do repositório do levantamento ou de um trecho dele (Fase 25); outro nome é recusado.
+        var repository = survey.Repository;
+        if (!string.IsNullOrWhiteSpace(system))
+        {
+            var segmentRepositories = await db.SurveySegments.AsNoTracking().Where(g => g.SurveyId == id).Select(g => g.Repository).ToListAsync(ct);
+            var known = segmentRepositories.Append(survey.Repository)
+                .FirstOrDefault(r => string.Equals(r, system.Trim(), StringComparison.OrdinalIgnoreCase));
+            if (known is null) return Error(ErrorCodes.SourcePathInvalid, "Sistema fora deste levantamento.");
+            repository = known;
+        }
+
+        var path = catalog.SourceFile(repository, file ?? string.Empty);
         if (path is null) return Error(ErrorCodes.SourcePathInvalid, "Arquivo inválido: use um .cs relativo à raiz do repositório.");
         if (!System.IO.File.Exists(path)) return NotFound();
 
@@ -165,7 +212,7 @@ public class SurveysController(
         if (survey.ReadGraph() is not { } original)
             return Error(ErrorCodes.DraftInvalid, "O levantamento ainda não tem grafo para editar.");
 
-        var errors = DraftValidator.Validate(original, draft);
+        var errors = DraftValidator.Validate(original, draft).Concat(ForeignSystemEdits(original, draft)).ToList();
         if (errors.Count > 0)
         {
             var problem = new ProblemDetails { Status = StatusCodes.Status400BadRequest, Title = "Rascunho inválido." };
@@ -179,6 +226,18 @@ public class SurveysController(
         else stored.Update(draft, clock.GetUtcNow());
         await db.SaveChangesAsync(ct);
         return draft;
+    }
+
+    // Edição só no primeiro sistema do fluxo (decisão do dono, Fase 25): marcar, mexer ou ligar um passo de
+    // outro sistema não vale, porque o rascunho, o prompt e a validação enxergam um repositório só.
+    private static IEnumerable<string> ForeignSystemEdits(FlowGraph original, FlowGraph draft)
+    {
+        var foreign = original.Nodes.Where(n => n.System is not null).Select(n => n.Id).ToHashSet(StringComparer.Ordinal);
+        if (foreign.Count == 0) yield break;
+
+        var touched = draft.Nodes.Any(n => foreign.Contains(n.Id) && (n.Change is not null || n.Intent is not null))
+                      || draft.Edges.Any(e => e.Change is not null && (foreign.Contains(e.From) || foreign.Contains(e.To)));
+        if (touched) yield return "Edição só no primeiro sistema do fluxo.";
     }
 
     [HttpDelete("{id:guid}/draft")]
@@ -365,8 +424,12 @@ public class SurveysController(
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
         if (survey?.ReadGraph() is not { } graph) return NotFound();
 
+        // Irmãos (Fase 25): têm o mesmo repositório como principal ou como trecho, comparando com o principal e os trechos deste.
+        var mine = (await db.SurveySegments.AsNoTracking().Where(g => g.SurveyId == id).Select(g => g.Repository).ToListAsync(ct))
+            .Append(survey.Repository).Distinct().ToList();
         var siblings = await db.Surveys.AsNoTracking()
-            .Where(s => s.Repository == survey.Repository && s.EntryPoint != survey.EntryPoint && s.Status == SurveyStatus.Completed)
+            .Where(s => s.Id != id && s.EntryPoint != survey.EntryPoint && s.Status == SurveyStatus.Completed
+                        && (mine.Contains(s.Repository) || db.SurveySegments.Any(g => g.SurveyId == s.Id && mine.Contains(g.Repository))))
             .OrderByDescending(s => s.CreatedAt)
             .Take(ListLimit)
             .ToListAsync(ct);

@@ -16,7 +16,7 @@ import {
 import { Latest } from '../../core/graph/latest';
 import { StepMove, stepFrom } from '../../core/graph/keyboard';
 import { COLLAPSED_PREFIX, collapsedOwner } from '../../core/graph/collapse';
-import { SvgColors, toMermaid, toSvg } from '../../core/graph/export';
+import { SvgColors, httpLabel, toMermaid, toSvg } from '../../core/graph/export';
 import {
   LAYOUT_DIRECTION_GLYPH,
   LAYOUT_DIRECTION_LABEL,
@@ -125,6 +125,8 @@ interface IndexedEdge {
 })
 export class FlowCanvasComponent {
   readonly graph = input.required<FlowGraph>();
+  // Repositório do levantamento: nomeia o primeiro sistema no Mermaid exportado (Fase 25).
+  readonly repository = input<string | undefined>(undefined);
   readonly selectedId = input<string | null>(null);
   readonly trail = input<Trail | null>(null);
   readonly selectNode = output<string | null>();
@@ -240,6 +242,7 @@ export class FlowCanvasComponent {
   protected readonly kindLabel = NODE_KIND_LABEL;
   protected readonly changeLabel = CHANGE_KIND_LABEL;
   protected readonly EdgeConfidence = EdgeConfidence;
+  protected readonly httpLabel = httpLabel;
   protected readonly collapsedPrefix = COLLAPSED_PREFIX;
   protected readonly NodeKind = NodeKind;
   private fitted = false;
@@ -447,6 +450,7 @@ export class FlowCanvasComponent {
         const target = route?.target.slice(route.target.indexOf(':') + 1);
         if (route && !route.source.startsWith(Port.Side) && target && depths.get(target) === 0) classes.push('edge-main');
         if (kinds.get(item.edge.to) === NodeKind.Throw) classes.push('edge-exit');
+        if (item.edge.http) classes.push('is-http');
         if (item.edge.change !== undefined) classes.push(`edge-change-${CHANGE_KIND_SLUG[item.edge.change]}`);
         if (trail) classes.push(trail.edgeIndexes.has(item.index) ? 'edge-trail' : 'edge-dim');
         return [item.index, classes.join(' ')] as const;
@@ -523,6 +527,7 @@ export class FlowCanvasComponent {
   }
 
   // Legenda mostra os modos ligados agora (comparação, busca, recolhidos, anotações).
+  protected readonly hasHttp = computed(() => this.graph().edges.some((e) => !!e.http));
   protected readonly hasCollapsed = computed(() => this.graph().nodes.some((n) => !!collapsedOwner(n.id)));
 
   protected meta(node: FlowNode): string {
@@ -756,6 +761,7 @@ export class FlowCanvasComponent {
       inferred: color('--inferred'),
       confirmed: color('--confirmed'),
       unresolved: color('--unresolved'),
+      http: color('--kind-decision'),
     };
     const svg = toSvg(this.display(), boxes, colors, this.direction(), { repeats: this.repeats(), heads: this.shownHeads() });
     if (!svg) return null;
@@ -764,7 +770,7 @@ export class FlowCanvasComponent {
   }
 
   exportMermaid(): string {
-    return toMermaid(this.display(), this.direction());
+    return toMermaid(this.display(), this.direction(), this.repository());
   }
 
   centerAfterLayout(id: string): void {

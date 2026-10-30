@@ -129,6 +129,13 @@ export class SurveysPage implements OnInit {
 
   protected readonly hasRepositories = computed(() => this.repositories().length > 0);
 
+  // Costura entre sistemas (Fase 25): desligada por padrão. Os outros repositórios vêm primeiro e
+  // o próprio por último (a chamada HTTP de um serviço para ele mesmo).
+  protected readonly crossChosen = signal<ReadonlySet<string>>(new Set());
+  protected readonly crossSelf = signal(false);
+  protected readonly crossOthers = computed(() => this.repositories().filter((r) => r.name !== this.repositorySignal()));
+  private readonly repositorySignal = signal('');
+
   protected readonly query = signal('');
   protected readonly filter = signal(SurveyFilter.All);
   protected readonly filters = [SurveyFilter.All, SurveyFilter.Completed, SurveyFilter.InProgress, SurveyFilter.Failed];
@@ -181,6 +188,9 @@ export class SurveysPage implements OnInit {
         this.retry = null;
         if (retry && repos.some((r) => r.name === retry.repository)) {
           this.selectRepository(retry.repository, retry.solutionPath);
+          const cross = retry.crossRepositories ?? [];
+          this.crossChosen.set(new Set(cross.filter((n) => n !== retry.repository)));
+          this.crossSelf.set(cross.includes(retry.repository));
           // Depois do render: o foco vai ao ponto de entrada, com o texto selecionado para trocar.
           setTimeout(() => this.host.nativeElement.querySelector<HTMLInputElement>('#entry')?.select());
         } else if (repos.length === 1) this.selectRepository(repos[0].name);
@@ -192,8 +202,18 @@ export class SurveysPage implements OnInit {
     });
   }
 
+  protected toggleCross(name: string, on: boolean): void {
+    const next = new Set(this.crossChosen());
+    if (on) next.add(name);
+    else next.delete(name);
+    this.crossChosen.set(next);
+  }
+
   protected selectRepository(name: string, preferredSolution = ''): void {
     this.repository = name;
+    this.repositorySignal.set(name);
+    // O repositório escolhido deixa de ser "outro": sai da lista de costura.
+    this.toggleCross(name, false);
     this.solutionPath = '';
     this.solutions.set([]);
     if (!name) return;
@@ -232,12 +252,14 @@ export class SurveysPage implements OnInit {
     }
 
     this.submitting.set(true);
+    const cross = this.crossRepositories();
     this.api
       .createSurvey({
         repository: this.repository,
         solutionPath: this.solutionPath,
         entryPoint: this.entryPoint.trim(),
         maxDepth: this.maxDepth,
+        ...(cross.length > 0 ? { crossRepositories: cross } : {}),
       })
       .subscribe({
         next: (created) => this.router.navigate(['/surveys', created.id]),
@@ -246,6 +268,12 @@ export class SurveysPage implements OnInit {
           this.submitting.set(false);
         },
       });
+  }
+
+  // Os outros marcados, na ordem do cadastro, e o próprio repositório por último.
+  private crossRepositories(): string[] {
+    const others = this.crossOthers().map((r) => r.name).filter((name) => this.crossChosen().has(name));
+    return this.crossSelf() ? [...others, this.repository] : others;
   }
 
   private validate(): Partial<Record<Field, string>> {

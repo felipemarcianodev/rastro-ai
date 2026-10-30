@@ -509,7 +509,9 @@ Próximo passo da Fase 21: o usuário escolhe como quer ver a ramificação, ent
 - [ ] IA com os tokens contratados pela empresa: endpoint próprio (Azure OpenAI, Bedrock ou gateway interno) no modo provedor.
 - [-] ~~Licença por assentos e emissão em lote.~~ Cancelado pela ADR-004.
 
-## Fase 25: fluxo único entre sistemas (C# para C#) `[ ]` (pedido do dono em 2026-10-30)
+## Fase 25: fluxo único entre sistemas (C# para C#) `[x]` (pedido do dono em 2026-10-30)
+
+**Status: concluída em 2026-10-30.** Prints em `docs/telas/fase-25/` (APIs fictícias da loja, as mesmas das fixtures).
 
 Hoje cada sistema vira um levantamento separado: o `Survey` tem um repositório, uma solution e um commit; a chamada HTTP para outra API é uma folha (`External`); e a regra cruzada (`CrossFlow`) só olha o mesmo repositório. O dono quer um levantamento só, com um grafo só, que siga a chamada HTTP para dentro da outra API e mostre as bifurcações de cada sistema no mesmo desenho, com a numeração corrida (1, 2, 2.1...) sem recomeçar ao trocar de sistema.
 
@@ -520,45 +522,60 @@ A validação usa uma fixture com sistemas fictícios, no padrão da loja de tes
 - **Esta fase vem antes da Fase 26:** o fluxo entre APIs já entrega as bifurcações de regra, que ficam no backend, e o modelo de trechos precisa estar provado antes de entrar a tela.
 
 **Modelo:**
-- [ ] `Survey` passa a ter **trechos** (`SurveySegment`): repositório, solution, ponto de entrada, commit e branch. O primeiro trecho é a entrada do fluxo; os outros nascem da costura.
-- [ ] **Id e posição com o trecho:** o id do nó (`m:<símbolo>`, `x:<símbolo>`) e a `SourceLocation` passam a levar o trecho. Dois repositórios com o mesmo namespace (biblioteca compartilhada, cópia de projeto) não podem dar o mesmo id nem o mesmo `arquivo:linha`.
-- [ ] `FlowNode` ganha o sistema (nome do repositório cadastrado); `Project` continua sendo o assembly.
-- [ ] **Ligação HTTP na aresta, não no nó:** o `External` é um nó só para todas as chamadas ao mesmo método (`HttpClient.PostAsync`), por isso o verbo, a rota e o destino ficam na `FlowEdge`, junto da `Location` da chamada que já existe desde a Fase 13. Duas chamadas para APIs diferentes nunca se misturam.
-- [ ] `RastroSchema.Version` sobe; o levantamento antigo é lido como um trecho só.
-- [ ] `/stale` confere o commit de **cada** trecho e diz qual sistema mudou.
+- [x] `Survey` passa a ter **trechos** (`SurveySegment`): repositório, solution, ponto de entrada, commit e branch. O primeiro trecho é a entrada do fluxo; os outros nascem da costura.
+- [x] **Id e posição com o trecho:** o id do nó (`m:<símbolo>`, `x:<símbolo>`) e a `SourceLocation` passam a levar o trecho. Dois repositórios com o mesmo namespace (biblioteca compartilhada, cópia de projeto) não podem dar o mesmo id nem o mesmo `arquivo:linha`.
+  Feito: os nós de outro sistema têm o id prefixado (`<repositório>::<id>`, `SystemIds`) e o campo `System`; a `Location` continua relativa à raiz daquele repositório, e o `GET source` recebe `system`. O primeiro sistema mantém os ids de antes, então anotações e levantamentos antigos continuam valendo.
+- [x] `FlowNode` ganha o sistema (nome do repositório cadastrado); `Project` continua sendo o assembly.
+- [x] **Ligação HTTP na aresta, não no nó:** o `External` é um nó só para todas as chamadas ao mesmo método (`HttpClient.PostAsync`), por isso o verbo, a rota e o destino ficam na `FlowEdge`, junto da `Location` da chamada que já existe desde a Fase 13. Duas chamadas para APIs diferentes nunca se misturam.
+- [x] `RastroSchema.Version` sobe; o levantamento antigo é lido como um trecho só.
+- [x] `/stale` confere o commit de **cada** trecho e diz qual sistema mudou.
 
 **Índice de rotas:**
-- [ ] Por repositório cadastrado, o extrator monta o índice `verbo + template de rota → método` a partir de `[Route]` e `[Http*]` dos controllers e dos `Map*` das minimal APIs.
-- [ ] O índice é guardado por commit, para a costura não precisar da solution do outro sistema aberta só para achar a rota.
+- [x] Por repositório cadastrado, o extrator monta o índice `verbo + template de rota → método` a partir de `[Route]` e `[Http*]` dos controllers e dos `Map*` das minimal APIs.
+- [x] O índice é guardado por commit, para a costura não precisar da solution do outro sistema aberta só para achar a rota.
 
 **Costura:**
-- [ ] Na chamada HTTP (`HttpClient.*Async`, Refit, client tipado), o extrator tenta resolver o verbo e a rota: literal, interpolação com constantes e `BaseAddress` vinda de `appsettings*.json` do próprio repositório (lido pelo `RepositoryCatalog`, como todo caminho).
-- [ ] Rota resolvida e com par no índice de outro repositório: o percurso continua dentro dele, como um trecho novo, e o `MaxDepth` vale para o total.
-- [ ] Rota não resolvida vira `Unresolved` com o motivo novo `RouteNotResolved = 7`; rota resolvida sem ninguém que a atenda vira `NoMatchingEndpoint = 8`. Fica para a IA propor e o usuário confirmar, como hoje.
-- [ ] Rota que casa com mais de um destino (duas versões da mesma API cadastradas) também vira `Unresolved`, nunca uma escolha silenciosa.
-- [ ] Prova da ligação HTTP no `ProofValidator`: o método de destino existe no trecho de destino e o template da rota casa com o verbo e a rota chamados. O validador deixa de receber uma `Solution` só.
-- [ ] Ciclo entre sistemas (A chama B, que chama A) é cortado no primeiro retorno, como a recursão.
+- [x] Na chamada HTTP (`HttpClient.*Async` e as extensões de `System.Net.Http.Json`, também dentro de client tipado), o extrator resolve o verbo e a rota: literal, constante, interpolação e concatenação.
+  Mudança no caminho: em vez de ler a `BaseAddress` no `appsettings`, a parte variável no começo da URL é tratada como o endereço base e sai, e a rota casa pelo fim do template quando não casa inteira (`MatchesSuffix`, com pelo menos dois segmentos). Dá o mesmo resultado sem ler configuração por ambiente.
+- [ ] Refit (interface com atributos `[Get]`, `[Post]`): ainda vira chamada externa.
+- [x] Rota resolvida e com par no índice de outro repositório: o percurso continua dentro dele, como um trecho novo, e o `MaxDepth` vale para o total.
+- [x] Rota não resolvida vira `Unresolved` com o motivo novo `RouteNotResolved = 7`; rota resolvida sem ninguém que a atenda vira `NoMatchingEndpoint = 8`. Fica para a IA propor e o usuário confirmar, como hoje.
+- [x] Rota que casa com mais de um destino (duas versões da mesma API cadastradas) também vira `Unresolved`, nunca uma escolha silenciosa.
+- [x] Prova da ligação HTTP no `ProofValidator`: o método de destino existe no trecho de destino e o template da rota casa com o verbo e a rota chamados. O validador deixa de receber uma `Solution` só.
+- [x] Ciclo entre sistemas (A chama B, que chama A) é cortado no primeiro retorno, como a recursão.
 
 **Memória e tempo (o maior risco da fase):**
-- [ ] Hoje cada análise abre um `MSBuildWorkspace` (`SolutionLoader`). A costura abre **uma solution por vez**: percorre o trecho, guarda o grafo parcial, fecha o workspace e abre o próximo. Nada de três solutions carregadas ao mesmo tempo.
-- [ ] Medição registrada neste plano: pico de memória e tempo de um levantamento com dois e com três trechos, comparados ao de um trecho.
+- [x] Hoje cada análise abre um `MSBuildWorkspace` (`SolutionLoader`). A costura abre **uma solution por vez**: percorre o trecho, guarda o grafo parcial, fecha o workspace e abre o próximo. Nada de três solutions carregadas ao mesmo tempo.
+- [x] Medição registrada neste plano: pico de memória e tempo de um levantamento com dois e com três trechos, comparados ao de um trecho.
+  Medido em 2026-10-30 com três repositórios .NET reais (cópias das APIs fictícias, cada um com a sua solution e o seu git), API nova a cada cenário, memória da API somada à dos processos filhos (o MSBuild carrega a solution num processo à parte):
+
+  | Levantamento | Trechos | Nós | Pico de memória | Tempo |
+  |---|---|---|---|---|
+  | `PedidosController.Cancelar`, sem costura | 1 | 7 | 240 MB | 4,3 s |
+  | Seguindo para `api-pagamentos` | 2 | 14 | 301 MB | 5,9 s |
+  | Seguindo para `api-pagamentos` e `api-notificacoes` | 3 | 16 | 319 MB | 7,4 s |
+
+  Cada trecho a mais custa cerca de 1,5 s (a carga da solution) e pouca memória, porque a solution anterior é fechada antes de abrir a próxima.
 
 **API, MCP e tela:**
-- [ ] `POST api/surveys` aceita a lista de repositórios em que a costura pode entrar (só os cadastrados; a regra de pasta permitida continua valendo). Lista vazia significa sem costura.
-- [ ] MCP: `propose_edge` aceita a ligação HTTP com a prova nova, e uma ferramenta lista as ligações entre sistemas do levantamento.
-- [ ] A linha do tempo agrupa os passos por sistema (faixa com o nome e a linguagem), e a ligação HTTP tem desenho próprio, com verbo e rota.
-- [ ] Recolher e abrir um trecho inteiro, para o grafo com vários sistemas continuar legível.
-- [ ] O painel do passo mostra o sistema e o commit do trecho.
-- [ ] Edição e validação travadas no trecho (decisão do dono): a tela diz em qual trecho o rascunho vale e não oferece editar passo de outro sistema.
-- [ ] A regra cruzada (`CrossFlow`) passa a olhar os levantamentos que têm algum trecho em comum, e não só o mesmo repositório.
-- [ ] Export Mermaid com um `subgraph` por sistema; o C4 usa os trechos como os sistemas do C1.
+- [x] `POST api/surveys` aceita a lista de repositórios em que a costura pode entrar (só os cadastrados; a regra de pasta permitida continua valendo). Lista vazia significa sem costura.
+- [x] MCP: `propose_edge` aceita a ligação HTTP com a prova nova, e uma ferramenta lista as ligações entre sistemas do levantamento.
+- [x] A linha do tempo agrupa os passos por sistema (faixa com o nome e a linguagem), e a ligação HTTP tem desenho próprio, com verbo e rota.
+- [x] Recolher e abrir um trecho inteiro, para o grafo com vários sistemas continuar legível.
+- [x] O painel do passo mostra o sistema e o commit do trecho.
+- [x] Edição e validação travadas no trecho (decisão do dono): a tela diz em qual trecho o rascunho vale e não oferece editar passo de outro sistema.
+- [x] A regra cruzada (`CrossFlow`) passa a olhar os levantamentos que têm algum trecho em comum, e não só o mesmo repositório.
+- [x] Export Mermaid com um `subgraph` por sistema; o C4 usa os trechos como os sistemas do C1.
+- [x] A IA (modo provedor) completa a chamada HTTP sem destino com o repositório de destino (`system`), lendo as rotas dos repositórios da costura; regra e sugestão leem o código do repositório do passo.
+- [x] Documentação para o cliente: `README.md`, `docs/pacote/README.md` e `visao.md`, pela regra nova do `CLAUDE.md` ("Mudança no ambiente do cliente").
+- [x] **Defeitos achados no uso:** a moldura do sistema cobria só a primeira linha do trecho e deixava os galhos de fora; e, na visão consolidada, a entrada de outro sistema sumia como método de passagem, e a seta "VERBO rota" caía no meio da outra API. Os dois foram corrigidos.
 
 **Aceite:**
-- [ ] Fixture `api-pedidos` + `api-pagamentos`: um levantamento a partir de `PedidosController.Cancelar` chega a `EstornosController.Criar` e mostra as duas bifurcações (prazo e forma de pagamento), com a numeração corrida.
-- [ ] Rota montada em tempo de execução vira `Unresolved` com o motivo, e uma proposta da IA com a prova certa fecha a ligação como inferida.
-- [ ] Mudar um commit só no `api-pagamentos` marca o levantamento como desatualizado, apontando esse trecho.
-- [ ] Medição de memória e tempo registrada, com uma solution aberta por vez.
-- [ ] Os testes de arquitetura continuam garantindo que `Rastro.Core` e `Rastro.Extractor` não referenciam IA.
+- [x] Fixture `api-pedidos` + `api-pagamentos`: um levantamento a partir de `PedidosController.Cancelar` chega a `EstornosController.Criar` e mostra as duas bifurcações (prazo e forma de pagamento), com a numeração corrida.
+- [x] Rota montada em tempo de execução vira `Unresolved` com o motivo, e uma proposta da IA com a prova certa fecha a ligação como inferida.
+- [x] Mudar um commit só no `api-pagamentos` marca o levantamento como desatualizado, apontando esse trecho.
+- [x] Medição de memória e tempo registrada, com uma solution aberta por vez.
+- [x] Os testes de arquitetura continuam garantindo que `Rastro.Core` e `Rastro.Extractor` não referenciam IA.
 
 ## Fase 26: extrator Angular `[ ]` (pedido do dono em 2026-10-30; depende da Fase 25)
 

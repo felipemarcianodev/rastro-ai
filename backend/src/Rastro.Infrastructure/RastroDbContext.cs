@@ -15,6 +15,8 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
     public DbSet<SurveyArchitecture> SurveyArchitectures => Set<SurveyArchitecture>();
     public DbSet<NodeNote> NodeNotes => Set<NodeNote>();
     public DbSet<SurveyDiagram> SurveyDiagrams => Set<SurveyDiagram>();
+    public DbSet<SurveySegment> SurveySegments => Set<SurveySegment>();
+    public DbSet<RouteIndex> RouteIndexes => Set<RouteIndex>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -27,6 +29,7 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             survey.Property(s => s.CommitHash).HasMaxLength(64);
             survey.Property(s => s.Branch).HasMaxLength(200);
             survey.Property(s => s.Error).HasMaxLength(2000);
+            survey.Property(s => s.CrossRepositoriesJson).HasMaxLength(2000);
             survey.HasIndex(s => s.CreatedAt);
             survey.HasIndex(s => new { s.Repository, s.EntryPoint });
         });
@@ -65,6 +68,26 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             diagram.HasOne<Survey>().WithOne().HasForeignKey<SurveyDiagram>(d => d.SurveyId).OnDelete(DeleteBehavior.Cascade);
             diagram.Property(d => d.Mermaid).IsRequired();
             diagram.Property(d => d.CommitHash).HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<SurveySegment>(segment =>
+        {
+            segment.HasKey(s => s.Id);
+            segment.HasOne<Survey>().WithMany().HasForeignKey(s => s.SurveyId).OnDelete(DeleteBehavior.Cascade);
+            segment.Property(s => s.Repository).HasMaxLength(100).IsRequired();
+            segment.Property(s => s.SolutionPath).HasMaxLength(500).IsRequired();
+            segment.Property(s => s.EntryPoint).HasMaxLength(500).IsRequired();
+            segment.Property(s => s.CommitHash).HasMaxLength(64);
+            segment.Property(s => s.Branch).HasMaxLength(200);
+            segment.HasIndex(s => new { s.SurveyId, s.Order });
+        });
+
+        modelBuilder.Entity<RouteIndex>(index =>
+        {
+            index.HasKey(i => new { i.Repository, i.CommitHash });
+            index.Property(i => i.Repository).HasMaxLength(100);
+            index.Property(i => i.CommitHash).HasMaxLength(64);
+            index.Property(i => i.EntriesJson).IsRequired();
         });
 
         modelBuilder.Entity<NodeNote>(note =>

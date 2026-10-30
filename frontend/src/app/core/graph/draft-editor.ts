@@ -10,6 +10,14 @@ export function isAdded(node: FlowNode | FlowEdge): boolean {
   return node.change === ChangeKind.Added;
 }
 
+// Passo de outro sistema do fluxo (Fase 25): vem de outro repositório e não se edita aqui. A API
+// também recusa (DRAFT_INVALID); esta guarda evita o erro na hora do arraste.
+export const FOREIGN_EDIT_MESSAGE = 'Edição só no primeiro sistema do fluxo';
+
+export function isForeign(draft: FlowGraph, nodeId: string | undefined): boolean {
+  return !!nodeId && draft.nodes.some((n) => n.id === nodeId && !!n.system);
+}
+
 export function addStep(draft: FlowGraph, label: string, kind: NodeKind.Method | NodeKind.Decision, intent: string): { draft: FlowGraph; id: string } {
   const id = `${ADDED_PREFIX}${crypto.randomUUID()}`;
   const node: FlowNode = { id, kind, label: label.trim(), change: ChangeKind.Added, intent: intent.trim() };
@@ -19,7 +27,7 @@ export function addStep(draft: FlowGraph, label: string, kind: NodeKind.Method |
 // Liga "from" a "to" no fim da sequência de "from". Religar uma ligação do código que estava
 // marcada como removida só desfaz a marca.
 export function connect(draft: FlowGraph, from: string, to: string, label?: string): FlowGraph {
-  if (from === to) return draft;
+  if (from === to || isForeign(draft, from) || isForeign(draft, to)) return draft;
   const existing = draft.edges.find((e) => e.from === from && e.to === to && (label === undefined || e.label === label));
   if (existing) {
     if (existing.change !== ChangeKind.Removed) return draft;
@@ -38,7 +46,7 @@ export function sameEdge(a: FlowEdge, b: FlowEdge): boolean {
 // Ligação nova some; ligação do código vira "removida".
 export function removeEdge(draft: FlowGraph, edge: FlowEdge): FlowGraph {
   const current = draft.edges.find((e) => sameEdge(e, edge));
-  if (!current) return draft;
+  if (!current || isForeign(draft, current.from) || isForeign(draft, current.to)) return draft;
   if (isAdded(current)) return { ...draft, edges: draft.edges.filter((e) => e !== current) };
   return { ...draft, edges: draft.edges.map((e) => (e === current ? { ...e, change: ChangeKind.Removed } : e)) };
 }
@@ -47,7 +55,7 @@ export function removeEdge(draft: FlowGraph, edge: FlowEdge): FlowGraph {
 export function reassign(draft: FlowGraph, edge: FlowEdge, next: { from?: string; to?: string }): FlowGraph {
   const from = next.from ?? edge.from;
   const to = next.to ?? edge.to;
-  if (from === edge.from && to === edge.to) return draft;
+  if ((from === edge.from && to === edge.to) || isForeign(draft, from) || isForeign(draft, to)) return draft;
   return connect(removeEdge(draft, edge), from, to, edge.label);
 }
 
@@ -55,7 +63,7 @@ export function reassign(draft: FlowGraph, edge: FlowEdge, next: { from?: string
 export function removeStep(draft: FlowGraph, nodeId: string): FlowGraph {
   if (nodeId === draft.entryNodeId) return draft;
   const node = draft.nodes.find((n) => n.id === nodeId);
-  if (!node) return draft;
+  if (!node || node.system) return draft;
   if (isAdded(node)) {
     return {
       ...draft,
@@ -84,6 +92,7 @@ export function restoreStep(draft: FlowGraph, nodeId: string): FlowGraph {
 // O que o passo deve passar a fazer. Em passo do código, texto vazio desfaz o "muda".
 export function setIntent(draft: FlowGraph, nodeId: string, intent: string): FlowGraph {
   const text = intent.trim();
+  if (isForeign(draft, nodeId)) return draft;
   return {
     ...draft,
     nodes: draft.nodes.map((n) => {

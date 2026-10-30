@@ -57,17 +57,25 @@ export interface TimelineHead {
   label: string;
 }
 
-// Fundo atrás de um trecho do fluxo: o bloco do "try" (com o começo de cada seção) e, desde a
-// Fase 23, a moldura do laço (o que se repete, com o cabeçalho "Repete ...").
+// Fundo atrás de um trecho do fluxo: o bloco do "try" (com o começo de cada seção), desde a
+// Fase 23 a moldura do laço (o que se repete, com o cabeçalho "Repete ...") e, desde a Fase 25,
+// a moldura de um sistema além do primeiro (cabeçalho "<repositório> · .NET").
 export enum BlockKind {
   Try = 0,
   Loop = 1,
+  System = 2,
 }
 
 export const BLOCK_KIND_SLUG: Record<BlockKind, string> = {
   [BlockKind.Try]: 'try',
   [BlockKind.Loop]: 'loop',
+  [BlockKind.System]: 'system',
 };
+
+// Cabeçalho da moldura do sistema. A plataforma é sempre .NET: o Rastro só lê C# nesta fase.
+export function systemLabel(system: string): string {
+  return `${system} · .NET`;
+}
 
 export interface FlowBlock {
   id: string;
@@ -257,6 +265,25 @@ export function flowDrawing(graph: FlowGraph, axis: FlowAxis, extraWidth: (node:
       // O bloco é largo: começa depois dos galhos que já estão na faixa.
       const block = isBlock(id);
       if (block) next = Math.max(next, lane.end + gaps.step);
+      // Entrada de outro sistema (Fase 25): a moldura leva o cabeçalho, como a do laço, e o trecho
+      // inteiro (entrada e galhos) fica dentro dela.
+      const system = nodes.get(id)?.system;
+      if (system && system !== nodes.get(edge.from)?.system) {
+        next = Math.max(next, lane.end + gaps.step);
+        const label = systemLabel(system);
+        const frame = next;
+        next += headLen(label) + (down ? LOOP_HEAD_GAP : 0);
+        // Faixa própria: os galhos da entrada (e os de dentro deles) saem dela, e o fim dela entra na
+        // medida da moldura. Na faixa do pai eles passavam do fim do passo e ficavam de fora.
+        const own = { v: lane.v, end: -Infinity };
+        const inside = step(id, v, next, undefined, own, note(id, id));
+        const insideEnd = Math.max(inside.end, own.end);
+        blocks.push({ id: `system:${id}`, kind: BlockKind.System, label, u: frame - BLOCK_PAD, v: v - BLOCK_PAD, len: insideEnd - frame + 2 * BLOCK_PAD, thick: inside.far - v + 2 * BLOCK_PAD, sections: [] });
+        lane.end = Math.max(lane.end, insideEnd + BLOCK_PAD);
+        extent = { end: insideEnd + BLOCK_PAD, far: Math.max(extent.far, inside.far + BLOCK_PAD) };
+        next = insideEnd + BLOCK_PAD + gaps.step;
+        continue;
+      }
       const placed = step(id, v, next, isLeafDecision(id) ? leafThick : undefined, lane, note(id, id));
       if (block) lane.end = Math.max(lane.end, placed.end);
       extent = { end: placed.end, far: Math.max(extent.far, placed.far) };

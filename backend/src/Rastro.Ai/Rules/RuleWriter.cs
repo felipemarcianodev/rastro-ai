@@ -91,7 +91,7 @@ public class RuleWriter(
         var code = new Dictionary<string, (string Text, string Hash)>();
         foreach (var node in targets)
         {
-            var text = await CodeAsync(survey.Repository, node, ct);
+            var text = await CodeAsync(node.System ?? survey.Repository, node, ct);
             code[node.Id] = (text, Hash($"{node.Kind}|{node.Label}|{text}"));
         }
 

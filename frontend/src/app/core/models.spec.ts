@@ -23,7 +23,7 @@ describe('models', () => {
   it('espelha os valores dos enums do backend (int no JSON)', () => {
     expect(values(NodeKind)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(values(EdgeConfidence)).toEqual([0, 1, 2]);
-    expect(values(UnresolvedReason)).toEqual([0, 1, 2, 3, 4, 5, 6]);
+    expect(values(UnresolvedReason)).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(values(SurveyStatus)).toEqual([0, 1, 2, 3]);
   });
 
