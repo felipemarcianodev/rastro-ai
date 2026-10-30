@@ -5,7 +5,8 @@
 #
 # Publicação Confiável (trusted publishing) do nuget.org: sem chave guardada. O job de publicação
 # troca o token OIDC do GitHub por uma chave temporária (1 hora, uso único). A política no
-# nuget.org aponta para este repositório e para o arquivo release.yml.
+# nuget.org aponta para este repositório, para o arquivo release.yml e para o environment release.
+# Environment "release": só aceita tag v* e espera a aprovação do mantenedor antes de publicar.
 # Secret do repositório: NUGET_USER, o nome do perfil no nuget.org (não o e-mail).
 name: Release
 
@@ -68,6 +69,7 @@ jobs:
 
   publicar:
     needs: [backend, frontend]
+    environment: release
     runs-on: windows-latest
     timeout-minutes: 20
     permissions:
