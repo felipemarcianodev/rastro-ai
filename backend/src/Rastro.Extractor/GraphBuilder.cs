@@ -21,14 +21,14 @@ internal sealed class GraphBuilder
 
     // Mesma chamada repetida no mesmo ramo (ex.: dois Log() seguidos) vira uma aresta só.
     // location: onde a chamada acontece (só para destino sem posição própria, como o externo);
-    // repetida no mesmo ramo, fica a primeira.
-    public void AddEdge(string from, string to, string? label, SourceLocation? location = null)
+    // repetida no mesmo ramo, fica a primeira. http: chamada HTTP que a aresta representa (Fase 25).
+    public void AddEdge(string from, string to, string? label, SourceLocation? location = null, HttpCall? http = null)
     {
         if (!_edgeKeys.Add((from, to, label))) return;
 
         var order = _nextOrder.GetValueOrDefault(from) + 1;
         _nextOrder[from] = order;
-        _edges.Add(new FlowEdge(from, to, order, EdgeConfidence.Extracted, label, Location: location));
+        _edges.Add(new FlowEdge(from, to, order, EdgeConfidence.Extracted, label, Location: location, Http: http));
     }
 
     public FlowGraph Build(string entryPoint, string entryNodeId) =>

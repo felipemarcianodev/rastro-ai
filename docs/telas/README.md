@@ -15,3 +15,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | 24 | Configurações: cadastrar um repositório pela tela | [fase-24/07-adicionar-repositorio.png](fase-24/07-adicionar-repositorio.png) |
 | 27 | Visão consolidada: o texto Mermaid à esquerda e a prévia à direita, gerada do fluxo do `ConsultasComCache.ObterAsync` (Mirante) | [fase-27/01-visao-consolidada.jpg](fase-27/01-visao-consolidada.jpg) |
 | 27 | Cor do passo: o passo escolhido na prévia, o painel com fundo, borda e texto e o passo já pintado | [fase-27/02-cor-do-passo.jpg](fase-27/02-cor-do-passo.jpg) |
+| 25 | Levantamento novo com "Seguir chamadas HTTP para": os outros repositórios cadastrados, desligados por padrão | [fase-25/01-levantamento-novo.jpg](fase-25/01-levantamento-novo.jpg) |
+| 25 | Um levantamento só com três sistemas: `PedidosController.Cancelar` segue o `POST api/estornos` para a API de pagamentos e, no boleto, o `POST api/notificacoes` para a terceira; cada sistema numa moldura, com as bifurcações dele | [fase-25/02-fluxo-entre-sistemas.jpg](fase-25/02-fluxo-entre-sistemas.jpg) |
+| 25 | Visão consolidada com um bloco por sistema e a ligação HTTP no rótulo da seta | [fase-25/03-visao-consolidada.jpg](fase-25/03-visao-consolidada.jpg) |

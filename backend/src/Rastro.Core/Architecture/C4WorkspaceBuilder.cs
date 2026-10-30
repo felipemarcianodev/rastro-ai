@@ -29,7 +29,12 @@ public static class C4WorkspaceBuilder
         string Box(string project) => deployment?.ServiceOf(project)?.Name ?? project;
 
         var nodes = graph.Nodes.ToDictionary(n => n.Id);
-        var methods = graph.Nodes.Where(n => n.Kind is NodeKind.Entry or NodeKind.Method && n.Change is null).ToList();
+        // Os passos de outros sistemas (Fase 25) não são componentes do sistema do levantamento: cada sistema
+        // vira um softwareSystem próprio, ligado por "chama por HTTP".
+        var methods = graph.Nodes.Where(n => n.Kind is NodeKind.Entry or NodeKind.Method && n.Change is null && n.System is null).ToList();
+        var httpOf = graph.Edges.Where(e => e.Http is not null).GroupBy(e => e.To).ToDictionary(g => g.Key, g => g.First().Http!);
+        var crossSystems = graph.Nodes.Where(n => n.System is not null && n.Change is null).Select(n => n.System!)
+            .Distinct(StringComparer.Ordinal).OrderBy(x => x, StringComparer.Ordinal).ToList();
 
         // Componentes: tipos donos dos métodos, por projeto.
         var components = new Dictionary<string, Component>(StringComparer.Ordinal);
@@ -56,6 +61,7 @@ public static class C4WorkspaceBuilder
         var componentLinks = new List<(Component From, Component To, string Method)>();
         var databaseUsers = new List<Component>();
         var externalLinks = new List<(Component From, string System, string What)>();
+        var crossLinks = new List<(Component From, string System, string What)>();
         var flowSteps = new List<(string From, string To, string What)>();
 
         foreach (var method in methods)
@@ -64,7 +70,13 @@ public static class C4WorkspaceBuilder
             foreach (var target in Reached(method.Id, outgoing, nodes))
             {
                 var node = nodes[target];
-                if (componentOf.TryGetValue(node.Id, out var to))
+                if (node.System is not null)
+                {
+                    var what = httpOf.TryGetValue(node.Id, out var http) ? $"{http.Method} {http.Route ?? "?"}" : MethodOf(node.Label);
+                    crossLinks.Add((from, node.System, what));
+                    flowSteps.Add((method.Id, "ext:" + node.System, what));
+                }
+                else if (componentOf.TryGetValue(node.Id, out var to))
                 {
                     var what = MethodOf(node.Label);
                     if (to.Key != from.Key) componentLinks.Add((from, to, what));
@@ -86,6 +98,9 @@ public static class C4WorkspaceBuilder
         var usesDatabase = databaseUsers.Count > 0;
         var systems = externalLinks.Select(l => l.System).Distinct().OrderBy(s => s, StringComparer.Ordinal).ToList();
         var systemIds = systems.Select((s, i) => (s, Id: $"ext{i + 1}")).ToDictionary(x => x.s, x => x.Id);
+        var crossIds = crossSystems.Select((s, i) => (s, Id: $"sis{i + 1}")).ToDictionary(x => x.s, x => x.Id);
+        // Destino de uma chamada de fora do sistema do levantamento: sistema externo ou sistema do fluxo.
+        var targetIds = systemIds.Concat(crossIds).ToDictionary(x => x.Key, x => x.Value);
 
         var text = new StringBuilder();
         var title = Quote($"{context.Repository}: {context.EntryPoint}");
@@ -117,6 +132,15 @@ public static class C4WorkspaceBuilder
 
         foreach (var system in systems)
             text.AppendLine($"        {systemIds[system]} = softwareSystem {Quote(system)} \"Sistema externo chamado pelo fluxo.\" \"Externo\"");
+        foreach (var system in crossSystems)
+        {
+            text.AppendLine($"        {crossIds[system]} = softwareSystem {Quote(system)} {Quote("Sistema do fluxo, alcançado por chamada HTTP.")} {{");
+            var crossProjects = graph.Nodes.Where(n => n.System == system && n.Kind is NodeKind.Entry or NodeKind.Method && n.Change is null)
+                .Select(n => n.Project ?? "Código").Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+            foreach (var (project, i) in crossProjects.Select((p, i) => (p, i)))
+                text.AppendLine($"            c{i + 1} = container {Quote(project)} \"\" \".NET\"");
+            text.AppendLine("        }");
+        }
         text.AppendLine();
 
         var entryContainer = entryProject is null ? null : $"sistema.{containerIds[entryProject]}";
@@ -135,6 +159,11 @@ public static class C4WorkspaceBuilder
         {
             var first = group.First();
             text.AppendLine($"        {Ref(first.From)} -> {systemIds[first.System]} {Quote(Describe(group.Select(l => l.What)))}");
+        }
+        foreach (var group in crossLinks.GroupBy(l => (l.From.Key, l.System)))
+        {
+            var first = group.First();
+            text.AppendLine($"        {Ref(first.From)} -> {crossIds[first.System]} {Quote($"chama por HTTP: {Describe(group.Select(l => l.What))}")} \"HTTP\"");
         }
         text.AppendLine("    }");
         text.AppendLine();
@@ -156,6 +185,14 @@ public static class C4WorkspaceBuilder
             text.AppendLine("        }");
         }
 
+        foreach (var system in crossSystems)
+        {
+            text.AppendLine($"        container {crossIds[system]} {Quote($"C2-{crossIds[system]}")} {Quote($"C2: projetos de {system}.")} {{");
+            text.AppendLine("            include *");
+            text.AppendLine("            autolayout lr");
+            text.AppendLine("        }");
+        }
+
         if (entryProject is not null)
         {
             text.AppendLine($"        dynamic sistema.{containerIds[entryProject]} \"C4-fluxo\" \"C4: ordem das chamadas a partir de {Escape(context.EntryPoint)}.\" {{");
@@ -169,7 +206,7 @@ public static class C4WorkspaceBuilder
                 string? target = toId switch
                 {
                     "db" => "sistema.db",
-                    _ when toId.StartsWith("ext:", StringComparison.Ordinal) => systemIds[toId[4..]],
+                    _ when toId.StartsWith("ext:", StringComparison.Ordinal) => targetIds[toId[4..]],
                     _ when componentOf[toId] is var to && to.Key == from.Key => null,
                     _ when componentOf[toId] is var to && Box(to.Project) == entryProject => Ref(to),
                     _ => $"sistema.{containerIds[Box(componentOf[toId].Project)]}"

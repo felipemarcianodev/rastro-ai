@@ -325,3 +325,53 @@ describe('visão consolidada (Fase 27)', () => {
     });
   });
 });
+
+describe('visão consolidada entre sistemas (Fase 25)', () => {
+  // UI-SYS-006
+  it('consolidatedMermaid_doisSistemas_fazSubgraphPorSistemaEORotuloHttpNaSeta', () => {
+    const text = consolidatedMermaid(
+      graph(
+        [
+          node('job', NodeKind.Entry, 'OrderJob.Execute'),
+          node('estornar', NodeKind.Method, 'Pagamentos.EstornarAsync'),
+          node('p::criar', NodeKind.Method, 'EstornosController.Criar', { system: 'pagamentos', rule: { text: 'Cria o estorno', origin: 0 } }),
+        ],
+        [edge('job', 'estornar', 0), { ...edge('estornar', 'p::criar', 0), http: { method: 'POST', route: 'api/estornos' } }],
+      ),
+      'loja',
+    );
+
+    expect(line(text, 'subgraph sys0["loja"]')).toBeTrue();
+    expect(line(text, 'subgraph sys1["pagamentos"]')).toBeTrue();
+    // O método de passagem some; a seta que chega ao primeiro passo do outro sistema leva o verbo e a rota.
+    expect(text).toContain(`${id('job')} -- "POST api/estornos" --> ${id('p::criar')}`);
+    expect(text.indexOf(id('p::criar') + '["Cria')).toBeGreaterThan(text.indexOf('subgraph sys1'));
+  });
+
+  // UI-SYS-006b
+  it('consolidatedMermaid_entradaDeOutroSistemaSemRegra_ficaComoPassoEOsFilhosSeguemDela', () => {
+    const text = consolidatedMermaid(
+      graph(
+        [
+          node('job', NodeKind.Entry),
+          node('estornar', NodeKind.Method, 'Pagamentos.EstornarAsync'),
+          node('p::criar', NodeKind.Method, 'EstornosController.Criar', { system: 'pagamentos' }),
+          node('p::if', NodeKind.Decision, 'if (cartao)', { system: 'pagamentos' }),
+        ],
+        [edge('job', 'estornar', 0), { ...edge('estornar', 'p::criar', 0), http: { method: 'POST', route: 'api/estornos' } }, edge('p::criar', 'p::if', 0)],
+      ),
+      'loja',
+    );
+
+    expect(line(text, `${id('p::criar')}["Criar"]`)).toBeTrue();
+    expect(text).toContain(`${id('job')} -- "POST api/estornos" --> ${id('p::criar')}`);
+    expect(line(text, `${id('p::criar')} --> ${id('p::if')}`)).toBeTrue();
+  });
+
+  // UI-SYS-007
+  it('consolidatedMermaid_umSistemaSo_naoTemSubgraph', () => {
+    const text = consolidatedMermaid(graph([node('job', NodeKind.Entry), node('a', NodeKind.Method, 'A.B')], [edge('job', 'a', 0)]));
+
+    expect(text).not.toContain('subgraph');
+  });
+});

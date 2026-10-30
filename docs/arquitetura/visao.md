@@ -15,7 +15,9 @@ Ao refatorar um sistema várias vezes, falta a visão do todo de uma funcionalid
 5. **Valida a alteração** feita pela IA: reextrai o grafo, compara com o desenhado e roda build e testes. A nota sai de critérios objetivos.
 6. **Documenta** o fluxo aprovado.
 7. **Sugere melhorias:** complexidade ciclomática, SOLID, clean code e dívida técnica, com métricas do Roslyn e sugestões da IA por cima.
-8. **Exporta diagramas C4** (C1 a C4) em Structurizr DSL, na hora ou depois, com um clique, para abrir no Structurizr (o Structurizr Lite roda local em Docker, então o código não sai da máquina).
+8. **Segue o fluxo entre sistemas:** a chamada HTTP de uma API .NET para outra cadastrada no Rastro entra no mesmo levantamento, com as bifurcações de cada sistema no mesmo desenho; o que não casa fica como não resolvido para a IA ou o agente completar.
+9. **Resume o fluxo em Mermaid:** a visão consolidada, de leitura de negócio, com o texto editável e as cores escolhidas pelo usuário.
+10. **Exporta diagramas C4** (C1 a C4) em Structurizr DSL, na hora ou depois, com um clique, para abrir no Structurizr (o Structurizr Lite roda local em Docker, então o código não sai da máquina).
 
 ## Decisões
 

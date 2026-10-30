@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Rastro.Core.Graph;
 
 namespace Rastro.Core.Surveys;
@@ -26,6 +27,11 @@ public class Survey
     public int MaxDepth { get; private set; }
     public string? CommitHash { get; private set; }
     public string? Branch { get; private set; }
+
+    // Repositórios cujas chamadas HTTP o levantamento segue (Fase 25), em JSON (lista de nomes).
+    // Nulo: levantamento de um repositório só, como antes.
+    public string? CrossRepositoriesJson { get; private set; }
+
     public SurveyStatus Status { get; private set; }
     public string? Error { get; private set; }
     public int SchemaVersion { get; private set; }
@@ -39,7 +45,8 @@ public class Survey
 
     private Survey() { }
 
-    public static Survey Create(string repository, string solutionPath, string entryPoint, int maxDepth, string? commitHash, string? branch, DateTimeOffset now) => new()
+    public static Survey Create(string repository, string solutionPath, string entryPoint, int maxDepth, string? commitHash, string? branch, DateTimeOffset now,
+        IReadOnlyList<string>? crossRepositories = null) => new()
     {
         Id = Guid.NewGuid(),
         Repository = repository,
@@ -48,6 +55,7 @@ public class Survey
         MaxDepth = maxDepth,
         CommitHash = commitHash,
         Branch = branch,
+        CrossRepositoriesJson = crossRepositories is { Count: > 0 } ? JsonSerializer.Serialize(crossRepositories) : null,
         Status = SurveyStatus.Pending,
         SchemaVersion = RastroSchema.Version,
         CreatedAt = now
@@ -89,6 +97,9 @@ public class Survey
         Error = error;
         CompletedAt = now;
     }
+
+    public IReadOnlyList<string> ReadCrossRepositories() =>
+        CrossRepositoriesJson is null ? [] : JsonSerializer.Deserialize<List<string>>(CrossRepositoriesJson) ?? [];
 
     public FlowGraph? ReadGraph() => GraphJson is null ? null : FlowGraphJson.Deserialize(GraphJson);
 }

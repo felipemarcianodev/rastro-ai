@@ -3,7 +3,14 @@ using Rastro.Core.Surveys;
 
 namespace Rastro.Api.Controllers;
 
-public record CreateSurveyRequest(string? Repository, string? SolutionPath, string? EntryPoint, int? MaxDepth);
+// CrossRepositories: repositórios cadastrados em que a costura (Fase 25) pode entrar. Vazia ou nula: sem costura.
+public record CreateSurveyRequest(string? Repository, string? SolutionPath, string? EntryPoint, int? MaxDepth, IReadOnlyList<string>? CrossRepositories = null);
+
+// Trecho do levantamento além do primeiro (Fase 25): o repositório de destino de uma chamada HTTP.
+public record SurveySegmentView(int Order, string Repository, string SolutionPath, string EntryPoint, string? CommitHash, string? Branch)
+{
+    public static SurveySegmentView From(SurveySegment s) => new(s.Order, s.Repository, s.SolutionPath, s.EntryPoint, s.CommitHash, s.Branch);
+}
 
 public record SurveySummary(
     Guid Id,
@@ -21,16 +28,23 @@ public record SurveySummary(
     int UnresolvedCount,
     DateTimeOffset CreatedAt,
     DateTimeOffset? StartedAt,
-    DateTimeOffset? CompletedAt)
+    DateTimeOffset? CompletedAt,
+    IReadOnlyList<string> CrossRepositories,
+    IReadOnlyList<SurveySegmentView> Segments)
 {
-    public static SurveySummary From(Survey s) => new(
+    public static SurveySummary From(Survey s, IEnumerable<SurveySegment>? segments = null) => new(
         s.Id, s.Repository, s.SolutionPath, s.EntryPoint, s.MaxDepth, s.CommitHash, s.Branch, s.Status, s.Error,
-        s.SchemaVersion, s.NodeCount, s.EdgeCount, s.UnresolvedCount, s.CreatedAt, s.StartedAt, s.CompletedAt);
+        s.SchemaVersion, s.NodeCount, s.EdgeCount, s.UnresolvedCount, s.CreatedAt, s.StartedAt, s.CompletedAt,
+        s.ReadCrossRepositories(),
+        (segments ?? []).OrderBy(x => x.Order).Select(SurveySegmentView.From).ToList());
 }
 
 public record SurveyDetail(SurveySummary Survey, FlowGraph? Graph);
 
-public record SurveyStaleness(bool Stale, string? SurveyCommit, string? CurrentCommit);
+// Stale geral = o primeiro trecho ou qualquer outro mudou. Segments tem um item por trecho além do primeiro (Fase 25).
+public record SurveyStaleness(bool Stale, string? SurveyCommit, string? CurrentCommit, IReadOnlyList<SegmentStaleness> Segments);
+
+public record SegmentStaleness(string Repository, bool Stale, string? SurveyCommit, string? CurrentCommit);
 
 // Path é a pasta cadastrada (ADR-003); os comandos de build e testes não saem, só se existem.
 public record RepositoryItem(string Name, string Path, bool HasGit, bool HasBuildCommand, bool HasTestCommand);
@@ -82,5 +96,6 @@ public static class ErrorCodes
     public const string RepositoryFolderNotFound = "REPOSITORY_FOLDER_NOT_FOUND";
     public const string RepositoryExists = "REPOSITORY_EXISTS";
     public const string RepositoryNotFound = "REPOSITORY_NOT_FOUND";
+    public const string CrossRepositoriesInvalid = "CROSS_REPOSITORIES_INVALID";
     public const string OriginNotAllowed = "ORIGIN_NOT_ALLOWED";
 }

@@ -60,3 +60,45 @@ describe('export', () => {
     expect(svg).toContain('Se não');
   });
 });
+
+describe('export entre sistemas (Fase 25)', () => {
+  const cross: FlowGraph = {
+    schemaVersion: 2,
+    entryPoint: 'PedidosController.Cancelar',
+    entryNodeId: 'a',
+    nodes: [
+      { id: 'a', kind: NodeKind.Entry, label: 'PedidosController.Cancelar' },
+      { id: 'pagamentos::b', kind: NodeKind.Method, label: 'EstornosController.Criar', system: 'pagamentos' },
+    ],
+    edges: [{ from: 'a', to: 'pagamentos::b', order: 0, confidence: EdgeConfidence.Extracted, http: { method: 'POST', route: 'api/estornos' } }],
+  };
+
+  // UI-SYS-003
+  it('toMermaid_fluxoComDoisSistemas_fazUmSubgraphPorSistemaEORotuloHttp', () => {
+    const text = toMermaid(cross, LayoutDirection.Timeline, 'loja.pedidos');
+
+    expect(text).toContain('subgraph sys0["loja.pedidos"]');
+    expect(text).toContain('subgraph sys1["pagamentos"]');
+    expect(text).toContain('n0 -->|"POST api/estornos"| n1');
+    expect(text.indexOf('subgraph sys0')).toBeLessThan(text.indexOf('subgraph sys1'));
+  });
+
+  // UI-SYS-004
+  it('toMermaid_umSistemaSo_continuaSemSubgraph', () => {
+    expect(toMermaid(graph, LayoutDirection.Timeline)).not.toContain('subgraph');
+  });
+
+  // UI-SYS-005
+  it('toSvg_ligacaoHttp_levaClasseCorERotulo', () => {
+    const boxes = new Map([
+      ['a', { x: 0, y: 0, width: 200, height: 56 }],
+      ['pagamentos::b', { x: 0, y: 120, width: 200, height: 56 }],
+    ]);
+    const svg = toSvg(cross, boxes, { ...colors, http: '#1f5c99' }, LayoutDirection.Timeline);
+
+    expect(svg).toContain('class="is-http"');
+    expect(svg).toContain('stroke="#1f5c99"');
+    expect(svg).toContain('POST api/estornos');
+    expect(new DOMParser().parseFromString(svg, 'image/svg+xml').querySelector('parsererror')).toBeNull();
+  });
+});

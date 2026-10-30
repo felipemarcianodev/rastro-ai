@@ -34,7 +34,7 @@
 
       <div class="page-bar-side">
         @if (staleness()?.stale) {
-          <span class="pill is-stale" title="O repositório tem commits novos desde este levantamento.">O código mudou</span>
+          <span class="pill is-stale" [title]="staleSystems().length > 0 ? 'Commits novos desde este levantamento em: ' + staleSystems().join(', ') + '.' : 'O repositório tem commits novos desde este levantamento.'">O código mudou@if (staleSystems().length > 0) { em {{ staleSystems().join(', ') }}}</span>
           <button type="button" class="btn btn-g btn-small" (click)="resurvey()" [disabled]="resurveying()">
             {{ resurveying() ? 'Enviando…' : 'Levantar de novo' }}
           </button>
@@ -263,14 +263,14 @@
 
     @if (d.survey.status === SurveyStatus.Completed && graph(); as g) {
       <div class="workspace" [class.is-panel-collapsed]="panelCollapsed()">
-        <app-flow-canvas [graph]="g" [selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
+        <app-flow-canvas [graph]="g" [repository]="d.survey.repository" [selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
           [showFramework]="showFramework()" [editing]="editing()" [focusId]="focusId()" [layoutKey]="layoutKey()" [comparing]="!!comparison()" [matchIds]="matchIds()" [noteIds]="notes()" [currentMatch]="currentMatch()" (openSearch)="openSearch()" (selectNode)="select($event)" (toggleFramework)="toggleFramework()"
           (nodeMenu)="openMenu($event)" (jumpTo)="select($event, false)" (toggleFold)="toggleCollapse($event)" (summaryChange)="summary.set($event)"
           (createEdge)="onCreateEdge($event)" (reassignEdge)="onReassignEdge($event)" />
         <button type="button" class="panel-toggle" (click)="togglePanel()" [attr.aria-expanded]="!panelCollapsed()" aria-controls="node-panel"
           [attr.aria-label]="panelCollapsed() ? 'Mostrar o painel do passo' : 'Recolher o painel do passo para ver mais do grafo'"
           [title]="panelCollapsed() ? 'Mostrar o painel' : 'Recolher o painel'"><span aria-hidden="true">{{ panelCollapsed() ? '‹' : '›' }}</span></button>
-        <app-node-panel id="node-panel" [surveyId]="d.survey.id" [repository]="d.survey.repository" [graph]="g" [summary]="summary()" [selectedId]="selectedId()" [trail]="trail()" [deciding]="deciding()"
+        <app-node-panel id="node-panel" [surveyId]="d.survey.id" [repository]="d.survey.repository" [commitHash]="d.survey.commitHash" [segments]="d.survey.segments" [graph]="g" [summary]="summary()" [selectedId]="selectedId()" [trail]="trail()" [deciding]="deciding()"
           [canFillHoles]="canFillHoles()" [filling]="filling()" [fillMessages]="fillMessages()"
           [canDescribe]="canDescribe()" [describing]="describing()" [describeMessage]="describeMessage()"
           [editing]="editing()" [focusId]="focusId()" [aiActive]="aiActive()"

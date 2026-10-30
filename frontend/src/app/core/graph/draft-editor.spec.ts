@@ -83,3 +83,25 @@ describe('draft-editor', () => {
     expect(changeCount(setIntent(changed, 'b', '  '))).toBe(0);
   });
 });
+
+describe('draft-editor entre sistemas (Fase 25)', () => {
+  const cross = (): FlowGraph => {
+    const g = base();
+    return {
+      ...g,
+      nodes: [...g.nodes, { id: 'p::x', kind: NodeKind.Method, label: 'X', system: 'pagamentos' }],
+      edges: [...g.edges, { from: 'b', to: 'p::x', order: 1, confidence: EdgeConfidence.Extracted, http: { method: 'POST', route: 'api/x' } }],
+    };
+  };
+
+  // UI-SYS-008
+  it('edicao_passoDeOutroSistema_naoLigaNaoRemoveNemMuda', () => {
+    const draft = cross();
+
+    expect(connect(draft, 'c', 'p::x')).toBe(draft);
+    expect(removeStep(draft, 'p::x')).toBe(draft);
+    expect(setIntent(draft, 'p::x', 'mudar')).toBe(draft);
+    expect(removeEdge(draft, draft.edges[3])).toBe(draft);
+    expect(reassign(draft, draft.edges[2], { to: 'p::x' })).toBe(draft);
+  });
+});

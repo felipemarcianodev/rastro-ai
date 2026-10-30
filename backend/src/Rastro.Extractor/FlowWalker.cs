@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Rastro.Core.Graph;
+using Rastro.Core.Http;
 
 namespace Rastro.Extractor;
 
@@ -34,12 +35,32 @@ internal sealed partial class FlowWalker(
 
     private static readonly string[] MessageDispatchNamespaces = ["MediatR", "MassTransit", "Wolverine", "Rebus", "NServiceBus"];
 
+    // Métodos do HttpClient (e das extensões de System.Net.Http.Json) que viram chamada HTTP, com o verbo.
+    // SendAsync fica à parte: o verbo vem do HttpRequestMessage.
+    private static readonly Dictionary<string, string> HttpVerbs = new(StringComparer.Ordinal)
+    {
+        ["GetAsync"] = "GET", ["GetStringAsync"] = "GET", ["GetStreamAsync"] = "GET", ["GetByteArrayAsync"] = "GET",
+        ["GetFromJsonAsync"] = "GET",
+        ["PostAsync"] = "POST", ["PostAsJsonAsync"] = "POST",
+        ["PutAsync"] = "PUT", ["PutAsJsonAsync"] = "PUT",
+        ["PatchAsync"] = "PATCH", ["PatchAsJsonAsync"] = "PATCH",
+        ["DeleteAsync"] = "DELETE", ["DeleteFromJsonAsync"] = "DELETE"
+    };
+
+    private const string HttpClientType = "System.Net.Http.HttpClient";
+    private const string HttpClientJsonType = "System.Net.Http.Json.HttpClientJsonExtensions";
+
     private sealed record WalkContext(SemanticModel Model, int Depth, CancellationToken Ct);
 
     private readonly Dictionary<string, IMethodSymbol> _methods = new(StringComparer.Ordinal);
 
     // Métodos percorridos (id do nó -> símbolo), para a inspeção de qualidade (Fase 10).
     public IReadOnlyDictionary<string, IMethodSymbol> Methods => _methods;
+
+    private readonly List<HttpCallSite> _httpCalls = [];
+
+    // Chamadas HTTP encontradas (só com options.HttpCalls), na ordem do percurso.
+    public IReadOnlyList<HttpCallSite> HttpCalls => _httpCalls;
 
     internal (SyntaxNode Node, Document Document)? BodyOf(IMethodSymbol method) => FindBody(method);
 
@@ -286,6 +307,9 @@ internal sealed partial class FlowWalker(
             return;
         }
 
+        if (options.HttpCalls && TryHttpCall(invocation, method, callText, parent, label, ctx))
+            return;
+
         if (IsInSolution(method))
         {
             if (!NeedsImplementation(method))
@@ -319,6 +343,112 @@ internal sealed partial class FlowWalker(
             graph.AddNode(new FlowNode(id, NodeKind.External, ExternalLabel(invocation, method, ctx), method.ToDisplayString(),
                 Project: method.ContainingAssembly?.Name));
             graph.AddEdge(parent, id, label, ToLocation(invocation.GetLocation()));
+        }
+    }
+
+    // Chamada do HttpClient: vira um nó próprio por local de chamada (h:arquivo:linha:coluna), com o
+    // verbo e a rota que o compilador consegue ler. A costura entre sistemas troca o nó por uma aresta
+    // até o método que atende; sem destino, o nó fica como "não resolvido" com o motivo.
+    private bool TryHttpCall(InvocationExpressionSyntax invocation, IMethodSymbol method, string callText, string parent, string? label, WalkContext ctx)
+    {
+        var owner = method.ContainingType.ToDisplayString();
+        var isClient = owner == HttpClientType;
+        if (!isClient && owner != HttpClientJsonType) return false;
+
+        var arguments = invocation.ArgumentList.Arguments;
+        HttpCall call;
+        if (isClient && method.Name == "SendAsync")
+            call = ResolveSend(arguments, ctx);
+        else if (HttpVerbs.TryGetValue(method.Name, out var verb))
+            call = new HttpCall(verb, arguments.Count > 0 ? ResolveRoute(arguments[0].Expression, ctx) : null);
+        else
+            return false;
+
+        var location = ToLocation(invocation.GetLocation());
+        var id = $"h:{location?.File}:{location?.Line}:{invocation.GetLocation().GetLineSpan().StartLinePosition.Character + 1}";
+        var reason = call.Route is null ? UnresolvedReason.RouteNotResolved : UnresolvedReason.NoMatchingEndpoint;
+        graph.AddNode(new FlowNode(id, NodeKind.Unresolved, Truncate($"{call.Method} {call.Route ?? "?"}"),
+            Location: location, Reason: reason, Detail: Truncate(callText)));
+        graph.AddEdge(parent, id, label, location, call);
+        _httpCalls.Add(new HttpCallSite(id, call, ctx.Depth));
+        return true;
+    }
+
+    // SendAsync(new HttpRequestMessage(HttpMethod.X, url)): só o formato inline é lido.
+    // Qualquer outro (a requisição montada antes, em outra variável) fica como SEND sem rota.
+    private static HttpCall ResolveSend(SeparatedSyntaxList<ArgumentSyntax> arguments, WalkContext ctx)
+    {
+        var unknown = new HttpCall("SEND", null);
+        if (arguments.Count == 0 || arguments[0].Expression is not BaseObjectCreationExpressionSyntax creation)
+            return unknown;
+
+        var creationArguments = creation.ArgumentList?.Arguments;
+        if (creationArguments is not { Count: >= 1 } list
+            || list[0].Expression is not MemberAccessExpressionSyntax { Expression: var verbOwner, Name.Identifier.ValueText: var verbName }
+            || ctx.Model.GetTypeInfo(verbOwner, ctx.Ct).Type?.ToDisplayString() != "System.Net.Http.HttpMethod")
+            return unknown;
+
+        var verb = verbName.ToUpperInvariant();
+        if (verb is not ("GET" or "POST" or "PUT" or "PATCH" or "DELETE")) return unknown;
+
+        return new HttpCall(verb, list.Count > 1 ? ResolveRoute(list[1].Expression, ctx) : null);
+    }
+
+    // Rota da chamada: literal, constante, interpolação ou concatenação. Pedaço não constante vira {};
+    // os que aparecem antes do primeiro texto são o endereço base (vem de configuração) e saem.
+    // Qualquer outra forma (variável, método, Uri) devolve nulo: a rota é montada em tempo de execução.
+    private static string? ResolveRoute(ExpressionSyntax expression, WalkContext ctx)
+    {
+        var parts = new List<(string Text, bool IsHole)>();
+        if (!CollectRoute(expression, ctx, parts, nested: false)) return null;
+
+        var first = parts.FindIndex(p => !p.IsHole);
+        if (first < 0) return null;
+
+        var route = RouteTemplate.Normalize(string.Concat(parts.Skip(first).Select(p => p.IsHole ? RouteTemplate.Hole : p.Text)));
+        return route.Length == 0 ? null : route;
+    }
+
+    private static bool CollectRoute(ExpressionSyntax expression, WalkContext ctx, List<(string Text, bool IsHole)> parts, bool nested)
+    {
+        var constant = ctx.Model.GetConstantValue(expression, ctx.Ct);
+        if (constant.HasValue && constant.Value is string text)
+        {
+            parts.Add((text, false));
+            return true;
+        }
+
+        switch (expression)
+        {
+            case ParenthesizedExpressionSyntax parenthesized:
+                return CollectRoute(parenthesized.Expression, ctx, parts, nested);
+
+            case InterpolatedStringExpressionSyntax interpolated:
+                foreach (var content in interpolated.Contents)
+                {
+                    if (content is InterpolatedStringTextSyntax literal)
+                    {
+                        parts.Add((literal.TextToken.ValueText, false));
+                        continue;
+                    }
+
+                    var hole = ((InterpolationSyntax)content).Expression;
+                    var value = ctx.Model.GetConstantValue(hole, ctx.Ct);
+                    if (value.HasValue && value.Value is not null)
+                        parts.Add((Convert.ToString(value.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty, false));
+                    else
+                        parts.Add((string.Empty, true));
+                }
+                return true;
+
+            case BinaryExpressionSyntax binary when binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.AddExpression):
+                return CollectRoute(binary.Left, ctx, parts, nested: true) && CollectRoute(binary.Right, ctx, parts, nested: true);
+
+            default:
+                // Só dentro de uma concatenação um pedaço qualquer vira buraco; sozinho, a rota é desconhecida.
+                if (!nested) return false;
+                parts.Add((string.Empty, true));
+                return true;
         }
     }
 

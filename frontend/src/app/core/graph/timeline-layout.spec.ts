@@ -143,3 +143,128 @@ describe('linha do tempo (Fase 20)', () => {
     expect(route('loop', 'send')).toEqual({ source: Port.Side + 'loop', target: Port.In + 'send' });
   });
 });
+
+describe('moldura do sistema (Fase 25)', () => {
+  // Pedidos chama Pagamentos por HTTP: o trecho de Pagamentos fica numa moldura própria.
+  const crossGraph = (): FlowGraph => ({
+    schemaVersion: 2,
+    entryPoint: 'PedidosController.Cancelar',
+    entryNodeId: 'cancelar',
+    nodes: [
+      node('cancelar', NodeKind.Entry),
+      node('estornar', NodeKind.Method),
+      { ...node('pagamentos::criar', NodeKind.Method, 'EstornosController.Criar'), system: 'pagamentos' },
+      { ...node('pagamentos::grava', NodeKind.Method, 'Repo.Salvar'), system: 'pagamentos' },
+    ],
+    edges: [
+      edge('cancelar', 'estornar', 0),
+      { ...edge('estornar', 'pagamentos::criar', 0), http: { method: 'POST', route: 'api/estornos' } },
+      edge('pagamentos::criar', 'pagamentos::grava', 0),
+    ],
+  });
+
+  // UI-SYS-001
+  it('flowDrawing_trechoDeOutroSistema_ganhaMolduraComCabecalho', () => {
+    const drawing = flowDrawing(crossGraph(), FlowAxis.Down);
+    const frame = drawing.blocks.find((b) => b.kind === BlockKind.System)!;
+    const inside = ['pagamentos::criar', 'pagamentos::grava'].map((id) => drawing.boxes.get(id)!);
+
+    expect(BlockKind.System).toBe(2);
+    expect(frame.label).toBe('pagamentos · .NET');
+    for (const box of inside) {
+      expect(box.x).toBeGreaterThanOrEqual(frame.x);
+      expect(box.y).toBeGreaterThanOrEqual(frame.y);
+      expect(box.x + box.width).toBeLessThanOrEqual(frame.x + frame.width);
+      expect(box.y + box.height).toBeLessThanOrEqual(frame.y + frame.height);
+    }
+    // O passo que chama (primeiro sistema) fica fora da moldura: ela abre num galho ao lado.
+    const outside = drawing.boxes.get('estornar')!;
+    expect(outside.x + outside.width).toBeLessThanOrEqual(frame.x);
+  });
+
+  // UI-SYS-002
+  it('flowDrawing_semSystemEmNenhumNo_naoCriaMolduraDeSistema', () => {
+    const drawing = flowDrawing(alertJob(), FlowAxis.Down);
+
+    expect(drawing.blocks.some((b) => b.kind === BlockKind.System)).toBeFalse();
+  });
+
+  // Pagamentos tem uma decisão com dois galhos, e o galho "sim" chama um terceiro sistema.
+  const branchGraph = (): FlowGraph => {
+    const pag = (id: string, kind: NodeKind, label = id): FlowNode => ({ ...node(id, kind, label), system: 'pagamentos' });
+    const not = (id: string, label = id): FlowNode => ({ ...node(id, NodeKind.Method, label), system: 'notificacoes' });
+    return {
+      schemaVersion: 2,
+      entryPoint: 'PedidosController.Cancelar',
+      entryNodeId: 'cancelar',
+      nodes: [
+        node('cancelar', NodeKind.Entry),
+        node('estornar', NodeKind.Method),
+        pag('pag::criar', NodeKind.Method),
+        pag('pag::cartao', NodeKind.Decision),
+        pag('pag::estorna', NodeKind.Method),
+        pag('pag::boleto', NodeKind.Decision),
+        pag('pag::grava', NodeKind.Method),
+        pag('pag::erro', NodeKind.Method),
+        not('not::enviar'),
+        not('not::grava'),
+      ],
+      edges: [
+        edge('cancelar', 'estornar', 0),
+        edge('estornar', 'pag::criar', 0),
+        edge('pag::criar', 'pag::cartao', 0),
+        edge('pag::cartao', 'pag::estorna', 0, 'then'),
+        edge('pag::estorna', 'not::enviar', 0),
+        edge('not::enviar', 'not::grava', 0),
+        edge('pag::cartao', 'pag::boleto', 1, 'else'),
+        edge('pag::boleto', 'pag::grava', 0, 'then'),
+        edge('pag::grava', 'pag::erro', 0),
+      ],
+    };
+  };
+
+  const within = (inner: { x: number; y: number; width: number; height: number }, outer: { x: number; y: number; width: number; height: number }) =>
+    inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.width <= outer.x + outer.width && inner.y + inner.height <= outer.y + outer.height;
+
+  const axes: [string, FlowAxis][] = [
+    ['vertical', FlowAxis.Down],
+    ['horizontal', FlowAxis.Right],
+  ];
+
+  for (const [name, axis] of axes) {
+    // UI-SYS-003 (vertical), UI-SYS-004 (horizontal)
+    it(`flowDrawing_trechoComDecisaoDeDoisGalhos_molduraEnvolveTodosOsNos_${name}`, () => {
+      const graph = branchGraph();
+      const drawing = flowDrawing(graph, axis);
+      const frames = drawing.blocks.filter((b) => b.kind === BlockKind.System);
+      const frameOf = (system: string) => frames.find((b) => b.label === `${system} · .NET`)!;
+
+      expect(frames.length).toBe(2);
+      for (const system of ['pagamentos', 'notificacoes']) {
+        for (const n of graph.nodes.filter((x) => x.system === system)) {
+          expect(within(drawing.boxes.get(n.id)!, frameOf(system)))
+            .withContext(`${n.id} dentro da moldura de ${system}`)
+            .toBeTrue();
+        }
+      }
+      // Aninhamento: a moldura de notificações fica dentro da de pagamentos.
+      expect(within(frameOf('notificacoes'), frameOf('pagamentos'))).toBeTrue();
+      // Não invade o passo do primeiro sistema.
+      const outside = drawing.boxes.get('estornar')!;
+      const overlaps = (a: typeof outside, b: typeof outside) => a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+      expect(overlaps(outside, frameOf('pagamentos'))).toBeFalse();
+    });
+  }
+
+  // UI-SYS-005
+  it('flowDrawing_trechoComDecisaoDeDoisGalhos_molduraEnvolveTodosOsNos_arvore', () => {
+    // A árvore usa o mesmo desenho para baixo.
+    const graph = branchGraph();
+    const drawing = timelineDrawing(graph);
+    const frame = drawing.blocks.find((b) => b.kind === BlockKind.System && b.label === 'pagamentos · .NET')!;
+
+    for (const n of graph.nodes.filter((x) => x.system === 'pagamentos')) {
+      expect(within(drawing.boxes.get(n.id)!, frame)).withContext(n.id).toBeTrue();
+    }
+  });
+});

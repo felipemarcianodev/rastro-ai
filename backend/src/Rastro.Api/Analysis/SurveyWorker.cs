@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Rastro.Core.Graph;
 using Rastro.Core.Surveys;
 using Rastro.Infrastructure;
 using Rastro.Infrastructure.Analysis;
@@ -68,8 +69,25 @@ public class SurveyWorker(
             if (resolved.Target is null)
                 throw new AnalysisException("O repositório ou a solution não estão mais disponíveis na configuração.");
 
-            var graph = await analyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, ct);
+            var cross = survey.ReadCrossRepositories();
+            FlowGraph graph;
+            IReadOnlyList<SegmentInfo> segments = [];
+            if (cross.Count == 0)
+            {
+                graph = await analyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, ct);
+            }
+            else
+            {
+                // Costura entre sistemas (Fase 25): o analisador tem escopo porque usa o banco (índice de rotas).
+                var crossAnalyzer = scope.ServiceProvider.GetRequiredService<CrossSystemAnalyzer>();
+                var analysis = await crossAnalyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, cross, ct);
+                graph = analysis.Graph;
+                segments = analysis.Segments;
+            }
+
             survey.Complete(graph, clock.GetUtcNow());
+            foreach (var (segment, index) in segments.Select((x, i) => (x, i)))
+                db.SurveySegments.Add(SurveySegment.Create(survey.Id, index + 1, segment.Repository, segment.SolutionPath, segment.EntryPoint, segment.CommitHash, segment.Branch));
             metrics.Completed(watch.Elapsed);
             logger.LogInformation("Levantamento {SurveyId} concluído: {NodeCount} nós, {UnresolvedCount} não resolvidos, {Seconds:0.0} s.",
                 surveyId, survey.NodeCount, survey.UnresolvedCount, watch.Elapsed.TotalSeconds);

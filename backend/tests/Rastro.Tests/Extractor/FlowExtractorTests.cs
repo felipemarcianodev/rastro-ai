@@ -1,3 +1,4 @@
+using Rastro.Core;
 using Rastro.Core.Graph;
 using Rastro.Extractor;
 
@@ -38,7 +39,7 @@ public class FlowExtractorTests
         Assert.Equal("Alerts/AlertJob.cs", entry.Location!.File);
         Assert.Equal(11, entry.Location.Line);
         Assert.Equal(Entry, g.EntryPoint);
-        Assert.Equal(1, g.SchemaVersion);
+        Assert.Equal(RastroSchema.Version, g.SchemaVersion);
     }
 
     [Fact] // EXT-FLOW-002
@@ -185,7 +186,7 @@ public class FlowExtractorTests
         var json = FlowGraphJson.Serialize(g);
 
         Assert.Contains("\"kind\": 0", json);
-        Assert.Contains("\"schemaVersion\": 1", json);
+        Assert.Contains($"\"schemaVersion\": {RastroSchema.Version}", json);
         Assert.DoesNotContain("\"Extracted\"", json);
 
         var back = FlowGraphJson.Deserialize(json);
