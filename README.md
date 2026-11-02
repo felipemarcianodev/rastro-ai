@@ -28,6 +28,8 @@ dotnet tool install -g rastro-ai
 rastro                      # tela em http://127.0.0.1:7450 (só nesta máquina; --porta troca)
 ```
 
+Se o Rastro já estiver aberto nessa porta, o comando só mostra o endereço e termina. Se outro programa estiver nela, ele pede que você escolha outra com `--porta`.
+
 Para atualizar ou remover, pare o `rastro` antes (no Windows, o executável em uso não pode ser trocado):
 
 ```bash

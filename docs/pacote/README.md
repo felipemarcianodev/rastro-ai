@@ -18,7 +18,7 @@ dotnet tool install -g rastro-ai
 rastro
 ```
 
-A tela abre em http://127.0.0.1:7450 (só nesta máquina; troque a porta com `--porta`). Cadastre os repositórios em Configurações (a engrenagem no alto da tela) ou pelo terminal:
+A tela abre em http://127.0.0.1:7450 (só nesta máquina; troque a porta com `--porta`). Se o Rastro já estiver aberto nessa porta, o comando só mostra o endereço e termina. Cadastre os repositórios em Configurações (a engrenagem no alto da tela) ou pelo terminal:
 
 ```
 rastro repo add minha-api C:\codigo\minha-api
