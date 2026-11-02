@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Connections;
 using Microsoft.Build.Locator;
 using Microsoft.EntityFrameworkCore;
 using Rastro.Ai;
@@ -32,8 +33,11 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 builder.Configuration.AddRastroHome();
 
 // Sem endereço configurado (o pacote), só nesta máquina: a porta padrão ou a do --porta.
-if (string.IsNullOrWhiteSpace(builder.Configuration["urls"]))
-    builder.WebHost.UseUrls($"http://127.0.0.1:{builder.Configuration.GetValue("porta", RastroCommandLine.DefaultPort)}");
+int? packagePort = string.IsNullOrWhiteSpace(builder.Configuration["urls"])
+    ? builder.Configuration.GetValue("porta", RastroCommandLine.DefaultPort)
+    : null;
+if (packagePort is not null)
+    builder.WebHost.UseUrls($"http://127.0.0.1:{packagePort}");
 
 builder.Services.AddRastroCore(builder.Configuration);
 // Modo provedor da IA (ADR-001): só a API registra; o núcleo e o MCP não conhecem o Rastro.Ai.
@@ -49,6 +53,14 @@ builder.Services.AddControllers()
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Porta ocupada: nem migra o banco, que pode ser o do Rastro já aberto.
+if (standalone && packagePort is int port)
+{
+    var check = await PortProbe.CheckAsync(port, app.Logger);
+    if (check.State != PortState.Free)
+        return PortProbe.Report(check, port, Console.Out, Console.Error);
+}
 
 if (app.Configuration.GetValue("Rastro:MigrateOnStartup", true))
 {
@@ -84,7 +96,18 @@ if (File.Exists(Path.Combine(app.Environment.WebRootPath ?? string.Empty, "index
     });
 }
 
-await app.RunAsync();
+try
+{
+    await app.RunAsync();
+}
+catch (IOException ex) when (ex.InnerException is AddressInUseException)
+{
+    // A porta foi tomada depois da conferência, ou o endereço veio da configuração (--urls), que não passa por ela.
+    // O detalhe vai para o stderr porque o app.Logger não serve aqui: o RunAsync já descartou o host, e escrever nele estoura ObjectDisposedException.
+    Console.Error.WriteLine("O endereço do Rastro já está em uso. Se for outro Rastro, use a tela dele; se não, escolha outra porta: rastro --porta N");
+    Console.Error.WriteLine($"Detalhe: {ex.Message}");
+    return 1;
+}
 return 0;
 
 // Exposto para os testes de integração (WebApplicationFactory).
