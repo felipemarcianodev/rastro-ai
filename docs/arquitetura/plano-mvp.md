@@ -361,6 +361,8 @@ Ajustes que o dono pede enquanto usa o Rastro, antes da página de venda. Cada u
   Feito: `.info-toggle` e `.info-text` no tema, para reaproveitar em outras telas; os textos ficam num `Record` por campo.
 - [x] **Arrastar no fundo volta a mover a visão** (pedido do dono em 2026-10-17): com a seleção múltipla, arrastar no fundo passou a desenhar o laço, e o dono não conseguia mais arrastar o grafo até um ponto para dar zoom. Arrastar volta a mover a visão; o laço passa para Shift+arrastar, e Ctrl+clique continua marcando um passo.
   Feito: `isSelectionGesture` exige Shift; legenda e ajuda do teclado atualizadas. Verificado no pacote com arraste de verdade no fundo. Cenários SEL-001 a 006. Como arrastar no fundo passou a ser o laço, mover a visão é com Espaço+arrastar ou o botão do meio; a roda continua no zoom. Com vários marcados o painel fica no passo que já estava. Legenda atualizada. Cenários SEL-001 a 005 (`flow-canvas.component.spec.ts`).
+- [x] **Abrir o `rastro` com ele já aberto não dá erro** (pedido do dono em 2026-11-02): o segundo `rastro` despejava a pilha de `address already in use` no terminal, e até migrava o banco antes de falhar. Agora ele confere a porta antes de migrar: se quem responde é um Rastro, diz o endereço e sai com sucesso; se é outro programa, sugere `--porta` e sai com erro.
+  Feito: `PortProbe`, mais o tratamento de porta tomada entre a conferência e a subida. Cenários CLI-PORT-001 a 007.
 
 ## Fase 17: pronto para distribuir `[x]` (pedido do dono em 2026-10-17)
 
