@@ -3,7 +3,8 @@ namespace Rastro.Core.Graph;
 // Monta o mapa do fluxo a partir do grafo (Fase 30). Regras:
 // - faixa por sistema (FlowNode.System; nulo é o primeiro trecho), na ordem em que o fluxo entra
 //   em cada um, e a faixa de fora do código por último;
-// - bloco de entrada para o ponto de entrada e para cada destino de chamada HTTP resolvida;
+// - bloco de entrada para o ponto de entrada e para cada destino de chamada HTTP resolvida. A chamada
+//   repetida para a mesma entrada liga ao trecho já montado, sem abrir de novo (Fase 35);
 // - bloco de passo para cada método chamado pelo trecho. Método grande (mais nós que o limite do
 //   trecho) que só orquestra outros vira transparente: os passos dele sobem para o mapa. Assim o
 //   controller que só repassa para um serviço não vira um bloco único;
@@ -23,12 +24,15 @@ public static class FlowMapBuilder
 
     public static FlowMap Build(FlowGraph graph) => new MapAssembler(graph).Build();
 
-    private sealed class BlockDraft(string id, MapBlockKind kind, string lane, FlowNode node)
+    private sealed class BlockDraft(string id, MapBlockKind kind, string lane, FlowNode node, string? segment)
     {
         public string Id { get; } = id;
         public MapBlockKind Kind { get; } = kind;
         public string Lane { get; } = lane;
         public FlowNode Node { get; } = node;
+
+        // Bloco de entrada do trecho; a entrada aponta para si mesma e o bloco de fora fica sem trecho.
+        public string? Segment { get; } = segment ?? (kind == MapBlockKind.Entry ? id : null);
         public List<string> NodeIds { get; } = [node.Id];
         public List<MapOutcome>? Outcomes { get; set; }
 
@@ -66,6 +70,7 @@ public static class FlowMapBuilder
         private readonly List<string> _codeLanes = [];
         private readonly Dictionary<string, string?> _laneSystem = new(StringComparer.Ordinal);
         private readonly Dictionary<string, BlockDraft> _outside = new(StringComparer.Ordinal);
+        private readonly Dictionary<string, BlockDraft> _segments = new(StringComparer.Ordinal);
         private readonly Dictionary<string, int> _weight = new(StringComparer.Ordinal);
         private readonly Dictionary<string, bool> _reachesOutside = new(StringComparer.Ordinal);
         private readonly HashSet<string> _active = new(StringComparer.Ordinal);
@@ -94,13 +99,35 @@ public static class FlowMapBuilder
             var lanes = _codeLanes.Select(id => new MapLane(id, MapLaneKind.Code, _laneSystem[id])).ToList();
             if (_outside.Count > 0) lanes.Add(new MapLane(OutsideLane, MapLaneKind.Outside, null));
 
+            var depths = Depths(((BlockItem)root[0]).Block.Id);
             var blocks = _blocks.Select((b, i) => new MapBlock(
                 b.Id, b.Kind, b.Lane, i + 1, Title(b), b.Node.Id, b.NodeIds,
                 b.Node.Symbol, b.Node.Location,
                 b.Kind == MapBlockKind.Decision ? b.Node.Condition : null,
-                b.Outcomes)).ToList();
+                b.Outcomes, b.Segment, depths.GetValueOrDefault(b.Segment ?? b.Id))).ToList();
 
             return new FlowMap(lanes, blocks, _links, paths, truncated);
+        }
+
+        // Saltos entre sistemas até cada trecho, pelo caminho mais curto: um trecho chamado de dois
+        // lugares fica com a menor profundidade. O bloco de fora conta um salto depois de quem o chama.
+        private Dictionary<string, int> Depths(string rootSegment)
+        {
+            var byId = _blocks.ToDictionary(b => b.Id, StringComparer.Ordinal);
+            var depths = new Dictionary<string, int>(StringComparer.Ordinal) { [rootSegment] = 0 };
+            var queue = new Queue<string>([rootSegment]);
+            while (queue.Count > 0)
+            {
+                var segment = queue.Dequeue();
+                foreach (var link in _links.Where(l => l.Kind == MapLinkKind.Call && byId[l.From].Segment == segment))
+                {
+                    var target = byId[link.To].Segment ?? link.To;
+                    if (depths.ContainsKey(target)) continue;
+                    depths[target] = depths[segment] + 1;
+                    if (byId[link.To].Segment is not null) queue.Enqueue(target);
+                }
+            }
+            return depths;
         }
 
         private static string Title(BlockDraft block) =>
@@ -114,7 +141,8 @@ public static class FlowMapBuilder
         {
             var entryNode = _nodes[entryId];
             var lane = LaneOf(entryNode);
-            var entry = NewBlock(MapBlockKind.Entry, lane, entryNode);
+            var entry = NewBlock(MapBlockKind.Entry, lane, entryNode, null);
+            _segments[entryId] = entry;
             var items = new List<Item> { new BlockItem(entry) };
             var context = new Context(lane, entry, items, Math.Max(MinExpandWeight, Weight(entryId) / 3));
 
@@ -157,7 +185,7 @@ public static class FlowMapBuilder
                     }
                     else
                     {
-                        var step = NewBlock(MapBlockKind.Step, context.Lane, child);
+                        var step = NewBlock(MapBlockKind.Step, context.Lane, child, context.Current.Segment);
                         Link(context, step.Id);
                         context.Items.Add(new BlockItem(step));
                         context.Current = step;
@@ -220,6 +248,14 @@ public static class FlowMapBuilder
         private void Call(FlowEdge edge, FlowNode child, Context context)
         {
             var remoteEntry = edge.Http is not null && child.Kind is NodeKind.Entry or NodeKind.Method;
+            if (remoteEntry && _segments.TryGetValue(child.Id, out var built) && !_active.Contains(child.Id))
+            {
+                // O caminho passa só pela entrada: abrir o trecho de novo multiplicaria as combinações.
+                Link(context, built.Id, MapLinkKind.Call, edge.Http);
+                context.Items.Add(new CallItem([new BlockItem(built)]));
+                return;
+            }
+
             if (remoteEntry && !_active.Contains(child.Id))
             {
                 var remote = Segment(child.Id);
@@ -237,7 +273,7 @@ public static class FlowMapBuilder
 
             if (!_outside.TryGetValue(child.Id, out var outside))
             {
-                outside = NewBlock(MapBlockKind.Outside, OutsideLane, child);
+                outside = NewBlock(MapBlockKind.Outside, OutsideLane, child, null);
                 _outside[child.Id] = outside;
             }
             Link(context, outside.Id, MapLinkKind.Call, edge.Http);
@@ -246,7 +282,7 @@ public static class FlowMapBuilder
 
         private void Decision(FlowNode node, Context context)
         {
-            var decision = NewBlock(MapBlockKind.Decision, context.Lane, node);
+            var decision = NewBlock(MapBlockKind.Decision, context.Lane, node, context.Current.Segment);
             decision.Outcomes = [];
             Link(context, decision.Id);
             var item = new DecisionItem(decision, []);
@@ -296,12 +332,14 @@ public static class FlowMapBuilder
                 if (kind == MapLinkKind.Sequence) kind = MapLinkKind.Outcome;
                 context.PendingOutcome = null;
             }
-            _links.Add(new MapLink(context.Current.Id, to, kind, label, http));
+            var link = new MapLink(context.Current.Id, to, kind, label, http);
+            // O mesmo bloco chamando o mesmo destino pela mesma rota é uma ligação só no desenho.
+            if (kind != MapLinkKind.Call || !_links.Contains(link)) _links.Add(link);
         }
 
-        private BlockDraft NewBlock(MapBlockKind kind, string lane, FlowNode node)
+        private BlockDraft NewBlock(MapBlockKind kind, string lane, FlowNode node, string? segment)
         {
-            var block = new BlockDraft($"b{_blocks.Count + 1}", kind, lane, node);
+            var block = new BlockDraft($"b{_blocks.Count + 1}", kind, lane, node, segment);
             _blocks.Add(block);
             return block;
         }

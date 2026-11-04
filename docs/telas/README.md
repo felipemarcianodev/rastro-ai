@@ -22,3 +22,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | 26 | Visão consolidada do mesmo fluxo, com um bloco para a tela e um para cada API | [fase-26/02-visao-consolidada.jpg](fase-26/02-visao-consolidada.jpg) |
 | 28 | O consolidado como desenho do fluxo: o passo `EstornosController.Criar` escolhido no desenho, com o painel do passo aberto ao lado (loja fictícia) | [fase-28/01-consolidado-no-fluxo.jpg](fase-28/01-consolidado-no-fluxo.jpg) |
 | 28 | Tela de edição com o palco novo: zoom, enquadrar e 100% no canto, o desenho aberto na largura e o "Ver no fluxo" no painel de cor | [fase-28/02-edicao-com-zoom.jpg](fase-28/02-edicao-com-zoom.jpg) |
+| 35 | Mapa enxuto: o terceiro sistema recolhido num bloco com "+4", abre ao clicar (mapa fictício) | [fase-35/01-sistema-recolhido.jpg](fase-35/01-sistema-recolhido.jpg) |
+| 35 | O mesmo mapa com o sistema aberto: o quarto sistema fica recolhido e o painel oferece recolher | [fase-35/02-sistema-aberto.jpg](fase-35/02-sistema-aberto.jpg) |
+| 35 | Clique no desfecho "Se não": o caminho acende, sem a lista no topo, e a barra oferece limpar | [fase-35/03-destaque-do-desfecho.jpg](fase-35/03-destaque-do-desfecho.jpg) |

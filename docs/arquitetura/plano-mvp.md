@@ -770,15 +770,18 @@ O protótipo aprovado usa dados fictícios e fica fora do repositório. Testes, 
 - [x] Testes EXT-FIELDS-001 a 010, CORE-HTTP-017 e EXT-FIELDS-TS-001 a 007, mais as asserções da costura.
 - [ ] Ficam de fora: `SendAsync` (continua sem campos), objeto em `[Query]` (entra o nome do parâmetro), `[AliasAs]` e query string escrita na URL.
 
-## Fase 35: mapa enxuto num fluxo real `[ ]` (registrada pelo dono em 2026-11-04, no uso da 0.4.0; ainda não aprovada para execução)
+## Fase 35: mapa enxuto num fluxo real `[x]` (registrada e aprovada pelo dono em 2026-11-04, no uso da 0.4.0)
 
-No primeiro uso da 0.4.0 num fluxo real (uma tela Angular, uma API de cliente e uma API de integração com o CRM, 344 passos), o mapa deixou de ser um diagrama C2: 145 blocos (75 na API de integração), 45 decisões, 8 caminhos com aviso de corte e 131 perguntas, 127 delas de Staff. O limite de um terço do trecho para deixar um método transparente não segura APIs com muita lógica interna.
+No primeiro uso da 0.4.0 num fluxo real (uma tela Angular e duas APIs, 344 passos), o mapa deixou de ser um diagrama C2: 145 blocos (75 num sistema só), 45 decisões, 8 caminhos com aviso de corte e 131 perguntas, 127 delas de Staff. O limite de um terço do trecho para deixar um método transparente não segura APIs com muita lógica interna.
 
-- [ ] **Sistemas além do segundo salto entram recolhidos:** o sistema de entrada e os que ele chama direto aparecem abertos; a partir daí, cada sistema chamado vira um bloco só (a entrada, com a rota), que abre ao clicar. O bloco ganha o trecho a que pertence e a profundidade do salto, para a tela saber o que recolher.
-- [ ] **Mesma rota, um trecho só:** a chamada repetida para a mesma entrada (no caso real, `GetByFilter` três vezes e `GetOpportunityCompleteById` duas) liga ao trecho já montado, sem abrir de novo.
-- [ ] **Sai a lista de caminhos do topo do mapa:** com muitas decisões, os rótulos viram "Se sim, Se não, Se não, Se sim…" e não ajudam a ler. O destaque de caminho fica no clique de um desfecho da decisão, com um botão para limpar. Os caminhos continuam na API e no MCP.
-- [ ] **Perguntas de falha agrupadas:** uma pergunta "o que acontece se X falhar?" por sistema chamado ou ponto de fora do código, listando os lugares que o chamam, no lugar de uma por chamada.
-- [ ] Aceite: o mesmo levantamento real com poucos blocos por sistema aberto, sem trecho repetido, sem a lista de caminhos e com as perguntas de Staff na casa da dezena.
+- [x] **Sistemas além do segundo salto entram recolhidos:** o sistema de entrada e os que ele chama direto aparecem abertos; a partir daí, cada sistema chamado vira um bloco só (a entrada, com a rota e o "+N" do que esconde), que abre ao clicar e recolhe de novo pelo painel. `MapBlock` ganha `Segment` (a entrada do trecho) e `Depth` (saltos pelo caminho mais curto). A API e o MCP continuam com o mapa inteiro: quem recolhe é a tela (`visibleMap`, em `core/graph/flow-map.ts`). Selecionar um passo escondido (busca, regra, resposta) abre o que for preciso.
+- [x] **Mesma rota, um trecho só:** a chamada repetida para a mesma entrada liga ao trecho já montado, sem abrir de novo, e o caminho passa só pela entrada. O mesmo bloco chamando o mesmo destino pela mesma rota é uma ligação só.
+- [x] **Sai a lista de caminhos do topo do mapa:** o destaque fica no clique de um desfecho da decisão, com "Limpar o destaque" na barra, e o aviso de corte sai junto. Os caminhos continuam na API e no MCP.
+- [x] **Achado na execução:** a API guarda só 8 caminhos, e num fluxo com muitas decisões a maioria dos desfechos não está em nenhum deles; sem a lista, o clique não acenderia nada. O desfecho fora dos caminhos acende o trecho da entrada até o fim daquele ramo (`outcomeTrail`).
+- [x] **Perguntas de falha agrupadas:** uma pergunta "o que acontece se X falhar?" por sistema chamado, por tipo fora do código (`DbContext`, e não cada método) e uma para as chamadas HTTP sem destino, listando os lugares que chamam (até 10, e a contagem do resto).
+- [x] Testes: `CORE-MAP-012` a `014`, `CORE-ASK-006` a `008`, `WEB-MAP-010` e `012` a `016`, `WEB-MAPV-002` a `005`, `008`, `013` e `017` a `019`. No repositório público, o fluxo mais pesado (`SurveyWorker.ProcessAsync`, 226 nós) ficou com 6 perguntas de Staff.
+- [ ] Aceite no levantamento real que originou a fase: depende de rodar o pacote novo nele, porque o repositório público não tem fluxo com três sistemas. A tela com três saltos foi conferida no navegador com um mapa fictício (prints em `docs/telas/fase-35/`).
+- [ ] Rótulo da chamada ("POST api/...") passa por cima dos blocos quando a rota é longa. Já acontecia antes desta fase.
 
 **Ideias registradas no uso, sem fase ainda:**
 - [ ] Cenários de teste a partir dos caminhos do mapa (Dado/Quando/Então), com os dados que levam a cada caminho.

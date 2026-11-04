@@ -7,21 +7,25 @@ import {
   MAP_BOX,
   blockTitle,
   callText,
+  isCollapsible,
   laneTitle,
   litBlocks,
   litLinks,
   mapGeometry,
+  onlyVisible,
   outcomeOfLink,
+  outcomeTrail,
   pathForOutcome,
-  pathLabel,
   pathNeighbors,
+  segmentsToReveal,
+  visibleMap,
 } from '../../core/graph/flow-map';
 import { fieldsText } from '../../core/graph/flow-insight';
 import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
 import { plainBranch } from '../../core/graph/plain';
 import { FlowSummary, readingLabel } from '../../core/graph/summary';
 import { AiStatusService } from '../../core/ai-status.service';
-import { AiUse, FlowMap, MapBlock, MapLaneKind, MapLink, MapLinkKind, SurveyDetail, aiCan } from '../../core/models';
+import { AiUse, FlowMap, MapBlock, MapLaneKind, MapLink, MapLinkKind, MapPath, SurveyDetail, aiCan } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { FlowMapQuestionsComponent } from './flow-map-questions.component';
 import { FlowMapRulesComponent } from './flow-map-rules.component';
@@ -46,8 +50,9 @@ const MAP_TABS: { tab: MapTab; label: string }[] = [
 ];
 
 // O quinto desenho do fluxo (Fase 31): o mapa da Fase 30, com uma faixa por sistema, os blocos na
-// ordem do fluxo, as ligações entre eles e o seletor de caminho. Clicar num bloco escolhe o nó dele
-// no grafo (o painel do passo abre) e mostra o painel do bloco aqui mesmo.
+// ordem do fluxo e as ligações entre eles. Clicar num bloco escolhe o nó dele no grafo (o painel do
+// passo abre) e mostra o painel do bloco aqui mesmo. Os sistemas além do segundo salto ficam
+// recolhidos, e o clique num desfecho acende o caminho dele (Fase 35).
 @Component({
   selector: 'app-flow-map-view',
   imports: [FlowMapRulesComponent, FlowMapQuestionsComponent],
@@ -76,8 +81,10 @@ export class FlowMapViewComponent {
   protected readonly loading = computed(() => !this.map() && !this.error());
   protected readonly empty = computed(() => !!this.map() && this.map()!.blocks.length === 0);
   private readonly reload = signal(0);
-  // Caminho escolhido (null: todos). Bloco escolhido (null: nenhum).
-  protected readonly pathId = signal<string | null>(null);
+  // Caminho aceso pelo clique num desfecho (null: nenhum). Bloco escolhido (null: nenhum).
+  protected readonly chosen = signal<MapPath | null>(null);
+  // Trechos além do segundo salto que o leitor abriu.
+  private readonly openSegments = signal<ReadonlySet<string>>(new Set());
   protected readonly blockId = signal<string | null>(null);
   protected readonly narrow = signal(false);
   protected readonly tab = signal(MapTab.Block);
@@ -102,19 +109,20 @@ export class FlowMapViewComponent {
   protected readonly nodes = computed(() => new Map((this.detail().graph?.nodes ?? []).map((node) => [node.id, node])));
   private readonly titles = computed(() => new Map((this.map()?.blocks ?? []).map((block) => [block.id, blockTitle(block, this.nodes())])));
   protected readonly laneTitles = computed(() => new Map((this.map()?.lanes ?? []).map((lane) => [lane.id, laneTitle(lane, this.detail().survey.repository)])));
-  protected readonly geometry = computed(() => {
+  private readonly visible = computed(() => {
     const map = this.map();
+    return map ? visibleMap(map, this.openSegments()) : null;
+  });
+  private readonly shown = computed(() => this.visible()?.map ?? null);
+  protected readonly collapsed = computed<ReadonlyMap<string, number>>(() => this.visible()?.collapsed ?? new Map());
+  protected readonly geometry = computed(() => {
+    const map = this.shown();
     return map && map.blocks.length > 0 ? mapGeometry(map, this.narrow()) : null;
   });
-  private readonly chosen = computed(() => this.map()?.paths.find((p) => p.id === this.pathId()) ?? null);
   protected readonly lit = computed(() => litBlocks(this.chosen()));
   protected readonly litLinkIndexes = computed(() => {
-    const map = this.map();
+    const map = this.shown();
     return map ? litLinks(map, this.chosen()) : null;
-  });
-  protected readonly pathButtons = computed(() => {
-    const map = this.map();
-    return (map?.paths ?? []).map((path, position) => ({ path, label: pathLabel(map!, path, position) }));
   });
   private readonly current = computed(() => this.map()?.blocks.find((b) => b.id === this.blockId()) ?? null);
 
@@ -122,11 +130,13 @@ export class FlowMapViewComponent {
   // dele e os vizinhos no caminho.
   protected readonly panel = computed(() => {
     const map = this.map();
+    const shown = this.shown();
     const block = this.current();
-    if (!map || !block) return null;
+    if (!map || !shown || !block) return null;
     const titles = this.titles();
     const nodes = this.nodes();
-    const around = pathNeighbors(map, this.chosen(), block.id);
+    const lit = this.chosen();
+    const around = pathNeighbors(shown, lit ? onlyVisible(lit, new Set(shown.blocks.map((b) => b.id))) : null, block.id);
     const steps = block.nodeIds.flatMap((id) => {
       const node = nodes.get(id);
       return node ? [{ id, text: readingLabel(node), where: node.location ? `${node.location.file}:${node.location.line}` : null }] : [];
@@ -137,7 +147,7 @@ export class FlowMapViewComponent {
       target: outcome.to ? (titles.get(outcome.to) ?? null) : null,
       ends: outcome.ends,
       fails: outcome.fails,
-      chosen: !!this.chosen()?.choices.some((c) => c.decision === block.id && c.outcome === index),
+      chosen: !!lit?.choices.some((c) => c.decision === block.id && c.outcome === index),
     }));
     const calls = map.links.filter((l) => l.kind === MapLinkKind.Call && l.from === block.id).map((l) => ({ to: l.to, title: titles.get(l.to) ?? l.to, text: callText(l), fields: fieldsText(l.http) }));
     return {
@@ -152,6 +162,8 @@ export class FlowMapViewComponent {
       next: around.next,
       previousTitle: around.previous ? titles.get(around.previous) : null,
       nextTitle: around.next ? titles.get(around.next) : null,
+      collapsible: isCollapsible(block),
+      segmentOpen: !!block.segment && this.openSegments().has(block.segment),
     };
   });
 
@@ -171,7 +183,8 @@ export class FlowMapViewComponent {
         if (detail.survey.id !== loadedId) {
           loadedId = detail.survey.id;
           this.map.set(null);
-          this.pathId.set(null);
+          this.chosen.set(null);
+          this.openSegments.set(new Set());
           this.blockId.set(null);
         }
         this.error.set(null);
@@ -180,7 +193,8 @@ export class FlowMapViewComponent {
         next: (map) =>
           untracked(() => {
             this.map.set(map);
-            if (!map.paths.some((p) => p.id === this.pathId())) this.pathId.set(null);
+            const known = new Set(map.blocks.map((b) => b.id));
+            if (this.chosen()?.blocks.some((id) => !known.has(id))) this.chosen.set(null);
             if (!map.blocks.some((b) => b.id === this.blockId())) this.blockId.set(null);
           }),
         error: (error) => untracked(() => this.error.set(apiErrorMessage(error))),
@@ -206,6 +220,7 @@ export class FlowMapViewComponent {
         const current = this.current();
         if (current && (current.nodeId === selected || current.nodeIds.includes(selected))) return;
         const found = map.blocks.find((b) => b.nodeId === selected) ?? map.blocks.find((b) => b.nodeIds.includes(selected));
+        if (found) this.reveal(found);
         this.blockId.set(found?.id ?? null);
       });
     });
@@ -238,12 +253,38 @@ export class FlowMapViewComponent {
     this.directionChange.emit(this.next);
   }
 
-  protected choosePath(id: string | null): void {
-    this.pathId.set(id);
+  protected clearPath(): void {
+    this.chosen.set(null);
   }
 
-  protected pickBlock(block: MapBlock): void {
+  // Abre os trechos que escondem o bloco.
+  private reveal(block: MapBlock): void {
+    const map = this.map();
+    const needed = map ? segmentsToReveal(map, block.id) : [];
+    if (needed.length > 0) this.openSegments.update((current) => new Set([...current, ...needed]));
+  }
+
+  protected toggleSegment(block: MapBlock): void {
+    const segment = block.segment;
+    if (!segment) return;
+    if (!this.openSegments().has(segment)) {
+      this.openSegments.update((current) => new Set(current).add(segment));
+      return;
+    }
+    this.openSegments.update((current) => {
+      const next = new Set(current);
+      next.delete(segment);
+      return next;
+    });
+    // Recolher um trecho com um bloco dele escolhido devolve a seleção à entrada, que continua à vista.
+    const entry = this.map()?.blocks.find((b) => b.id === segment);
+    if (entry) this.pickBlockId(entry.id, false);
+  }
+
+  protected pickBlock(block: MapBlock, open = true): void {
     this.tab.set(MapTab.Block);
+    this.reveal(block);
+    if (open && this.collapsed().has(block.id)) this.toggleSegment(block);
     this.blockId.set(block.id);
     this.selectNode.emit(block.nodeId);
   }
@@ -257,6 +298,7 @@ export class FlowMapViewComponent {
   protected pickRuleSource(blockId: string): void {
     const block = this.map()?.blocks.find((b) => b.id === blockId);
     if (!block) return;
+    this.reveal(block);
     this.blockId.set(block.id);
     this.selectNode.emit(block.nodeId);
   }
@@ -264,7 +306,10 @@ export class FlowMapViewComponent {
   // Fonte de uma resposta: o nó no grafo e o bloco do mapa que o recolhe.
   protected pickAnswerSource(nodeId: string): void {
     const block = this.map()?.blocks.find((b) => b.nodeId === nodeId) ?? this.map()?.blocks.find((b) => b.nodeIds.includes(nodeId));
-    if (block) this.blockId.set(block.id);
+    if (block) {
+      this.reveal(block);
+      this.blockId.set(block.id);
+    }
     this.selectNode.emit(nodeId);
   }
 
@@ -275,10 +320,10 @@ export class FlowMapViewComponent {
     return text && fields ? `${text}. Campos: ${fields}` : text;
   }
 
-  protected pickBlockId(id: string): void {
+  protected pickBlockId(id: string, open = true): void {
     const block = this.map()?.blocks.find((b) => b.id === id);
     if (!block) return;
-    this.pickBlock(block);
+    this.pickBlock(block, open);
     this.focusBlock(id);
   }
 
@@ -286,15 +331,15 @@ export class FlowMapViewComponent {
     this.selectNode.emit(nodeId);
   }
 
-  // Clicar num desfecho escolhe o primeiro caminho que fez aquela escolha.
+  // Clicar num desfecho acende o primeiro caminho que fez aquela escolha; se a lista da API não
+  // chegou a ele, o trecho da entrada até o fim daquele ramo.
   protected pickOutcome(decision: string, outcome: number): void {
     const map = this.map();
-    const path = map ? pathForOutcome(map, decision, outcome) : null;
-    if (path) this.pathId.set(path.id);
+    if (map) this.chosen.set(pathForOutcome(map, decision, outcome) ?? outcomeTrail(map, decision, outcome));
   }
 
   protected pickLinkOutcome(index: number): void {
-    const map = this.map();
+    const map = this.shown();
     const link = map?.links[index];
     if (!map || !link) return;
     this.pickOutcome(link.from, outcomeOfLink(map, link));
@@ -336,6 +381,8 @@ export class FlowMapViewComponent {
   }
 
   protected blockLabel(block: MapBlock): string {
-    return `${MAP_BLOCK_LABEL[block.kind]}: ${this.titleOf(block)}`;
+    const label = `${MAP_BLOCK_LABEL[block.kind]}: ${this.titleOf(block)}`;
+    const hidden = this.collapsed().get(block.id);
+    return hidden ? `${label}. Recolhido, com mais ${hidden} ${hidden === 1 ? 'bloco' : 'blocos'}: clique para abrir` : label;
   }
 }
