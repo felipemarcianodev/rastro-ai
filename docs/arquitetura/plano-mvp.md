@@ -1,4 +1,4 @@
-# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 34 em execução
+# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 34 executadas (prints e UX da Fase 31 pendentes)
 
 > Criado em 2026-10-15. Visão e decisões: [`visao.md`](visao.md).
 > Execução fase a fase, no mesmo molde da skill `executar-plano-faseado` de outro projeto do dono: **uma fase por vez, portões verdes, commit, e só então a próxima.**
