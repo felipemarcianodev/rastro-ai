@@ -150,6 +150,10 @@ Nunca compare slugs ou status com literais: use a constante ou o `Record`. Se a 
   - o que foi criado para testar é apagado no fim;
   - o que não tem como apagar (levantamento, por exemplo) é dito ao dono, com o id.
 
+## Vídeos da série
+
+Os vídeos são produzidos no marketing, no outro repositório. Do episódio 4 em diante, o título leva o número da série na frente (`4. A IA propõe, você confirma`), na ideia da pauta, no roteiro e no texto de publicação. O trailer não leva número. O "Propor ideias" do painel não lê este arquivo: passe a regra no campo Instruções.
+
 ## Ambiente local
 
 | Serviço | Endereço |
