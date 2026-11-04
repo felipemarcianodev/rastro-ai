@@ -363,6 +363,8 @@ export const API_ERROR_MESSAGE: Record<string, string> = {
   AI_USE_DISABLED: 'Este uso da IA está desligado na configuração.',
   AI_NOT_CONFIGURED: 'Falta a chave de API do provedor escolhido.',
   AI_BUDGET_EXCEEDED: 'O orçamento diário de tokens acabou.',
+  AI_PROVIDER_ERROR: 'O provedor de IA não respondeu. Tente de novo em instantes.',
+  AI_QUESTION_INVALID: 'Escreva uma pergunta de até alguns parágrafos sobre este fluxo.',
   REPOSITORY_NAME_INVALID: 'Nome inválido: use letras, números, ponto, hífen ou sublinhado, começando por letra ou número.',
   REPOSITORY_PATH_INVALID: 'Use o caminho completo da pasta, como C:\\codigo\\meu-sistema.',
   REPOSITORY_FOLDER_NOT_FOUND: 'Essa pasta não existe neste computador.',
@@ -750,7 +752,7 @@ export interface MapLink {
   kind: MapLinkKind;
   label?: string | null;
   // A API manda a rota nula quando a chamada não a resolveu.
-  http?: { method: string; route?: string | null } | null;
+  http?: { method: string; route?: string | null; fields?: string[] | null; moreFields?: boolean } | null;
 }
 
 export interface MapChoice {
@@ -771,4 +773,64 @@ export interface FlowMap {
   links: MapLink[];
   paths: MapPath[];
   pathsTruncated: boolean;
+}
+
+// Regras do fluxo (Fase 32): cada decisão promovida vira uma regra com o efeito, o texto e a fonte.
+export enum RuleEffect {
+  Blocks = 0,
+  Allows = 1,
+  SideEffect = 2,
+}
+
+export interface RuleSource {
+  nodeId: string;
+  blockId: string;
+  lane: string;
+  location?: SourceLocation | null;
+}
+
+export interface FlowRule {
+  id: string;
+  effect: RuleEffect;
+  text: string;
+  condition: string | null;
+  // Escrita pelo usuário (NodeRule) e não tirada da condição.
+  fromUser: boolean;
+  // A mesma condição vale em mais de um sistema.
+  duplicated: boolean;
+  sources: RuleSource[];
+}
+
+// Perguntas sobre o fluxo (Fase 33): prontas por papel, e a livre quando há IA.
+export enum QuestionRole {
+  TechLead = 0,
+  Staff = 1,
+  Manager = 2,
+}
+
+export enum AnswerSeal {
+  Extracted = 0,
+  Inferred = 1,
+  Outside = 2,
+  None = 3,
+}
+
+export interface FlowAnswer {
+  text: string;
+  seal: AnswerSeal;
+  // Ids de nós do grafo que sustentam a resposta.
+  sources: string[];
+  gap: string | null;
+}
+
+export interface FlowQuestion {
+  id: string;
+  role: QuestionRole;
+  text: string;
+  answer: FlowAnswer;
+}
+
+export interface QuestionAnswer {
+  answer: FlowAnswer;
+  provider: AiProvider;
 }

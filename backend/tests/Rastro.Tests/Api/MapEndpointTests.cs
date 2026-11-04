@@ -40,6 +40,22 @@ public class MapEndpointTests(ApiFixture fixture)
         Assert.All(map.Paths, p => Assert.Equal(entry.Id, p.Blocks[0]));
     }
 
+    [Fact] // API-MAP-003
+    public async Task Rules_LevantamentoPronto_CadaRegraTemFonteNoGrafo()
+    {
+        var id = await SurveyAsync();
+
+        var rules = await Client.GetFromJsonAsync<List<FlowRule>>($"/api/surveys/{id}/rules", Json);
+
+        Assert.NotNull(rules);
+        Assert.All(rules!, r =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(r.Text));
+            Assert.NotEmpty(r.Sources);
+        });
+        Assert.Equal(HttpStatusCode.NotFound, (await Client.GetAsync($"/api/surveys/{Guid.NewGuid()}/rules")).StatusCode);
+    }
+
     [Fact] // API-MAP-002
     public async Task Map_LevantamentoQueNaoExiste_404()
     {

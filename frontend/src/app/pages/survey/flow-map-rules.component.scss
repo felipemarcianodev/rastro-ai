@@ -1,0 +1,70 @@
+:host {
+  display: block;
+}
+
+.rule-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rule {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-sm);
+}
+
+.rule-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.rule-glyph {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--ink-soft);
+  color: var(--surface);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.rule-blocks .rule-glyph {
+  background: var(--danger);
+}
+
+.rule-side-effect .rule-glyph {
+  background: var(--kind-decision);
+}
+
+.rule-text {
+  flex: 1 1 14rem;
+  overflow-wrap: anywhere;
+}
+
+.rule-mark {
+  padding: 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+
+  &.is-warn {
+    border-color: var(--trail);
+    background: var(--trail-wash);
+  }
+}
+
+.rule-sources {
+  display: flex;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  gap: var(--space-1);
+}

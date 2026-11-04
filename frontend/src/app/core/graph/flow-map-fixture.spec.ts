@@ -1,4 +1,4 @@
-import { EdgeConfidence, FlowGraph, FlowMap, MapBlockKind, MapLaneKind, MapLinkKind, NodeKind } from '../models';
+import { AnswerSeal, EdgeConfidence, FlowGraph, FlowMap, FlowQuestion, FlowRule, MapBlockKind, MapLaneKind, MapLinkKind, NodeKind, QuestionRole, RuleEffect } from '../models';
 
 // Mapa de teste (Fase 31): o pedido que decide pelo pagamento, estorna por outra API e chama um
 // serviço de fora. Dois caminhos: o que estorna e o que para com erro.
@@ -31,7 +31,7 @@ export const MAP_FIXTURE: FlowMap = {
   links: [
     { from: 'b1', to: 'b2', kind: MapLinkKind.Sequence },
     { from: 'b2', to: 'b3', kind: MapLinkKind.Outcome, label: 'then' },
-    { from: 'b3', to: 'b4', kind: MapLinkKind.Call, http: { method: 'POST', route: 'api/estornos' } },
+    { from: 'b3', to: 'b4', kind: MapLinkKind.Call, http: { method: 'POST', route: 'api/estornos', fields: ['pedidoId', 'valor'], moreFields: true } },
     { from: 'b4', to: 'b5', kind: MapLinkKind.Call },
   ],
   paths: [
@@ -40,6 +40,28 @@ export const MAP_FIXTURE: FlowMap = {
   ],
   pathsTruncated: false,
 };
+
+export const RULES_FIXTURE: FlowRule[] = [
+  {
+    id: 'r1',
+    effect: RuleEffect.Blocks,
+    text: 'Bloqueia quando o pagamento não foi aprovado',
+    condition: 'pagamento.Aprovado',
+    fromUser: false,
+    duplicated: true,
+    sources: [
+      { nodeId: 'n3', blockId: 'b2', lane: ':principal', location: { file: 'Pedidos.cs', line: 42 } },
+      { nodeId: 'n5', blockId: 'b4', lane: 'api-pagamentos', location: { file: 'Estornos.cs', line: 9 } },
+    ],
+  },
+  { id: 'r2', effect: RuleEffect.SideEffect, text: 'Chama a API de estornos', condition: null, fromUser: true, duplicated: false, sources: [{ nodeId: 'n4', blockId: 'b3', lane: ':principal', location: null }] },
+  { id: 'r3', effect: RuleEffect.Allows, text: 'Libera o pedido aprovado', condition: null, fromUser: false, duplicated: false, sources: [] },
+];
+
+export const QUESTIONS_FIXTURE: FlowQuestion[] = [
+  { id: 'q1', role: QuestionRole.TechLead, text: 'Quando o pedido é recusado?', answer: { text: 'Quando o pagamento não é aprovado.\nO fluxo para na decisão.', seal: AnswerSeal.Extracted, sources: ['n3'], gap: null } },
+  { id: 'q2', role: QuestionRole.Manager, text: 'O que acontece se a chamada ao estorno falhar?', answer: { text: 'Depende da API de estornos.', seal: AnswerSeal.Outside, sources: ['n4'], gap: 'O código levantado não trata a falha da API.' } },
+];
 
 export const MAP_FIXTURE_GRAPH: FlowGraph = {
   schemaVersion: 1,
