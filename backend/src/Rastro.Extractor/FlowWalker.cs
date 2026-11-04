@@ -372,7 +372,10 @@ internal sealed partial class FlowWalker(
         if (isClient && method.Name == "SendAsync")
             call = ResolveSend(arguments, ctx);
         else if (HttpVerbs.TryGetValue(method.Name, out var verb))
-            call = new HttpCall(verb, arguments.Count > 0 ? ResolveRoute(arguments[0].Expression, ctx) : null);
+        {
+            var (fields, more) = ReadBodyFields(method.Name, arguments, ctx);
+            call = new HttpCall(verb, arguments.Count > 0 ? ResolveRoute(arguments[0].Expression, ctx) : null, fields, more);
+        }
         else
             return false;
 
@@ -393,8 +396,10 @@ internal sealed partial class FlowWalker(
     private bool TryRefitCall(InvocationExpressionSyntax invocation, IMethodSymbol method, string callText, string parent, string? label, WalkContext ctx)
     {
         if (method.ContainingType.TypeKind != TypeKind.Interface) return false;
-        var call = ReadRefitAttribute(method);
+        var call = ReadRefitAttribute(method, out var template);
         if (call is null) return false;
+        var (refitFields, refitMore) = ReadRefitFields(method, call.Method, template);
+        call = call with { Fields = refitFields, MoreFields = refitMore };
 
         var location = ToLocation(invocation.GetLocation());
         if (!options.HttpCalls)
@@ -415,8 +420,9 @@ internal sealed partial class FlowWalker(
         return true;
     }
 
-    private static HttpCall? ReadRefitAttribute(IMethodSymbol method)
+    private static HttpCall? ReadRefitAttribute(IMethodSymbol method, out string? rawTemplate)
     {
+        rawTemplate = null;
         foreach (var attribute in method.GetAttributes())
         {
             var syntax = attribute.ApplicationSyntaxReference?.GetSyntax() as AttributeSyntax;
@@ -437,9 +443,125 @@ internal sealed partial class FlowWalker(
             var template = attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is string text
                 ? text
                 : (syntax?.ArgumentList?.Arguments.FirstOrDefault()?.Expression as LiteralExpressionSyntax)?.Token.ValueText;
+            rawTemplate = template;
             return new HttpCall(verb, template is null ? null : RefitRoute(template));
         }
         return null;
+    }
+
+    private static readonly HashSet<string?> RefitSkippedAttributes = new(StringComparer.Ordinal)
+        { "Header", "HeaderCollection", "Authorize", "Property" };
+
+    private static readonly HashSet<string> BodyMethods = new(StringComparer.Ordinal)
+        { "PostAsync", "PutAsync", "PatchAsync", "PostAsJsonAsync", "PutAsJsonAsync", "PatchAsJsonAsync" };
+
+    // Campos do corpo da chamada do HttpClient. As extensões *AsJsonAsync serializam o 2º argumento: os
+    // campos são as propriedades do tipo dele. PostAsync/PutAsync/PatchAsync recebem um HttpContent: só
+    // JsonContent.Create(x) é lido; null é "sem corpo"; qualquer outro conteúdo vira MoreFields.
+    // Verbos sem corpo (GET, DELETE) não têm campos.
+    private static (IReadOnlyList<string>? Fields, bool More) ReadBodyFields(string methodName, SeparatedSyntaxList<ArgumentSyntax> arguments, WalkContext ctx)
+    {
+        if (!BodyMethods.Contains(methodName) || arguments.Count < 2) return (null, false);
+
+        var body = Unwrap(arguments[1].Expression);
+        if (body.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.NullLiteralExpression)) return (null, false);
+
+        if (!methodName.EndsWith("AsJsonAsync", StringComparison.Ordinal))
+        {
+            if (body is not InvocationExpressionSyntax { ArgumentList.Arguments.Count: >= 1 } create
+                || ctx.Model.GetSymbolInfo(create, ctx.Ct).Symbol is not IMethodSymbol { Name: "Create", ContainingType.Name: "JsonContent" })
+                return (null, true);
+            body = Unwrap(create.ArgumentList.Arguments[0].Expression);
+        }
+
+        var fields = PropertyNames(ctx.Model.GetTypeInfo(body, ctx.Ct).Type);
+        return fields is { Count: > 0 } ? (fields, false) : (null, fields is null);
+    }
+
+    private static ExpressionSyntax Unwrap(ExpressionSyntax expression)
+    {
+        while (expression is ParenthesizedExpressionSyntax parenthesized) expression = parenthesized.Expression;
+        return expression;
+    }
+
+    // Propriedades públicas de instância com getter, base antes da derivada. Nulo quando o tipo não tem
+    // forma de objeto legível: object, dynamic, primitivo, enum, string, coleção, tipo sem resolver.
+    private static List<string>? PropertyNames(ITypeSymbol? type)
+    {
+        if (type is null or IErrorTypeSymbol or IDynamicTypeSymbol or IArrayTypeSymbol or ITypeParameterSymbol) return null;
+        if (type is INamedTypeSymbol { OriginalDefinition.SpecialType: SpecialType.System_Nullable_T } nullable)
+            return PropertyNames(nullable.TypeArguments[0]);
+        if (type.SpecialType != SpecialType.None || type.TypeKind is TypeKind.Enum or TypeKind.Delegate or TypeKind.Pointer) return null;
+        if (type.AllInterfaces.Any(i => i.SpecialType == SpecialType.System_Collections_IEnumerable)) return null;
+
+        var chain = new List<ITypeSymbol>();
+        for (var current = type; current is not null && current.SpecialType != SpecialType.System_Object; current = current.BaseType)
+            chain.Add(current);
+        chain.Reverse();
+
+        var names = new List<string>();
+        foreach (var property in chain.SelectMany(t => t.GetMembers().OfType<IPropertySymbol>()))
+        {
+            if (property.IsStatic || property.IsIndexer || property.DeclaredAccessibility != Accessibility.Public || property.GetMethod is not { DeclaredAccessibility: Accessibility.Public }) continue;
+            if (!names.Contains(property.Name, StringComparer.Ordinal)) names.Add(property.Name);
+        }
+        return names;
+    }
+
+    // Campos de um método de interface do Refit: [Body] vira as propriedades do tipo; [Query] e o parâmetro
+    // que preenche {nome} da rota entram pelo nome; CancellationToken e [Header] ficam fora. Sem atributo,
+    // vale a regra do próprio Refit: em POST, PUT e PATCH o tipo complexo é o corpo; o resto vai para a
+    // query pelo nome.
+    private static (IReadOnlyList<string>? Fields, bool More) ReadRefitFields(IMethodSymbol method, string verb, string? template)
+    {
+        var routeNames = template is null
+            ? new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            : RefitPlaceholder().Matches(template).Select(m => m.Groups[1].Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hasBody = verb is "POST" or "PUT" or "PATCH";
+
+        var fields = new List<string>();
+        var more = false;
+        void Add(string name)
+        {
+            if (!fields.Contains(name, StringComparer.Ordinal)) fields.Add(name);
+        }
+
+        foreach (var parameter in method.Parameters)
+        {
+            if (parameter.Type.ToDisplayString() == "System.Threading.CancellationToken") continue;
+
+            var attributes = parameter.GetAttributes().Select(RefitAttributeName).Where(n => n is not null).ToHashSet();
+            if (attributes.Overlaps(RefitSkippedAttributes)) continue;
+
+            var isBody = attributes.Contains("Body")
+                || (hasBody && attributes.Count == 0 && !routeNames.Contains(parameter.Name) && PropertyNames(parameter.Type) is { Count: > 0 });
+            if (isBody)
+            {
+                var names = PropertyNames(parameter.Type);
+                if (names is null) more = true;
+                else foreach (var name in names) Add(name);
+                continue;
+            }
+
+            Add(parameter.Name);
+        }
+        return (fields.Count > 0 ? fields : null, more);
+    }
+
+    private static string? RefitAttributeName(AttributeData attribute)
+    {
+        string name;
+        if (attribute.AttributeClass is { TypeKind: not TypeKind.Error } type)
+        {
+            if (type.ContainingNamespace?.ToDisplayString() != RefitNamespace) return null;
+            name = type.Name;
+        }
+        else if (attribute.ApplicationSyntaxReference?.GetSyntax() is AttributeSyntax syntax && ImportsRefit(syntax))
+            name = syntax.Name.ToString().Split('.')[^1];
+        else
+            return null;
+
+        return name.EndsWith("Attribute", StringComparison.Ordinal) ? name[..^"Attribute".Length] : name;
     }
 
     private static bool ImportsRefit(AttributeSyntax syntax) =>
@@ -734,6 +856,9 @@ internal sealed partial class FlowWalker(
 
     [GeneratedRegex(@"\{[^}]*\}")]
     private static partial Regex RefitParameter();
+
+    [GeneratedRegex(@"\{\*{0,2}([A-Za-z_]\w*)")]
+    private static partial Regex RefitPlaceholder();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();

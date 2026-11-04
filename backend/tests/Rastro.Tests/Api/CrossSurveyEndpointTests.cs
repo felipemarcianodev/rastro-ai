@@ -106,7 +106,7 @@ public class CrossSurveyEndpointTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(await _pagamentos.HeadAsync(), segment.CommitHash);
         Assert.Equal(RastroSchema.Version, detail.Survey.SchemaVersion);
         Assert.Contains(detail.Graph!.Nodes, n => n.Label == "EstornosController.Criar" && n.System == _pagamentos.Name);
-        Assert.Contains(detail.Graph.Edges, e => e.Http == new HttpCall("POST", "api/estornos"));
+        Assert.Contains(detail.Graph.Edges, e => e.Http == new HttpCall("POST", "api/estornos", ["pedidoId"]));
 
         // A lista traz os trechos na mesma resposta (uma consulta só para todos os levantamentos).
         var list = await Client.GetFromJsonAsync<List<SurveySummary>>("/api/surveys", Json);

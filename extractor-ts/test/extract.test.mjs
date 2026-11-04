@@ -85,7 +85,7 @@ describe('fixture loja-web: do clique em Cancelar até o HttpClient', () => {
     assert.equal(entrada.symbol, 'DetalhePedidoComponent.cancelar');
     assert.deepEqual(entrada.location, { file: 'src/app/pedidos/detalhe-pedido.component.ts', line: 15 });
     assert.equal(entrada.project, 'loja-web');
-    assert.equal(g.schemaVersion, 2);
+    assert.equal(g.schemaVersion, 3);
   });
 
   test('template: o @if que envolve o botão vira uma decisão ligada à entrada', () => {
@@ -526,6 +526,92 @@ export class Tela { private c = new Cache(); executar(): void { this.c.get('/api
     // EXT-TS-056
     const r = chamadas('this.http.get("/api/a"); this.dentro();', 'dentro(): void { this.http.get("/api/b"); }');
     assert.deepEqual(r.httpCalls.map((c) => [c.call.route, c.depth]), [['api/a', 0], ['api/b', 1]]);
+  });
+});
+
+describe('campos enviados pela chamada HTTP', () => {
+  function chamada(corpo) {
+    const raiz = criarProjeto({
+      'src/tela.ts': `
+import { HttpClient } from '@angular/common/http';
+import { inject } from '@angular/core';
+export class Tela {
+  private http = inject(HttpClient);
+  executar(id: number, qualquer: any): void {
+    ${corpo}
+  }
+}`,
+    });
+    const r = rodar(raiz, 'Tela.executar').json;
+    return r.httpCalls[0].call;
+  }
+
+  test('objeto literal: chaves de propriedade, atalho, método e texto', () => {
+    // EXT-FIELDS-TS-001
+    const call = chamada(`this.http.post('/api/x', { nome: 'a', id, 'com-hifen': 1, 7: 2, salvar() {}, nome: 'repetido' });`);
+    assert.deepEqual(call.fields, ['nome', 'id', 'com-hifen', '7', 'salvar']);
+    assert.equal(call.moreFields, undefined);
+  });
+
+  test('espalhamento e chave calculada: mantém as chaves lidas e marca moreFields', () => {
+    // EXT-FIELDS-TS-002
+    const call = chamada(`this.http.put('/api/x', { ...qualquer, id });`);
+    assert.deepEqual(call.fields, ['id']);
+    assert.equal(call.moreFields, true);
+    assert.equal(chamada(`this.http.put('/api/x', { [qualquer]: 1 });`).moreFields, true);
+  });
+
+  test('identificador com tipo declarado: propriedades do tipo, sem os métodos', () => {
+    // EXT-FIELDS-TS-003
+    const call = chamada(`
+      interface Item { sku: string; qtd: number; salvar(): void }
+      const item: Item = { sku: 'a', qtd: 1, salvar() {} };
+      this.http.patch('/api/x', item);`);
+    assert.equal(call.method, 'PATCH');
+    assert.deepEqual(call.fields, ['sku', 'qtd']);
+    assert.equal(call.moreFields, undefined);
+  });
+
+  test('identificador any, chamada e coleção: sem campos e com moreFields', () => {
+    // EXT-FIELDS-TS-004
+    for (const corpo of ['qualquer', 'this.montar()', '[1, 2]', 'new FormData()']) {
+      const call = chamada(`this.http.post('/api/x', ${corpo});`);
+      assert.equal(call.fields, undefined, corpo);
+      assert.equal(call.moreFields, true, corpo);
+    }
+  });
+
+  test('corpo vazio, null e verbos sem corpo: sem campos e sem moreFields', () => {
+    // EXT-FIELDS-TS-005
+    for (const codigo of [`this.http.post('/api/x', {});`, `this.http.post('/api/x', null);`, `this.http.get('/api/x');`, `this.http.delete('/api/x');`]) {
+      const call = chamada(codigo);
+      assert.equal(call.fields, undefined, codigo);
+      assert.equal(call.moreFields, undefined, codigo);
+    }
+  });
+
+  test('request com verbo de corpo lê a propriedade body das opções', () => {
+    // EXT-FIELDS-TS-006
+    const call = chamada(`this.http.request('post', '/api/x', { body: { a: 1, b: 2 } });`);
+    assert.deepEqual(call.fields, ['a', 'b']);
+  });
+
+  test('os campos vão na aresta e em httpCalls, e o JSON sai na versão 3', () => {
+    // EXT-FIELDS-TS-007
+    const raiz = criarProjeto({
+      'src/tela.ts': `
+import { HttpClient } from '@angular/common/http';
+import { inject } from '@angular/core';
+export class Tela {
+  private http = inject(HttpClient);
+  executar(): void { this.http.post('/api/x', { a: 1 }); }
+}`,
+    });
+    const r = rodar(raiz, 'Tela.executar').json;
+    const aresta = r.graph.edges.find((e) => e.http);
+    assert.deepEqual(aresta.http, { method: 'POST', route: 'api/x', fields: ['a'] });
+    assert.deepEqual(r.httpCalls[0].call, aresta.http);
+    assert.equal(r.graph.schemaVersion, 3);
   });
 });
 

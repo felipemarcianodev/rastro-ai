@@ -5,7 +5,8 @@
 //                    --entry <Componente.metodo> --depth <n>
 //
 // Saída padrão: UM JSON e nada mais (é o protocolo com a API). Sucesso:
-//   { "graph": FlowGraph, "httpCalls": [{ "nodeId", "call": { "method", "route" }, "depth" }] }
+//   { "graph": FlowGraph, "httpCalls": [{ "nodeId", "call": { "method", "route", "fields", "moreFields" }, "depth" }] }
+// (route, fields e moreFields só aparecem quando existem; fields são os campos enviados, Fase 34)
 // Erro: código de saída 1 e uma linha { "error": "<mensagem em pt-BR para o usuário>" }.
 // Diagnóstico e detalhe técnico vão para a saída de erro, nunca para a padrão.
 
