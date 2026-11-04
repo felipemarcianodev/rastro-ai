@@ -1,4 +1,4 @@
-# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 34 em execução
+# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 34 executadas (prints e UX da Fase 31 pendentes)
 
 > Criado em 2026-10-15. Visão e decisões: [`visao.md`](visao.md).
 > Execução fase a fase, no mesmo molde da skill `executar-plano-faseado` de outro projeto do dono: **uma fase por vez, portões verdes, commit, e só então a próxima.**
@@ -753,10 +753,18 @@ O protótipo aprovado usa dados fictícios e fica fora do repositório. Testes, 
 - [x] Testes CORE-ASK-001 a 005, AI-ASK-001 a 003 e MCP-MAP-001 (o mapa e as regras da loja fictícia extraída de verdade, com a chamada do estorno entre os dois sistemas); no front, filtro por papel, selo, lacuna, pergunta livre escondida sem IA, envio e erro por código.
 - [ ] Atualizar o contador de tokens da barra logo depois de uma pergunta (hoje só no próximo refresh).
 
-## Fase 34: parâmetros das pontes `[ ]` (depende da Fase 30)
+## Fase 34: parâmetros das pontes `[x]` (depende da Fase 30)
 
-- [ ] O extrator guarda os campos enviados na chamada entre sistemas: no Angular, as chaves do objeto literal do corpo; no C#, as propriedades públicas do tipo do corpo e os parâmetros da rota e da query. Vai na `HttpCall`, e o `RastroSchema.Version` sobe.
-- [ ] O painel da ponte mostra os campos; campo montado de forma que o extrator não lê (espalhamento de outro objeto, por exemplo) aparece como "e outros campos", nunca some em silêncio.
+**Status: concluída em 2026-11-04.** A parte da tela entrou no commit das Fases 32 e 33 (mesmo painel).
+
+- [x] `HttpCall` ganha `Fields` (campos na ordem de declaração, sem repetidos) e `MoreFields` (havia campos que o extrator não leu); os dois são omitidos no JSON quando vazios, e a igualdade compara `Fields` por valor. `RastroSchema.Version` vai de 2 para 3, e os JSON das versões 1 e 2 continuam sendo lidos.
+- [x] C#: nos `*AsJsonAsync`, as propriedades públicas do tipo do corpo (tipo anônimo e herança incluídos); no `PostAsync` e afins, só `JsonContent.Create(x)`. Refit: `[Body]` vira as propriedades do tipo, `[Query]` e o parâmetro de rota entram pelo nome, e parâmetro sem atributo segue a regra do Refit (tipo complexo em POST, PUT e PATCH é corpo). `CancellationToken`, `[Header]` e afins ficam fora.
+- [x] Angular: as chaves do objeto literal (propriedade, atalho, método); identificador com tipo declarado vira as propriedades do tipo; no `request`, a propriedade `body` das opções.
+- [x] Vira `MoreFields`, nunca some em silêncio: espalhamento, chave calculada, corpo `object`, `dynamic`, `any`, primitivo, coleção, `FormData`, `StringContent` e tipo sem propriedades legíveis. GET, DELETE, `null` e objeto vazio não têm campos.
+- [x] Os campos atravessam a costura e a proposta (a aresta é copiada com `with`), conferido nos testes da costura.
+- [x] O painel do bloco mostra os campos de cada chamada que sai dele e "e outros campos" quando há `MoreFields`; o rótulo da ligação leva o texto no tooltip.
+- [x] Testes EXT-FIELDS-001 a 010, CORE-HTTP-017 e EXT-FIELDS-TS-001 a 007, mais as asserções da costura.
+- [ ] Ficam de fora: `SendAsync` (continua sem campos), objeto em `[Query]` (entra o nome do parâmetro), `[AliasAs]` e query string escrita na URL.
 
 **Ideias registradas no uso, sem fase ainda:**
 - [ ] Cenários de teste a partir dos caminhos do mapa (Dado/Quando/Então), com os dados que levam a cada caminho.

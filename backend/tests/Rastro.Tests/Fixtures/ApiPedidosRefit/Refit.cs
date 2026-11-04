@@ -24,3 +24,12 @@ public class DeleteAttribute(string path) : HttpMethodAttribute(path);
 
 [AttributeUsage(AttributeTargets.Parameter)]
 public class BodyAttribute : Attribute;
+
+[AttributeUsage(AttributeTargets.Parameter)]
+public class QueryAttribute : Attribute;
+
+[AttributeUsage(AttributeTargets.Parameter)]
+public class HeaderAttribute(string header) : Attribute
+{
+    public string Header { get; } = header;
+}
