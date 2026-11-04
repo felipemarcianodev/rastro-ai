@@ -125,6 +125,7 @@ Na dúvida se a mudança afeta o cliente, ela afeta: confira a lista acima e dig
   - A chave de API dos provedores fica cifrada no banco (DataProtection) e nunca volta na resposta nem no log.
 - **A API** só escuta em `127.0.0.1` (o `rastro` sobe na 7450).
 - **Código aberto** ([ADR-004](docs/adr/adr-004-codigo-aberto.md)): o repositório é público. Nada privado entra nele (nome de cliente, projeto pessoal fechado, caminho da máquina, print de código que não é público); prints só de repositórios públicos.
+- **Nomes em público (bloqueante):** nome de repositório ou de empresa só entra com autorização do dono, e commit não leva `Co-authored-by` nem e-mail fora do noreply do GitHub. **Automático:** `.claude/hooks/nomes-publicos.mjs` recusa `git commit` e `gh pr create` com isso, conferindo mensagem, corpo e linhas adicionadas. Os nomes vêm das pastas vizinhas e de `~/.rastro-publico/termos.txt`; o que o dono autoriza vai em `~/.rastro-publico/autorizados.txt`. Testes: `node --test .claude/hooks/`.
 
 ## Sem strings mágicas
 

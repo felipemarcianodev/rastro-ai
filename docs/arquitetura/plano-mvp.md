@@ -676,6 +676,13 @@ O dono usou a visão consolidada da Fase 27 e achou três problemas: o zoom é d
 
 - [x] A regra marcava como banco qualquer nome com "Repository" no meio, e `RepositoryCatalog` e `RepositoryConfigFile`, que tratam de pastas e de configuração, ganhavam a etiqueta. Agora "Repository" só vale no fim do nome da classe (`OrderRepository`, `IRepository<T>`, `OrderRepositoryBase`). A etiqueta continua sendo uma leitura pelo nome: uma classe `GitRepository` ainda ganha "banco".
 
+## Nomes em repositório público `[x]` (pedido do dono em 2026-11-04)
+
+- [x] Hook `nomes-publicos.mjs`: `git commit` e `gh pr create` neste repositório são recusados se a mensagem, o título, o corpo ou as linhas adicionadas citarem uma pasta vizinha ou um termo da lista privada, se houver `Co-authored-by` ou se o e-mail do git não for o noreply do GitHub. Autorizado pelo dono, o nome entra numa lista fora do repositório. Testes `HOOK-NOMES-001` a `011`.
+- [ ] O hook só protege sessões do Claude Code: um commit feito à mão ou em outra máquina sem o hook passa. Falta o mesmo cuidado no CI, com a lista de nomes em secret.
+- [ ] Reescrever o histórico da `main` para tirar as linhas `Co-authored-by` já publicadas: autorizado pelo dono, à espera da execução, porque o controle de permissões recusou o comando.
+- [ ] Demais achados do levantamento de governança de 2026-11-04: verificador público (raiz e lista vazia), título do PR no CI, testes de governança no CI, `deny` de comandos irreversíveis e regras contraditórias.
+
 ## Mapa do fluxo, regras e perguntas (Fases 30 a 34) (pedido do dono em 2026-11-04)
 
 O dono usou o Rastro num fluxo real de ponta a ponta (tela Angular, duas APIs .NET e um CRM fora do código) e sentiu falta de um nível acima dos desenhos que existem. A linha do tempo, a árvore e o consolidado mostram o fluxo passo a passo; falta a visão de quem chega agora, no nível de um diagrama C2: por quais sistemas a funcionalidade passa, o que cada um faz em poucos blocos, o que decide o caminho e o que volta para o usuário. A partir dali, clicar num bloco leva ao detalhe só daquele trecho.
