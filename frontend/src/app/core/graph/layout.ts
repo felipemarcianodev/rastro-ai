@@ -1,8 +1,9 @@
 import { FlowGraph, FlowNode, NodeKind } from '../models';
 
 // Desenho do grafo: da esquerda para a direita (padrão), em linha do tempo (Fase 20, no lugar do
-// antigo "de cima para baixo"), em árvore (a mesma regra, com ligações retas) ou consolidado (Fase 28:
-// o Mermaid da visão consolidada, que não passa pelo canvas). O desenho fica em timeline-layout.ts;
+// antigo "de cima para baixo"), em árvore (a mesma regra, com ligações retas), consolidado (Fase 28:
+// o Mermaid da visão consolidada, que não passa pelo canvas) ou mapa (Fase 31: faixas por sistema,
+// também fora do canvas). O desenho fica em timeline-layout.ts;
 // aqui, a direção e o tamanho de cada passo.
 // O valor 1 era o vertical: quem o tinha guardado passa a abrir a linha do tempo.
 export enum LayoutDirection {
@@ -10,6 +11,7 @@ export enum LayoutDirection {
   Timeline = 1,
   Tree = 2,
   Consolidated = 3,
+  Map = 4,
 }
 
 export const LAYOUT_DIRECTION_SLUG: Record<LayoutDirection, string> = {
@@ -17,21 +19,37 @@ export const LAYOUT_DIRECTION_SLUG: Record<LayoutDirection, string> = {
   [LayoutDirection.Timeline]: 'linha-do-tempo',
   [LayoutDirection.Tree]: 'arvore',
   [LayoutDirection.Consolidated]: 'consolidado',
+  [LayoutDirection.Map]: 'mapa',
 };
 
-// Ordem do botão que troca o desenho: horizontal, vertical, árvore, consolidado e de volta.
+// Ordem do botão que troca o desenho: horizontal, linha do tempo, árvore, consolidado, mapa e de volta.
 export const NEXT_LAYOUT_DIRECTION: Record<LayoutDirection, LayoutDirection> = {
   [LayoutDirection.Horizontal]: LayoutDirection.Timeline,
   [LayoutDirection.Timeline]: LayoutDirection.Tree,
   [LayoutDirection.Tree]: LayoutDirection.Consolidated,
-  [LayoutDirection.Consolidated]: LayoutDirection.Horizontal,
+  [LayoutDirection.Consolidated]: LayoutDirection.Map,
+  [LayoutDirection.Map]: LayoutDirection.Horizontal,
 };
+
+// Desenhos que não passam pelo canvas: a página os desenha no lugar dele.
+export function isOutsideCanvas(direction: LayoutDirection): boolean {
+  return direction === LayoutDirection.Consolidated || direction === LayoutDirection.Map;
+}
+
+// Próximo desenho do botão. Na edição e na comparação só o canvas mostra o rascunho e as
+// diferenças: "restricted" pula o consolidado e o mapa.
+export function nextDrawing(direction: LayoutDirection, restricted: boolean): LayoutDirection {
+  let next = NEXT_LAYOUT_DIRECTION[direction];
+  while (restricted && isOutsideCanvas(next)) next = NEXT_LAYOUT_DIRECTION[next];
+  return next;
+}
 
 export const LAYOUT_DIRECTION_LABEL: Record<LayoutDirection, string> = {
   [LayoutDirection.Horizontal]: 'da esquerda para a direita',
   [LayoutDirection.Timeline]: 'em linha do tempo',
   [LayoutDirection.Tree]: 'em árvore',
   [LayoutDirection.Consolidated]: 'consolidado, num desenho só',
+  [LayoutDirection.Map]: 'em mapa, por sistema',
 };
 
 export const LAYOUT_DIRECTION_GLYPH: Record<LayoutDirection, string> = {
@@ -39,6 +57,7 @@ export const LAYOUT_DIRECTION_GLYPH: Record<LayoutDirection, string> = {
   [LayoutDirection.Timeline]: '↓',
   [LayoutDirection.Tree]: '┣',
   [LayoutDirection.Consolidated]: '◇',
+  [LayoutDirection.Map]: '▦',
 };
 
 const DIRECTION_KEY = 'rastro.layoutDirection';
@@ -47,7 +66,7 @@ const DIRECTION_KEY = 'rastro.layoutDirection';
 export function readLayoutDirection(): LayoutDirection {
   try {
     const saved = Number(localStorage.getItem(DIRECTION_KEY));
-    return saved === LayoutDirection.Timeline || saved === LayoutDirection.Tree || saved === LayoutDirection.Consolidated ? saved : LayoutDirection.Horizontal;
+    return saved === LayoutDirection.Timeline || saved === LayoutDirection.Tree || isOutsideCanvas(saved) ? saved : LayoutDirection.Horizontal;
   } catch {
     return LayoutDirection.Horizontal;
   }

@@ -2,11 +2,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, inject, input, ou
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { resolveDiagram } from '../../core/diagram-source';
-import { consolidatedMermaid, mergeDiagram, nodeOfStep, stepId } from '../../core/graph/consolidated';
-import { effectOf } from '../../core/graph/reading';
-import { FlowSummary, flowSummary, readingLabel } from '../../core/graph/summary';
-import { timelineDrawing } from '../../core/graph/timeline-layout';
-import { withoutFrameworkCalls } from '../../core/graph/visibility';
+import { consolidatedMermaid, flowSummaryOf, mergeDiagram, nodeOfStep, stepId } from '../../core/graph/consolidated';
+import { FlowSummary } from '../../core/graph/summary';
 import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
 import { DIAGRAM_RENDERER, readDiagramColors } from '../../core/mermaid-render';
 import { FlowGraph, SurveyDetail, SurveyDiagram } from '../../core/models';
@@ -88,12 +85,7 @@ export class ConsolidatedViewComponent {
 
     effect(() => {
       const graph = this.detail().graph;
-      if (!graph) return;
-      const shown = withoutFrameworkCalls(graph);
-      const effects = new Map(shown.nodes.flatMap((node) => (effectOf(node) === undefined ? [] : [[node.id, effectOf(node)!] as const])));
-      const originals = new Map(graph.nodes.map((n) => [n.id, n]));
-      const drawn = { ...shown, nodes: shown.nodes.map((node) => ({ ...node, label: readingLabel(node) })) };
-      this.summaryChange.emit(flowSummary(timelineDrawing(shown).outline, drawn, originals, effects));
+      if (graph) this.summaryChange.emit(flowSummaryOf(graph));
     });
 
     // Seleção de fora (painel, busca, setas): o passo acende e vem para a vista.

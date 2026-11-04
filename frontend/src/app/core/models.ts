@@ -694,3 +694,81 @@ export interface PeopleSuggestion {
   people: C4Person[];
   provider: AiProvider;
 }
+
+// Mapa do fluxo (Fase 30): faixas por sistema, blocos de leitura, ligações e caminhos de ponta a ponta.
+export enum MapLaneKind {
+  Code = 0,
+  Outside = 1,
+}
+
+export enum MapBlockKind {
+  Entry = 0,
+  Step = 1,
+  Decision = 2,
+  Outside = 3,
+}
+
+export enum MapLinkKind {
+  Sequence = 0,
+  Outcome = 1,
+  Call = 2,
+}
+
+// "system" é nulo na faixa do primeiro trecho (o repositório do levantamento) e na de fora do código.
+export interface MapLane {
+  id: string;
+  kind: MapLaneKind;
+  system: string | null;
+}
+
+export interface MapOutcome {
+  label: string;
+  // Primeiro bloco do ramo; nulo quando o ramo não tem bloco próprio.
+  to: string | null;
+  ends: boolean;
+  fails: boolean;
+}
+
+export interface MapBlock {
+  id: string;
+  kind: MapBlockKind;
+  lane: string;
+  order: number;
+  title: string;
+  // Nó do grafo que dá nome ao bloco e todos os nós que ele recolhe.
+  nodeId: string;
+  nodeIds: string[];
+  symbol?: string | null;
+  location?: SourceLocation | null;
+  condition?: string | null;
+  outcomes?: MapOutcome[] | null;
+}
+
+export interface MapLink {
+  from: string;
+  to: string;
+  kind: MapLinkKind;
+  label?: string | null;
+  // A API manda a rota nula quando a chamada não a resolveu.
+  http?: { method: string; route?: string | null } | null;
+}
+
+export interface MapChoice {
+  decision: string;
+  outcome: number;
+}
+
+export interface MapPath {
+  id: string;
+  blocks: string[];
+  choices: MapChoice[];
+  fails: boolean;
+}
+
+export interface FlowMap {
+  lanes: MapLane[];
+  blocks: MapBlock[];
+  links: MapLink[];
+  paths: MapPath[];
+  pathsTruncated: boolean;
+}
