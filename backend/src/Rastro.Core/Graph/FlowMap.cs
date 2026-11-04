@@ -48,7 +48,9 @@ public record MapLane(string Id, MapLaneKind Kind, string? System);
 public record MapOutcome(string Label, string? To, bool Ends, bool Fails);
 
 // NodeId é o nó do grafo que dá nome ao bloco; NodeIds, todos os nós que o bloco recolhe
-// (o painel do bloco e o recorte "ver só este trecho" usam esta lista).
+// (o painel do bloco e o recorte "ver só este trecho" usam esta lista). Segment é o bloco de entrada
+// do trecho a que o bloco pertence (nulo na faixa de fora do código), e Depth, quantos saltos entre
+// sistemas separam o trecho da entrada do fluxo: a tela recolhe os trechos a partir do segundo salto.
 public record MapBlock(
     string Id,
     MapBlockKind Kind,
@@ -60,7 +62,9 @@ public record MapBlock(
     string? Symbol = null,
     SourceLocation? Location = null,
     string? Condition = null,
-    IReadOnlyList<MapOutcome>? Outcomes = null);
+    IReadOnlyList<MapOutcome>? Outcomes = null,
+    string? Segment = null,
+    int Depth = 0);
 
 // Label é o texto do ramo na ligação de desfecho. Http só existe na chamada entre sistemas.
 public record MapLink(string From, string To, MapLinkKind Kind, string? Label = null, HttpCall? Http = null);

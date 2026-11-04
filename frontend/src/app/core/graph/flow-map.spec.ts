@@ -1,5 +1,5 @@
-import { FlowMap, MapBlock, MapBlockKind, MapLinkKind } from '../models';
-import { MAP_BOX, blockTitle, callText, laneTitle, linkText, litLinks, mapGeometry, outcomeOfLink, pathForOutcome, pathLabel, pathNeighbors, placeRows } from './flow-map';
+import { FlowMap, MapBlock, MapBlockKind, MapLaneKind, MapLinkKind } from '../models';
+import { MAP_BOX, blockTitle, callText, isCollapsible, laneTitle, linkText, litLinks, mapGeometry, outcomeOfLink, outcomeTrail, pathForOutcome, pathNeighbors, placeRows, segmentsToReveal, visibleMap } from './flow-map';
 import { MAP_FIXTURE, MAP_FIXTURE_GRAPH } from './flow-map-fixture.spec';
 
 const nodes = new Map(MAP_FIXTURE_GRAPH.nodes.map((n) => [n.id, n]));
@@ -103,10 +103,20 @@ describe('mapa do fluxo: caminhos (Fase 31)', () => {
   });
 
   // WEB-MAP-010
-  it('pathLabel_textoDoDesfechoDeCadaDecisaoOuCaminhoN', () => {
-    expect(pathLabel(MAP_FIXTURE, MAP_FIXTURE.paths[0], 0)).toBe('1. Se sim');
-    expect(pathLabel(MAP_FIXTURE, MAP_FIXTURE.paths[1], 1)).toBe('2. Se não');
-    expect(pathLabel(MAP_FIXTURE, { id: 'p3', blocks: ['b1'], choices: [], fails: false }, 2)).toBe('Caminho 3');
+  it('outcomeTrail_daEntradaAteADecisaoEPeloRamoEscolhido', () => {
+    const noPaths: FlowMap = { ...MAP_FIXTURE, paths: [] };
+
+    const taken = outcomeTrail(noPaths, 'b2', 0)!;
+    expect(taken.blocks).toEqual(['b1', 'b2', 'b3', 'b4']);
+    expect(taken.choices).toEqual([{ decision: 'b2', outcome: 0 }]);
+    expect(taken.fails).toBeFalse();
+    expect([...litLinks(noPaths, taken)!]).toEqual([0, 1, 2]);
+
+    const failed = outcomeTrail(noPaths, 'b2', 1)!;
+    expect(failed.blocks).toEqual(['b1', 'b2']);
+    expect(failed.fails).toBeTrue();
+    expect(outcomeTrail(noPaths, 'b2', 7)).toBeNull();
+    expect(outcomeTrail(noPaths, 'b1', 0)).toBeNull();
   });
 
   // WEB-MAP-011
@@ -117,5 +127,87 @@ describe('mapa do fluxo: caminhos (Fase 31)', () => {
     // Caminho escolhido que não passa pelo bloco: sem vizinhos.
     expect(pathNeighbors(MAP_FIXTURE, MAP_FIXTURE.paths[1], 'b3')).toEqual({ path: null, previous: null, next: null });
     expect(pathNeighbors(MAP_FIXTURE, MAP_FIXTURE.paths[0], 'b5').next).toBeNull();
+  });
+});
+
+// Três saltos: tela > api-a > api-b > api-c, com um passo em cada e um ponto de fora chamado de api-b.
+const block = (id: string, lane: string, segment: string | null, depth: number, kind = MapBlockKind.Step): MapBlock =>
+  ({ id, kind, lane, order: Number(id.slice(1)), title: id, nodeId: id, nodeIds: [id], segment, depth });
+const THREE_HOPS: FlowMap = {
+  lanes: [
+    { id: ':principal', kind: MapLaneKind.Code, system: null },
+    { id: 'a', kind: MapLaneKind.Code, system: 'a' },
+    { id: 'b', kind: MapLaneKind.Code, system: 'b' },
+    { id: 'c', kind: MapLaneKind.Code, system: 'c' },
+    { id: ':fora', kind: MapLaneKind.Outside, system: null },
+  ],
+  blocks: [
+    block('b1', ':principal', 'b1', 0, MapBlockKind.Entry),
+    block('b2', 'a', 'b2', 1, MapBlockKind.Entry),
+    block('b3', 'a', 'b2', 1),
+    block('b4', 'b', 'b4', 2, MapBlockKind.Entry),
+    block('b5', 'b', 'b4', 2),
+    block('b6', 'c', 'b6', 3, MapBlockKind.Entry),
+    block('b7', 'c', 'b6', 3),
+    block('b8', ':fora', null, 3, MapBlockKind.Outside),
+  ],
+  links: [
+    { from: 'b1', to: 'b2', kind: MapLinkKind.Call },
+    { from: 'b2', to: 'b3', kind: MapLinkKind.Sequence },
+    { from: 'b3', to: 'b4', kind: MapLinkKind.Call },
+    { from: 'b4', to: 'b5', kind: MapLinkKind.Sequence },
+    { from: 'b5', to: 'b6', kind: MapLinkKind.Call },
+    { from: 'b5', to: 'b8', kind: MapLinkKind.Call },
+    { from: 'b6', to: 'b7', kind: MapLinkKind.Sequence },
+  ],
+  paths: [{ id: 'p1', blocks: ['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b7', 'b8'], choices: [], fails: false }],
+  pathsTruncated: false,
+};
+const ids = (map: FlowMap) => map.blocks.map((b) => b.id);
+
+describe('mapa do fluxo: trechos recolhidos (Fase 35)', () => {
+  // WEB-MAP-012
+  it('visibleMap_entradaESegundoSistemaAbertosEOTerceiroViraUmBlocoSo', () => {
+    const { map, collapsed } = visibleMap(THREE_HOPS, new Set());
+
+    expect(ids(map)).toEqual(['b1', 'b2', 'b3', 'b4']);
+    expect(map.lanes.map((l) => l.id)).toEqual([':principal', 'a', 'b']);
+    expect(map.links.map((l) => l.to)).toEqual(['b2', 'b3', 'b4']);
+    expect(map.paths[0].blocks).toEqual(['b1', 'b2', 'b3', 'b4']);
+    // b4 esconde o próprio passo e as duas chamadas que saem dele.
+    expect([...collapsed]).toEqual([['b4', 3]]);
+    expect(isCollapsible(THREE_HOPS.blocks[3])).toBeTrue();
+    expect(isCollapsible(THREE_HOPS.blocks[2])).toBeFalse();
+  });
+
+  // WEB-MAP-013
+  it('visibleMap_abrirUmTrechoMostraOPassoEOsPontosQueEleChama', () => {
+    const { map, collapsed } = visibleMap(THREE_HOPS, new Set(['b4']));
+
+    expect(ids(map)).toEqual(['b1', 'b2', 'b3', 'b4', 'b5', 'b6', 'b8']);
+    expect([...collapsed]).toEqual([['b6', 1]]);
+    expect(ids(visibleMap(THREE_HOPS, new Set(['b4', 'b6'])).map)).toEqual(THREE_HOPS.blocks.map((b) => b.id));
+  });
+
+  // WEB-MAP-014
+  it('visibleMap_trechoAbertoSemQuemOChameNaoAparece', () => {
+    expect(ids(visibleMap(THREE_HOPS, new Set(['b6'])).map)).toEqual(['b1', 'b2', 'b3', 'b4']);
+  });
+
+  // WEB-MAP-015
+  it('visibleMap_fluxoSemTerceiroSistema_devolveOMapaInteiro', () => {
+    const { map, collapsed } = visibleMap(MAP_FIXTURE, new Set());
+
+    expect(map).toBe(MAP_FIXTURE);
+    expect(collapsed.size).toBe(0);
+  });
+
+  // WEB-MAP-016
+  it('segmentsToReveal_abreOTrechoDoBlocoEOsDeQuemChama', () => {
+    expect(segmentsToReveal(THREE_HOPS, 'b7')).toEqual(['b6', 'b4']);
+    expect(segmentsToReveal(THREE_HOPS, 'b6')).toEqual(['b4']);
+    expect(segmentsToReveal(THREE_HOPS, 'b8')).toEqual(['b4']);
+    expect(segmentsToReveal(THREE_HOPS, 'b4')).toEqual([]);
+    expect(segmentsToReveal(THREE_HOPS, 'b3')).toEqual([]);
   });
 });

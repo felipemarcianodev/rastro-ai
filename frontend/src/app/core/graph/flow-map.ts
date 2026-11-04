@@ -198,6 +198,96 @@ function placeLink(link: MapLink, index: number, from: PlacedBlock, to: PlacedBl
 
 export const MAP_LABEL_HEIGHT = LABEL_HEIGHT_PX;
 
+// ---------- trechos recolhidos (Fase 35) ----------
+
+// O sistema de entrada e os que ele chama direto ficam abertos; a partir daí, cada sistema é um
+// bloco só, que abre ao clicar.
+export const OPEN_DEPTH = 1;
+
+export function isCollapsible(block: MapBlock): boolean {
+  return !!block.segment && (block.depth ?? 0) > OPEN_DEPTH;
+}
+
+export interface VisibleMap {
+  map: FlowMap;
+  // Bloco de entrada recolhido e quantos blocos ele esconde.
+  collapsed: ReadonlyMap<string, number>;
+}
+
+// O que se desenha: anda a partir da entrada, entrando só nos trechos abertos. Um bloco de fora
+// aparece quando alguém visível o chama. Os caminhos ficam só com os blocos visíveis.
+export function visibleMap(map: FlowMap, opened: ReadonlySet<string>): VisibleMap {
+  if (!map.blocks.some(isCollapsible)) return { map, collapsed: new Map() };
+
+  const members = new Map<string, MapBlock[]>();
+  for (const block of map.blocks) if (block.segment) members.set(block.segment, [...(members.get(block.segment) ?? []), block]);
+  const byId = new Map(map.blocks.map((b) => [b.id, b]));
+  const isOpen = (segment: string) => !isCollapsible(byId.get(segment)!) || opened.has(segment);
+  const calls = map.links.filter((l) => l.kind === MapLinkKind.Call);
+
+  const visible = new Set<string>();
+  const pending = map.blocks.filter((b) => (b.depth ?? 0) === 0 && b.segment === b.id).map((b) => b.id);
+  const entered = new Set<string>();
+  while (pending.length > 0) {
+    const segment = pending.shift()!;
+    visible.add(segment);
+    if (entered.has(segment) || !isOpen(segment)) continue;
+    entered.add(segment);
+    const blocks = members.get(segment) ?? [];
+    for (const block of blocks) visible.add(block.id);
+    const ids = new Set(blocks.map((b) => b.id));
+    for (const call of calls) {
+      if (!ids.has(call.from)) continue;
+      const target = byId.get(call.to);
+      if (!target) continue;
+      if (target.segment) pending.push(target.segment);
+      else visible.add(target.id);
+    }
+  }
+
+  const collapsed = new Map<string, number>();
+  for (const [segment, blocks] of members) {
+    if (!visible.has(segment) || entered.has(segment)) continue;
+    const ids = new Set(blocks.map((b) => b.id));
+    const targets = new Set(calls.filter((l) => ids.has(l.from) && !visible.has(l.to)).map((l) => l.to));
+    const hidden = blocks.length - 1 + targets.size;
+    if (hidden > 0) collapsed.set(segment, hidden);
+  }
+
+  return {
+    collapsed,
+    map: {
+      ...map,
+      lanes: map.lanes.filter((lane) => map.blocks.some((b) => b.lane === lane.id && visible.has(b.id))),
+      blocks: map.blocks.filter((b) => visible.has(b.id)),
+      links: map.links.filter((l) => visible.has(l.from) && visible.has(l.to)),
+      paths: map.paths.map((path) => onlyVisible(path, visible)),
+    },
+  };
+}
+
+export function onlyVisible(path: MapPath, visible: ReadonlySet<string>): MapPath {
+  return { ...path, blocks: path.blocks.filter((id) => visible.has(id)) };
+}
+
+// Trechos que precisam abrir para o bloco aparecer: o dele (salvo se for a própria entrada) e os
+// de quem chama, até um trecho que já fica aberto.
+export function segmentsToReveal(map: FlowMap, blockId: string): string[] {
+  const byId = new Map(map.blocks.map((b) => [b.id, b]));
+  const callerOf = (id: string) => map.links.filter((l) => l.kind === MapLinkKind.Call && l.to === id).map((l) => byId.get(l.from)).filter((b): b is MapBlock => !!b).sort((a, b) => (a.depth ?? 0) - (b.depth ?? 0))[0];
+  const found: string[] = [];
+  const seen = new Set<string>();
+  let block = byId.get(blockId);
+  if (block && !block.segment) block = callerOf(block.id);
+  else if (block && block.segment === block.id) block = callerOf(block.id);
+  while (block?.segment && !seen.has(block.segment)) {
+    seen.add(block.segment);
+    if (isCollapsible(block)) found.push(block.segment);
+    block = callerOf(block.segment);
+  }
+  return found;
+}
+
 // ---------- caminhos ----------
 
 // Blocos de um caminho; sem caminho escolhido, null (nada apaga).
@@ -233,14 +323,44 @@ export function pathForOutcome(map: FlowMap, decision: string, outcome: number):
   return map.paths.find((p) => p.choices.some((c) => c.decision === decision && c.outcome === outcome)) ?? null;
 }
 
-// Rótulo do botão do caminho: o texto do desfecho de cada decisão escolhida ("Se sim, Caso pix"),
-// ou "Caminho N" quando o caminho não passa por decisão.
-export function pathLabel(map: FlowMap, path: MapPath, position: number): string {
-  const texts = path.choices.flatMap((choice) => {
-    const label = map.blocks.find((b) => b.id === choice.decision)?.outcomes?.[choice.outcome]?.label;
-    return label ? [plainBranch(label)] : [];
-  });
-  return texts.length > 0 ? `${position + 1}. ${texts.join(', ')}` : `Caminho ${position + 1}`;
+// A API guarda poucos caminhos, e num fluxo com muitas decisões a maioria dos desfechos não está em
+// nenhum deles. O destaque monta o trecho que importa: da entrada até a decisão e, dali, pelo ramo
+// escolhido até onde o fluxo segue (nas decisões seguintes, o primeiro ramo que não falha).
+export function outcomeTrail(map: FlowMap, decision: string, outcome: number): MapPath | null {
+  const chosen = map.blocks.find((b) => b.id === decision)?.outcomes?.[outcome];
+  if (!chosen) return null;
+  const incoming = (id: string) => map.links.find((l) => l.to === id);
+  const leaving = (id: string) => map.links.filter((l) => l.from === id);
+  const choices = [{ decision, outcome }];
+  const seen = new Set([decision]);
+  const before: string[] = [];
+
+  for (let link = incoming(decision); link && !seen.has(link.from); link = incoming(link.from)) {
+    seen.add(link.from);
+    before.unshift(link.from);
+    if (link.kind === MapLinkKind.Outcome) choices.push({ decision: link.from, outcome: outcomeOfLink(map, link) });
+  }
+
+  const after: string[] = [];
+  const sequence = (id: string) => leaving(id).find((l) => l.kind === MapLinkKind.Sequence)?.to ?? null;
+  let next = chosen.to ?? (chosen.ends ? null : sequence(decision));
+  while (next && !seen.has(next)) {
+    const current: string = next;
+    seen.add(current);
+    after.push(current);
+    for (const call of leaving(current).filter((l) => l.kind === MapLinkKind.Call && !seen.has(l.to))) {
+      seen.add(call.to);
+      after.push(call.to);
+    }
+    next = sequence(current);
+    const branches = map.blocks.find((b) => b.id === current)?.outcomes ?? [];
+    const safe = branches.findIndex((o) => !o.fails);
+    if (safe >= 0) {
+      choices.push({ decision: current, outcome: safe });
+      next = branches[safe].to ?? (branches[safe].ends ? null : next);
+    }
+  }
+  return { id: `trecho:${decision}:${outcome}`, blocks: [...before, decision, ...after], choices, fails: chosen.fails };
 }
 
 // Vizinhos do bloco no caminho. Sem caminho escolhido ("Todos"), vale o primeiro que passa pelo bloco.
