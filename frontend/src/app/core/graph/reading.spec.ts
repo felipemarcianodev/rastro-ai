@@ -25,6 +25,14 @@ describe('leitura de relance (Fase 23)', () => {
     expect(effectOf(node('c', NodeKind.Decision, 'if (_cache.TryGetValue(key, out var v))'))).toBeUndefined();
   });
 
+  it('"Repository" só é banco no fim do nome da classe', () => {
+    expect(effectOf(node('a', NodeKind.Method, 'IRepository<Order>.GetAsync'))).toBe(NodeEffect.Database);
+    expect(effectOf(node('b', NodeKind.Method, 'OrderRepositoryBase.SaveAsync'))).toBe(NodeEffect.Database);
+    expect(effectOf(node('c', NodeKind.Method, 'RepositoryCatalog.Resolve'))).toBeUndefined();
+    expect(effectOf(node('d', NodeKind.Method, 'RepositoryConfigFile.Load'))).toBeUndefined();
+    expect(effectOf({ ...node('e', NodeKind.Method, 'Resolve'), symbol: 'Rastro.Infrastructure.Repositories.RepositoryCatalog.Resolve(string, string)' })).toBeUndefined();
+  });
+
   it('modo "Resumo": só o código da entrada; o método chamado aparece fechado', () => {
     const graph: FlowGraph = {
       schemaVersion: 1,
