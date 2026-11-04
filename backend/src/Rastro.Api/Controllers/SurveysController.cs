@@ -421,6 +421,15 @@ public class SurveysController(
         return NoContent();
     }
 
+    // Mapa do fluxo (Fase 30): faixas por sistema, blocos, ligações e caminhos, montados do grafo sem IA.
+    [HttpGet("{id:guid}/map")]
+    public async Task<ActionResult<FlowMap>> Map(Guid id, CancellationToken ct)
+    {
+        var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
+        if (survey?.ReadGraph() is not { } graph) return NotFound();
+        return FlowMapBuilder.Build(graph);
+    }
+
     // Regra cruzada entre fluxos (Fase 13): compara com o levantamento pronto mais recente de cada
     // outro ponto de entrada do mesmo repositório.
     [HttpGet("{id:guid}/cross-flow")]
