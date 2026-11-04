@@ -770,6 +770,16 @@ O protótipo aprovado usa dados fictícios e fica fora do repositório. Testes, 
 - [x] Testes EXT-FIELDS-001 a 010, CORE-HTTP-017 e EXT-FIELDS-TS-001 a 007, mais as asserções da costura.
 - [ ] Ficam de fora: `SendAsync` (continua sem campos), objeto em `[Query]` (entra o nome do parâmetro), `[AliasAs]` e query string escrita na URL.
 
+## Fase 35: mapa enxuto num fluxo real `[ ]` (registrada pelo dono em 2026-11-04, no uso da 0.4.0; ainda não aprovada para execução)
+
+No primeiro uso da 0.4.0 num fluxo real (uma tela Angular, uma API de cliente e uma API de integração com o CRM, 344 passos), o mapa deixou de ser um diagrama C2: 145 blocos (75 na API de integração), 45 decisões, 8 caminhos com aviso de corte e 131 perguntas, 127 delas de Staff. O limite de um terço do trecho para deixar um método transparente não segura APIs com muita lógica interna.
+
+- [ ] **Sistemas além do segundo salto entram recolhidos:** o sistema de entrada e os que ele chama direto aparecem abertos; a partir daí, cada sistema chamado vira um bloco só (a entrada, com a rota), que abre ao clicar. O bloco ganha o trecho a que pertence e a profundidade do salto, para a tela saber o que recolher.
+- [ ] **Mesma rota, um trecho só:** a chamada repetida para a mesma entrada (no caso real, `GetByFilter` três vezes e `GetOpportunityCompleteById` duas) liga ao trecho já montado, sem abrir de novo.
+- [ ] **Sai a lista de caminhos do topo do mapa:** com muitas decisões, os rótulos viram "Se sim, Se não, Se não, Se sim…" e não ajudam a ler. O destaque de caminho fica no clique de um desfecho da decisão, com um botão para limpar. Os caminhos continuam na API e no MCP.
+- [ ] **Perguntas de falha agrupadas:** uma pergunta "o que acontece se X falhar?" por sistema chamado ou ponto de fora do código, listando os lugares que o chamam, no lugar de uma por chamada.
+- [ ] Aceite: o mesmo levantamento real com poucos blocos por sistema aberto, sem trecho repetido, sem a lista de caminhos e com as perguntas de Staff na casa da dezena.
+
 **Ideias registradas no uso, sem fase ainda:**
 - [ ] Cenários de teste a partir dos caminhos do mapa (Dado/Quando/Então), com os dados que levam a cada caminho.
 - [ ] Caminhos sem teste: ligar os testes do repositório aos nós e marcar no mapa o caminho que nenhum teste percorre.
