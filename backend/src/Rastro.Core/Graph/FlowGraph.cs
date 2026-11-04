@@ -31,7 +31,24 @@ public record FlowNode(
 
 // Chamada HTTP de uma aresta entre sistemas. Method em maiúsculas (GET, POST, PUT, PATCH, DELETE);
 // Route sem host e sem "/" no começo (api/pedidos/{id}/cancelamento), nula quando não resolveu.
-public record HttpCall(string Method, string? Route);
+//
+// Fields (Fase 34): campos que a chamada envia, na ordem de declaração e sem repetidos: propriedades do
+// corpo e parâmetros nomeados (rota e query). Nulo quando não há campo lido. MoreFields marca que havia
+// campos que o extrator não conseguiu ler (espalhamento de outro objeto, corpo montado à parte), para a
+// tela dizer "e outros campos" em vez de omitir. A igualdade compara os campos por valor.
+public record HttpCall(string Method, string? Route, IReadOnlyList<string>? Fields = null,
+    [property: System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingDefault)]
+    bool MoreFields = false)
+{
+    public virtual bool Equals(HttpCall? other) =>
+        other is not null
+        && Method == other.Method
+        && Route == other.Route
+        && MoreFields == other.MoreFields
+        && (Fields is null || other.Fields is null ? Fields is null && other.Fields is null : Fields.SequenceEqual(other.Fields));
+
+    public override int GetHashCode() => HashCode.Combine(Method, Route, MoreFields, Fields?.Count ?? 0);
+}
 
 // Aresta do grafo. Order é a sequência de execução entre as arestas que saem do mesmo nó.
 // Label diz o ramo (then, else, case 1, try, catch (Ex), finally, each) ou fica nulo numa

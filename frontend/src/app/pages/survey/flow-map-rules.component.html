@@ -1,0 +1,36 @@
+<div class="insight-filters" role="group" aria-label="Filtrar regras por efeito">
+  @for (f of filters; track f.label) {
+    <button type="button" class="btn btn-g btn-small" [class.is-active]="effect() === f.value" [attr.aria-pressed]="effect() === f.value" (click)="effect.set(f.value)">{{ f.label }}</button>
+  }
+</div>
+
+@if (error(); as message) {
+  <div class="notice is-error" role="alert">
+    <span>{{ message }}</span>
+    <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button>
+  </div>
+} @else if (!rules()) {
+  <p class="muted" role="status">Procurando as regras do fluxo…</p>
+} @else {
+  <ul class="rule-list">
+    @for (rule of shown(); track rule.id) {
+      <li class="rule">
+        <span class="rule-seal rule-{{ slug[rule.effect] }}"><span class="rule-glyph" aria-hidden="true">{{ glyph[rule.effect] }}</span>{{ label[rule.effect] }}</span>
+        <span class="rule-text">{{ rule.text }}</span>
+        @if (rule.fromUser) {
+          <span class="rule-mark">escrita por você</span>
+        }
+        @if (rule.duplicated) {
+          <span class="rule-mark is-warn" title="A mesma condição aparece em mais de um sistema">implementada em {{ rule.sources.length }} sistemas</span>
+        }
+        <span class="rule-sources">
+          @for (source of rule.sources; track $index) {
+            <button type="button" class="source-link" (click)="pickBlock.emit(source.blockId)" [title]="'Escolher o bloco no mapa'"><code>{{ sourceText(source) }}</code></button>
+          }
+        </span>
+      </li>
+    } @empty {
+      <li class="muted">Nenhuma regra com este efeito.</li>
+    }
+  </ul>
+}

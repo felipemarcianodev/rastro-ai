@@ -1,0 +1,147 @@
+<div class="map-bar" role="group" aria-label="Caminhos do fluxo">
+  <button type="button" class="btn btn-icon" (click)="toggleDirection()"
+    [attr.aria-label]="'Desenho ' + directionLabel[LayoutDirection.Map] + '. Trocar para ' + directionLabel[next]"
+    [title]="'Desenhar ' + directionLabel[next]">{{ directionGlyph[next] }}</button>
+  @if (pathButtons().length > 0) {
+    <span class="muted map-bar-label">Caminho</span>
+    <button type="button" class="btn btn-g btn-small map-path" [class.is-active]="pathId() === null" [attr.aria-pressed]="pathId() === null" (click)="choosePath(null)">Todos</button>
+    @for (item of pathButtons(); track item.path.id) {
+      <button type="button" class="btn btn-g btn-small map-path" [class.is-active]="pathId() === item.path.id" [class.is-failed]="item.path.fails"
+        [attr.aria-pressed]="pathId() === item.path.id" (click)="choosePath(item.path.id)">{{ item.label }}@if (item.path.fails) { <span class="map-path-fail">(falha)</span> }</button>
+    }
+  }
+  @if (map()?.pathsTruncated) {
+    <span class="notice is-warning map-truncated" role="status">Este fluxo tem mais caminhos do que os mostrados aqui.</span>
+  }
+</div>
+
+@if (error(); as message) {
+  <div class="notice is-error map-status" role="alert">
+    <span>{{ message }}</span>
+    <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button>
+  </div>
+} @else if (loading()) {
+  <div class="canvas-status" role="status">
+    <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+      <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+    </svg>
+    <p class="muted">Montando o mapa do fluxo…</p>
+  </div>
+} @else if (empty()) {
+  <p class="muted map-status" role="status">O mapa deste fluxo está vazio: o levantamento não tem passos para desenhar.</p>
+} @else if (geometry(); as g) {
+  <div class="map-scroll" #scroller>
+    <div class="map-canvas" [style.width.px]="g.width" [style.height.px]="g.height">
+      @for (placed of g.lanes; track placed.lane.id) {
+        <div class="map-lane" [class.is-outside]="placed.lane.kind === MapLaneKind.Outside" [style.left.px]="placed.x - 8" [style.width.px]="box.width + 16">
+          <span class="map-lane-title">{{ laneTitles().get(placed.lane.id) }}</span>
+        </div>
+      }
+      <svg class="map-links" [attr.width]="g.width" [attr.height]="g.height" aria-hidden="true">
+        <defs>
+          <marker id="map-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="map-arrow" /></marker>
+          <marker id="map-arrow-lit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="map-arrow is-lit" /></marker>
+        </defs>
+        @for (l of g.links; track l.index) {
+          <path [attr.d]="l.d" class="map-link" [class.is-call]="l.link.kind === MapLinkKind.Call"
+            [class.is-lit]="litLinkIndexes()?.has(l.index)" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)"
+            [attr.marker-end]="litLinkIndexes()?.has(l.index) ? 'url(#map-arrow-lit)' : 'url(#map-arrow)'" />
+        }
+      </svg>
+      @for (placed of g.blocks; track placed.block.id) {
+        <button type="button" class="map-block kind-{{ slug[placed.block.kind] }}" [attr.data-block-id]="placed.block.id"
+          [style.left.px]="placed.x" [style.top.px]="placed.y" [style.width.px]="box.width" [style.height.px]="box.height"
+          [class.is-lit]="lit()?.has(placed.block.id)" [class.is-dim]="lit() && !lit()!.has(placed.block.id)" [class.is-selected]="blockId() === placed.block.id"
+          [attr.aria-pressed]="blockId() === placed.block.id" [attr.aria-label]="blockLabel(placed.block)" (click)="pickBlock(placed.block)">
+          <span class="kind-glyph" aria-hidden="true">{{ glyph[placed.block.kind] }}</span>
+          <span class="map-block-text">
+            <span class="map-block-title">{{ titleOf(placed.block) }}</span>
+            @if (narrow()) {
+              <span class="map-block-lane muted">{{ laneTitles().get(placed.block.lane) }}</span>
+            }
+          </span>
+        </button>
+      }
+      @for (l of g.links; track l.index) {
+        @if (l.text) {
+          @if (l.link.kind === MapLinkKind.Outcome) {
+            <button type="button" class="map-label is-outcome" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)"
+              [attr.aria-label]="'Escolher o caminho do desfecho: ' + l.text" (click)="pickLinkOutcome(l.index)">{{ l.text }}</button>
+          } @else {
+            <span class="map-label" [attr.title]="callTitle(l.link)" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)">{{ l.text }}</span>
+          }
+        }
+      }
+    </div>
+  </div>
+}
+
+<section class="map-panel" aria-label="Painel do mapa">
+  <div class="panel-tabs" role="tablist" aria-label="Painel do mapa">
+    @for (item of tabs; track item.tab) {
+      <button type="button" role="tab" class="panel-tab" [class.is-active]="tab() === item.tab" [attr.aria-selected]="tab() === item.tab" (click)="setTab(item.tab)">{{ item.label }}</button>
+    }
+  </div>
+  @if (tab() === MapTab.Block) {
+    @if (panel(); as p) {
+      <div class="map-block-panel" aria-label="Bloco escolhido">
+    <header class="map-panel-head">
+      <span class="kind kind-{{ slug[p.block.kind] }}"><span class="kind-glyph" aria-hidden="true">{{ glyph[p.block.kind] }}</span>{{ kindLabel[p.block.kind] }}</span>
+      <strong class="map-panel-title">{{ p.title }}</strong>
+      <span class="muted">{{ p.lane }}</span>
+      @if (p.where) {
+        <code class="map-where">{{ p.where }}</code>
+      }
+      <button type="button" class="btn btn-g btn-small map-panel-close" (click)="closeBlock()" title="Fechar o painel do bloco (Esc)">Fechar</button>
+    </header>
+
+    @if (p.steps.length > 0) {
+      <h3 class="map-panel-h">Passos deste bloco</h3>
+      <ol class="map-steps">
+        @for (step of p.steps; track step.id) {
+          <li><button type="button" class="map-step" (click)="pickStep(step.id)">{{ step.text }}@if (step.where) { <code class="map-where">{{ step.where }}</code> }</button></li>
+        }
+      </ol>
+    }
+
+    @if (p.outcomes.length > 0) {
+      <h3 class="map-panel-h">Desfechos</h3>
+      <ul class="map-outcomes">
+        @for (outcome of p.outcomes; track outcome.index) {
+          <li>
+            <button type="button" class="map-step" [class.is-active]="outcome.chosen" [attr.aria-pressed]="outcome.chosen" (click)="pickOutcome(p.block.id, outcome.index)">
+              {{ outcome.text }}@if (outcome.target) { <span class="muted">leva a {{ outcome.target }}</span> }
+              @if (outcome.fails) { <span class="map-path-fail">falha</span> } @else if (outcome.ends) { <span class="muted">encerra</span> }
+            </button>
+          </li>
+        }
+      </ul>
+    }
+
+    @if (p.calls.length > 0) {
+      <h3 class="map-panel-h">Chamadas que saem daqui</h3>
+      <ul class="map-outcomes">
+        @for (call of p.calls; track call.to) {
+          <li><button type="button" class="map-step" (click)="pickBlockId(call.to)">{{ call.text ?? 'Chama' }} <span class="muted">{{ call.title }}</span>@if (call.fields) { <span class="muted map-fields">campos: {{ call.fields }}</span> }</button></li>
+        }
+      </ul>
+    }
+
+    <footer class="map-panel-foot">
+      <button type="button" class="btn btn-g btn-small" [disabled]="!p.previous" (click)="walk(-1)" [title]="p.previousTitle ? 'Anterior: ' + p.previousTitle + ' (seta para a esquerda)' : 'Não há bloco anterior neste caminho'">Anterior</button>
+      <button type="button" class="btn btn-g btn-small" [disabled]="!p.next" (click)="walk(1)" [title]="p.nextTitle ? 'Seguinte: ' + p.nextTitle + ' (seta para a direita)' : 'Não há bloco seguinte neste caminho'">Seguinte</button>
+      <button type="button" class="btn btn-g btn-small" (click)="focusSection()" title="Recorta o fluxo no passo deste bloco">Ver só este trecho</button>
+    </footer>
+  </div>
+    } @else {
+      <p class="muted map-hint">Escolha um bloco no mapa para ver os passos dele, os desfechos e as chamadas que saem dele.</p>
+    }
+  }
+
+  @if (opened().has(MapTab.Rules)) {
+    <div [hidden]="tab() !== MapTab.Rules"><app-flow-map-rules [surveyId]="detail().survey.id" [laneTitles]="laneTitles()" (pickBlock)="pickRuleSource($event)" /></div>
+  }
+  @if (opened().has(MapTab.Questions)) {
+    <div [hidden]="tab() !== MapTab.Questions"><app-flow-map-questions [surveyId]="detail().survey.id" [canAsk]="canAsk()" [nodes]="nodes()" (pickNode)="pickAnswerSource($event)" /></div>
+  }
+</section>

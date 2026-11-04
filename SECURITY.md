@@ -13,6 +13,6 @@ Inclua a versão (`rastro --version`), o passo a passo para reproduzir e o impac
 - **Disco:** só lê as pastas cadastradas; caminho absoluto e `..` vindos da requisição são recusados.
 - **Processos:** o build e os testes da validação rodam sem shell, com argumentos separados, tempo limite e o comando que está na configuração (nunca o que vem da requisição).
 - **Chave de API dos provedores de IA:** fica cifrada no banco local e nunca volta na resposta nem no log.
-- **IA:** só envia ao provedor o trecho de código necessário, e só quando você liga o modo provedor.
+- **IA:** só envia ao provedor o trecho de código necessário, e só quando você liga o modo provedor. Na pergunta livre sobre o fluxo, vão a pergunta, o mapa do fluxo (nomes de métodos e `arquivo:linha`), as regras e até 8 trechos de código em volta das entradas e das decisões. A pergunta e o código vão marcados como dado, e a IA é instruída a ignorar instruções dentro deles.
 
 Uma falha em qualquer um desses pontos é um relato bem-vindo.

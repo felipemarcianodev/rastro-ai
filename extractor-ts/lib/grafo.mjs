@@ -30,7 +30,7 @@ export const UnresolvedReason = Object.freeze({
 export const EdgeConfidence = Object.freeze({ Extracted: 0, Inferred: 1, Confirmed: 2 });
 
 // Versão do esquema do grafo (RastroSchema.Version no C#). Precisa andar junto com ela.
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export const MAX_LABEL_LENGTH = 120;
 

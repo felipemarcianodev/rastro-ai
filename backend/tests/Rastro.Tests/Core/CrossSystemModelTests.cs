@@ -82,6 +82,27 @@ public class CrossSystemModelTests
         Assert.Null(graph.Edges[0].Http);
     }
 
+    [Fact] // CORE-HTTP-017
+    public void Json_GrafoDaVersao2SemCampos_ContinuaSendoLidoEOsCamposIdaEVolta()
+    {
+        const string v2 = """
+            {"schemaVersion":2,"entryPoint":"A.Run","entryNodeId":"m:a",
+             "nodes":[{"id":"m:a","kind":0,"label":"A.Run"}],
+             "edges":[{"from":"m:a","to":"m:a","order":1,"confidence":0,"http":{"method":"POST","route":"api/x"}}]}
+            """;
+
+        var old = FlowGraphJson.Deserialize(v2).Edges[0].Http!;
+        Assert.Null(old.Fields);
+        Assert.False(old.MoreFields);
+
+        var graph = Sample() with { Edges = [Sample().Edges[0] with { Http = new HttpCall("POST", "api/x", ["a", "b"], true) }] };
+        var json = FlowGraphJson.Serialize(graph);
+        Assert.Contains("\"fields\"", json);
+        Assert.Contains("\"moreFields\": true", json);
+        Assert.Equal(new HttpCall("POST", "api/x", ["a", "b"], true), FlowGraphJson.Deserialize(json).Edges[0].Http);
+        Assert.DoesNotContain("moreFields", FlowGraphJson.Serialize(Sample()));
+    }
+
     [Fact] // CORE-HTTP-015
     public void Survey_ComRepositoriosDeCostura_GuardaELe()
     {

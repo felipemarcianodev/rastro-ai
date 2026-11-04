@@ -128,6 +128,52 @@ public class RastroTools(
         return string.Join('\n', lines);
     }
 
+    [McpServerTool(Name = "get_flow_map"), Description("Mostra o mapa do fluxo, no nível de um diagrama C2: faixas por sistema, blocos (entrada, passo, decisão, fora do código) com o apelido do nó que dá nome a cada um, ligações (sequência, desfecho, chamada com verbo e rota) e os caminhos de ponta a ponta. Somente leitura. Use para responder perguntas sobre o fluxo citando os nós.")]
+    public async Task<string> GetFlowMap([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    {
+        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
+
+        var handles = Handles(graph);
+        var map = FlowMapBuilder.Build(graph);
+        var text = new StringBuilder();
+        foreach (var lane in map.Lanes)
+        {
+            text.AppendLine($"Faixa {lane.Id}{(lane.System is null ? string.Empty : $" ({lane.System})")}:");
+            foreach (var block in map.Blocks.Where(b => b.Lane == lane.Id))
+            {
+                text.AppendLine($"  {block.Id} {block.Kind} {handles.GetValueOrDefault(block.NodeId, block.NodeId)} {block.Title} ({block.NodeIds.Count} nós)");
+                foreach (var outcome in block.Outcomes ?? [])
+                    text.AppendLine($"    desfecho {outcome.Label} -> {outcome.To ?? "segue"}{(outcome.Fails ? " [exceção]" : outcome.Ends ? " [encerra]" : string.Empty)}");
+            }
+        }
+        text.AppendLine("Ligações:");
+        foreach (var link in map.Links)
+            text.AppendLine($"  {link.From} -> {link.To} {link.Kind}{(link.Label is null ? string.Empty : $" ({link.Label})")}{(link.Http is null ? string.Empty : $" {link.Http.Method} {link.Http.Route ?? "?"}")}");
+        text.AppendLine($"Caminhos{(map.PathsTruncated ? $" (os {map.Paths.Count} primeiros; há mais)" : string.Empty)}:");
+        foreach (var path in map.Paths)
+            text.AppendLine($"  {path.Id}{(path.Fails ? " [exceção]" : string.Empty)}: {string.Join(" > ", path.Blocks)}");
+        return text.ToString();
+    }
+
+    [McpServerTool(Name = "get_flow_rules"), Description("Lista as regras do fluxo tiradas das decisões do código, sem IA: efeito (Blocks encerra o fluxo, SideEffect chama outro sistema ou fora, Allows só escolhe o caminho), a frase da regra e as fontes (apelido do nó e arquivo:linha). Regra marcada [duplicada] está implementada em mais de um sistema. Somente leitura.")]
+    public async Task<string> GetFlowRules([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    {
+        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
+
+        var handles = Handles(graph);
+        var rules = FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph));
+        if (rules.Count == 0) return "Nenhuma decisão do fluxo muda o desfecho: não há regras para listar.";
+
+        var text = new StringBuilder();
+        foreach (var rule in rules)
+        {
+            text.AppendLine($"- {rule.Id} {rule.Effect}{(rule.Duplicated ? " [duplicada]" : string.Empty)}{(rule.FromUser ? " [escrita pelo usuário]" : string.Empty)}: {rule.Text}");
+            foreach (var source in rule.Sources)
+                text.AppendLine($"  fonte: {handles.GetValueOrDefault(source.NodeId, source.NodeId)} em {source.Lane}{(source.Location is null ? string.Empty : $", {source.Location.File}:{source.Location.Line}")}");
+        }
+        return text.ToString();
+    }
+
     [McpServerTool(Name = "list_unresolved"), Description("Lista as chamadas que o compilador não resolveu (os buracos a completar), com o motivo e onde estão.")]
     public async Task<string> ListUnresolved([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
     {

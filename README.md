@@ -14,6 +14,8 @@ O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona 
 - **Entre sistemas:** o levantamento segue a chamada HTTP de uma API .NET para outra cadastrada no Rastro, com as bifurcações de cada sistema no mesmo desenho.
 - **Da tela ao gateway:** o levantamento pode começar num componente Angular (opcional, precisa do Node), e o clique no botão chega ao controller e às APIs seguintes.
 - **Visão consolidada:** o fluxo resumido em poucos passos de leitura de negócio, em Mermaid editável, com as cores que você escolher.
+- **Mapa do fluxo:** o nível de um diagrama C2, com uma faixa por sistema, poucos blocos em cada uma, as decisões que mudam o desfecho, as chamadas entre sistemas (verbo, rota e campos enviados) e os caminhos de ponta a ponta. Clicar num bloco mostra só aquele trecho.
+- **Regras e perguntas:** as decisões viram regras em frase (bloqueia, permite, efeito colateral), com a fonte no código, e o Rastro responde perguntas prontas de quem revisa (TL, Staff, gerente). Com IA ligada, pergunta livre, sempre com as fontes conferidas.
 - **Mudança desenhada no grafo:** você edita o fluxo, o Rastro gera o prompt da mudança e, depois que o agente aplica, valida contra o código novo (build, testes e o fluxo de novo).
 - **Arquitetura:** exporta o fluxo em Mermaid e SVG e a arquitetura em C4 (Structurizr), e aponta melhorias e dívida técnica (DDD, código limpo, métricas).
 
@@ -76,10 +78,15 @@ Regra que não se quebra: `Rastro.Core` e `Rastro.Extractor` **nunca** referenci
 claude mcp add rastro -- rastro mcp
 ```
 
-Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt` e `get_c4`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
+Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt` e `get_c4`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
 
 - Toda proposta passa pelo validador de prova: o compilador confere o método de destino e o `arquivo:linha`. Prova errada volta recusada, com o motivo.
 - Proposta aceita entra como **inferida**. **Só você confirma ou descarta**, na tela; o agente não tem ferramenta para isso.
+- Para perguntas sobre o fluxo ("quando o pedido é recusado?", "o que acontece se a API de pagamentos cair?"), `get_flow_map` e `get_flow_rules` dão ao agente o mapa e as regras, e ele responde citando os passos.
+
+### Perguntas no modo provedor
+
+A pergunta livre da tela usa o uso **Sugestões** da configuração da IA. Numa pergunta, vão ao provedor: o texto da pergunta, o mapa do fluxo (blocos, ligações e caminhos, com os nomes dos métodos e `arquivo:linha`), as regras e o código em volta dos pontos de entrada e das decisões (até 8 trechos de cerca de 30 linhas). A resposta volta com um selo (inferida, fora do código ou sem resposta) e com as fontes; fonte que não existe no fluxo é descartada, e resposta sem nenhuma fonte válida aparece como "sem resposta no código levantado".
 
 ## Fluxo entre sistemas
 

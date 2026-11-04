@@ -1,0 +1,61 @@
+<div class="insight-filters" role="group" aria-label="Filtrar perguntas por papel">
+  @for (f of filters; track f.label) {
+    <button type="button" class="btn btn-g btn-small" [class.is-active]="role() === f.value" [attr.aria-pressed]="role() === f.value" (click)="role.set(f.value)">{{ f.label }}</button>
+  }
+</div>
+
+@if (error(); as message) {
+  <div class="notice is-error" role="alert">
+    <span>{{ message }}</span>
+    <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button>
+  </div>
+} @else if (!questions()) {
+  <p class="muted" role="status">Montando as perguntas do fluxo…</p>
+} @else {
+  <ul class="question-list">
+    @for (question of visible(); track question.id) {
+      <li>
+        <button type="button" class="question" [class.is-active]="chosenId() === question.id" [attr.aria-pressed]="chosenId() === question.id" (click)="choose(question)">
+          <span class="muted question-role">{{ roleLabel[question.role] }}</span>{{ question.text }}
+        </button>
+      </li>
+    } @empty {
+      <li class="muted">Nenhuma pergunta pronta para este papel.</li>
+    }
+  </ul>
+}
+
+@if (canAsk()) {
+  <form class="ask" (submit)="$event.preventDefault(); ask()">
+    <label class="field-label" for="map-ask">Pergunta livre sobre o fluxo</label>
+    <div class="ask-row">
+      <input id="map-ask" class="input" name="question" [(ngModel)]="text" [disabled]="asking()" autocomplete="off" placeholder="Por exemplo: o que acontece se o pagamento for recusado?" />
+      <button type="submit" class="btn btn-p btn-small" [disabled]="asking()">{{ asking() ? 'Perguntando…' : 'Perguntar' }}</button>
+    </div>
+    @if (askError(); as message) {
+      <p class="field-error" role="alert">{{ message }}</p>
+    }
+  </form>
+}
+
+@if (shown(); as s) {
+  <section class="answer" aria-label="Resposta" aria-live="polite">
+    <p class="answer-question">{{ s.question }}</p>
+    <span class="seal seal-{{ sealSlug[s.answer.seal] }}"><span class="seal-glyph" aria-hidden="true">{{ sealGlyph[s.answer.seal] }}</span>{{ sealLabel[s.answer.seal] }}</span>
+    @if (s.provider !== null) {
+      <span class="muted answer-provider">resposta da IA ({{ providerLabel[s.provider] }})</span>
+    }
+    <p class="answer-text">{{ s.answer.text }}</p>
+    @if (s.answer.gap) {
+      <p class="answer-gap" role="note"><strong>Lacuna:</strong> {{ s.answer.gap }}</p>
+    }
+    @if (s.answer.sources.length > 0) {
+      <div class="answer-sources">
+        <span class="muted">Fontes:</span>
+        @for (id of s.answer.sources; track id) {
+          <button type="button" class="source-link" (click)="pickNode.emit(id)" title="Escolher o passo no fluxo"><code>{{ sourceText(id) }}</code></button>
+        }
+      </div>
+    }
+  </section>
+}

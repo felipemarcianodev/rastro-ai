@@ -23,7 +23,7 @@ public class RefitCallExtractionTests
     {
         var result = await ExtractAsync("ApiPedidosRefit", "PedidosController.Cancelar");
 
-        var post = Assert.Single(result.HttpCalls, s => s.Call == new HttpCall("POST", "api/estornos"));
+        var post = Assert.Single(result.HttpCalls, s => s.Call == new HttpCall("POST", "api/estornos", ["PedidoId", "Meio"]));
         var node = Assert.Single(result.Graph.Nodes, n => n.Id == post.NodeId);
         Assert.StartsWith("h:ApiPedidosRefit/PedidosController.cs:", node.Id, StringComparison.Ordinal);
         Assert.Equal(NodeKind.Unresolved, node.Kind);
@@ -32,7 +32,7 @@ public class RefitCallExtractionTests
         Assert.Equal(0, post.Depth);
 
         // {id} vira o buraco da chamada; a query sai.
-        Assert.Single(result.HttpCalls, s => s.Call == new HttpCall("GET", "api/estornos/{}"));
+        Assert.Single(result.HttpCalls, s => s.Call == new HttpCall("GET", "api/estornos/{}", ["id"]));
         // Nenhum passo ficou "sem implementação".
         Assert.DoesNotContain(result.Graph.Nodes, n => n.Reason == UnresolvedReason.NoImplementation);
     }
@@ -44,7 +44,7 @@ public class RefitCallExtractionTests
 
         var site = Assert.Single(result.HttpCalls, s => s.Call.Method == "POST");
         var edge = Assert.Single(result.Graph.Edges, e => e.To == site.NodeId);
-        Assert.Equal(new HttpCall("POST", "api/estornos"), edge.Http);
+        Assert.Equal(new HttpCall("POST", "api/estornos", ["PedidoId", "Meio"]), edge.Http);
         Assert.Equal(EdgeConfidence.Extracted, edge.Confidence);
         Assert.Equal("ApiPedidosRefit/PedidosController.cs", edge.Location!.File);
         Assert.Equal(FixtureLines.LineOf("ApiPedidosRefit/PedidosController.cs", "public async Task Cancelar", "pagamentos.Criar("), edge.Location.Line);
@@ -55,8 +55,8 @@ public class RefitCallExtractionTests
     {
         var result = await ExtractAsync("ApiPedidosRefit", "PedidosController.Variacoes");
 
-        Assert.Contains(result.HttpCalls, s => s.Call == new HttpCall("DELETE", "api/estornos/{}"));
-        Assert.Contains(result.HttpCalls, s => s.Call == new HttpCall("GET", "api/ajuda/{}"));
+        Assert.Contains(result.HttpCalls, s => s.Call == new HttpCall("DELETE", "api/estornos/{}", ["id"]));
+        Assert.Contains(result.HttpCalls, s => s.Call == new HttpCall("GET", "api/ajuda/{}", ["caminho"]));
     }
 
     [Fact] // EXT-REFIT-004
@@ -76,7 +76,7 @@ public class RefitCallExtractionTests
         var result = await ExtractAsync("ApiPedidosRefitSemDll", "PedidosController.Cancelar", compiles: false);
 
         var site = Assert.Single(result.HttpCalls);
-        Assert.Equal(new HttpCall("POST", "api/estornos"), site.Call);
+        Assert.Equal(new HttpCall("POST", "api/estornos", ["PedidoId", "Meio"]), site.Call);
     }
 
     [Fact] // EXT-REFIT-006

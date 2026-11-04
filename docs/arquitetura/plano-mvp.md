@@ -1,4 +1,4 @@
-# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 34 em execução
+# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 34 executadas (prints e UX da Fase 31 pendentes)
 
 > Criado em 2026-10-15. Visão e decisões: [`visao.md`](visao.md).
 > Execução fase a fase, no mesmo molde da skill `executar-plano-faseado` de outro projeto do dono: **uma fase por vez, portões verdes, commit, e só então a próxima.**
@@ -722,34 +722,53 @@ O protótipo aprovado usa dados fictícios e fica fora do repositório. Testes, 
 - [x] Teste de arquitetura verde: nada de IA no núcleo.
 - [ ] Conferir o mapa num levantamento real grande (com os desenhos da Fase 31), principalmente o limite de um terço que deixa um método transparente.
 
-## Fase 31: o mapa como desenho do fluxo `[ ]` (depende da Fase 30)
+## Fase 31: o mapa como desenho do fluxo `[x]` (depende da Fase 30)
 
-- [ ] O botão que troca o desenho passa a ter cinco estados: horizontal, linha do tempo, árvore, consolidado e mapa.
-- [ ] Faixas por sistema, blocos na ordem do fluxo e pontes desenhadas entre faixas, com verbo e rota no rótulo. Num celular, uma coluna só.
-- [ ] Seletor de caminho: destaca de ponta a ponta o caminho escolhido (cor da trilha) e apaga o resto; "todos" mostra tudo. Clicar num desfecho de decisão escolhe o caminho dele.
-- [ ] Clicar num bloco abre o painel do bloco: os passos que ele recolhe, numerados como na linha do tempo, com arquivo e linha, e os blocos anterior e seguinte no caminho escolhido (setas do teclado; Esc fecha).
-- [ ] "Ver só este trecho" usa o recorte que já existe ("Ver somente este fluxo") com os `NodeIds` do bloco.
-- [ ] Prints em `docs/telas/fase-31/` e levantamento de UX da tela nova.
+**Status: concluída em 2026-11-04**, com os prints e o levantamento de UX pendentes (abaixo).
 
-## Fase 32: regras do fluxo `[ ]` (depende da Fase 30)
+- [x] O botão que troca o desenho passa a ter cinco estados: horizontal, linha do tempo, árvore, consolidado e mapa (`LayoutDirection.Map = 4`). Na edição e na comparação, o botão pula o consolidado e o mapa, que mostram o grafo inteiro e não o rascunho.
+- [x] Faixas por sistema em colunas, blocos posicionados pela ordem do fluxo (`core/graph/flow-map.ts`, `placeRows`: a linha do bloco é a maior linha de quem chega a ele, mais 1; o bloco chamado de outra faixa fica na linha de quem chama; dois blocos nunca dividem faixa e linha) e ligações em SVG, com a chamada tracejada e "VERBO rota" no rótulo. Até 640px, uma coluna só, com o nome da faixa no bloco.
+- [x] Seletor de caminho ("N. desfechos escolhidos", com a marca de falha) e "Todos"; o caminho acende blocos e ligações com a cor da trilha e apaga o resto. Clicar num desfecho, na ligação ou no painel, escolhe o caminho dele. Aviso quando há mais caminhos que os mostrados.
+- [x] Clicar num bloco escolhe o nó dele no grafo (o painel do passo abre como nas outras visões) e abre o painel do bloco: os passos que ele recolhe com arquivo e linha, os desfechos, as chamadas que saem dele e anterior e seguinte no caminho escolhido (botões e setas do teclado; Esc limpa a seleção pelo atalho da página).
+- [x] "Ver só este trecho": o recorte que existe aceita um nó, então ele recebe o nó que dá nome ao bloco, e a página volta ao desenho horizontal para mostrar o recorte (o mapa é sempre do grafo inteiro).
+- [x] Testes: `flow-map.spec.ts` (posição, caminhos, rótulos) e `flow-map-view.component.spec.ts` (caminho, desfecho, bloco, anterior e seguinte, recorte, aviso de corte, erro, vazio, carregando); troca de desenho com cinco estados.
+- [ ] Recorte com todos os `NodeIds` do bloco: pede o recorte por conjunto de nós.
+- [ ] Prints em `docs/telas/fase-31/` e levantamento de UX da tela nova (precisa do Rastro rodando com a loja fictícia).
 
-- [ ] `FlowRuleExtractor` (núcleo, sem IA): cada decisão promovida vira uma regra com a condição em texto, o efeito (bloqueia, quando o ramo termina em falha; permite; efeito colateral, quando o ramo chama outro sistema ou grava), onde vale (o sistema) e a fonte (nó, arquivo e linha). A regra escrita pelo usuário ou proposta (`NodeRule`, Fase 6) tem precedência sobre o texto da condição.
-- [ ] A mesma condição em dois sistemas (a tela e a API conferem a mesma coisa) vira uma regra só, com as duas fontes, e o painel aponta que a regra está implementada duas vezes.
-- [ ] `GET api/surveys/{id}/rules` e a lista de regras no painel do mapa, filtrável por efeito; clicar na fonte escolhe o bloco no mapa.
-- [ ] Teste: `if` que lança exceção vira "bloqueia"; ramo que chama outra API vira "efeito colateral"; condição igual na tela e na API vira uma regra com duas fontes.
+## Fase 32: regras do fluxo `[x]` (depende da Fase 30)
 
-## Fase 33: perguntas sobre o fluxo `[ ]` (depende das Fases 30 e 32; IA opcional)
+**Status: concluída em 2026-11-04**, no mesmo commit da Fase 33 (as duas dividem a rota do controller e o painel do mapa).
 
-- [ ] **Sem IA:** perguntas prontas por papel (TL, Staff, gerente), montadas por modelo a partir do mapa e das regras ("quando X é recusado?", "o que acontece se a chamada a Y falhar?", "onde a regra Z está implementada?"), respondidas pelas regras e pelos caminhos. Selo "extraída do código".
-- [ ] **Com IA (provedor ou agente):** pergunta livre. A IA recebe o mapa, as regras e o código dos blocos envolvidos e devolve resposta, selo ("extraída", "inferida" ou "fora do código") e fontes (ids de nó). A resposta passa pelo validador: fonte que não existe no grafo recusa a resposta, e resposta sem fonte só sai como "sem resposta no código levantado".
-- [ ] Ferramentas do MCP `rastro_mapa` e `rastro_regras`, para o agente responder com o mesmo material; as instruções do MCP dizem que a resposta cita os nós.
-- [ ] Sem IA ligada, a tela não mostra a pergunta livre (ADR-001).
-- [ ] Documentação do cliente (README, README do pacote, `SECURITY.md`): o que vai para o provedor de IA numa pergunta.
+- [x] `FlowRuleExtractor` (núcleo, sem IA): cada decisão do mapa vira uma regra com a condição, o efeito (`RuleEffect`: bloqueia, quando um ramo encerra com `return` ou `throw`; efeito colateral, quando um ramo chama outro sistema ou fora do código; permite, quando só escolhe o caminho), o texto gerado ("Se X, encerra o fluxo com exceção.", "Quando meio é Cartao, chama ...") e a fonte (nó, bloco, faixa, arquivo e linha). A regra do nó (`NodeRule`, Fase 6) tem precedência sobre o texto gerado e vem marcada.
+- [x] A mesma condição em sistemas diferentes (sem `this.`, espaços e maiúsculas) vira uma regra só, marcada como duplicada, com uma fonte por sistema. No mesmo sistema, dois `if` iguais continuam sendo duas regras.
+- [x] `GET api/surveys/{id}/rules` e a aba "Regras" no painel do mapa, filtrável por efeito, com selo de letra e cor; clicar na fonte escolhe o bloco.
+- [x] Testes CORE-RULE-001 a 006 e API-MAP-003; no front, filtro e fonte clicável.
 
-## Fase 34: parâmetros das pontes `[ ]` (depende da Fase 30)
+## Fase 33: perguntas sobre o fluxo `[x]` (depende das Fases 30 e 32; IA opcional)
 
-- [ ] O extrator guarda os campos enviados na chamada entre sistemas: no Angular, as chaves do objeto literal do corpo; no C#, as propriedades públicas do tipo do corpo e os parâmetros da rota e da query. Vai na `HttpCall`, e o `RastroSchema.Version` sobe.
-- [ ] O painel da ponte mostra os campos; campo montado de forma que o extrator não lê (espalhamento de outro objeto, por exemplo) aparece como "e outros campos", nunca some em silêncio.
+**Status: concluída em 2026-11-04.**
+
+- [x] **Sem IA:** `FlowQuestions.Suggest` monta perguntas por papel (`QuestionRole`) a partir do mapa e das regras: quando o fluxo é recusado, que efeitos tem fora do código, o que acontece se cada chamada falhar (diz se o bloco tem `try/catch`), onde uma regra duplicada está implementada, por quais sistemas passa e quantos caminhos terminam em erro. `GET api/surveys/{id}/questions`.
+- [x] **Com IA (provedor):** `POST api/surveys/{id}/ai/ask` (`QuestionAdvisor`). A IA recebe a pergunta, o mapa, as regras e até 8 trechos de código das entradas e decisões, marcados como dado. A resposta passa pela conferência do núcleo (`FlowQuestions.Verify`): fonte que não existe no grafo sai, e resposta sem fonte válida vira "sem resposta no código levantado". A IA nunca carimba "extraída" (só o Rastro faz isso).
+- [x] **Decisão:** a pergunta livre usa o uso "Sugestões" da configuração, sem flag nova, para não criar migration nem mudar a tela de configurações. Se o dono quiser um uso próprio, vira item novo.
+- [x] Ferramentas do MCP `get_flow_map` e `get_flow_rules` (no lugar dos nomes `rastro_mapa` e `rastro_regras` planejados, para seguir o padrão em inglês das outras ferramentas); as instruções do MCP pedem a resposta citando os nós.
+- [x] Sem IA ligada (ou sem o uso "Sugestões"), a tela não mostra a pergunta livre (ADR-001).
+- [x] Documentação do cliente: README, README do pacote e `SECURITY.md` dizem o que vai para o provedor numa pergunta e citam as ferramentas novas.
+- [x] Testes CORE-ASK-001 a 005, AI-ASK-001 a 003 e MCP-MAP-001 (o mapa e as regras da loja fictícia extraída de verdade, com a chamada do estorno entre os dois sistemas); no front, filtro por papel, selo, lacuna, pergunta livre escondida sem IA, envio e erro por código.
+- [ ] Atualizar o contador de tokens da barra logo depois de uma pergunta (hoje só no próximo refresh).
+
+## Fase 34: parâmetros das pontes `[x]` (depende da Fase 30)
+
+**Status: concluída em 2026-11-04.** A parte da tela entrou no commit das Fases 32 e 33 (mesmo painel).
+
+- [x] `HttpCall` ganha `Fields` (campos na ordem de declaração, sem repetidos) e `MoreFields` (havia campos que o extrator não leu); os dois são omitidos no JSON quando vazios, e a igualdade compara `Fields` por valor. `RastroSchema.Version` vai de 2 para 3, e os JSON das versões 1 e 2 continuam sendo lidos.
+- [x] C#: nos `*AsJsonAsync`, as propriedades públicas do tipo do corpo (tipo anônimo e herança incluídos); no `PostAsync` e afins, só `JsonContent.Create(x)`. Refit: `[Body]` vira as propriedades do tipo, `[Query]` e o parâmetro de rota entram pelo nome, e parâmetro sem atributo segue a regra do Refit (tipo complexo em POST, PUT e PATCH é corpo). `CancellationToken`, `[Header]` e afins ficam fora.
+- [x] Angular: as chaves do objeto literal (propriedade, atalho, método); identificador com tipo declarado vira as propriedades do tipo; no `request`, a propriedade `body` das opções.
+- [x] Vira `MoreFields`, nunca some em silêncio: espalhamento, chave calculada, corpo `object`, `dynamic`, `any`, primitivo, coleção, `FormData`, `StringContent` e tipo sem propriedades legíveis. GET, DELETE, `null` e objeto vazio não têm campos.
+- [x] Os campos atravessam a costura e a proposta (a aresta é copiada com `with`), conferido nos testes da costura.
+- [x] O painel do bloco mostra os campos de cada chamada que sai dele e "e outros campos" quando há `MoreFields`; o rótulo da ligação leva o texto no tooltip.
+- [x] Testes EXT-FIELDS-001 a 010, CORE-HTTP-017 e EXT-FIELDS-TS-001 a 007, mais as asserções da costura.
+- [ ] Ficam de fora: `SendAsync` (continua sem campos), objeto em `[Query]` (entra o nome do parâmetro), `[AliasAs]` e query string escrita na URL.
 
 **Ideias registradas no uso, sem fase ainda:**
 - [ ] Cenários de teste a partir dos caminhos do mapa (Dado/Quando/Então), com os dados que levam a cada caminho.

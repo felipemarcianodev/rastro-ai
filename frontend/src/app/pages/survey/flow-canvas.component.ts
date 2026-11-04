@@ -24,8 +24,9 @@ import {
   readLayoutDirection,
   saveLayoutDirection,
   LayoutDirection,
-  NEXT_LAYOUT_DIRECTION,
   NodeBox,
+  isOutsideCanvas,
+  nextDrawing,
 } from '../../core/graph/layout';
 import { FOLD_ACTION, FOLD_GLYPH, FoldState, foldStates } from '../../core/graph/branches';
 import { NodeText, findGuards, outcomeText, withGuards } from '../../core/graph/guards';
@@ -194,11 +195,8 @@ export class FlowCanvasComponent {
   );
   private readonly outcomeOf: NodeText = (node) => lowerFirst(plainLabel(node) ?? outcomeText(node));
   private readonly downward = computed(() => !this.horizontal());
-  // Na edição e na comparação o consolidado não entra: só o canvas mostra o rascunho e as diferenças.
-  protected readonly nextDirection = computed(() => {
-    const next = NEXT_LAYOUT_DIRECTION[this.direction()];
-    return next === LayoutDirection.Consolidated && (this.editing() || this.comparing()) ? NEXT_LAYOUT_DIRECTION[next] : next;
-  });
+  // Na edição e na comparação o consolidado e o mapa não entram: só o canvas mostra o rascunho e as diferenças.
+  protected readonly nextDirection = computed(() => nextDrawing(this.direction(), this.editing() || this.comparing()));
   protected readonly directionLabel = LAYOUT_DIRECTION_LABEL;
   protected readonly directionGlyph = LAYOUT_DIRECTION_GLYPH;
   // Cada direção guarda o seu arranjo feito à mão.
@@ -778,8 +776,8 @@ export class FlowCanvasComponent {
   protected toggleDirection(): void {
     const next = this.nextDirection();
     saveLayoutDirection(next);
-    // O consolidado é desenhado pela página, no lugar do canvas.
-    if (next !== LayoutDirection.Consolidated) this.direction.set(next);
+    // O consolidado e o mapa são desenhados pela página, no lugar do canvas.
+    if (!isOutsideCanvas(next)) this.direction.set(next);
     this.directionChange.emit(next);
   }
 
@@ -887,8 +885,8 @@ function readBrief(): boolean {
   }
 }
 
-// O canvas desenha três direções; o consolidado é outro componente (Fase 28) e, quando o canvas
-// aparece com ele guardado (edição, comparação), começa no horizontal.
+// O canvas desenha três direções; o consolidado (Fase 28) e o mapa (Fase 31) são outros componentes
+// e, quando o canvas aparece com um deles guardado (edição, comparação), começa no horizontal.
 function canvasDirection(direction: LayoutDirection): LayoutDirection {
-  return direction === LayoutDirection.Consolidated ? LayoutDirection.Horizontal : direction;
+  return isOutsideCanvas(direction) ? LayoutDirection.Horizontal : direction;
 }
