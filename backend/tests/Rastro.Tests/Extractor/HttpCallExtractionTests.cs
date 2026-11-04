@@ -44,7 +44,7 @@ public class HttpCallExtractionTests
 
         var site = Site(result, "POST", "api/estornos");
         var edge = Assert.Single(result.Graph.Edges, e => e.To == site.NodeId);
-        Assert.Equal(new HttpCall("POST", "api/estornos"), edge.Http);
+        Assert.Equal(new HttpCall("POST", "api/estornos", ["pedidoId"]), edge.Http);
         Assert.Equal(EdgeConfidence.Extracted, edge.Confidence);
         Assert.Equal("ApiPedidos/PedidosController.cs", edge.Location!.File);
         Assert.Equal(FixtureLines.LineOf("ApiPedidos/PedidosController.cs", "EstornarAsync(int", "PostAsJsonAsync"), edge.Location.Line);

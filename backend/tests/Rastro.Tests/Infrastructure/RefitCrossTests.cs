@@ -42,12 +42,12 @@ public class RefitCrossTests(ApiFixture fixture) : IAsyncLifetime
         var criar = Assert.Single(analysis.Graph.Nodes, n => n.Label == "EstornosController.Criar");
         Assert.Equal(_pagamentos.Name, criar.System);
         var edge = Assert.Single(analysis.Graph.Edges, e => e.To == criar.Id);
-        Assert.Equal(new HttpCall("POST", "api/estornos"), edge.Http);
+        Assert.Equal(new HttpCall("POST", "api/estornos", ["PedidoId", "Meio"]), edge.Http);
         Assert.Equal("PedidosController.cs", edge.Location!.File);
 
         // {id} do Refit casa com {id:int} do controller de destino.
         var obter = Assert.Single(analysis.Graph.Nodes, n => n.Label == "EstornosController.Obter");
-        Assert.Equal(new HttpCall("GET", "api/estornos/{}"), Assert.Single(analysis.Graph.Edges, e => e.To == obter.Id).Http);
+        Assert.Equal(new HttpCall("GET", "api/estornos/{}", ["id"]), Assert.Single(analysis.Graph.Edges, e => e.To == obter.Id).Http);
 
         Assert.DoesNotContain(analysis.Graph.Nodes, n => n.Id.StartsWith("h:", StringComparison.Ordinal));
         Assert.DoesNotContain(analysis.Graph.Nodes, n => n.Reason == UnresolvedReason.NoImplementation);

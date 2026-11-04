@@ -21,6 +21,7 @@ const VERBOS_HTTP = new Map([
   ['patch', 'PATCH'],
   ['delete', 'DELETE'],
 ]);
+const VERBOS_COM_CORPO = new Set(['POST', 'PUT', 'PATCH']);
 const VERBOS_ACEITOS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
 const VERBO_DESCONHECIDO = 'SEND';
 
@@ -696,15 +697,18 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
     const argumentos = chamada.arguments;
     let metodo;
     let rota = null;
+    let corpo;
 
     if (VERBOS_HTTP.has(nome)) {
       metodo = VERBOS_HTTP.get(nome);
       rota = argumentos.length > 0 ? resolverRota(argumentos[0]) : null;
+      if (VERBOS_COM_CORPO.has(metodo) && argumentos.length > 1) corpo = argumentos[1];
     } else if (nome === 'request') {
       const verbo = argumentos[0] && ts.isStringLiteralLike(argumentos[0]) ? argumentos[0].text.toUpperCase() : null;
       if (verbo && VERBOS_ACEITOS.has(verbo)) {
         metodo = verbo;
         rota = argumentos.length > 1 ? resolverRota(argumentos[1]) : null;
+        if (VERBOS_COM_CORPO.has(verbo)) corpo = corpoDasOpcoes(argumentos[2]);
       } else {
         metodo = VERBO_DESCONHECIDO;
       }
@@ -716,6 +720,11 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
     const id = `h:${p.file}:${p.line}:${p.col}`;
     const location = { file: p.file, line: p.line };
     const call = rota === null ? { method: metodo } : { method: metodo, route: rota };
+    if (corpo) {
+      const { fields, moreFields } = camposDoCorpo(corpo);
+      if (fields.length > 0) call.fields = fields;
+      if (moreFields) call.moreFields = true;
+    }
     grafo.addNo({
       id,
       kind: NodeKind.Unresolved,
@@ -727,6 +736,74 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
     grafo.addAresta(pai, id, ramo, location, call);
     httpCalls.push({ nodeId: id, call, depth: ctx.nivel });
     return true;
+  }
+
+  // request('post', url, { body }): o corpo é a propriedade body do objeto de opções, quando é literal.
+  function corpoDasOpcoes(opcoes) {
+    const atual = opcoes && descascar(opcoes);
+    if (!atual || !ts.isObjectLiteralExpression(atual)) return undefined;
+    for (const p of atual.properties) {
+      if (ts.isPropertyAssignment(p) && nomeDaPropriedade(p.name) === 'body') return p.initializer;
+      if (ts.isShorthandPropertyAssignment(p) && p.name.text === 'body') return p.name;
+    }
+    return undefined;
+  }
+
+  function descascar(expressao) {
+    let atual = expressao;
+    while (ts.isParenthesizedExpression(atual) || ts.isAsExpression(atual) || ts.isNonNullExpression(atual) || ts.isSatisfiesExpression(atual)) {
+      atual = atual.expression;
+    }
+    return atual;
+  }
+
+  function nomeDaPropriedade(nome) {
+    return ts.isIdentifier(nome) || ts.isStringLiteralLike(nome) || ts.isNumericLiteral(nome) ? nome.text : null;
+  }
+
+  // Campos que o corpo da chamada envia. Objeto literal: as chaves (propriedade, atalho e método); espalhamento
+  // ou chave calculada marca moreFields. Identificador ou acesso a propriedade com tipo resolvido e propriedades
+  // declaradas: as propriedades do tipo. Qualquer outra forma (chamada, any, coleção, FormData) marca moreFields.
+  // null e undefined são "sem corpo".
+  function camposDoCorpo(expressao) {
+    const atual = descascar(expressao);
+    const fields = [];
+    const juntar = (nome) => {
+      if (!fields.includes(nome)) fields.push(nome);
+    };
+
+    if (atual.kind === ts.SyntaxKind.NullKeyword || (ts.isIdentifier(atual) && atual.text === 'undefined')) {
+      return { fields, moreFields: false };
+    }
+
+    if (ts.isObjectLiteralExpression(atual)) {
+      let moreFields = false;
+      for (const p of atual.properties) {
+        if (ts.isSpreadAssignment(p)) {
+          moreFields = true;
+          continue;
+        }
+        const nome = p.name ? nomeDaPropriedade(p.name) : null;
+        if (nome === null) moreFields = true;
+        else juntar(nome);
+      }
+      return { fields, moreFields };
+    }
+
+    if (ts.isIdentifier(atual) || ts.isPropertyAccessExpression(atual)) {
+      const tipo = checker.getTypeAtLocation(atual);
+      const objeto = tipo.flags & ts.TypeFlags.Object || tipo.flags & ts.TypeFlags.Intersection;
+      const dolib = tipo.symbol?.declarations?.some((d) => programa.isSourceFileDefaultLibrary(d.getSourceFile()));
+      if (objeto && !dolib && !checker.isArrayType(tipo) && !checker.isTupleType(tipo)) {
+        for (const prop of checker.getPropertiesOfType(tipo)) {
+          const decl = prop.valueDeclaration;
+          if (decl && (ts.isMethodDeclaration(decl) || ts.isMethodSignature(decl))) continue;
+          juntar(prop.name);
+        }
+        if (fields.length > 0) return { fields, moreFields: false };
+      }
+    }
+    return { fields, moreFields: true };
   }
 
   // Rota da chamada: literal, template, concatenação ou const com literal. Pedaço não constante vira {};

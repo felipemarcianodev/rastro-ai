@@ -70,7 +70,7 @@ public class CrossSystemAnalyzerTests(ApiFixture fixture) : IAsyncLifetime
 
         var criar = Assert.Single(analysis.Graph.Nodes, n => n.Label == "EstornosController.Criar");
         var edge = Assert.Single(analysis.Graph.Edges, e => e.To == criar.Id);
-        Assert.Equal(new HttpCall("POST", "api/estornos"), edge.Http);
+        Assert.Equal(new HttpCall("POST", "api/estornos", ["pedidoId"]), edge.Http);
         Assert.Equal(EdgeConfidence.Extracted, edge.Confidence);
         Assert.Equal("PedidosController.cs", edge.Location!.File);
         Assert.Equal("PagamentosClient.EstornarAsync", analysis.Graph.Nodes.Single(n => n.Id == edge.From).Label);
@@ -151,7 +151,7 @@ public class CrossSystemAnalyzerTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(NodeKind.Unresolved, gateway.Kind);
         Assert.Equal(UnresolvedReason.NoMatchingEndpoint, gateway.Reason);
         Assert.Equal(_pagamentos.Name, gateway.System);
-        Assert.Contains(analysis.Graph.Edges, e => e.To == gateway.Id && e.Http == new HttpCall("POST", "v1/estornos"));
+        Assert.Contains(analysis.Graph.Edges, e => e.To == gateway.Id && e.Http == new HttpCall("POST", "v1/estornos", MoreFields: true));
         // Rota montada em tempo de execução não tem o que casar.
         var dynamic = Assert.Single(analysis.Graph.Nodes, n => n.Label == "GET ?");
         Assert.Equal(UnresolvedReason.RouteNotResolved, dynamic.Reason);
