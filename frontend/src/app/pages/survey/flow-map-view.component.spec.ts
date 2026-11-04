@@ -5,7 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { MAP_FIXTURE, MAP_FIXTURE_GRAPH } from '../../core/graph/flow-map-fixture.spec';
 import { LayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
-import { FlowMap, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
+import { FlowMap, MapBlockKind, MapLaneKind, MapLinkKind, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
 import { FlowMapViewComponent } from './flow-map-view.component';
 
 const detail: SurveyDetail = {
@@ -54,8 +54,7 @@ async function setup(map: FlowMap | { status: number } = MAP_FIXTURE) {
   fixture.detectChanges();
   const el = fixture.nativeElement as HTMLElement;
   const block = (id: string) => el.querySelector<HTMLButtonElement>(`[data-block-id="${id}"]`)!;
-  const pathButton = (text: string) => Array.from(el.querySelectorAll<HTMLButtonElement>('.map-path')).find((b) => b.textContent!.includes(text))!;
-  return { fixture, el, host: fixture.componentInstance, block, pathButton };
+  return { fixture, el, host: fixture.componentInstance, block };
 }
 
 describe('FlowMapViewComponent (Fase 31)', () => {
@@ -76,46 +75,48 @@ describe('FlowMapViewComponent (Fase 31)', () => {
   });
 
   // WEB-MAPV-002
-  it('semCaminhoEscolhido_nadaApaga', async () => {
-    const { el, pathButton } = await setup();
+  it('semListaDeCaminhos_nadaApagaEONaoHaBotaoDeLimpar', async () => {
+    const { el } = await setup();
 
-    expect(pathButton('Todos').getAttribute('aria-pressed')).toBe('true');
+    expect(el.querySelector('.map-path')).toBeNull();
+    expect(el.querySelector('.map-clear')).toBeNull();
     expect(el.querySelectorAll('.map-block.is-dim').length).toBe(0);
     expect(el.querySelectorAll('.map-link.is-dim').length).toBe(0);
   });
 
   // WEB-MAPV-003
-  it('caminhoEscolhido_acendeSoOsBlocosEAsLigacoesDele', async () => {
-    const { fixture, el, block, pathButton } = await setup();
+  it('desfechoEscolhido_acendeOCaminhoELimparApagaODestaque', async () => {
+    const { fixture, el, block } = await setup();
 
-    pathButton('Se não').click();
+    block('b2').click();
+    fixture.detectChanges();
+    el.querySelectorAll<HTMLButtonElement>('.map-panel .map-outcomes .map-step')[1].click();
     fixture.detectChanges();
 
-    expect(pathButton('Se não').textContent).toContain('(falha)');
     expect(Array.from(el.querySelectorAll('.map-block.is-lit')).map((b) => b.getAttribute('data-block-id'))).toEqual(['b1', 'b2']);
     expect(block('b3').classList).toContain('is-dim');
     expect(el.querySelectorAll('.map-link.is-lit').length).toBe(1);
     expect(el.querySelectorAll('.map-link.is-dim').length).toBe(3);
 
-    pathButton('Todos').click();
+    el.querySelector<HTMLButtonElement>('.map-clear')!.click();
     fixture.detectChanges();
     expect(el.querySelectorAll('.map-block.is-dim').length).toBe(0);
+    expect(el.querySelector('.map-clear')).toBeNull();
   });
 
   // WEB-MAPV-004
-  it('cliqueNoDesfecho_escolheOPrimeiroCaminhoComAquelaEscolha', async () => {
-    const { fixture, el, pathButton } = await setup();
+  it('cliqueNoRotuloDoDesfecho_acendeOPrimeiroCaminhoComAquelaEscolha', async () => {
+    const { fixture, el } = await setup();
 
     el.querySelector<HTMLButtonElement>('.map-label.is-outcome')!.click();
     fixture.detectChanges();
 
-    expect(pathButton('Se sim').getAttribute('aria-pressed')).toBe('true');
-    expect(pathButton('Todos').getAttribute('aria-pressed')).toBe('false');
+    expect(Array.from(el.querySelectorAll('.map-block.is-lit')).map((b) => b.getAttribute('data-block-id'))).toEqual(['b1', 'b2', 'b3', 'b4', 'b5']);
   });
 
   // WEB-MAPV-005
-  it('cliqueNoDesfechoDoPainel_escolheOCaminhoDaDecisao', async () => {
-    const { fixture, el, block, pathButton } = await setup();
+  it('desfechoForaDosCaminhosDaApi_acendeOTrechoMesmoAssim', async () => {
+    const { fixture, el, block } = await setup({ ...MAP_FIXTURE, paths: [], pathsTruncated: true });
 
     block('b2').click();
     fixture.detectChanges();
@@ -125,7 +126,8 @@ describe('FlowMapViewComponent (Fase 31)', () => {
     outcomes[1].click();
     fixture.detectChanges();
 
-    expect(pathButton('Se não').getAttribute('aria-pressed')).toBe('true');
+    expect(outcomes[1].getAttribute('aria-pressed')).toBe('true');
+    expect(Array.from(el.querySelectorAll('.map-block.is-lit')).map((b) => b.getAttribute('data-block-id'))).toEqual(['b1', 'b2']);
   });
 
   // WEB-MAPV-006
@@ -158,10 +160,10 @@ describe('FlowMapViewComponent (Fase 31)', () => {
   });
 
   // WEB-MAPV-008
-  it('anteriorESeguinte_andamNoCaminhoEscolhido', async () => {
-    const { fixture, el, host, block, pathButton } = await setup();
+  it('anteriorESeguinte_andamNoCaminhoAceso', async () => {
+    const { fixture, el, host, block } = await setup();
 
-    pathButton('Se sim').click();
+    el.querySelector<HTMLButtonElement>('.map-label.is-outcome')!.click();
     block('b2').click();
     fixture.detectChanges();
     const buttons = Array.from(el.querySelectorAll<HTMLButtonElement>('.map-panel-foot .btn'));
@@ -229,10 +231,10 @@ describe('FlowMapViewComponent (Fase 31)', () => {
   });
 
   // WEB-MAPV-013
-  it('caminhosCortados_avisaQueHaMais', async () => {
+  it('caminhosCortados_naoMostraMaisOAvisoNoTopo', async () => {
     const { el } = await setup({ ...MAP_FIXTURE, pathsTruncated: true });
 
-    expect(el.querySelector('.map-truncated')!.textContent).toContain('mais caminhos');
+    expect(el.querySelector('.map-truncated')).toBeNull();
   });
 
   // WEB-MAPV-014
@@ -248,7 +250,6 @@ describe('FlowMapViewComponent (Fase 31)', () => {
     const { el } = await setup({ ...MAP_FIXTURE, lanes: [], blocks: [], links: [], paths: [] });
 
     expect(el.textContent).toContain('O mapa deste fluxo está vazio');
-    expect(el.querySelector('.map-path')).toBeNull();
   });
 
   // WEB-MAPV-016
@@ -259,5 +260,71 @@ describe('FlowMapViewComponent (Fase 31)', () => {
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Montando o mapa do fluxo');
     TestBed.inject(HttpTestingController).expectOne('/api/surveys/s1/map');
+  });
+
+  // Três saltos: pedidos-web > api-pagamentos > api-antifraude, com um passo escondido no último.
+  const THREE_HOPS: FlowMap = {
+    ...MAP_FIXTURE,
+    lanes: [...MAP_FIXTURE.lanes.slice(0, 2), { id: 'api-antifraude', kind: MapLaneKind.Code, system: 'api-antifraude' }],
+    blocks: [
+      { ...MAP_FIXTURE.blocks[0], segment: 'b1', depth: 0 },
+      { ...MAP_FIXTURE.blocks[3], segment: 'b4', depth: 1 },
+      { id: 'b6', kind: MapBlockKind.Entry, lane: 'api-antifraude', order: 6, title: 'Antifraude.Analisar', nodeId: 'n6', nodeIds: ['n6'], segment: 'b6', depth: 2 },
+      { id: 'b7', kind: MapBlockKind.Step, lane: 'api-antifraude', order: 7, title: 'Antifraude.Passo', nodeId: 'n7', nodeIds: ['n7'], segment: 'b6', depth: 2 },
+    ],
+    links: [
+      { from: 'b1', to: 'b4', kind: MapLinkKind.Call },
+      { from: 'b4', to: 'b6', kind: MapLinkKind.Call },
+      { from: 'b6', to: 'b7', kind: MapLinkKind.Sequence },
+    ],
+    paths: [],
+  };
+
+  // WEB-MAPV-017
+  it('terceiroSistema_vemRecolhidoEAbreAoClicar', async () => {
+    const { fixture, el, block } = await setup(THREE_HOPS);
+
+    expect(block('b7')).toBeNull();
+    expect(block('b6').classList).toContain('is-collapsed');
+    expect(block('b6').querySelector('.map-block-more')!.textContent).toBe('+1');
+    expect(block('b6').getAttribute('aria-label')).toContain('clique para abrir');
+    expect(el.querySelector('.map-bar')!.textContent).toContain('Um sistema recolhido');
+
+    block('b6').click();
+    fixture.detectChanges();
+
+    expect(block('b7')).not.toBeNull();
+    expect(block('b6').classList).not.toContain('is-collapsed');
+    expect(el.querySelector('.map-bar')!.textContent).not.toContain('recolhido');
+    expect(block('b6').classList).toContain('is-selected');
+  });
+
+  // WEB-MAPV-018
+  it('recolherEsteSistema_escondeDeNovoEASelecaoVoltaParaAEntrada', async () => {
+    const { fixture, el, host, block } = await setup(THREE_HOPS);
+
+    block('b6').click();
+    fixture.detectChanges();
+    block('b7').click();
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.map-toggle-segment')!.click();
+    fixture.detectChanges();
+
+    expect(block('b7')).toBeNull();
+    expect(block('b6').classList).toContain('is-collapsed');
+    expect(block('b6').classList).toContain('is-selected');
+    expect(host.picked.at(-1)).toBe('n6');
+  });
+
+  // WEB-MAPV-019
+  it('selecaoDeFora_abreOSistemaQueEscondeOPasso', async () => {
+    const { fixture, host, block } = await setup(THREE_HOPS);
+
+    host.selected.set('n7');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(block('b7').classList).toContain('is-selected');
   });
 });

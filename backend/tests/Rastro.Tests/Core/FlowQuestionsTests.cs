@@ -1,3 +1,4 @@
+using Rastro.Core;
 using Rastro.Core.Graph;
 
 namespace Rastro.Tests.Core;
@@ -40,10 +41,55 @@ public class FlowQuestionsTests
     public void Suggest_ChamadaParaOutroSistema_PerguntaDaFalhaDizSeHaTryCatch()
     {
         var question = Assert.Single(Questions(FlowMapBuilderTests.Loja()),
-            q => q.Text == "O que acontece se a chamada a POST api/estornos falhar?");
+            q => q.Text == "O que acontece se o sistema pagamentos falhar?");
 
         Assert.Equal(QuestionRole.Staff, question.Role);
+        Assert.Contains("POST api/estornos", question.Answer.Text);
         Assert.Contains("sem try/catch", question.Answer.Text);
+    }
+
+    [Fact] // CORE-ASK-006
+    public void Suggest_VariasChamadasAoMesmoSistema_ViramUmaPerguntaComOsLugares()
+    {
+        var graph = FlowMapBuilderTests.DuasChamadas();
+
+        var failures = Questions(graph).Where(q => q.Role == QuestionRole.Staff && q.Text.EndsWith("falhar?", StringComparison.Ordinal)).ToList();
+
+        var question = Assert.Single(failures, q => q.Text == "O que acontece se o sistema pagamentos falhar?");
+        Assert.Contains("Chamado de 2 lugares:", question.Answer.Text);
+        Assert.Contains("GET api/saldo", question.Answer.Text);
+        Assert.Contains("POST api/estornos", question.Answer.Text);
+        Assert.Contains("m:a", question.Answer.Sources);
+        Assert.Contains("m:b", question.Answer.Sources);
+    }
+
+    [Fact] // CORE-ASK-007
+    public void Suggest_MetodosDoMesmoTipoDeFora_ViramUmaPerguntaEHttpSemDestinoOutra()
+    {
+        var questions = Questions(FlowMapBuilderTests.Loja());
+
+        Assert.Single(questions, q => q.Text == "O que acontece se DbContext falhar?");
+        Assert.Single(questions, q => q.Text == "O que acontece se uma chamada HTTP sem destino resolvido falhar?");
+        Assert.Single(questions, q => q.Text == "O que acontece se GatewayCartao falhar?");
+    }
+
+    [Fact] // CORE-ASK-008
+    public void Suggest_MuitosLugares_ListaDezEContaOsDemais()
+    {
+        const int total = 13;
+        var nodes = new List<FlowNode> { new("m:e", NodeKind.Entry, "Job.Run"), new("x:db", NodeKind.External, "DbContext.SaveChangesAsync") };
+        var edges = new List<FlowEdge>();
+        for (var i = 0; i < total; i++)
+        {
+            nodes.Add(new FlowNode($"m:{i}", NodeKind.Method, $"Passo{i}.Rodar"));
+            edges.Add(new FlowEdge("m:e", $"m:{i}", i, EdgeConfidence.Extracted));
+            edges.Add(new FlowEdge($"m:{i}", "x:db", 1, EdgeConfidence.Extracted));
+        }
+
+        var question = Assert.Single(Questions(new FlowGraph(RastroSchema.Version, "Job.Run", "m:e", nodes, edges)), q => q.Text == "O que acontece se DbContext falhar?");
+
+        Assert.Contains($"Chamado de {total} lugares:", question.Answer.Text);
+        Assert.Contains("E mais 3 lugares.", question.Answer.Text);
     }
 
     [Fact] // CORE-ASK-004

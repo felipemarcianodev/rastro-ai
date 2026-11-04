@@ -34,6 +34,9 @@ public record FlowQuestion(string Id, QuestionRole Role, string Text, FlowAnswer
 
 public static class FlowQuestions
 {
+    // Lugares listados na resposta de uma falha; os demais viram uma contagem.
+    private const int MaxPlaces = 10;
+
     public static IReadOnlyList<FlowQuestion> Suggest(FlowGraph graph, FlowMap map, IReadOnlyList<FlowRule> rules)
     {
         var nodes = graph.Nodes.ToDictionary(n => n.Id, StringComparer.Ordinal);
@@ -64,18 +67,18 @@ public static class FlowQuestions
                     outside.Count > 0 ? "O que acontece do outro lado dessas chamadas não está no código levantado." : null));
         }
 
-        // Staff: falha em cada chamada para outro sistema ou para fora.
-        foreach (var call in map.Links.Where(l => l.Kind == MapLinkKind.Call && blocks.ContainsKey(l.From) && blocks.ContainsKey(l.To)))
+        // Staff: falha de cada sistema chamado ou ponto de fora, com os lugares que o chamam (Fase 35).
+        var failures = map.Links
+            .Where(l => l.Kind == MapLinkKind.Call && blocks.ContainsKey(l.From) && blocks.ContainsKey(l.To))
+            .GroupBy(l => FailureTarget(blocks[l.To], nodes), StringComparer.Ordinal);
+        foreach (var group in failures)
         {
-            var from = blocks[call.From];
-            var to = blocks[call.To];
-            var target = call.Http is { } http ? $"{http.Method} {http.Route ?? "?"}" : to.Title;
-            var protectedCall = from.NodeIds.Any(id => nodes.TryGetValue(id, out var n) && n.Kind == NodeKind.Try);
-            var answer = protectedCall
-                ? $"A chamada sai de {from.Title}, que tem try/catch; o tratamento está nos ramos catch desse bloco."
-                : $"A chamada sai de {from.Title} sem try/catch no bloco: a falha sobe para quem chamou o bloco.";
-            Add(QuestionRole.Staff, $"O que acontece se a chamada a {target} falhar?",
-                new FlowAnswer(answer, AnswerSeal.Extracted, [from.NodeId, to.NodeId]));
+            var places = group.Select(call => Place(call, blocks[call.From], nodes)).Distinct(StringComparer.Ordinal).ToList();
+            var shown = places.Take(MaxPlaces).ToList();
+            if (places.Count > MaxPlaces) shown.Add($"E mais {places.Count - MaxPlaces} lugares.");
+            var sources = group.SelectMany(call => new[] { blocks[call.From].NodeId, blocks[call.To].NodeId }).Distinct(StringComparer.Ordinal).ToList();
+            Add(QuestionRole.Staff, $"O que acontece se {group.Key} falhar?",
+                new FlowAnswer(Lines(shown.Prepend($"Chamado de {places.Count} {(places.Count == 1 ? "lugar" : "lugares")}:")), AnswerSeal.Extracted, sources));
         }
 
         // Staff: regra implementada em mais de um sistema.
@@ -102,6 +105,25 @@ public static class FlowQuestions
                 AnswerSeal.Extracted, [graph.EntryNodeId]));
 
         return questions;
+    }
+
+    // Quem falha: o sistema chamado; fora do código, o tipo que recebe a chamada (DbContext, e não
+    // cada método dele) ou o conjunto das chamadas HTTP que ficaram sem destino.
+    private static string FailureTarget(MapBlock to, Dictionary<string, FlowNode> nodes)
+    {
+        if (to.Kind != MapBlockKind.Outside) return $"o sistema {LaneName(to.Lane)}";
+        if (nodes.TryGetValue(to.NodeId, out var node) && node.Kind == NodeKind.Unresolved) return "uma chamada HTTP sem destino resolvido";
+        var dot = to.Title.LastIndexOf('.');
+        return dot > 0 ? to.Title[..dot] : to.Title;
+    }
+
+    private static string Place(MapLink call, MapBlock from, Dictionary<string, FlowNode> nodes)
+    {
+        var route = call.Http is { } http ? $" ({http.Method} {http.Route ?? "?"})" : string.Empty;
+        var guarded = from.NodeIds.Any(id => nodes.TryGetValue(id, out var n) && n.Kind == NodeKind.Try);
+        return guarded
+            ? $"{from.Title}{route}: tem try/catch; o tratamento está nos ramos catch desse bloco."
+            : $"{from.Title}{route}: sem try/catch no bloco; a falha sobe para quem chamou o bloco.";
     }
 
     // A faixa do primeiro trecho não tem nome de repositório no mapa; a tela troca pelo nome dele.

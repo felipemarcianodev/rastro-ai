@@ -744,6 +744,9 @@ export interface MapBlock {
   location?: SourceLocation | null;
   condition?: string | null;
   outcomes?: MapOutcome[] | null;
+  // Bloco de entrada do trecho (nulo na faixa de fora) e saltos entre sistemas até ele (Fase 35).
+  segment?: string | null;
+  depth?: number;
 }
 
 export interface MapLink {

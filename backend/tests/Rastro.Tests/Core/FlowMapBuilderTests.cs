@@ -58,7 +58,96 @@ public class FlowMapBuilderTests
             E(P("switch:est:5"), P("m:bol"), 2, "case Boleto")
         ]);
 
+    // Dois métodos chamam o mesmo sistema por rotas diferentes, e a mesma entrada é chamada duas vezes.
+    internal static FlowGraph DuasChamadas() => new(
+        RastroSchema.Version, "Job.Run", "m:e",
+        [
+            M("m:e", "Job.Run", NodeKind.Entry),
+            M("m:a", "Saldo.Ler"),
+            M("m:b", "Estorno.Pedir"),
+            M(P("m:est"), "PagamentosController.Tratar", NodeKind.Method, Pag),
+            Struct(P("if:1"), NodeKind.Decision, "if (ok)", "ok", Pag),
+            Struct(P("throw:1"), NodeKind.Throw, "throw Erro", system: Pag)
+        ],
+        [
+            E("m:e", "m:a", 1),
+            E("m:e", "m:b", 2),
+            E("m:a", P("m:est"), 1, http: new HttpCall("GET", "api/saldo")),
+            E("m:b", P("m:est"), 1, http: new HttpCall("POST", "api/estornos")),
+            E(P("m:est"), P("if:1"), 1),
+            E(P("if:1"), P("throw:1"), 1, "then")
+        ]);
+
+    // Três saltos: a entrada chama A, A chama B e B chama C, um sistema por salto.
+    private static FlowGraph TresSaltos()
+    {
+        static string S(string system, string id) => SystemIds.Prefix(system, id);
+        return new FlowGraph(
+            RastroSchema.Version, "Tela.Salvar", "m:e",
+            [
+                M("m:e", "Tela.Salvar", NodeKind.Entry),
+                M(S("a", "m:1"), "A.Tratar", NodeKind.Method, "a"),
+                M(S("a", "m:2"), "A.Passo", NodeKind.Method, "a"),
+                M(S("b", "m:1"), "B.Tratar", NodeKind.Method, "b"),
+                M(S("b", "m:2"), "B.Passo", NodeKind.Method, "b"),
+                M(S("c", "m:1"), "C.Tratar", NodeKind.Method, "c"),
+                new FlowNode("x:fora", NodeKind.External, "Servico.Chamar")
+            ],
+            [
+                E("m:e", S("a", "m:1"), 1, http: new HttpCall("POST", "api/a")),
+                E(S("a", "m:1"), S("a", "m:2"), 1),
+                E(S("a", "m:1"), S("b", "m:1"), 2, http: new HttpCall("POST", "api/b")),
+                E(S("b", "m:1"), S("b", "m:2"), 1),
+                E(S("b", "m:1"), "x:fora", 2),
+                E(S("b", "m:1"), S("c", "m:1"), 3, http: new HttpCall("POST", "api/c"))
+            ]);
+    }
+
     private static MapBlock Block(FlowMap map, string nodeId) => Assert.Single(map.Blocks, b => b.NodeId == nodeId);
+
+    [Fact] // CORE-MAP-012
+    public void Build_TresSaltos_CadaBlocoSabeOTrechoEAProfundidade()
+    {
+        var map = FlowMapBuilder.Build(TresSaltos());
+
+        var entry = Block(map, "m:e");
+        var a = Block(map, SystemIds.Prefix("a", "m:1"));
+        var b = Block(map, SystemIds.Prefix("b", "m:1"));
+        var c = Block(map, SystemIds.Prefix("c", "m:1"));
+        Assert.Equal([0, 1, 2, 3], new[] { entry, a, b, c }.Select(x => x.Depth));
+        Assert.All(new[] { entry, a, b, c }, x => Assert.Equal(x.Id, x.Segment));
+        var step = Block(map, SystemIds.Prefix("b", "m:2"));
+        Assert.Equal(b.Id, step.Segment);
+        Assert.Equal(2, step.Depth);
+        var outside = Block(map, "x:fora");
+        Assert.Null(outside.Segment);
+        Assert.Equal(3, outside.Depth);
+    }
+
+    [Fact] // CORE-MAP-013
+    public void Build_MesmaEntradaChamadaDuasVezes_LigaAoTrechoJaMontado()
+    {
+        var map = FlowMapBuilder.Build(DuasChamadas());
+
+        var entry = Assert.Single(map.Blocks, b => b.NodeId == P("m:est"));
+        Assert.Single(map.Blocks, b => b.NodeId == P("if:1"));
+        var calls = map.Links.Where(l => l.To == entry.Id).ToList();
+        Assert.Equal(2, calls.Count);
+        Assert.Equal(["GET", "POST"], calls.Select(l => l.Http!.Method));
+        // O caminho passa pela decisão do trecho só na primeira chamada.
+        Assert.All(map.Paths, p => Assert.Single(p.Choices));
+    }
+
+    [Fact] // CORE-MAP-014
+    public void Build_MesmoBlocoChamaOMesmoDestinoDuasVezes_UmaLigacaoSo()
+    {
+        var graph = new FlowGraph(
+            RastroSchema.Version, "Job.Run", "m:e",
+            [M("m:e", "Job.Run", NodeKind.Entry), new FlowNode("x:db", NodeKind.External, "DbContext.SaveChangesAsync")],
+            [E("m:e", "x:db", 1), E("m:e", "x:db", 2)]);
+
+        Assert.Single(FlowMapBuilder.Build(graph).Links);
+    }
 
     [Fact] // CORE-MAP-001
     public void Build_Loja_FaixasNaOrdemEmQueOFluxoEntraEForaPorUltimo()

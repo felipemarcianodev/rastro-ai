@@ -24,21 +24,10 @@
   font-size: var(--text-sm);
 }
 
-.map-path.is-active {
-  border-color: var(--trail);
-  background: var(--trail-wash);
-  color: var(--ink);
-}
-
 .map-path-fail {
   margin-left: var(--space-1);
   color: var(--danger);
   font-weight: 600;
-}
-
-.map-truncated {
-  padding: var(--space-1) var(--space-2);
-  font-size: var(--text-sm);
 }
 
 .map-status {
@@ -176,6 +165,20 @@
   .kind-glyph {
     flex: none;
   }
+}
+
+.map-block.is-collapsed {
+  box-shadow: 3px 3px 0 var(--surface, transparent), 3px 3px 0 1px var(--line-strong);
+}
+
+.map-block-more {
+  flex: none;
+  margin-left: auto;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
 }
 
 .map-block-text {
