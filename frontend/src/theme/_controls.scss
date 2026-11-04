@@ -713,3 +713,61 @@ select.input {
     justify-self: start;
   }
 }
+
+// Filtro em botões (regras e perguntas do mapa) e fonte clicável que leva ao bloco ou ao passo.
+.insight-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+
+  .is-active {
+    border-color: var(--trail);
+    background: var(--trail-wash);
+    color: var(--ink);
+  }
+}
+
+.source-link {
+  padding: 2px var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--trail-wash);
+    color: var(--ink);
+  }
+}
+
+// Abas de um painel (o painel do mapa: bloco, regras e perguntas).
+.panel-tabs {
+  position: sticky;
+  top: calc(-1 * var(--space-3));
+  z-index: 1;
+  display: flex;
+  gap: var(--space-1);
+  margin: calc(-1 * var(--space-3)) calc(-1 * var(--space-4)) var(--space-2);
+  padding: var(--space-2) var(--space-4) 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.panel-tab {
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &.is-active {
+    border-bottom-color: var(--trail);
+    color: var(--ink);
+    font-weight: 600;
+  }
+}

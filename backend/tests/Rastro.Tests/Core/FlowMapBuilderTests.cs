@@ -22,7 +22,7 @@ public class FlowMapBuilderTests
     private static string P(string id) => SystemIds.Prefix(Pag, id);
 
     // Controller que só repassa para o serviço; o serviço decide, grava, pede o estorno e avisa.
-    private static FlowGraph Loja() => new(
+    internal static FlowGraph Loja() => new(
         RastroSchema.Version, "PedidosController.Cancelar", "m:ctrl",
         [
             M("m:ctrl", "PedidosController.Cancelar", NodeKind.Entry),

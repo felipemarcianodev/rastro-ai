@@ -12,6 +12,9 @@ import {
   CreateSurveyRequest,
   FlowGraph,
   FlowMap,
+  FlowQuestion,
+  FlowRule,
+  QuestionAnswer,
   EdgeDecision,
   RepositoryItem,
   RastroHealth,
@@ -156,6 +159,20 @@ export class RastroApi {
   // Mapa do fluxo (Fase 30): faixas por sistema, blocos, ligações e caminhos.
   map(id: string): Observable<FlowMap> {
     return this.http.get<FlowMap>(`/api/surveys/${id}/map`);
+  }
+
+  // Regras do fluxo (Fase 32) e perguntas prontas por papel (Fase 33).
+  rules(id: string): Observable<FlowRule[]> {
+    return this.http.get<FlowRule[]>(`/api/surveys/${id}/rules`);
+  }
+
+  questions(id: string): Observable<FlowQuestion[]> {
+    return this.http.get<FlowQuestion[]>(`/api/surveys/${id}/questions`);
+  }
+
+  // Pergunta livre (IA, uso Sugestões): a resposta vem com selo e fontes já conferidas.
+  ask(id: string, question: string): Observable<QuestionAnswer> {
+    return this.http.post<QuestionAnswer>(`/api/surveys/${id}/ai/ask`, { question });
   }
 
   saveC4People(id: string, people: C4Person[]): Observable<C4Export> {

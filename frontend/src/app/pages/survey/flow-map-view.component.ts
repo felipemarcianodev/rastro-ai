@@ -16,11 +16,15 @@ import {
   pathLabel,
   pathNeighbors,
 } from '../../core/graph/flow-map';
+import { fieldsText } from '../../core/graph/flow-insight';
 import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
 import { plainBranch } from '../../core/graph/plain';
 import { FlowSummary, readingLabel } from '../../core/graph/summary';
-import { FlowMap, MapBlock, MapLaneKind, MapLinkKind, SurveyDetail } from '../../core/models';
+import { AiStatusService } from '../../core/ai-status.service';
+import { AiUse, FlowMap, MapBlock, MapLaneKind, MapLink, MapLinkKind, SurveyDetail, aiCan } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { FlowMapQuestionsComponent } from './flow-map-questions.component';
+import { FlowMapRulesComponent } from './flow-map-rules.component';
 
 // Largura abaixo da qual o mapa vira uma coluna só.
 const NARROW_QUERY = '(max-width: 640px)';
@@ -28,11 +32,25 @@ const NARROW_QUERY = '(max-width: 640px)';
 const WALK_KEY: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 const REVEAL_MARGIN = 16;
 
+// Abas do painel do mapa (Fases 31 a 33).
+export enum MapTab {
+  Block = 0,
+  Rules = 1,
+  Questions = 2,
+}
+
+const MAP_TABS: { tab: MapTab; label: string }[] = [
+  { tab: MapTab.Block, label: 'Bloco' },
+  { tab: MapTab.Rules, label: 'Regras' },
+  { tab: MapTab.Questions, label: 'Perguntas' },
+];
+
 // O quinto desenho do fluxo (Fase 31): o mapa da Fase 30, com uma faixa por sistema, os blocos na
 // ordem do fluxo, as ligações entre eles e o seletor de caminho. Clicar num bloco escolhe o nó dele
 // no grafo (o painel do passo abre) e mostra o painel do bloco aqui mesmo.
 @Component({
   selector: 'app-flow-map-view',
+  imports: [FlowMapRulesComponent, FlowMapQuestionsComponent],
   templateUrl: './flow-map-view.component.html',
   styleUrl: './flow-map-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -41,6 +59,7 @@ const REVEAL_MARGIN = 16;
 export class FlowMapViewComponent {
   private readonly api = inject(RastroApi);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly ai = inject(AiStatusService);
   private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
 
   readonly detail = input.required<SurveyDetail>();
@@ -61,6 +80,13 @@ export class FlowMapViewComponent {
   protected readonly pathId = signal<string | null>(null);
   protected readonly blockId = signal<string | null>(null);
   protected readonly narrow = signal(false);
+  protected readonly tab = signal(MapTab.Block);
+  // As abas de regras e de perguntas só buscam os dados na primeira vez que abrem.
+  protected readonly opened = signal<ReadonlySet<MapTab>>(new Set());
+  protected readonly MapTab = MapTab;
+  protected readonly tabs = MAP_TABS;
+  // A pergunta livre só existe com IA ligada, chave salva e o uso Sugestões habilitado (ADR-001).
+  protected readonly canAsk = computed(() => aiCan(this.ai.status(), AiUse.Suggestions));
 
   protected readonly LayoutDirection = LayoutDirection;
   protected readonly next = NEXT_LAYOUT_DIRECTION[LayoutDirection.Map];
@@ -73,7 +99,7 @@ export class FlowMapViewComponent {
   protected readonly MapLinkKind = MapLinkKind;
   protected readonly MapLaneKind = MapLaneKind;
 
-  private readonly nodes = computed(() => new Map((this.detail().graph?.nodes ?? []).map((node) => [node.id, node])));
+  protected readonly nodes = computed(() => new Map((this.detail().graph?.nodes ?? []).map((node) => [node.id, node])));
   private readonly titles = computed(() => new Map((this.map()?.blocks ?? []).map((block) => [block.id, blockTitle(block, this.nodes())])));
   protected readonly laneTitles = computed(() => new Map((this.map()?.lanes ?? []).map((lane) => [lane.id, laneTitle(lane, this.detail().survey.repository)])));
   protected readonly geometry = computed(() => {
@@ -113,7 +139,7 @@ export class FlowMapViewComponent {
       fails: outcome.fails,
       chosen: !!this.chosen()?.choices.some((c) => c.decision === block.id && c.outcome === index),
     }));
-    const calls = map.links.filter((l) => l.kind === MapLinkKind.Call && l.from === block.id).map((l) => ({ to: l.to, title: titles.get(l.to) ?? l.to, text: callText(l) }));
+    const calls = map.links.filter((l) => l.kind === MapLinkKind.Call && l.from === block.id).map((l) => ({ to: l.to, title: titles.get(l.to) ?? l.to, text: callText(l), fields: fieldsText(l.http) }));
     return {
       block,
       title: titles.get(block.id) ?? block.title,
@@ -217,8 +243,36 @@ export class FlowMapViewComponent {
   }
 
   protected pickBlock(block: MapBlock): void {
+    this.tab.set(MapTab.Block);
     this.blockId.set(block.id);
     this.selectNode.emit(block.nodeId);
+  }
+
+  protected setTab(tab: MapTab): void {
+    this.tab.set(tab);
+    this.opened.update((current) => new Set(current).add(tab));
+  }
+
+  // Fonte de uma regra: escolhe o bloco no mapa, sem tirar o leitor da lista de regras.
+  protected pickRuleSource(blockId: string): void {
+    const block = this.map()?.blocks.find((b) => b.id === blockId);
+    if (!block) return;
+    this.blockId.set(block.id);
+    this.selectNode.emit(block.nodeId);
+  }
+
+  // Fonte de uma resposta: o nó no grafo e o bloco do mapa que o recolhe.
+  protected pickAnswerSource(nodeId: string): void {
+    const block = this.map()?.blocks.find((b) => b.nodeId === nodeId) ?? this.map()?.blocks.find((b) => b.nodeIds.includes(nodeId));
+    if (block) this.blockId.set(block.id);
+    this.selectNode.emit(nodeId);
+  }
+
+  // Dica da ligação de chamada: verbo, rota e os campos enviados (Fase 34).
+  protected callTitle(link: MapLink): string | null {
+    const text = callText(link);
+    const fields = fieldsText(link.http);
+    return text && fields ? `${text}. Campos: ${fields}` : text;
   }
 
   protected pickBlockId(id: string): void {
