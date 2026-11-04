@@ -43,6 +43,7 @@ import {
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { FlowCanvasComponent } from './flow-canvas.component';
 import { ConsolidatedViewComponent } from './consolidated-view.component';
+import { FlowMapViewComponent } from './flow-map-view.component';
 import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
 import { NodePanelComponent } from './node-panel.component';
@@ -65,7 +66,7 @@ const POLL_TOLERATED_FAILURES = 2;
 
 @Component({
   selector: 'app-survey-page',
-  imports: [RouterLink, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective],
+  imports: [RouterLink, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective],
   templateUrl: './survey.page.html',
   styleUrl: './survey.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
@@ -118,10 +119,13 @@ export class SurveyPage {
     return survey ? surveySystems(survey) : [];
   });
   protected readonly selectedId = signal<string | null>(null);
-  // Desenho consolidado (Fase 28): o quarto desenho do botão, no lugar do canvas. Na edição e na
-  // comparação o canvas volta, porque só ele mostra o rascunho e as diferenças.
-  protected readonly consolidated = signal(readLayoutDirection() === LayoutDirection.Consolidated);
+  // Desenho consolidado (Fase 28) e mapa (Fase 31): o quarto e o quinto desenho do botão, no lugar
+  // do canvas. Na edição e na comparação o canvas volta, porque só ele mostra o rascunho e as diferenças.
+  private readonly drawing = signal(readLayoutDirection());
+  protected readonly consolidated = computed(() => this.drawing() === LayoutDirection.Consolidated);
+  protected readonly mapped = computed(() => this.drawing() === LayoutDirection.Map);
   protected readonly showConsolidated = computed(() => this.consolidated() && !this.editing() && !this.comparison());
+  protected readonly showMap = computed(() => this.mapped() && !this.editing() && !this.comparison());
   // Resumo do fluxo (Fase 23): vem do canvas, que o monta junto com o desenho.
   protected readonly summary = signal<FlowSummary | null>(null);
   protected readonly resurveying = signal(false);
@@ -256,8 +260,8 @@ export class SurveyPage {
     const graph = source && !this.showFramework() ? withoutFrameworkCalls(source) : source;
     const focus = this.focusId();
     const focused = graph && focus ? focusOn(graph, focus) : graph;
-    // O desenho consolidado não recolhe passos: o painel precisa achar qualquer passo dele.
-    if (this.showConsolidated()) return focused;
+    // O consolidado e o mapa não recolhem passos: o painel precisa achar qualquer passo deles.
+    if (this.showConsolidated() || this.showMap()) return focused;
     return focused ? collapseAfter(focused, this.collapsed()) : focused;
   });
 
@@ -356,14 +360,14 @@ export class SurveyPage {
     });
   }
 
-  // Troca de desenho pelo botão do canvas ou do consolidado (Fase 28).
+  // Troca de desenho pelo botão do canvas, do consolidado ou do mapa (Fases 28 e 31).
   protected onDirection(direction: LayoutDirection): void {
     saveLayoutDirection(direction);
-    this.consolidated.set(direction === LayoutDirection.Consolidated);
+    this.drawing.set(direction);
   }
 
-  // Clique num passo do desenho consolidado: o contexto é o painel do passo, então ele abre.
-  protected pickConsolidated(id: string | null): void {
+  // Clique num passo do consolidado ou num bloco do mapa: o contexto é o painel do passo, então ele abre.
+  protected pickInDrawing(id: string | null): void {
     if (id && this.panelCollapsed()) this.togglePanel();
     this.select(id);
   }
@@ -371,6 +375,11 @@ export class SurveyPage {
   // O botão "Visão consolidada" da barra liga e desliga o desenho consolidado.
   protected toggleConsolidated(): void {
     this.onDirection(this.consolidated() ? LayoutDirection.Horizontal : LayoutDirection.Consolidated);
+  }
+
+  // O botão "Mapa do fluxo" da barra liga e desliga o mapa.
+  protected toggleMap(): void {
+    this.onDirection(this.mapped() ? LayoutDirection.Horizontal : LayoutDirection.Map);
   }
 
   protected toggleFramework(): void {
@@ -941,6 +950,8 @@ export class SurveyPage {
   }
 
   protected focusOnNode(nodeId: string): void {
+    // O recorte é do canvas: o mapa não o desenha, então ele cede o lugar (sem mudar o desenho guardado).
+    if (this.showMap()) this.drawing.set(LayoutDirection.Horizontal);
     this.closeMenu();
     this.focusId.set(nodeId);
     this.select(nodeId);

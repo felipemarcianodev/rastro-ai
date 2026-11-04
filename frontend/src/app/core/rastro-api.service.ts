@@ -11,6 +11,7 @@ import {
   ChangePrompt,
   CreateSurveyRequest,
   FlowGraph,
+  FlowMap,
   EdgeDecision,
   RepositoryItem,
   RastroHealth,
@@ -150,6 +151,11 @@ export class RastroApi {
 
   deleteDiagram(id: string): Observable<void> {
     return this.http.delete<void>(`/api/surveys/${id}/diagram`);
+  }
+
+  // Mapa do fluxo (Fase 30): faixas por sistema, blocos, ligações e caminhos.
+  map(id: string): Observable<FlowMap> {
+    return this.http.get<FlowMap>(`/api/surveys/${id}/map`);
   }
 
   saveC4People(id: string, people: C4Person[]): Observable<C4Export> {

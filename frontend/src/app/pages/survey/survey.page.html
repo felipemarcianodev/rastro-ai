@@ -52,6 +52,8 @@
         @if (d.survey.status === SurveyStatus.Completed && !editing()) {
           <button type="button" class="btn btn-g btn-small" (click)="toggleConsolidated()" [attr.aria-pressed]="consolidated()"
             [title]="consolidated() ? 'Voltar ao desenho do grafo' : 'O fluxo todo num desenho só, com as suas cores'">Visão consolidada</button>
+          <button type="button" class="btn btn-g btn-small" (click)="toggleMap()" [attr.aria-pressed]="mapped()"
+            [title]="mapped() ? 'Voltar ao desenho do grafo' : 'Um mapa por sistema, com os caminhos de ponta a ponta'">Mapa do fluxo</button>
           <span class="popover">
             <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null">Comparar e exportar</button>
             @if (exportOpen()) {
@@ -268,7 +270,9 @@
     @if (d.survey.status === SurveyStatus.Completed && graph(); as g) {
       <div class="workspace" [class.is-panel-collapsed]="panelCollapsed()">
         @if (showConsolidated()) {
-          <app-consolidated-view [detail]="d" [focus]="focusId() ? g : null" [selectedId]="selectedId()" (selectNode)="pickConsolidated($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
+          <app-consolidated-view [detail]="d" [focus]="focusId() ? g : null" [selectedId]="selectedId()" (selectNode)="pickInDrawing($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
+        } @else if (showMap()) {
+          <app-flow-map-view [detail]="d" [selectedId]="selectedId()" (selectNode)="pickInDrawing($event)" (focusFlow)="focusOnNode($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
         } @else {
         <app-flow-canvas [graph]="g" [repository]="d.survey.repository" [systems]="systems()"[selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
           [showFramework]="showFramework()" [editing]="editing()" [focusId]="focusId()" [layoutKey]="layoutKey()" [comparing]="!!comparison()" [matchIds]="matchIds()" [noteIds]="notes()" [currentMatch]="currentMatch()" (openSearch)="openSearch()" (selectNode)="select($event)" (toggleFramework)="toggleFramework()"

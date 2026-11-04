@@ -718,14 +718,18 @@ O protótipo aprovado usa dados fictícios e fica fora do repositório. Testes, 
 - [x] Teste de arquitetura verde: nada de IA no núcleo.
 - [ ] Conferir o mapa num levantamento real grande (com os desenhos da Fase 31), principalmente o limite de um terço que deixa um método transparente.
 
-## Fase 31: o mapa como desenho do fluxo `[ ]` (depende da Fase 30)
+## Fase 31: o mapa como desenho do fluxo `[x]` (depende da Fase 30)
 
-- [ ] O botão que troca o desenho passa a ter cinco estados: horizontal, linha do tempo, árvore, consolidado e mapa.
-- [ ] Faixas por sistema, blocos na ordem do fluxo e pontes desenhadas entre faixas, com verbo e rota no rótulo. Num celular, uma coluna só.
-- [ ] Seletor de caminho: destaca de ponta a ponta o caminho escolhido (cor da trilha) e apaga o resto; "todos" mostra tudo. Clicar num desfecho de decisão escolhe o caminho dele.
-- [ ] Clicar num bloco abre o painel do bloco: os passos que ele recolhe, numerados como na linha do tempo, com arquivo e linha, e os blocos anterior e seguinte no caminho escolhido (setas do teclado; Esc fecha).
-- [ ] "Ver só este trecho" usa o recorte que já existe ("Ver somente este fluxo") com os `NodeIds` do bloco.
-- [ ] Prints em `docs/telas/fase-31/` e levantamento de UX da tela nova.
+**Status: concluída em 2026-11-04**, com os prints e o levantamento de UX pendentes (abaixo).
+
+- [x] O botão que troca o desenho passa a ter cinco estados: horizontal, linha do tempo, árvore, consolidado e mapa (`LayoutDirection.Map = 4`). Na edição e na comparação, o botão pula o consolidado e o mapa, que mostram o grafo inteiro e não o rascunho.
+- [x] Faixas por sistema em colunas, blocos posicionados pela ordem do fluxo (`core/graph/flow-map.ts`, `placeRows`: a linha do bloco é a maior linha de quem chega a ele, mais 1; o bloco chamado de outra faixa fica na linha de quem chama; dois blocos nunca dividem faixa e linha) e ligações em SVG, com a chamada tracejada e "VERBO rota" no rótulo. Até 640px, uma coluna só, com o nome da faixa no bloco.
+- [x] Seletor de caminho ("N. desfechos escolhidos", com a marca de falha) e "Todos"; o caminho acende blocos e ligações com a cor da trilha e apaga o resto. Clicar num desfecho, na ligação ou no painel, escolhe o caminho dele. Aviso quando há mais caminhos que os mostrados.
+- [x] Clicar num bloco escolhe o nó dele no grafo (o painel do passo abre como nas outras visões) e abre o painel do bloco: os passos que ele recolhe com arquivo e linha, os desfechos, as chamadas que saem dele e anterior e seguinte no caminho escolhido (botões e setas do teclado; Esc limpa a seleção pelo atalho da página).
+- [x] "Ver só este trecho": o recorte que existe aceita um nó, então ele recebe o nó que dá nome ao bloco, e a página volta ao desenho horizontal para mostrar o recorte (o mapa é sempre do grafo inteiro).
+- [x] Testes: `flow-map.spec.ts` (posição, caminhos, rótulos) e `flow-map-view.component.spec.ts` (caminho, desfecho, bloco, anterior e seguinte, recorte, aviso de corte, erro, vazio, carregando); troca de desenho com cinco estados.
+- [ ] Recorte com todos os `NodeIds` do bloco: pede o recorte por conjunto de nós.
+- [ ] Prints em `docs/telas/fase-31/` e levantamento de UX da tela nova (precisa do Rastro rodando com a loja fictícia).
 
 ## Fase 32: regras do fluxo `[ ]` (depende da Fase 30)
 

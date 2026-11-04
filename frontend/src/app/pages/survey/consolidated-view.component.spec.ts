@@ -142,11 +142,11 @@ describe('ConsolidatedViewComponent (Fase 28)', () => {
   });
 
   // WEB-CVW-004
-  it('botaoDoDesenho_voltaAoHorizontalELinkLevaAEdicao', async () => {
+  it('botaoDoDesenho_levaAoMapaELinkLevaAEdicao', async () => {
     const { el, host } = await setup();
 
     (el.querySelector('[aria-label^="Desenho consolidado"]') as HTMLButtonElement).click();
-    expect(host.directions).toEqual([LayoutDirection.Horizontal]);
+    expect(host.directions).toEqual([LayoutDirection.Map]);
     const link = Array.from(el.querySelectorAll('a')).find((a) => a.textContent?.includes('Editar texto e cores'))!;
     expect(link.getAttribute('href')).toBe('/surveys/s1/visao');
   });

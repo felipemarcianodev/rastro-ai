@@ -1,6 +1,7 @@
 import { FlowGraph, FlowNode, NodeKind } from '../models';
 import { httpLabel, mermaidText } from './export';
 import { NodeEffect, effectOf, humanName, splitLabel } from './reading';
+import { FlowSummary, flowSummary, readingLabel } from './summary';
 import { plainLabel } from './plain';
 import { OutlineItem, timelineDrawing } from './timeline-layout';
 import { withoutFrameworkCalls } from './visibility';
@@ -63,6 +64,16 @@ export function stepId(nodeId: string): string {
 // O passo repetido ganha "_r<n>" no fim; o id de base é o do passo original.
 export function baseStepId(id: string): string {
   return id.replace(/_r\d+$/, '');
+}
+
+// Resumo do fluxo para a visão geral do painel (Fase 23), montado sem o canvas: o consolidado e o
+// mapa (Fase 31) o entregam à página.
+export function flowSummaryOf(graph: FlowGraph): FlowSummary {
+  const shown = withoutFrameworkCalls(graph);
+  const effects = new Map(shown.nodes.flatMap((node) => (effectOf(node) === undefined ? [] : [[node.id, effectOf(node)!] as const])));
+  const originals = new Map(graph.nodes.map((n) => [n.id, n]));
+  const drawn = { ...shown, nodes: shown.nodes.map((node) => ({ ...node, label: readingLabel(node) })) };
+  return flowSummary(timelineDrawing(shown).outline, drawn, originals, effects);
 }
 
 // Nó do grafo por trás de um passo do Mermaid (Fase 28): o painel do passo abre nele. Passo que o
