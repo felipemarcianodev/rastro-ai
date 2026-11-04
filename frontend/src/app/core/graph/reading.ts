@@ -58,10 +58,11 @@ export const NODE_EFFECT_SLUG: Record<NodeEffect, string> = {
 };
 
 // Na ordem em que se testa: fila e cache antes de banco ("CachedRepository" é cache).
+// "Repository" só vale no fim do nome: "OrderRepository" é banco; "RepositoryCatalog" é outra coisa.
 const EFFECT_RULES: [NodeEffect, RegExp][] = [
   [NodeEffect.Queue, /Queue|ServiceBus|MessageBus|EventBus|Kafka|Rabbit|Publish|Consumer|Producer/],
   [NodeEffect.Cache, /Cache|Redis/],
-  [NodeEffect.Database, /Repository|DbContext|DbSet|SaveChanges|Dapper|SqlConnection|SqlCommand|ExecuteSql/],
+  [NodeEffect.Database, /Repository(Base)?\b|DbContext|DbSet|SaveChanges|Dapper|SqlConnection|SqlCommand|ExecuteSql/],
   // Telegram, e-mail e SMS só pela classe que envia: "FormatTelegramMessage" só monta o texto.
   [NodeEffect.Message, /(Telegram|Email|Mail|Sms)\w*(Service|Client|Sender|Notifier)|HttpClient|Notification|Notifier|Webhook|SendAsync|\.Send\b/],
   [NodeEffect.File, /\bFile\.|FileStream|StreamWriter|StreamReader|Blob|Storage/],
