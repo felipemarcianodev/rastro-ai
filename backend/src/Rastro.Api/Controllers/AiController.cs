@@ -18,6 +18,8 @@ public record DescribeRequest(IReadOnlyList<string>? NodeIds, bool Overwrite);
 
 public record DescribeResponse(DescribeResult Result, SurveyDetail Survey);
 
+public record AskRequest(string? Question);
+
 // Modo provedor (ADR-001): configuração da IA no estilo feature flags, estado para a tela e o
 // uso "completar buraco". A chave de API entra por aqui e nunca sai.
 [ApiController]
@@ -98,6 +100,24 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
         }
     }
 
+    // Pergunta livre sobre o fluxo (Fase 33, uso "Sugestões"): resposta com selo e fontes conferidas.
+    [HttpPost("api/surveys/{id:guid}/ai/ask")]
+    public async Task<ActionResult<QuestionAnswer>> Ask(Guid id, AskRequest request, [FromServices] QuestionAdvisor advisor, CancellationToken ct)
+    {
+        try
+        {
+            return await RunAsync(() => advisor.AskAsync(id, request.Question, ct));
+        }
+        catch (QuestionInvalidException ex)
+        {
+            return Problem(StatusCodes.Status400BadRequest, AiErrorCodes.QuestionInvalid, ex.Message);
+        }
+        catch (FindingNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
     private static async Task<SurveyDetail> DetailAsync(RastroDbContext db, Guid id, CancellationToken ct)
     {
         var survey = await db.Surveys.AsNoTracking().SingleAsync(s => s.Id == id, ct);
@@ -145,4 +165,5 @@ public static class AiErrorCodes
     public const string NotConfigured = "AI_NOT_CONFIGURED";
     public const string BudgetExceeded = "AI_BUDGET_EXCEEDED";
     public const string ProviderError = "AI_PROVIDER_ERROR";
+    public const string QuestionInvalid = "AI_QUESTION_INVALID";
 }

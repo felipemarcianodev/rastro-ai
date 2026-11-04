@@ -54,6 +54,8 @@ O que não dá para ler (URL montada fora do código, classe escolhida só em te
 
 ## Visão consolidada
 
+O fluxo também tem um **mapa**, no nível de um diagrama C2: uma faixa por sistema, poucos blocos em cada uma, as decisões que mudam o desfecho, as chamadas entre sistemas e os caminhos de ponta a ponta. Clicar num bloco mostra só aquele trecho. As decisões viram **regras** em frase, com a fonte no código, e o Rastro responde **perguntas** prontas sobre o fluxo; com o modo provedor ligado, também a pergunta livre, que usa o uso "Sugestões" e manda ao provedor a pergunta, o mapa, as regras e até 8 trechos de código.
+
 Cada levantamento tem uma visão resumida em poucos passos, em frase, como um diagrama Mermaid que você edita ao lado da prévia. Clique num passo para escolher a cor dele. A versão editada fica salva no levantamento. No fluxo, a visão também é um dos desenhos do botão que troca o desenho: clicar num passo abre o painel com o contexto dele, arrastar move o desenho e a roda do mouse aproxima.
 
 ## Com o seu agente de IA (MCP)
@@ -65,6 +67,8 @@ claude mcp add rastro -- rastro mcp
 ```
 
 Para o fluxo entre sistemas, a ferramenta `list_cross_edges` lista as ligações HTTP e as chamadas ainda sem destino, e `propose_edge` aceita o parâmetro `system`, com o repositório de destino.
+
+Para perguntas sobre o fluxo, `get_flow_map` mostra o mapa por sistema (blocos, decisões, chamadas e caminhos) e `get_flow_rules` as regras tiradas das decisões, para o agente responder citando os passos.
 
 Tudo o que a IA propõe chega marcado como inferido e só entra no fluxo quando você confirma.
 

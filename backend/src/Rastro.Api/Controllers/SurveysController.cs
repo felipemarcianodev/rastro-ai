@@ -430,6 +430,25 @@ public class SurveysController(
         return FlowMapBuilder.Build(graph);
     }
 
+    // Regras do fluxo (Fase 32): cada decisão do mapa em frase, com o efeito e a fonte, sem IA.
+    [HttpGet("{id:guid}/rules")]
+    public async Task<ActionResult<IReadOnlyList<FlowRule>>> Rules(Guid id, CancellationToken ct)
+    {
+        var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
+        if (survey?.ReadGraph() is not { } graph) return NotFound();
+        return Ok(FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph)));
+    }
+
+    // Perguntas prontas sobre o fluxo (Fase 33), respondidas pelo mapa e pelas regras, sem IA.
+    [HttpGet("{id:guid}/questions")]
+    public async Task<ActionResult<IReadOnlyList<FlowQuestion>>> Questions(Guid id, CancellationToken ct)
+    {
+        var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
+        if (survey?.ReadGraph() is not { } graph) return NotFound();
+        var map = FlowMapBuilder.Build(graph);
+        return Ok(FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map)));
+    }
+
     // Regra cruzada entre fluxos (Fase 13): compara com o levantamento pronto mais recente de cada
     // outro ponto de entrada do mesmo repositório.
     [HttpGet("{id:guid}/cross-flow")]

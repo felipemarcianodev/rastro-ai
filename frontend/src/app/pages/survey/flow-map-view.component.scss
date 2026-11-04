@@ -236,6 +236,16 @@
   background: var(--surface);
 }
 
+.map-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.map-fields {
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
 .map-panel-head {
   display: flex;
   flex-wrap: wrap;

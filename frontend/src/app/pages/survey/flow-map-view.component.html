@@ -68,7 +68,7 @@
             <button type="button" class="map-label is-outcome" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)"
               [attr.aria-label]="'Escolher o caminho do desfecho: ' + l.text" (click)="pickLinkOutcome(l.index)">{{ l.text }}</button>
           } @else {
-            <span class="map-label" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)">{{ l.text }}</span>
+            <span class="map-label" [attr.title]="callTitle(l.link)" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)">{{ l.text }}</span>
           }
         }
       }
@@ -76,8 +76,15 @@
   </div>
 }
 
-@if (panel(); as p) {
-  <aside class="map-panel" aria-label="Bloco escolhido">
+<section class="map-panel" aria-label="Painel do mapa">
+  <div class="panel-tabs" role="tablist" aria-label="Painel do mapa">
+    @for (item of tabs; track item.tab) {
+      <button type="button" role="tab" class="panel-tab" [class.is-active]="tab() === item.tab" [attr.aria-selected]="tab() === item.tab" (click)="setTab(item.tab)">{{ item.label }}</button>
+    }
+  </div>
+  @if (tab() === MapTab.Block) {
+    @if (panel(); as p) {
+      <div class="map-block-panel" aria-label="Bloco escolhido">
     <header class="map-panel-head">
       <span class="kind kind-{{ slug[p.block.kind] }}"><span class="kind-glyph" aria-hidden="true">{{ glyph[p.block.kind] }}</span>{{ kindLabel[p.block.kind] }}</span>
       <strong class="map-panel-title">{{ p.title }}</strong>
@@ -115,7 +122,7 @@
       <h3 class="map-panel-h">Chamadas que saem daqui</h3>
       <ul class="map-outcomes">
         @for (call of p.calls; track call.to) {
-          <li><button type="button" class="map-step" (click)="pickBlockId(call.to)">{{ call.text ?? 'Chama' }} <span class="muted">{{ call.title }}</span></button></li>
+          <li><button type="button" class="map-step" (click)="pickBlockId(call.to)">{{ call.text ?? 'Chama' }} <span class="muted">{{ call.title }}</span>@if (call.fields) { <span class="muted map-fields">campos: {{ call.fields }}</span> }</button></li>
         }
       </ul>
     }
@@ -125,5 +132,16 @@
       <button type="button" class="btn btn-g btn-small" [disabled]="!p.next" (click)="walk(1)" [title]="p.nextTitle ? 'Seguinte: ' + p.nextTitle + ' (seta para a direita)' : 'Não há bloco seguinte neste caminho'">Seguinte</button>
       <button type="button" class="btn btn-g btn-small" (click)="focusSection()" title="Recorta o fluxo no passo deste bloco">Ver só este trecho</button>
     </footer>
-  </aside>
-}
+  </div>
+    } @else {
+      <p class="muted map-hint">Escolha um bloco no mapa para ver os passos dele, os desfechos e as chamadas que saem dele.</p>
+    }
+  }
+
+  @if (opened().has(MapTab.Rules)) {
+    <div [hidden]="tab() !== MapTab.Rules"><app-flow-map-rules [surveyId]="detail().survey.id" [laneTitles]="laneTitles()" (pickBlock)="pickRuleSource($event)" /></div>
+  }
+  @if (opened().has(MapTab.Questions)) {
+    <div [hidden]="tab() !== MapTab.Questions"><app-flow-map-questions [surveyId]="detail().survey.id" [canAsk]="canAsk()" [nodes]="nodes()" (pickNode)="pickAnswerSource($event)" /></div>
+  }
+</section>

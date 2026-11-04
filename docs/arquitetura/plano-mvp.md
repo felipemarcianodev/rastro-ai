@@ -731,20 +731,27 @@ O protótipo aprovado usa dados fictícios e fica fora do repositório. Testes, 
 - [ ] Recorte com todos os `NodeIds` do bloco: pede o recorte por conjunto de nós.
 - [ ] Prints em `docs/telas/fase-31/` e levantamento de UX da tela nova (precisa do Rastro rodando com a loja fictícia).
 
-## Fase 32: regras do fluxo `[ ]` (depende da Fase 30)
+## Fase 32: regras do fluxo `[x]` (depende da Fase 30)
 
-- [ ] `FlowRuleExtractor` (núcleo, sem IA): cada decisão promovida vira uma regra com a condição em texto, o efeito (bloqueia, quando o ramo termina em falha; permite; efeito colateral, quando o ramo chama outro sistema ou grava), onde vale (o sistema) e a fonte (nó, arquivo e linha). A regra escrita pelo usuário ou proposta (`NodeRule`, Fase 6) tem precedência sobre o texto da condição.
-- [ ] A mesma condição em dois sistemas (a tela e a API conferem a mesma coisa) vira uma regra só, com as duas fontes, e o painel aponta que a regra está implementada duas vezes.
-- [ ] `GET api/surveys/{id}/rules` e a lista de regras no painel do mapa, filtrável por efeito; clicar na fonte escolhe o bloco no mapa.
-- [ ] Teste: `if` que lança exceção vira "bloqueia"; ramo que chama outra API vira "efeito colateral"; condição igual na tela e na API vira uma regra com duas fontes.
+**Status: concluída em 2026-11-04**, no mesmo commit da Fase 33 (as duas dividem a rota do controller e o painel do mapa).
 
-## Fase 33: perguntas sobre o fluxo `[ ]` (depende das Fases 30 e 32; IA opcional)
+- [x] `FlowRuleExtractor` (núcleo, sem IA): cada decisão do mapa vira uma regra com a condição, o efeito (`RuleEffect`: bloqueia, quando um ramo encerra com `return` ou `throw`; efeito colateral, quando um ramo chama outro sistema ou fora do código; permite, quando só escolhe o caminho), o texto gerado ("Se X, encerra o fluxo com exceção.", "Quando meio é Cartao, chama ...") e a fonte (nó, bloco, faixa, arquivo e linha). A regra do nó (`NodeRule`, Fase 6) tem precedência sobre o texto gerado e vem marcada.
+- [x] A mesma condição em sistemas diferentes (sem `this.`, espaços e maiúsculas) vira uma regra só, marcada como duplicada, com uma fonte por sistema. No mesmo sistema, dois `if` iguais continuam sendo duas regras.
+- [x] `GET api/surveys/{id}/rules` e a aba "Regras" no painel do mapa, filtrável por efeito, com selo de letra e cor; clicar na fonte escolhe o bloco.
+- [x] Testes CORE-RULE-001 a 006 e API-MAP-003; no front, filtro e fonte clicável.
 
-- [ ] **Sem IA:** perguntas prontas por papel (TL, Staff, gerente), montadas por modelo a partir do mapa e das regras ("quando X é recusado?", "o que acontece se a chamada a Y falhar?", "onde a regra Z está implementada?"), respondidas pelas regras e pelos caminhos. Selo "extraída do código".
-- [ ] **Com IA (provedor ou agente):** pergunta livre. A IA recebe o mapa, as regras e o código dos blocos envolvidos e devolve resposta, selo ("extraída", "inferida" ou "fora do código") e fontes (ids de nó). A resposta passa pelo validador: fonte que não existe no grafo recusa a resposta, e resposta sem fonte só sai como "sem resposta no código levantado".
-- [ ] Ferramentas do MCP `rastro_mapa` e `rastro_regras`, para o agente responder com o mesmo material; as instruções do MCP dizem que a resposta cita os nós.
-- [ ] Sem IA ligada, a tela não mostra a pergunta livre (ADR-001).
-- [ ] Documentação do cliente (README, README do pacote, `SECURITY.md`): o que vai para o provedor de IA numa pergunta.
+## Fase 33: perguntas sobre o fluxo `[x]` (depende das Fases 30 e 32; IA opcional)
+
+**Status: concluída em 2026-11-04.**
+
+- [x] **Sem IA:** `FlowQuestions.Suggest` monta perguntas por papel (`QuestionRole`) a partir do mapa e das regras: quando o fluxo é recusado, que efeitos tem fora do código, o que acontece se cada chamada falhar (diz se o bloco tem `try/catch`), onde uma regra duplicada está implementada, por quais sistemas passa e quantos caminhos terminam em erro. `GET api/surveys/{id}/questions`.
+- [x] **Com IA (provedor):** `POST api/surveys/{id}/ai/ask` (`QuestionAdvisor`). A IA recebe a pergunta, o mapa, as regras e até 8 trechos de código das entradas e decisões, marcados como dado. A resposta passa pela conferência do núcleo (`FlowQuestions.Verify`): fonte que não existe no grafo sai, e resposta sem fonte válida vira "sem resposta no código levantado". A IA nunca carimba "extraída" (só o Rastro faz isso).
+- [x] **Decisão:** a pergunta livre usa o uso "Sugestões" da configuração, sem flag nova, para não criar migration nem mudar a tela de configurações. Se o dono quiser um uso próprio, vira item novo.
+- [x] Ferramentas do MCP `get_flow_map` e `get_flow_rules` (no lugar dos nomes `rastro_mapa` e `rastro_regras` planejados, para seguir o padrão em inglês das outras ferramentas); as instruções do MCP pedem a resposta citando os nós.
+- [x] Sem IA ligada (ou sem o uso "Sugestões"), a tela não mostra a pergunta livre (ADR-001).
+- [x] Documentação do cliente: README, README do pacote e `SECURITY.md` dizem o que vai para o provedor numa pergunta e citam as ferramentas novas.
+- [x] Testes CORE-ASK-001 a 005, AI-ASK-001 a 003 e MCP-MAP-001 (o mapa e as regras da loja fictícia extraída de verdade, com a chamada do estorno entre os dois sistemas); no front, filtro por papel, selo, lacuna, pergunta livre escondida sem IA, envio e erro por código.
+- [ ] Atualizar o contador de tokens da barra logo depois de uma pergunta (hoje só no próximo refresh).
 
 ## Fase 34: parâmetros das pontes `[ ]` (depende da Fase 30)
 
