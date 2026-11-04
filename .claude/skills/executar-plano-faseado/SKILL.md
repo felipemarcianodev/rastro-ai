@@ -14,7 +14,8 @@ description: Executa um plano faseado em markdown do Rastro AI (`docs/arquitetur
 - **IA plugável (ADR-001):** nenhuma fase coloca código de IA em `Rastro.Core` ou `Rastro.Extractor`. O teste de arquitetura precisa continuar verde.
 - **Commit:** `tipo(escopo): descrição` em pt-BR com acentuação, corpo com o que mudou e a linha `Testes: ...` com números reais; **sem** `Co-Authored-By` nem assinatura de IA. Push do branch da fase e PR para a `main` (protegida no GitHub, merge squash), nunca `--force`. Antes do PR, `node scripts/verificar-publico.mjs` sem nenhuma ocorrência (o repositório é público). Adicionar só os arquivos da fase (conferir `git status`).
 - **Status no mesmo commit:** o próprio plano é o registro (fase `[x]`, o que foi feito, sub-itens descobertos como `[ ]`).
-- **Checkpoint ou "requer aprovação":** parar e mostrar ao dono antes de seguir. Nunca assumir aprovação.
+- **Checkpoint:** registrar o resultado no plano e seguir para a próxima fase, sem pausa (pedido do dono; ver `CLAUDE.md`).
+- **"Requer aprovação"** (alto risco de UX ou item marcado assim no plano): parar e mostrar ao dono antes de seguir. Nunca assumir aprovação.
 - **Release** só quando o dono pedir.
 
 ## Antes de começar
