@@ -1,4 +1,4 @@
-# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real
+# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 34 em execução
 
 > Criado em 2026-10-15. Visão e decisões: [`visao.md`](visao.md).
 > Execução fase a fase, no mesmo molde da skill `executar-plano-faseado` de outro projeto do dono: **uma fase por vez, portões verdes, commit, e só então a próxima.**
@@ -671,6 +671,90 @@ O dono usou a visão consolidada da Fase 27 e achou três problemas: o zoom é d
 - [x] **#30, monorepo Angular:** o TypeScript e o nome do projeto são procurados da pasta do `tsconfig` escolhido até a raiz do repositório, sem sair dela. Antes, o extrator só olhava a raiz, e o app numa subpasta (`frontend/`) falhava com "rode o npm install". Teste EXT-TS-026; ADR-005, README e README do pacote atualizados.
 - [x] **#31, Refit como chamada HTTP entre sistemas:** a chamada a um método de interface com `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]`, `[Head]` ou `[Options]` do namespace `Refit` vira um nó `h:` com verbo e template do atributo, como o `HttpClient` (`{id}` e `{**caminho}` viram o buraco `{}`; query e endereço base saem). O atributo é reconhecido pelo símbolo (namespace `Refit`); sem a dll resolvida, vale o atributo sem símbolo quando o arquivo tem `using Refit` ou o nome qualificado. Sem as chamadas HTTP ligadas, vira nó externo, nunca "sem implementação". Testes: `EXT-REFIT-001` a `EXT-REFIT-006`, `INF-REFIT-001` a `INF-REFIT-003`.
 - [x] **#32, seguir a abertura de modal:** `MatDialog.open(Componente)` e `Dialog.open(Componente)` do CDK (identificados pelo tipo resolvido, não pelo nome da variável) abrem o galho "abre o modal Componente", com os métodos que o template do modal (inline ou `templateUrl`) liga a eventos como passos "ação do usuário no modal" (arestas inferidas), e o `afterClosed()`/`closed` segue como continuação. Respeita `--depth` e não entra em laço se o modal abre a si mesmo. Testes: EXT-TS-090 a EXT-TS-097 (os IDs 030 a 033 já eram do percurso). Fica fora: serviço próprio que repassa para o `MatDialog`.
+
+## Mapa do fluxo, regras e perguntas (Fases 30 a 34) (pedido do dono em 2026-11-04)
+
+O dono usou o Rastro num fluxo real de ponta a ponta (tela Angular, duas APIs .NET e um CRM fora do código) e sentiu falta de um nível acima dos desenhos que existem. A linha do tempo, a árvore e o consolidado mostram o fluxo passo a passo; falta a visão de quem chega agora, no nível de um diagrama C2: por quais sistemas a funcionalidade passa, o que cada um faz em poucos blocos, o que decide o caminho e o que volta para o usuário. A partir dali, clicar num bloco leva ao detalhe só daquele trecho.
+
+Na mesma conversa, o dono pediu que o Rastro responda às perguntas que um TL, um Staff ou um gerente fariam ("dá para cancelar depois do status X?", "o que fica pela metade se a outra API cair?"), primeiro com o que o código prova e, com IA ligada, em pergunta livre.
+
+O protótipo aprovado usa dados fictícios e fica fora do repositório. Testes, documentação e prints usam a loja fictícia (ADR-004).
+
+**Decisões do dono (2026-11-04):**
+- **O mapa é mais um desenho do fluxo**, como decidido na Fase 28 para o consolidado: entra no botão que troca o desenho, não numa tela à parte.
+- **Bloco de passo:** os métodos chamados direto pela entrada de cada trecho (profundidade 1), com o que eles chamam no mesmo sistema recolhido dentro do bloco.
+- **Chamada repetida:** a mesma rota chamada de dois lugares vira duas pontes, uma para cada lugar.
+- **Decisão no mapa:** só a que muda o desfecho em pelo menos um dos ramos (retorna, lança exceção ou chama outro sistema). Uma bifurcação que só registra log fica dentro do bloco.
+- **Núcleo sem IA (ADR-001):** mapa e regras são determinísticos, no `Rastro.Core`. A IA só entra nas perguntas (Fase 33) e sempre com fonte.
+
+## Fase 30: mapa do fluxo, núcleo e API `[x]`
+
+**Status: concluída em 2026-11-04.** Só backend; a tela entra na Fase 31.
+
+**Modelo (`Rastro.Core/Graph/FlowMap.cs`):**
+- [x] `FlowMap`: faixas, blocos, ligações e caminhos, mais o aviso de corte quando o limite de caminhos é atingido (`PathsTruncated`).
+- [x] `MapLane`: um sistema do levantamento (o repositório do primeiro trecho e os da costura) e a faixa "fora do código", que junta os nós externos e as chamadas HTTP sem destino resolvido. Ids fixos `:principal` e `:fora`, que não colidem com nome de repositório.
+- [x] `MapBlock`: tipo (`MapBlockKind`: entrada, passo, decisão, fora do código), faixa, ordem, título (o rótulo do nó, ou a condição na decisão; o front aplica o nome legível da Fase 23), o nó que dá nome ao bloco, símbolo, local no código, os ids dos nós que o bloco recolhe e, na decisão, a condição e os desfechos.
+- [x] `MapOutcome`: o texto do ramo (then, else, case), o primeiro bloco do ramo, se o ramo encerra o fluxo (`return` ou `throw`) e se encerra com falha (`throw`). O `if` sem `else` ganha o desfecho "else" vazio, para o caminho em que a condição é falsa existir.
+- [x] `MapLink` no lugar da `MapBridge` planejada: uma lista só de ligações, com o tipo (`MapLinkKind`: sequência, desfecho, chamada), o texto do ramo e o `HttpCall` quando a chamada é HTTP. A tela desenha todas as setas a partir dela.
+- [x] `MapPath`: blocos na ordem de execução, as escolhas feitas em cada decisão (`MapChoice`) e se termina em falha; no máximo 8, os sem falha primeiro.
+
+**Montagem (`FlowMapBuilder.Build(FlowGraph)`), determinística:**
+- [x] Faixa por `FlowNode.System` (nulo é o primeiro trecho), na ordem em que o fluxo entra em cada sistema; fora do código por último.
+- [x] Bloco de entrada: o `EntryNodeId` e cada destino resolvido de uma aresta com `Http`.
+- [x] Bloco de passo: cada método chamado pelo trecho; o que ele alcança no mesmo sistema vira `NodeIds` do bloco, e as chamadas para outro sistema ou para fora saem dele como ligações.
+- [x] **Método transparente (descoberto ao montar):** com profundidade 1 pura, o controller que só repassa para um serviço virava um bloco único com o fluxo inteiro dentro. O método que orquestra outros (chama método ou decide) fica transparente, e os passos dele sobem para o mapa, quando é o único método que o pai chama (passagem) ou quando passa de um terço dos nós do trecho (mínimo de 12 nós).
+- [x] Decisão promovida pela regra do desfecho: um ramo tem `return` ou `throw` no próprio nível ou alcança outro sistema ou fora do código. Chamada de log não conta, porque o extrator já não faz nó externo de `Microsoft.Extensions.Logging`.
+- [x] Fora do código: um bloco por nó externo (`x:`) ou chamada HTTP sem destino (`h:`), com uma ligação de chamada para cada lugar que o chama.
+- [x] Caminhos por enumeração das escolhas (odômetro): o fim de outro sistema volta para quem chamou e não encerra o caminho.
+- [x] O mesmo grafo dá sempre o mesmo mapa (arestas por `Order` e por id; aresta removida no rascunho não entra). Método que chama a si mesmo não entra em laço.
+
+**API:**
+- [x] `GET api/surveys/{id}/map`: o mapa do levantamento; levantamento inexistente ou sem grafo devolve 404, como as outras rotas do grafo.
+
+**Aceite:**
+- [x] Testes do construtor (CORE-MAP-001 a 012) com o grafo da loja montado à mão (`api-pedidos` e `api-pagamentos`, como na Fase 25): faixas na ordem, serviço transparente, decisão que lança exceção com desfecho de falha, `if` que não muda o desfecho fora do mapa, chamada do estorno com verbo e rota, externo e HTTP sem destino na faixa de fora, `switch` do meio de pagamento com um desfecho por `case`, os três caminhos com o de falha por último, corte em 8 caminhos, mesmo mapa para o mesmo grafo, entrada inexistente e método recursivo.
+- [x] Testes da rota (API-MAP-001 e 002).
+- [x] Teste de arquitetura verde: nada de IA no núcleo.
+- [ ] Conferir o mapa num levantamento real grande (com os desenhos da Fase 31), principalmente o limite de um terço que deixa um método transparente.
+
+## Fase 31: o mapa como desenho do fluxo `[ ]` (depende da Fase 30)
+
+- [ ] O botão que troca o desenho passa a ter cinco estados: horizontal, linha do tempo, árvore, consolidado e mapa.
+- [ ] Faixas por sistema, blocos na ordem do fluxo e pontes desenhadas entre faixas, com verbo e rota no rótulo. Num celular, uma coluna só.
+- [ ] Seletor de caminho: destaca de ponta a ponta o caminho escolhido (cor da trilha) e apaga o resto; "todos" mostra tudo. Clicar num desfecho de decisão escolhe o caminho dele.
+- [ ] Clicar num bloco abre o painel do bloco: os passos que ele recolhe, numerados como na linha do tempo, com arquivo e linha, e os blocos anterior e seguinte no caminho escolhido (setas do teclado; Esc fecha).
+- [ ] "Ver só este trecho" usa o recorte que já existe ("Ver somente este fluxo") com os `NodeIds` do bloco.
+- [ ] Prints em `docs/telas/fase-31/` e levantamento de UX da tela nova.
+
+## Fase 32: regras do fluxo `[ ]` (depende da Fase 30)
+
+- [ ] `FlowRuleExtractor` (núcleo, sem IA): cada decisão promovida vira uma regra com a condição em texto, o efeito (bloqueia, quando o ramo termina em falha; permite; efeito colateral, quando o ramo chama outro sistema ou grava), onde vale (o sistema) e a fonte (nó, arquivo e linha). A regra escrita pelo usuário ou proposta (`NodeRule`, Fase 6) tem precedência sobre o texto da condição.
+- [ ] A mesma condição em dois sistemas (a tela e a API conferem a mesma coisa) vira uma regra só, com as duas fontes, e o painel aponta que a regra está implementada duas vezes.
+- [ ] `GET api/surveys/{id}/rules` e a lista de regras no painel do mapa, filtrável por efeito; clicar na fonte escolhe o bloco no mapa.
+- [ ] Teste: `if` que lança exceção vira "bloqueia"; ramo que chama outra API vira "efeito colateral"; condição igual na tela e na API vira uma regra com duas fontes.
+
+## Fase 33: perguntas sobre o fluxo `[ ]` (depende das Fases 30 e 32; IA opcional)
+
+- [ ] **Sem IA:** perguntas prontas por papel (TL, Staff, gerente), montadas por modelo a partir do mapa e das regras ("quando X é recusado?", "o que acontece se a chamada a Y falhar?", "onde a regra Z está implementada?"), respondidas pelas regras e pelos caminhos. Selo "extraída do código".
+- [ ] **Com IA (provedor ou agente):** pergunta livre. A IA recebe o mapa, as regras e o código dos blocos envolvidos e devolve resposta, selo ("extraída", "inferida" ou "fora do código") e fontes (ids de nó). A resposta passa pelo validador: fonte que não existe no grafo recusa a resposta, e resposta sem fonte só sai como "sem resposta no código levantado".
+- [ ] Ferramentas do MCP `rastro_mapa` e `rastro_regras`, para o agente responder com o mesmo material; as instruções do MCP dizem que a resposta cita os nós.
+- [ ] Sem IA ligada, a tela não mostra a pergunta livre (ADR-001).
+- [ ] Documentação do cliente (README, README do pacote, `SECURITY.md`): o que vai para o provedor de IA numa pergunta.
+
+## Fase 34: parâmetros das pontes `[ ]` (depende da Fase 30)
+
+- [ ] O extrator guarda os campos enviados na chamada entre sistemas: no Angular, as chaves do objeto literal do corpo; no C#, as propriedades públicas do tipo do corpo e os parâmetros da rota e da query. Vai na `HttpCall`, e o `RastroSchema.Version` sobe.
+- [ ] O painel da ponte mostra os campos; campo montado de forma que o extrator não lê (espalhamento de outro objeto, por exemplo) aparece como "e outros campos", nunca some em silêncio.
+
+**Ideias registradas no uso, sem fase ainda:**
+- [ ] Cenários de teste a partir dos caminhos do mapa (Dado/Quando/Então), com os dados que levam a cada caminho.
+- [ ] Caminhos sem teste: ligar os testes do repositório aos nós e marcar no mapa o caminho que nenhum teste percorre.
+- [ ] Configuração por ambiente: quando um passo depende de um valor do `appsettings.*.json`, mostrar o valor em cada ambiente e avisar quando divergem.
+- [ ] Caminho de uma requisição real: ler um log estruturado e acender no mapa o caminho percorrido pelo id de correlação.
+- [ ] Comparação de levantamentos (Fase 12) no nível do mapa: blocos, decisões e pontes novos, removidos ou alterados entre duas branches.
+- [ ] Extrator de metadados de CRM (fluxos e gatilhos do Salesforce), para "fora do código" deixar de ser parede. Fase grande, com ADR própria.
+- [ ] Serviço próprio que repassa para o `MatDialog` (ficou fora da issue #32): o desenho começa no modal e perde as condições do botão que o abre.
 
 ## Levantamento de UX do fim do plano `[x]`
 
