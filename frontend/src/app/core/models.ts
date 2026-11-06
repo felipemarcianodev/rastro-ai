@@ -109,6 +109,8 @@ export interface DbAccess {
   operation: DbOperation;
   line: number;
   entity?: string;
+  // SQL cru do passo, quando é um literal no código (Fase 40a).
+  sql?: string | null;
 }
 
 export const DB_OPERATION_LABEL: Record<DbOperation, string> = {
@@ -414,6 +416,7 @@ export const API_ERROR_MESSAGE: Record<string, string> = {
   REPOSITORY_EXISTS: 'Já existe um repositório com esse nome.',
   REPOSITORY_NOT_FOUND: 'Esse repositório não está mais cadastrado.',
   CROSS_REPOSITORIES_INVALID: 'Escolha no máximo 10 repositórios para seguir as chamadas HTTP.',
+  QUERY_INVALID: 'Cole uma consulta de até 100 mil caracteres.',
   ORIGIN_NOT_ALLOWED: 'Pedido recusado: só a tela do próprio Rastro pode alterar dados.',
 };
 

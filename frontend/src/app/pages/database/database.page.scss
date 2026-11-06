@@ -3,6 +3,10 @@
   height: 100%;
 }
 
+[hidden] {
+  display: none !important;
+}
+
 .db-promise {
   font-size: var(--text-xs);
 }

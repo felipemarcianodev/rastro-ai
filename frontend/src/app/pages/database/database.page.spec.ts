@@ -46,7 +46,7 @@ describe('DatabasePage (Fase 38)', () => {
   afterEach(() => TestBed.inject(HttpTestingController).verify());
 
   // WEB-DBV-001
-  it('mostra o mapa, a lista e o selo do achado, sem aba de consulta antes da Fase 40', () => {
+  it('mostra o mapa, a lista e o selo do achado, com a aba de consulta ao lado', () => {
     const { el } = render();
 
     expect(cards(el).length).toBe(6);
@@ -54,7 +54,7 @@ describe('DatabasePage (Fase 38)', () => {
     expect(card(el, 'clientes').querySelectorAll('.db-personal').length).toBe(2);
     expect(el.querySelectorAll('.db-side .db-item').length).toBe(8);
     expect(el.textContent).toContain('Nenhum banco é consultado');
-    expect(el.textContent).not.toContain('Analisar consulta');
+    expect(el.querySelector('#db-tab-query')!.textContent).toContain('Analisar consulta');
     expect(el.querySelector('.db-panel')).toBeNull();
   });
 

@@ -17,11 +17,13 @@ import {
   tableKey,
   toErMermaid,
 } from '../../core/database/db-schema';
+import { DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
 import { readDiagramColors } from '../../core/mermaid-render';
 import { RepositoryItem } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { DbItemKind, DbPick, DbPanelComponent } from './db-panel.component';
+import { QueryAnalysisComponent } from './query-analysis.component';
 
 const MESSAGE_MS = 4000;
 const REVEAL_MARGIN = 16;
@@ -32,12 +34,29 @@ const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 1.5;
 const ZOOM_STEP = 0.25;
 
+export enum DbTab {
+  Map = 0,
+  Query = 1,
+}
+
+const DB_TAB_LABEL: Record<DbTab, string> = {
+  [DbTab.Map]: 'Mapa do banco',
+  [DbTab.Query]: 'Analisar consulta',
+};
+
+const DB_TAB_ID: Record<DbTab, string> = {
+  [DbTab.Map]: 'db-tab-map',
+  [DbTab.Query]: 'db-tab-query',
+};
+
+const DB_TABS = [DbTab.Map, DbTab.Query];
+
 // Tela do banco (Fase 38, ADR-006): o esquema lido do código do repositório, com o mapa relacional,
-// a lista com busca e o painel da tabela. Nada aqui consulta um banco nem usa IA. A aba "Analisar
-// consulta" entra na Fase 40, com a análise; até lá, a tela não mostra aba morta.
+// a lista com busca e o painel da tabela, e a aba de análise de consulta (Fase 40a). Nada aqui
+// consulta um banco nem usa IA.
 @Component({
   selector: 'app-database-page',
-  imports: [RouterLink, DbPanelComponent],
+  imports: [RouterLink, DbPanelComponent, QueryAnalysisComponent],
   templateUrl: './database.page.html',
   styleUrl: './database.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +72,16 @@ export class DatabasePage {
   readonly nome = input.required<string>();
   // ?tabela=<nome>: a tabela já escolhida ao abrir (o "No banco" do painel do passo leva para cá).
   readonly tabela = input<string | undefined>();
+  // ?aba=consulta abre a análise de consulta; ?consulta= e ?origem= vêm do painel do passo.
+  readonly aba = input<string | undefined>();
+  readonly consulta = input<string | undefined>();
+  readonly origem = input<string | undefined>();
+
+  protected readonly DbTab = DbTab;
+  protected readonly tabs = DB_TABS;
+  protected readonly tabLabel = DB_TAB_LABEL;
+  protected readonly tabId = DB_TAB_ID;
+  protected readonly tab = computed(() => (this.aba() === DB_TAB_QUERY_PARAM ? DbTab.Query : DbTab.Map));
 
   protected readonly schema = signal<DbSchema | null>(null);
   // Sem os usos (falha ou carga), o painel diz isso; o mapa não depende deles.
@@ -233,6 +262,27 @@ export class DatabasePage {
 
   protected switchRepository(name: string): void {
     if (name && name !== this.nome()) this.router.navigate(['/repositorios', name, 'banco']);
+  }
+
+  protected selectTab(tab: DbTab, focus = false): void {
+    if (tab !== this.tab()) {
+      this.router.navigate([], { queryParams: { aba: tab === DbTab.Query ? DB_TAB_QUERY_PARAM : null }, queryParamsHandling: 'merge' });
+    }
+    if (focus) setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(`#${DB_TAB_ID[tab]}`)?.focus({ preventScroll: true }));
+  }
+
+  // Setas trocam de aba, como no padrão de abas.
+  protected onTabKey(event: Event, current: DbTab, step: number): void {
+    event.preventDefault();
+    this.selectTab(DB_TABS[(DB_TABS.indexOf(current) + step + DB_TABS.length) % DB_TABS.length], true);
+  }
+
+  // Da análise para o mapa, com a tabela escolhida.
+  protected showInMap(name: string): void {
+    const schema = this.schema();
+    const table = schema ? findTable(schema, name) : undefined;
+    this.router.navigate([], { queryParams: { aba: null, tabela: table ? tableKey(table) : null }, queryParamsHandling: 'merge' });
+    if (table) this.choose({ kind: DbItemKind.Table, key: tableKey(table) }, true);
   }
 
   protected choose(pick: DbPick, focus = false): void {

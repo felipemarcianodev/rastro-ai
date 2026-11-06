@@ -47,6 +47,30 @@ describe('NodePanelComponent: o passo no banco (Fase 39)', () => {
     expect(el.querySelector<HTMLAnchorElement>('.db-access a')!.getAttribute('href')).toBe('/repositorios/loja/banco?tabela=pedidos');
   });
 
+  // WEB-DBQ-030
+  it('o passo com SQL cru leva a consulta e a origem para a análise; sem SQL, não há link', () => {
+    const withSql: FlowGraph = {
+      ...graph,
+      nodes: [graph.nodes[0], { ...graph.nodes[1], db: [{ target: 'pedidos', operation: DbOperation.Read, line: 9, sql: 'SELECT * FROM pedidos WHERE ano = @p0' }, graph.nodes[1].db![1]] }],
+    };
+    TestBed.configureTestingModule({ imports: [NodePanelComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(NodePanelComponent);
+    fixture.componentRef.setInput('surveyId', 's1');
+    fixture.componentRef.setInput('repository', 'loja');
+    fixture.componentRef.setInput('graph', withSql);
+    fixture.componentRef.setInput('selectedId', 'b');
+    fixture.detectChanges();
+
+    const links = [...(fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('.db-sql-link')];
+    expect(links.length).toBe(1);
+    expect(links[0].textContent!.trim()).toBe('Analisar a consulta');
+    const url = new URL(links[0].href);
+    expect(url.pathname).toBe('/repositorios/loja/banco');
+    expect(url.searchParams.get('aba')).toBe('consulta');
+    expect(url.searchParams.get('consulta')).toBe('SELECT * FROM pedidos WHERE ano = @p0');
+    expect(url.searchParams.get('origem')).toBe('Loja.Gravar');
+  });
+
   // WEB-DBF-002
   it('o nome do método não diz banco, mas o EF no corpo diz: a etiqueta é "banco"', () => {
     expect(effectOf(graph.nodes[1])).toBe(NodeEffect.Database);

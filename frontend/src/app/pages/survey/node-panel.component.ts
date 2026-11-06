@@ -34,6 +34,7 @@ import {
   UNRESOLVED_REASON_LABEL,
 } from '../../core/models';
 import { breakable, shortCommit } from '../../core/format';
+import { DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { EditorLinks } from '../../core/editor-links';
 import { FOREIGN_EDIT_MESSAGE } from '../../core/graph/draft-editor';
@@ -129,6 +130,7 @@ export class NodePanelComponent {
   protected readonly kindLabel = NODE_KIND_LABEL;
   protected readonly dbShort = DB_OPERATION_SHORT;
   protected readonly dbSlug = DB_OPERATION_SLUG;
+  protected readonly queryTab = DB_TAB_QUERY_PARAM;
   protected readonly kindSlug = NODE_KIND_SLUG;
   protected readonly glyph = NODE_KIND_GLYPH;
   protected readonly reasonLabel = UNRESOLVED_REASON_LABEL;

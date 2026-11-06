@@ -47,3 +47,16 @@
 | UX-DBF-03 | painel da tabela | Operação, link do passo e linha quebravam em três linhas | O link ocupa o espaço que sobra; a linha fica numa coluna só | Baixo | P | Feito |
 | UX-DBF-04 | lista de tabelas | O selo "FK sem índice +1" quebrava em duas linhas | Selo numa linha só | Baixo | P | Feito |
 | UX-DBF-05 | grafo do fluxo | A tabela só aparecia no painel do passo; no nó, só a etiqueta "banco" | A dica e o rótulo de acessibilidade da etiqueta dizem a operação e a tabela ("Lê pedidos") | Médio | P | Feito; o nome no próprio bloco fica `[ ]` no plano |
+
+## Fase 40a: aba "Analisar consulta"
+
+**Escopo:** a aba nova da tela do banco (`query-analysis.component`), as abas da página e o link "Analisar a consulta" no painel do passo. Verificação no navegador (Chrome, paleta Papel no claro, largura 1440) com a loja fictícia, um levantamento de verdade com SQL cru e a API local com `RASTRO_HOME` temporário. Clique real no link do passo, no "Analisar", no achado, no "ver no mapa", na aba e no "Editar a consulta"; Ctrl+Enter conferido.
+
+| ID | Onde | Problema | Sugestão | Risco | Esforço | Destino |
+|---|---|---|---|---|---|---|
+| UX-DBQ-01 | aba, coluna da consulta | Em 1440px, a caixa e os achados ocupavam a largura toda, com linhas de motivo longas demais para ler | Coluna da consulta até 960px, com "Tabelas da consulta" logo ao lado | Baixo | P | Feito |
+| UX-DBQ-02 | "Tabelas da consulta" | A tabela do esquema é um botão para o mapa, mas parecia texto comum | Sublinhado de link | Baixo | P | Feito |
+| UX-DBQ-03 | consulta sem achado | "0 achados" no título e "Nenhum achado nesta consulta" logo abaixo | Título "Sem achados" | Baixo | P | Feito |
+| UX-DBQ-04 | origem da consulta | "Veio do passo ..." continuava depois de trocar o texto por outra consulta | A origem só aparece enquanto o texto é o do passo | Médio | P | Feito |
+| UX-DBQ-05 | entrada pelo passo | Quem chega pelo "Analisar a consulta" do passo ainda precisa clicar em "Analisar" | Analisar sozinho ao chegar pelo passo | Alto (muda o fluxo aprovado no protótipo, que tem o botão) | P | `[ ]` no plano, espera aprovação |
+

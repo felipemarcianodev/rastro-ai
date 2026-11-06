@@ -44,7 +44,9 @@ public enum DbOperation
 
 // Target: a tabela (nome do esquema lido do código, ou o do DbSet quando o modelo não diz) ou, na
 // execução, a procedure. Entity: a classe da entidade, quando há. Line: linha da chamada no arquivo do método.
-public record DbAccess(string Target, DbOperation Operation, int Line, string? Entity = null);
+// Sql (Fase 40): o texto do SQL cru (FromSql, ExecuteSql, SqlQuery) quando é literal no código, com os
+// marcadores {0} e os buracos da interpolação trocados por @p0, @p1, para a tela analisar a consulta.
+public record DbAccess(string Target, DbOperation Operation, int Line, string? Entity = null, string? Sql = null);
 
 // Chamada HTTP de uma aresta entre sistemas. Method em maiúsculas (GET, POST, PUT, PATCH, DELETE);
 // Route sem host e sem "/" no começo (api/pedidos/{id}/cancelamento), nula quando não resolveu.

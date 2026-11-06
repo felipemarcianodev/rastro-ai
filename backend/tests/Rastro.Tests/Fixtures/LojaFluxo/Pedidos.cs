@@ -39,3 +39,10 @@ public class PedidosController(LojaContext db, PedidoRepositorio repositorio)
         await db.SaveChangesAsync();
     }
 }
+
+public class RelatorioController(LojaContext db)
+{
+    // SQL cru com SELECT: o passo leva o texto para a análise de consulta (Fase 40).
+    public List<Pedido> DoAno(int ano) =>
+        db.Pedidos.FromSqlRaw("SELECT * FROM pedidos WHERE YEAR(criado_em) = {0} ORDER BY criado_em DESC", ano).ToList();
+}

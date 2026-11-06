@@ -35,7 +35,8 @@ public class RastroTools(
     IOptions<RastroOptions> options,
     TimeProvider clock,
     Rastro.Infrastructure.Architecture.DeploymentReader deployments,
-    Rastro.Infrastructure.Database.DbSchemaService schemas)
+    Rastro.Infrastructure.Database.DbSchemaService schemas,
+    Rastro.Infrastructure.Database.QueryAnalysisService queries)
 {
     private const int MaxOutlineLines = 400;
 
@@ -424,6 +425,18 @@ public class RastroTools(
         if (schema.Tables.Count == 0 && schema.Views.Count == 0 && schema.Procedures.Count == 0)
             return "Nenhuma tabela encontrada no código deste repositório (DbContext do EF Core, migrations ou arquivos .sql).";
         return DbSchemaText.Format(schema, string.IsNullOrWhiteSpace(table) ? null : table.Trim());
+    }
+
+    [McpServerTool(Name = "analyze_query"), Description("Analisa uma consulta SQL (SQL Server) sem executá-la e sem IA: os achados de gargalo pelo leitor de T-SQL, cruzados com o esquema lido do código do repositório (SELECT *, função na coluna do filtro, LIKE com curinga no começo, OR entre colunas, coluna sem índice no filtro ou na junção, junção sem condição, DISTINCT sobre junção, subconsulta correlacionada, ORDER BY sem limite, NOT IN com coluna que aceita nulo, UPDATE ou DELETE sem WHERE), cada um com a gravidade, o trecho e o motivo, e as tabelas que a consulta usa. Nenhum banco é consultado.")]
+    public async Task<string> AnalyzeQuery(
+        [Description("Nome do repositório (list_repositories), para cruzar com o esquema.")] string repository,
+        [Description("A consulta SQL (T-SQL), como o usuário escreveu.")] string sql,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
+            return "Informe uma consulta de até 100 mil caracteres.";
+        var analysis = await queries.AnalyzeAsync(repository, sql, ct);
+        return analysis is null ? "Repositório não cadastrado. Use list_repositories." : QueryAnalysisText.Format(analysis);
     }
 
     [McpServerTool(Name = "get_c4"), Description("Diagramas C4 do fluxo em Structurizr DSL (C1 contexto, C2 containers, C3 componentes, C4 visão dinâmica do fluxo). As pessoas do C1 são as que o usuário cadastrou na tela.")]
