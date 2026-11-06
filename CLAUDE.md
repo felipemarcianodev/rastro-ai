@@ -65,7 +65,7 @@ Conta como mudança no ambiente do cliente:
 - o que vai dentro do pacote (`dotnet tool`), arquivos novos ao lado do executável, tamanho que muda muito;
 - pasta de dados (`~/.rastro`), banco, migration, `config.json`, variável de ambiente, porta, `AllowedHosts`;
 - comando da CLI, ferramenta do MCP, linguagem ou tipo de repositório suportado, rota nova da API que a tela ou um agente usa;
-- o que sai da máquina (rede, provedor de IA) e o que é guardado (chave, cache);
+- o que sai da máquina (rede, provedor de IA, banco vivo) e o que é guardado (chave, string de conexão, cache);
 - Docker, workflow de CI e de release, processo de publicação.
 
 O que conferir e atualizar, conforme o caso:
@@ -123,6 +123,7 @@ Na dúvida se a mudança afeta o cliente, ela afeta: confira a lista acima e dig
 - **Secrets:**
   - Nunca em arquivo versionado. Local, use user-secrets.
   - A chave de API dos provedores fica cifrada no banco (DataProtection) e nunca volta na resposta nem no log.
+- **Banco do cliente** ([ADR-006](docs/adr/adr-006-visao-do-banco.md)): o esquema sai do código. Banco vivo é opcional e só de leitura: nunca ler dados das tabelas, só catálogo (comandos fixos, com parâmetros) e plano estimado sem executar, com a consulta conferida antes pelo leitor de SQL. A string de conexão segue a regra da chave de API (cifrada, nunca na resposta, no log nem na IA).
 - **A API** só escuta em `127.0.0.1` (o `rastro` sobe na 7450).
 - **Código aberto** ([ADR-004](docs/adr/adr-004-codigo-aberto.md)): o repositório é público. Nada privado entra nele (nome de cliente, projeto pessoal fechado, caminho da máquina, print de código que não é público); prints só de repositórios públicos.
 - **Nomes em público (bloqueante):** nome de repositório ou de empresa só entra com autorização do dono, e commit não leva `Co-authored-by` nem e-mail fora do noreply do GitHub. **Automático:** `.claude/hooks/nomes-publicos.mjs` recusa `git commit` e `gh pr create` com isso, conferindo mensagem, corpo e linhas adicionadas. Os nomes vêm das pastas vizinhas e de `~/.rastro-publico/termos.txt`; o que o dono autoriza vai em `~/.rastro-publico/autorizados.txt`. Testes: `node --test .claude/hooks/`.
