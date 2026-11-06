@@ -56,6 +56,9 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
     // Uma análise: o texto, o esquema e o que já foi achado.
     private sealed class Run(string sql, DbSchema? schema)
     {
+        // Uma tabela apontada por tantas outras é a do tenant ou a do usuário, não o pai de uma lista filha.
+        private const int HubMinReferences = 3;
+        private readonly HashSet<string> _hubs = HubTables(schema);
         private readonly SqlDialect _dialect = schema?.Dialect ?? SqlDialect.SqlServer;
         private readonly Dictionary<string, DbTable> _tables = (schema?.Tables ?? [])
             .GroupBy(t => DbNames.Key(t.Schema, t.Name, schema!.Dialect))
@@ -70,13 +73,14 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         // motivo já está lá e o achado de índice sai.
         private readonly List<(string Column, QueryFinding Finding)> _indexFindings = [];
         private readonly HashSet<string> _covered = new(StringComparer.OrdinalIgnoreCase);
+        private QueryExpression? _top;
 
         public List<QueryTableUse> Tables { get; } = [];
 
         public List<QueryFinding> Findings() =>
             _findings
                 .Concat(_indexFindings.Where(f => !_covered.Contains(f.Column)).Select(f => f.Finding))
-                .OrderBy(f => f.Severity)
+                .OrderByDescending(f => f.Severity)
                 .ThenBy(f => f.Start)
                 .ThenBy(f => f.Kind)
                 .ToList();
@@ -87,6 +91,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             {
                 case SelectStatement select:
                     Ctes(select.WithCtesAndXmlNamespaces);
+                    _top = select.QueryExpression;
                     Query(select.QueryExpression, null, outermost: true, inExists: false);
                     break;
                 case UpdateStatement update when update.UpdateSpecification is { } spec:
@@ -124,6 +129,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         private void Write(TSqlStatement statement, TableReference target, FromClause? from, WhereClause? where, string verb, string action)
         {
             var scope = new Scope(null);
+            ReadEqualities(scope, from?.TableReferences ?? [], where?.SearchCondition);
             if (from is not null)
                 foreach (var reference in from.TableReferences) Add(scope, reference);
             // "UPDATE p ... FROM produtos p": o alvo é o apelido de uma tabela do FROM, não outra tabela.
@@ -175,6 +181,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         {
             var scope = new Scope(parent);
             var references = spec.FromClause?.TableReferences ?? [];
+            ReadEqualities(scope, references, spec.WhereClause?.SearchCondition);
             foreach (var reference in references) Add(scope, reference);
 
             foreach (var element in spec.SelectElements)
@@ -195,14 +202,17 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             else if (references.Count > 1)
                 CommaJoins(scope, references, null);
 
-            OrderBy(spec, outermost, spec.TopRowFilter);
+            OrderBy(spec, outermost, spec.TopRowFilter, scope);
+            if (outermost && ReferenceEquals(spec, _top) && spec.TopRowFilter is null && spec.OffsetClause is null)
+                ReadWithoutLimit(spec, scope);
             return scope;
         }
 
         // ORDER BY só pesa na consulta de fora (numa subconsulta o T-SQL já exige TOP).
-        private void OrderBy(QueryExpression query, bool outermost, TopRowFilter? top)
+        // Lista filha de um pai (WHERE pai_id = @x): o filtro pela chave estrangeira já limita o que se ordena.
+        private void OrderBy(QueryExpression query, bool outermost, TopRowFilter? top, Scope? scope = null)
         {
-            if (!outermost || query.OrderByClause is not { } order || query.OffsetClause is not null || top is not null) return;
+            if (!outermost || query.OrderByClause is not { } order || query.OffsetClause is not null || top is not null || FilteredByForeignKey(scope)) return;
             Report(QueryFindingKind.OrderByWithoutLimit, QuerySeverity.Low, order,
                 "Ordena todas as linhas que o filtro deixou, sem TOP nem OFFSET/FETCH: o custo cresce com a tabela. Se a tela mostra uma página, limite.");
         }
@@ -434,7 +444,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             var resolved = scope.Resolve(first);
             var key = ColumnKey(first, scope);
             _covered.Add(key);
-            var noIndex = resolved is { Ref.Table: { } table, Column: { } name } && table.Columns.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) && !HasIndex(table, name)
+            var noIndex = resolved is { Ref.Table: { } table, Column: { } name } && table.Columns.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) && !Covered(table, name, scope, resolved.Ref)
                 ? $" E {resolved.Ref.Name}.{name} nem tem índice."
                 : "";
             Report(QueryFindingKind.FunctionOnFilterColumn, QuerySeverity.High, expression,
@@ -449,7 +459,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             var index = resolved is { Ref.Table: { } table, Column: { } name } ? IndexOn(table, name) : null;
             var tail = index is null ? "." : $": o índice {index} existe, mas não ajuda.";
             Report(QueryFindingKind.LeadingWildcardLike, QuerySeverity.Medium, like,
-                $"Com o curinga no começo ('{pattern}'), o banco lê todos os valores de {Written(column)}{tail} Se a busca é pelo fim do texto, guarde uma coluna com o texto invertido ou use a busca de texto completo.",
+                $"Com o curinga no começo ('{pattern}'), o banco pode ler todos os valores de {Written(column)}{tail} Se a busca é pelo fim do texto, guarde uma coluna com o texto invertido ou use a busca de texto completo.",
                 resolved.Ref?.Table is null ? null : resolved.Ref.Name);
         }
 
@@ -469,7 +479,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         {
             var resolved = scope.Resolve(column);
             if (resolved is not { Depth: 0, Ref.Table: { } table, Column: { } name }) return;
-            if (!table.Columns.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) || HasIndex(table, name)) return;
+            if (!table.Columns.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) || Covered(table, name, scope, resolved.Ref)) return;
             var key = ColumnKey(column, scope);
             if (_indexFindings.Any(f => f.Column.Equals(key, StringComparison.OrdinalIgnoreCase))) return;
 
@@ -478,7 +488,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             var what = join ? "na junção" : "no filtro";
             var span = Span(column);
             _indexFindings.Add((key, new QueryFinding(QueryFindingKind.ColumnWithoutIndex, QuerySeverity.Medium, span.Start, span.Length, column.StartLine, Snippet(span.Start, span.Length),
-                $"{resolved.Ref.Name}.{name} está {what} e não tem índice que comece por ela ({have}): o banco lê a tabela inteira para achar as linhas.",
+                $"{resolved.Ref.Name}.{name} está {what} e não tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade ({have}): o banco pode ler a tabela inteira para achar as linhas. Confira o plano.",
                 resolved.Ref.Name)));
         }
 
@@ -494,6 +504,15 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                 if (!correlated || inner is null || scope is null) continue;
                 var outer = Columns(subquery.QueryExpression).FirstOrDefault(c => inner.Resolve(c).Depth > 0);
                 if (outer is null) continue;
+                if (KeyLookup(inner) is { } keyed)
+                {
+                    // A ligação com a de fora é pela chave primária (ou única) da tabela de dentro: cada linha
+                    // vira uma busca pontual, e o custo é baixo.
+                    Report(QueryFindingKind.CorrelatedSubquery, QuerySeverity.Low, subquery,
+                        $"A subconsulta busca {keyed.Ref.Name} pela chave ({keyed.Column}) usando {Written(outer)}, da consulta de fora: é uma busca pontual por linha, de custo baixo. Se a consulta devolve muitas linhas, um JOIN faz o mesmo numa passada só.",
+                        keyed.Ref.Table is null ? null : keyed.Ref.Name);
+                    continue;
+                }
                 Report(QueryFindingKind.CorrelatedSubquery, QuerySeverity.Medium, subquery,
                     $"A subconsulta cita {Written(outer)}, da consulta de fora: o banco pode rodá-la uma vez para cada linha. Troque por uma junção (JOIN com GROUP BY) ou por OUTER APPLY.");
             }
@@ -506,9 +525,189 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             return query as QuerySpecification;
         }
 
-        private static bool HasIndex(DbTable table, string column) =>
-            (table.PrimaryKey?.Columns.FirstOrDefault()?.Equals(column, StringComparison.OrdinalIgnoreCase) ?? false)
-            || table.Indexes.Any(i => i.Columns.FirstOrDefault()?.Equals(column, StringComparison.OrdinalIgnoreCase) ?? false);
+        // A coluna tem índice que a atenda: um que comece por ela, ou um composto cujas colunas iniciais estão
+        // todas no filtro com igualdade (tenant_id = @t AND loja_id = @l atende (tenant_id, loja_id)). A
+        // primeira coluna depois das de igualdade também serve (faixa ou ordem).
+        private static bool Covered(DbTable table, string column, Scope scope, TableRef owner)
+        {
+            var equal = scope.EqualityColumns(owner);
+            foreach (var columns in IndexColumns(table))
+            {
+                var at = columns.FindIndex(c => DbNames.Unquote(c).Equals(DbNames.Unquote(column), StringComparison.OrdinalIgnoreCase));
+                if (at < 0) continue;
+                var run = 0;
+                while (run < columns.Count && equal.Contains(DbNames.Unquote(columns[run]))) run++;
+                if (at <= run) return true;
+            }
+            return false;
+        }
+
+        private static IEnumerable<List<string>> IndexColumns(DbTable table)
+        {
+            if (table.PrimaryKey is { } pk) yield return pk.Columns.ToList();
+            foreach (var index in table.Indexes) yield return index.Columns.ToList();
+        }
+
+        // A comparação "coluna = valor" (Right nulo) ou "coluna = coluna"; IN com lista e IS NULL contam como
+        // igualdade. Nulo: o filtro não é de igualdade.
+        private static Eq? EqualityOf(BooleanExpression expression)
+        {
+            switch (Unparenthesize(expression))
+            {
+                case BooleanComparisonExpression { ComparisonType: BooleanComparisonType.Equals } eq:
+                    var left = Plain(eq.FirstExpression);
+                    var right = Plain(eq.SecondExpression);
+                    if (left is not null) return new Eq(left, right);
+                    return right is not null ? new Eq(right, null) : null;
+                case InPredicate { NotDefined: false, Subquery: null } list when Plain(list.Expression) is { } column:
+                    return new Eq(column, null);
+                case BooleanIsNullExpression { IsNot: false } isNull when Plain(isNull.Expression) is { } nullColumn:
+                    return new Eq(nullColumn, null);
+                default:
+                    return null;
+            }
+        }
+
+        private static BooleanExpression Unparenthesize(BooleanExpression expression)
+        {
+            while (expression is BooleanParenthesisExpression p) expression = p.Expression;
+            return expression;
+        }
+
+        private static void Conjuncts(BooleanExpression expression, List<BooleanExpression> list)
+        {
+            var current = Unparenthesize(expression);
+            if (current is BooleanBinaryExpression { BinaryExpressionType: BooleanBinaryExpressionType.And } and)
+            {
+                Conjuncts(and.FirstExpression, list);
+                Conjuncts(and.SecondExpression, list);
+            }
+            else list.Add(current);
+        }
+
+        // As igualdades do WHERE e dos ON, antes de qualquer achado: o índice composto precisa saber o filtro inteiro.
+        private static void ReadEqualities(Scope scope, IEnumerable<TableReference> references, BooleanExpression? where)
+        {
+            if (where is not null)
+            {
+                var parts = new List<BooleanExpression>();
+                Conjuncts(where, parts);
+                scope.HasWhere = true;
+                scope.OnlyEqualities = true;
+                foreach (var part in parts)
+                {
+                    if (EqualityOf(part) is { } eq) scope.Where.Add(eq);
+                    else scope.OnlyEqualities = false;
+                }
+            }
+            foreach (var reference in references) JoinEqualities(scope, reference);
+        }
+
+        private static void JoinEqualities(Scope scope, TableReference reference)
+        {
+            switch (reference)
+            {
+                case QualifiedJoin join:
+                    JoinEqualities(scope, join.FirstTableReference);
+                    JoinEqualities(scope, join.SecondTableReference);
+                    if (join.SearchCondition is { } on)
+                    {
+                        var parts = new List<BooleanExpression>();
+                        Conjuncts(on, parts);
+                        foreach (var part in parts)
+                            if (EqualityOf(part) is { } eq) scope.Joined.Add(eq);
+                    }
+                    break;
+                case UnqualifiedJoin cross:
+                    JoinEqualities(scope, cross.FirstTableReference);
+                    JoinEqualities(scope, cross.SecondTableReference);
+                    break;
+                case JoinParenthesisTableReference parenthesis:
+                    JoinEqualities(scope, parenthesis.Join);
+                    break;
+            }
+        }
+
+        // Os filtros "coluna = valor" do WHERE; nulo quando algum não cai numa tabela conhecida desta consulta.
+        private static List<(TableRef Ref, DbTable Table, string Column)>? ValueFilters(Scope scope)
+        {
+            var found = new List<(TableRef, DbTable, string)>();
+            foreach (var eq in scope.Where.Where(e => e.Right is null))
+            {
+                if (scope.Resolve(eq.Left) is not { Depth: 0, Ref.Table: { } table, Column: { } name } resolved) return null;
+                found.Add((resolved.Ref!, table, name));
+            }
+            return found;
+        }
+
+        // Lista filha de um pai: algum filtro de igualdade do WHERE cai numa coluna de chave estrangeira. A
+        // chave para uma tabela que muitas outras apontam (o tenant, o usuário) não conta: filtrar por ela não
+        // limita o resultado a um pai pequeno.
+        private bool FilteredByForeignKey(Scope? scope)
+        {
+            if (scope is null || ValueFilters(scope) is not { } filters) return false;
+            return filters.Any(f => f.Table.ForeignKeys.Any(fk => !_hubs.Contains(ShortName(fk.PrincipalTable))
+                && fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(f.Column), StringComparison.OrdinalIgnoreCase))));
+        }
+
+        // Tabelas apontadas por chave estrangeira de pelo menos HubMinReferences outras tabelas.
+        private static HashSet<string> HubTables(DbSchema? schema) => (schema?.Tables ?? [])
+            .SelectMany(t => t.ForeignKeys.Select(fk => (From: DbNames.Unquote(t.Name), To: ShortName(fk.PrincipalTable))))
+            .Where(r => !r.From.Equals(r.To, StringComparison.OrdinalIgnoreCase))
+            .GroupBy(r => r.To, StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Select(r => r.From).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= HubMinReferences)
+            .Select(g => g.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        private static string ShortName(string table) => DbNames.Unquote(table[(table.LastIndexOf('.') + 1)..]);
+
+        // As colunas filtradas identificam uma linha: a chave primária ou uma única inteira.
+        private static bool Identifies(DbTable table, IEnumerable<string> filtered)
+        {
+            var names = filtered.Select(DbNames.Unquote).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            bool All(IEnumerable<string> columns) => columns.Any() && columns.All(c => names.Contains(DbNames.Unquote(c)));
+            return (table.PrimaryKey is { } pk && All(pk.Columns)) || table.Indexes.Any(i => i.Unique && All(i.Columns));
+        }
+
+        // SELECT sem TOP nem OFFSET/FETCH numa tabela filtrada só por igualdade em coluna que não identifica
+        // a linha (o caso típico é só pelo tenant): o resultado cresce com a tabela.
+        private void ReadWithoutLimit(QuerySpecification spec, Scope scope)
+        {
+            if (scope.Opaque || !scope.HasWhere || !scope.OnlyEqualities || spec.WhereClause?.SearchCondition is not { } where) return;
+            if (ValueFilters(scope) is not { Count: > 0 } filters) return;
+            if (spec.GroupByClause is not null || spec.HavingClause is not null || AggregateOnly(spec)) return;
+            if (FilteredByForeignKey(scope)) return;
+            foreach (var group in filters.GroupBy(f => f.Ref))
+                if (Identifies(group.First().Table, group.Select(f => f.Column))) return;
+
+            var written = Join(filters.Select(f => $"{f.Ref.Name}.{f.Column}").Distinct(StringComparer.OrdinalIgnoreCase).ToList());
+            var tables = Join(filters.Select(f => f.Ref.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
+            Report(QueryFindingKind.ReadWithoutLimit, QuerySeverity.Low, where,
+                $"A consulta não tem TOP nem OFFSET/FETCH e filtra {tables} só por igualdade em {written}, que não identifica uma linha (não é chave primária nem única): o resultado cresce com a tabela. Se a tela mostra uma página, limite.",
+                filters[0].Ref.Name);
+        }
+
+        // COUNT(*), SUM(x) e parentes sem GROUP BY: uma linha só.
+        private static bool AggregateOnly(QuerySpecification spec)
+        {
+            var finder = new AggregateFinder();
+            foreach (var element in spec.SelectElements) element.Accept(finder);
+            return finder.Found;
+        }
+
+        // A subconsulta liga uma coluna de fora à chave primária (ou única) da tabela de dentro.
+        private static (TableRef Ref, string Column)? KeyLookup(Scope inner)
+        {
+            foreach (var eq in inner.Where.Concat(inner.Joined).Where(e => e.Right is not null))
+            {
+                var left = inner.Resolve(eq.Left);
+                var right = inner.Resolve(eq.Right!);
+                foreach (var (mine, other) in new[] { (left, right), (right, left) })
+                    if (mine is { Depth: 0, Ref.Table: { } table, Column: { } name } && other.Depth > 0 && Identifies(table, [name]))
+                        return (mine.Ref!, name);
+            }
+            return null;
+        }
 
         // O nome do índice que começa pela coluna (ou da chave primária), para o motivo do LIKE.
         private static string? IndexOn(DbTable table, string column)
@@ -643,11 +842,47 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
 
     private readonly record struct Resolution(TableRef? Ref, string? Column, int Depth);
 
+    // Uma igualdade do filtro: coluna = valor (Right nulo) ou coluna = coluna.
+    private sealed record Eq(ColumnReferenceExpression Left, ColumnReferenceExpression? Right);
+
+    private static readonly HashSet<string> AggregateFunctions = new(StringComparer.OrdinalIgnoreCase)
+        { "count", "count_big", "sum", "avg", "min", "max", "string_agg", "stdev", "var" };
+
+    // Função de agregação na lista do SELECT, sem entrar em subconsulta.
+    private sealed class AggregateFinder : TSqlFragmentVisitor
+    {
+        public bool Found { get; private set; }
+
+        public override void ExplicitVisit(ScalarSubquery node) { }
+
+        public override void Visit(FunctionCall node)
+        {
+            if (AggregateFunctions.Contains(node.FunctionName.Value)) Found = true;
+        }
+    }
+
     // As tabelas de uma consulta, com a de fora como pai (a subconsulta enxerga as tabelas de fora).
     private sealed class Scope(Scope? parent)
     {
         public List<TableRef> Refs { get; } = [];
         public bool Opaque { get; set; }
+
+        // As igualdades do WHERE (Where), as dos ON (Joined) e se o WHERE tem só igualdades.
+        public List<Eq> Where { get; } = [];
+        public List<Eq> Joined { get; } = [];
+        public bool HasWhere { get; set; }
+        public bool OnlyEqualities { get; set; }
+
+        // As colunas de uma tabela desta consulta que o filtro compara com igualdade.
+        public HashSet<string> EqualityColumns(TableRef owner)
+        {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var eq in Where.Concat(Joined))
+                foreach (var side in eq.Right is null ? [eq.Left] : new[] { eq.Left, eq.Right })
+                    if (Resolve(side) is { Depth: 0, Column: { } name } resolved && ReferenceEquals(resolved.Ref, owner))
+                        names.Add(DbNames.Unquote(name));
+            return names;
+        }
 
         // Depth 0: tabela desta consulta; 1 em diante: de uma consulta de fora. Ref nulo: não deu para
         // saber (tabela fora do esquema, coluna sem prefixo).

@@ -209,6 +209,11 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
             case "IsUnique": index.Unique = Bool(Arg(call, "unique", 0)) ?? true; break;
             case "HasDatabaseName" or "HasName": index.Name = String(Arg(call, "name", 0)); break;
             case "IncludeProperties": index.Include = Members(call); break;
+            // Npgsql: HasMethod("gin") e HasOperators("gin_trgm_ops").
+            case "HasMethod": index.Method = String(Arg(call, "method", 0))?.ToLowerInvariant(); break;
+            case "HasOperators":
+                index.Operators = call.ArgumentList.Arguments.Select(a => String(a.Expression)).Where(s => s is not null).Select(s => s!.ToLowerInvariant()).ToList();
+                break;
         }
     }
 
@@ -263,6 +268,9 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
                 entity.Scalars.Add(new Scalar(name, typeName, nullableAnnotated, property, propertyFile));
             else if (dialect == SqlDialect.PostgreSql && NpgsqlScalar(typeName, element) is { } npgsqlType)
                 entity.Scalars.Add(new Scalar(name, npgsqlType, nullableAnnotated, property, propertyFile));
+            else if (dialect == SqlDialect.PostgreSql && IsJsonColumn(entity, name, property) && (element is not null || code.FindClass(typeName) is not null))
+                // Classe ou lista de classes guardada em jsonb (HasColumnType ou [Column(TypeName)]): é uma coluna só.
+                entity.Scalars.Add(new Scalar(name, element is null ? typeName : $"{typeName}<{element}>", nullableAnnotated, property, propertyFile));
             else if (element is null && code.FindClass(typeName) is not null)
                 _notes.Add(new SchemaNote($"{entity.ClrName}.{name} é do tipo {typeName}, que não é entidade do modelo: a propriedade ficou de fora.", propertyFile, Line(property)));
         }
@@ -385,7 +393,8 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
             .Select(i =>
             {
                 var cols = i.Properties.Select(entity.ColumnOf).ToList();
-                return new DbIndex(i.Name ?? Conventional($"IX_{tableName}_{string.Join("_", cols)}"), cols, i.Include.Select(entity.ColumnOf).ToList(), i.Unique, i.Source);
+                return new DbIndex(i.Name ?? Conventional($"IX_{tableName}_{string.Join("_", cols)}"), cols, i.Include.Select(entity.ColumnOf).ToList(), i.Unique, i.Source,
+                    Method: i.Method, OperatorClasses: i.Operators.Count > 0 ? i.Operators : null);
             })
             .ToList();
 
@@ -485,6 +494,15 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
         return (BaseName(type), nullable, null);
     }
 
+    // Propriedade configurada com o tipo jsonb ou json (HasColumnType("jsonb") ou [Column(TypeName = "jsonb")]).
+    private static bool IsJsonColumn(Entity entity, string property, PropertyDeclarationSyntax declaration)
+    {
+        var type = entity.Configs.TryGetValue(property, out var config) ? config.Type : null;
+        if (type is null && Attr(declaration, "Column", out var column) is not null)
+            type = String(AttributeArg(column!, "TypeName"));
+        return type is not null && type.Trim().ToLowerInvariant() is "jsonb" or "json";
+    }
+
     // O que o Npgsql mapeia sozinho e o SQL Server não: vetor e lista de tipo simples (text[], integer[]) e
     // JsonDocument ou JsonElement (jsonb).
     private static string? NpgsqlScalar(string typeName, string? element)
@@ -578,6 +596,8 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
         public bool Unique { get; set; }
         public string? Name { get; set; }
         public List<string> Include { get; set; } = [];
+        public string? Method { get; set; }
+        public List<string> Operators { get; set; } = [];
     }
 
     private sealed class RelationConfig(SchemaSource source)

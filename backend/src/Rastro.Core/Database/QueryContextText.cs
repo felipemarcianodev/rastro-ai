@@ -27,7 +27,8 @@ public static class QueryContextText
         [QueryFindingKind.CorrelatedSubquery] = "subconsulta correlacionada",
         [QueryFindingKind.OrderByWithoutLimit] = "ORDER BY sem limite",
         [QueryFindingKind.NotInNullable] = "NOT IN com coluna que aceita nulo",
-        [QueryFindingKind.WriteWithoutWhere] = "UPDATE ou DELETE sem WHERE"
+        [QueryFindingKind.WriteWithoutWhere] = "UPDATE ou DELETE sem WHERE",
+        [QueryFindingKind.ReadWithoutLimit] = "leitura sem limite, filtrada só por igualdade"
     };
 
     // Um achado por linha: gravidade, tipo, linha, trecho e motivo.

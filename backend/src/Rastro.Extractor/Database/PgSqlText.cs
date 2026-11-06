@@ -207,6 +207,14 @@ internal sealed class PgSqlText
     private (int Start, int Length, int Line) Whole(int from, int to) =>
         from < to ? Span(from, to - 1) : (0, 0, 1);
 
+    // O índice do token que começa no caractere start (a partir de from); from quando nenhum começa ali.
+    public int TokenAt(int start, int from)
+    {
+        for (var i = Math.Max(from, 0); i < Tokens.Count; i++)
+            if (Tokens[i].Start >= start) return i;
+        return Math.Max(from, 0);
+    }
+
     // O primeiro token com a palavra-chave dentro de [from, to), a partir de start.
     public int Find(string keyword, int from, int to)
     {

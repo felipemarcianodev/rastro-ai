@@ -14,13 +14,14 @@ export enum QueryFindingKind {
   OrderByWithoutLimit = 8,
   NotInNullable = 9,
   WriteWithoutWhere = 10,
+  ReadWithoutLimit = 11,
 }
 
-// A ordem é a da lista: alta primeiro.
+// Mesma escala do FindingSeverity: o valor maior é o mais grave. A lista ordena do maior para o menor.
 export enum QuerySeverity {
-  High = 0,
+  Low = 0,
   Medium = 1,
-  Low = 2,
+  High = 2,
 }
 
 export interface QueryFinding {
@@ -69,6 +70,7 @@ export const QUERY_FINDING_TITLE: Record<QueryFindingKind, string> = {
   [QueryFindingKind.OrderByWithoutLimit]: 'ORDER BY sem limite',
   [QueryFindingKind.NotInNullable]: 'NOT IN com coluna que aceita nulo',
   [QueryFindingKind.WriteWithoutWhere]: 'UPDATE ou DELETE sem WHERE',
+  [QueryFindingKind.ReadWithoutLimit]: 'Leitura sem limite, filtrada só por igualdade',
 };
 
 export const QUERY_SEVERITY_LABEL: Record<QuerySeverity, string> = {

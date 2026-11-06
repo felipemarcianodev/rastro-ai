@@ -1,4 +1,4 @@
-import { querySegments } from './query-analysis';
+import { QUERY_FINDING_TITLE, QUERY_SEVERITY_LABEL, QUERY_SEVERITY_SLUG, QueryFindingKind, QuerySeverity, querySegments } from './query-analysis';
 
 describe('querySegments (Fase 40a)', () => {
   const at = (start: number, length: number) => ({ start, length });
@@ -38,5 +38,17 @@ describe('querySegments (Fase 40a)', () => {
     expect(segments.map((s) => s.text).join('')).toBe('abcde');
     expect(segments.map((s) => s.text)).toEqual(['ab', 'c', 'de']);
     expect(segments.map((s) => s.findings)).toEqual([[1], [], [0]]);
+  });
+});
+
+describe('escala de gravidade e rótulos (Fase 43a)', () => {
+  // WEB-DBQ-005
+  it('a gravidade segue a escala do FindingSeverity (baixa 0, média 1, alta 2) e todo tipo tem título', () => {
+    expect([QuerySeverity.Low, QuerySeverity.Medium, QuerySeverity.High]).toEqual([0, 1, 2]);
+    expect(QUERY_SEVERITY_LABEL[QuerySeverity.High]).toBe('Alta');
+    expect(QUERY_SEVERITY_SLUG[QuerySeverity.Low]).toBe('low');
+    const kinds = Object.values(QueryFindingKind).filter((v): v is QueryFindingKind => typeof v === 'number');
+    expect(kinds.length).toBe(12);
+    for (const kind of kinds) expect(QUERY_FINDING_TITLE[kind]).toBeTruthy();
   });
 });

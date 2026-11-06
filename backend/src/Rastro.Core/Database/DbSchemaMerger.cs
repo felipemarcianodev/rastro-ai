@@ -103,7 +103,10 @@ public static class DbSchemaMerger
         var indexes = group.SelectMany(t => t.Indexes)
             .Where(i => !i.Convention || !physical)
             .OrderBy(i => i.Convention ? 1 : 0)
-            .DistinctBy(i => string.Join(",", i.Columns).ToLowerInvariant() + (i.Unique ? "|u" : string.Empty))
+            .GroupBy(i => string.Join(",", i.Columns).ToLowerInvariant() + (i.Unique ? "|u" : string.Empty))
+            .Select(g => g.First() is { Method: null, OperatorClasses: null } first && g.FirstOrDefault(i => i.Method is not null) is { } detailed
+                ? first with { Method = detailed.Method, OperatorClasses = detailed.OperatorClasses }
+                : g.First())
             .ToList();
 
         var primaryKey = keys.FirstOrDefault();

@@ -96,7 +96,9 @@ internal sealed class EfMigrationReader(CodeIndex code, SqlDialect dialect)
             case "CreateIndex":
                 if (Find(schema, table) is { } indexed)
                     indexed.Indexes.Add(new DbIndex(String(Arg(call, "name")), ColumnsArg(call, "column", "columns"),
-                        Strings(Arg(call, "include")), Bool(Arg(call, "unique")) ?? false, source));
+                        Strings(Arg(call, "include")), Bool(Arg(call, "unique")) ?? false, source,
+                        Method: String(Arg(call, "method"))?.ToLowerInvariant(),
+                        OperatorClasses: Strings(Arg(call, "operators")) is { Count: > 0 } operators ? operators.Select(o => o.ToLowerInvariant()).ToList() : null));
                 break;
             case "DropIndex":
                 if (Find(schema, table) is { } unindexed && String(Arg(call, "name")) is { } indexName)

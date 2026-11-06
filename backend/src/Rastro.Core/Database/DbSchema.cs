@@ -67,7 +67,20 @@ public record DbForeignKey(string? Name, IReadOnlyList<string> Columns, string P
 // Convention (Fase 38): índice que o EF Core cria sozinho em cada chave estrangeira, deduzido do modelo
 // (não está escrito no código). Só aparece quando a tabela não tem migration nem .sql, que dizem o que
 // o banco de fato tem.
-public record DbIndex(string? Name, IReadOnlyList<string> Columns, IReadOnlyList<string> Included, bool Unique, SchemaSource Source, bool Convention = false);
+// Method (Fase 43a): o método de acesso do PostgreSQL, em minúsculas ("btree", "gin", "gist", "hash"), quando a
+// fonte o escreve; nulo é o padrão (btree). OperatorClasses: a classe de operador de cada coluna, na ordem de
+// Columns, vazia onde não há ("gin_trgm_ops" marca o índice de trigrama, que atende LIKE e ILIKE com curinga).
+public record DbIndex(string? Name, IReadOnlyList<string> Columns, IReadOnlyList<string> Included, bool Unique, SchemaSource Source, bool Convention = false,
+    string? Method = null, IReadOnlyList<string>? OperatorClasses = null)
+{
+    // Índice de busca por trecho de texto: GIN ou GiST com a classe de trigrama (pg_trgm) na coluna.
+    public bool IsTrigram(string column)
+    {
+        if (Method is not ("gin" or "gist") || OperatorClasses is null) return false;
+        var at = Columns.ToList().FindIndex(c => DbNames.Unquote(c).Equals(DbNames.Unquote(column), StringComparison.OrdinalIgnoreCase));
+        return at >= 0 && at < OperatorClasses.Count && OperatorClasses[at].Contains("trgm", StringComparison.OrdinalIgnoreCase);
+    }
+}
 
 // Schema nulo é o padrão do dialeto (dbo no SQL Server, public no PostgreSQL). Entity (Fase 39): a
 // classe da entidade no modelo do EF, que liga o passo do fluxo (DbSet<Entity>) à tabela.
