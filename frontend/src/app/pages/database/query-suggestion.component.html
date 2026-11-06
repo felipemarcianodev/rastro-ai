@@ -1,0 +1,98 @@
+@let review = suggestion().review;
+<section class="qs" aria-label="Sugestão da IA para a consulta">
+  <p class="qs-head" role="status">
+    <span class="origin-badge is-provider">IA</span>
+    <span>Proposta de {{ provider() }}, conferida pelo Rastro. Nada foi aplicado: copie o que quiser usar.</span>
+  </p>
+
+  <h3 class="qs-title">Reescrita</h3>
+  @if (rewrite(); as rw) {
+    @if (!rw.accepted) {
+      <div class="notice is-warning">
+        <p><strong>Reescrita recusada pela conferência</strong></p>
+        <ul class="qs-list">
+          @for (r of rw.refusals; track $index) {
+            <li>{{ r }}</li>
+          }
+        </ul>
+        <details class="qs-proposed">
+          <summary>Ver o texto que a IA propôs (recusado, não use)</summary>
+          <pre class="code qs-pre is-muted" tabindex="0" aria-label="Consulta proposta e recusada"><code>{{ rw.sql }}</code></pre>
+        </details>
+      </div>
+    } @else {
+      <div class="qs-diff">
+        <div>
+          <h4 class="qs-sub">Antes</h4>
+          <pre class="code qs-pre" tabindex="0" aria-label="Consulta original"><code>{{ sql() }}</code></pre>
+        </div>
+        <div>
+          <h4 class="qs-sub">Depois</h4>
+          <pre class="code qs-pre" tabindex="0" aria-label="Consulta reescrita"><code>{{ rw.sql }}</code></pre>
+        </div>
+      </div>
+      <div class="qs-row">
+        <button type="button" class="btn btn-g btn-small" (click)="rewriteCopy.copy(rw.sql)">{{ rewriteCopy.label('Copiar a consulta reescrita') }}</button>
+        <span class="qs-status">Reescrita aceita pela conferência</span>
+      </div>
+      <p class="qs-summary"><strong>{{ summary() }}</strong></p>
+      @if (rw.after && rw.after.findings.length > 0) {
+        <ul class="qs-list">
+          @for (f of rw.after.findings; track $index) {
+            <li>{{ title[f.kind] }}</li>
+          }
+        </ul>
+      }
+      @if (cost(); as c) {
+        @if (c.text) {
+          <p class="qs-summary">{{ c.text }} <span class="muted">(plano estimado, sem executar)</span></p>
+        }
+        @if (c.problem) {
+          <p class="muted">{{ c.problem }}</p>
+        }
+      }
+    }
+  } @else {
+    <p class="muted">A IA não reescreveu a consulta.</p>
+  }
+
+  @if (review.changes.length > 0) {
+    <h3 class="qs-title">{{ rewrite() && !rewrite()!.accepted ? 'Mudanças da reescrita recusada' : 'Mudanças' }}</h3>
+    <ul class="qs-changes">
+      @for (c of review.changes; track $index) {
+        <li><strong>{{ c.what }}</strong><span class="qs-why">{{ c.why }}</span></li>
+      }
+    </ul>
+  }
+
+  @if (review.indexes.length > 0) {
+    <h3 class="qs-title">Índices sugeridos</h3>
+    <ul class="qs-indexes">
+      @for (ix of review.indexes; track $index) {
+        <li class="qs-index" [class.is-refused]="!ix.accepted">
+          <p class="qs-index-head">
+            <strong class="code">{{ ix.table }}</strong>
+            <span class="code">({{ columns(ix.columns) }})</span>
+            @if (ix.include.length > 0) {
+              <span class="muted">inclui {{ columns(ix.include) }}</span>
+            }
+            @if (ix.unique) {
+              <span class="muted">único</span>
+            }
+            <span class="qs-status">{{ ix.accepted ? 'Aceito' : 'Recusado' }}</span>
+          </p>
+          <p class="qs-why">{{ ix.reason }}</p>
+          @if (ix.accepted && ix.createSql) {
+            <pre class="code qs-pre" tabindex="0" aria-label="Comando para criar o índice em {{ ix.table }}"><code>{{ ix.createSql }}</code></pre>
+            <div class="qs-row">
+              <button type="button" class="btn btn-g btn-small" [attr.aria-label]="'Copiar o comando do índice em ' + ix.table" (click)="copyIndex($index, ix.createSql)">{{ indexLabel($index) }}</button>
+              <span class="muted">O Rastro não cria o índice: avalie e crie pela migration.</span>
+            </div>
+          } @else if (!ix.accepted) {
+            <p class="qs-refusal">Recusado: {{ ix.refusal }}</p>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

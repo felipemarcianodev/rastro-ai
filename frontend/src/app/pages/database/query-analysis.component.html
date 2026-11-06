@@ -56,6 +56,22 @@
           }
         </ul>
       }
+
+      @if (canSuggest()) {
+        <section class="qa-ai" aria-labelledby="qa-ai-title">
+          <h2 id="qa-ai-title" class="qa-title">Sugestão da IA</h2>
+          <div class="qa-actions">
+            <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : suggestion() ? 'Pedir outra sugestão' : 'Sugerir melhora com a IA' }}</button>
+            <span class="muted qa-hint">Vai para {{ providerName() }}: a consulta, os achados e só as tabelas que ela usa (nomes, colunas, tipos e índices). Os dados das tabelas e a string de conexão nunca vão.</span>
+          </div>
+          @if (suggestError(); as message) {
+            <p class="notice is-error" role="alert">{{ message }}</p>
+          }
+          @if (suggestion(); as s) {
+            <app-query-suggestion [suggestion]="s" [sql]="r.sql" />
+          }
+        </section>
+      }
     }
   }
 </div>

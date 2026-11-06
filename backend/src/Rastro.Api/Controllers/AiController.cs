@@ -118,6 +118,35 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
         }
     }
 
+    // A IA sugere a melhora de uma consulta (Fase 41, uso "Sugestões"): a reescrita e os índices passam pela
+    // conferência do núcleo antes de voltar e, com banco vivo, o custo estimado antes e depois (sem executar).
+    // Nada é aplicado: quem copia é o usuário. O texto da consulta não vai para o log.
+    [HttpPost("api/repositories/{name}/schema/ai/suggestion")]
+    public async Task<ActionResult<QueryAiSuggestion>> SuggestQuery(string name, AnalyzeQueryRequest request,
+        [FromServices] QueryAdvisor advisor, [FromServices] Rastro.Infrastructure.Database.Live.LiveDatabaseService live, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Sql) || request.Sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
+            return Problem(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, "Cole uma consulta de até 100 mil caracteres.");
+        try
+        {
+            return await RunAsync(async () =>
+            {
+                var suggestion = await advisor.SuggestAsync(name, request.Sql, ct);
+                if (suggestion.Review.Rewrite is not { Accepted: true } rewrite) return suggestion;
+                var plan = await live.ComparePlansAsync(name, request.Sql, rewrite.Sql, ct);
+                return suggestion with { Review = suggestion.Review with { Plan = plan } };
+            });
+        }
+        catch (RepositoryNotFoundException ex)
+        {
+            return Problem(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, ex.Message);
+        }
+        catch (QueryUnreadableException ex)
+        {
+            return Problem(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, ex.Message);
+        }
+    }
+
     private static async Task<SurveyDetail> DetailAsync(RastroDbContext db, Guid id, CancellationToken ct)
     {
         var survey = await db.Surveys.AsNoTracking().SingleAsync(s => s.Id == id, ct);

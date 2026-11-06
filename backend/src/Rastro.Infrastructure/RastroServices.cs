@@ -25,6 +25,7 @@ public static class RastroServices
         services.AddSingleton<RepositoryCatalog>();
         services.AddSingleton<Database.DbSchemaService>();
         services.AddSingleton<Database.QueryAnalysisService>();
+        services.AddSingleton<Database.QueryProposalService>();
         services.AddSingleton(_ => new RepositoryConfigFile(RastroHome.ConfigPath));
         services.AddSingleton<IGitInfo, GitCli>();
         services.AddSingleton<ISolutionSource, MsBuildSolutionSource>();
