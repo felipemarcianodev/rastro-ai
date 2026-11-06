@@ -1015,6 +1015,21 @@ O reteste no mesmo sistema, com as Fases 43a e 43b, deu 14 achados verdadeiros e
 - [x] Causa da chamada sem resolver: a interface derivada não redeclarava o membro; o símbolo chamado era o da interface base, e o Rastro procurava quem implementa a base (o repositório genérico e o derivado). Agora os candidatos são os tipos que implementam o tipo do receptor. Também corrigido no caminho: o corpo de método de expressão (`=> _repo.X()`) ficava de fora da leitura das chamadas.
 - [ ] A cadeia do N+1 segue qualquer chamada até 4 saltos: um método no meio que só consulta num ramo também vira achado. `NOT (col = 1)` no T-SQL não conta como igualdade.
 
+## Fase 43d: o que o segundo reteste mostrou `[x]` (pedido do dono em 2026-11-06)
+
+No segundo reteste, os 7 fluxos deram 21 achados, todos verdadeiros, e a análise de consulta caiu para 27 falsos. Ficaram estas lacunas.
+
+**Banco nos fluxos:**
+- [x] "ToList antes do filtro" na forma real da lista: a lista vem de um repositório pelo serviço, é guardada numa variável (às vezes atribuída em ramos diferentes) e o `Where` em memória vem depois, inclusive por reatribuição (`itens = itens.Where(...)`).
+- [x] Falso: "ToList antes do filtro" quando a consulta do repositório já filtra e limita no banco (`Where` com `Take`, `First`, paginação). O filtro em memória sobre poucas linhas não é achado.
+- [x] N+1 de escrita: `ExecuteUpdate`, `ExecuteDelete`, `ExecuteSql` e SQL cru dentro de laço (direto ou pela cadeia de chamadas) também viram achado.
+
+**Análise de consulta e mapa:**
+- [x] Lista filha sem chave estrangeira declarada: a coluna `x_id` com a tabela `x` (ou o plural) no esquema conta como chave estrangeira implícita, menos a de partição.
+- [x] Coluna sem índice: um achado por tabela, citando todas as colunas do filtro, em vez de um por coluna.
+- [x] Propriedade com `HasColumnType("jsonb")` cuja cadeia de configuração termina em `.Metadata.SetValueComparer(...)` é coluna do modelo.
+- [x] Testes: fluxos `EXT-DBF-030` a `037`; consulta `EXT-PGQ-035` e `036`, `EXT-DBQ-023` e `024` e `EXT-PG-046`. Decisões: o N+1 de escrita usa o achado de consulta dentro de laço, com mensagem própria; a gravação rastreada (`Update`, `Remove` com `SaveChanges`) não conta; a chave estrangeira implícita não exige índice. Causa do jsonb: a leitura da cadeia parava no `.Metadata`.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).

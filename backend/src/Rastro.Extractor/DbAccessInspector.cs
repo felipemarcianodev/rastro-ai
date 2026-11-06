@@ -34,6 +34,16 @@ internal static class DbAccessInspector
     private static readonly HashSet<string> RawQueries = new(StringComparer.Ordinal) { "FromSql", "FromSqlRaw", "FromSqlInterpolated" };
     private static readonly HashSet<string> RawCommands = new(StringComparer.Ordinal)
         { "ExecuteSql", "ExecuteSqlRaw", "ExecuteSqlInterpolated", "ExecuteSqlAsync", "ExecuteSqlRawAsync", "ExecuteSqlInterpolatedAsync", "SqlQuery", "SqlQueryRaw" };
+    // Comandos de SQL cru que gravam (SqlQuery só lê) e os métodos do EF que gravam na hora, sem SaveChanges:
+    // cada chamada é uma ida ao banco (Fase 43d).
+    private static readonly HashSet<string> WriteCommands = new(StringComparer.Ordinal)
+        { "ExecuteSql", "ExecuteSqlRaw", "ExecuteSqlInterpolated", "ExecuteSqlAsync", "ExecuteSqlRawAsync", "ExecuteSqlInterpolatedAsync" };
+    private static readonly HashSet<string> ImmediateWriteMethods = new(StringComparer.Ordinal)
+        { "ExecuteUpdate", "ExecuteUpdateAsync", "ExecuteDelete", "ExecuteDeleteAsync" };
+    // O que limita as linhas lidas no banco (junto com o Where, a consulta já traz poucas linhas).
+    private static readonly HashSet<string> RowLimits = new(StringComparer.Ordinal)
+        { "Take", "First", "FirstOrDefault", "FirstAsync", "FirstOrDefaultAsync", "Single", "SingleOrDefault", "SingleAsync", "SingleOrDefaultAsync" };
+    private static readonly Regex WrittenTable = new(@"^\s*(?:UPDATE|DELETE\s+FROM|INSERT\s+INTO)\s+([\w.""\[\]]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
     private static readonly HashSet<string> SaveMethods = new(StringComparer.Ordinal) { "SaveChanges", "SaveChangesAsync" };
 
     private static readonly Regex Placeholder = new(@"\{(\d+)\}", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
@@ -49,9 +59,9 @@ internal static class DbAccessInspector
             var model = await body.Document.GetSemanticModelAsync(ct);
             if (model is null) continue;
             var scan = Scan(method, body.Node, model, ct);
-            if (scan.Hits.Count > 0 || scan.Calls.Count > 0 || scan.FilteredCalls.Count > 0 || scan.LeadingLikes.Count > 0) scans[nodeId] = scan;
+            if (scan.Hits.Count > 0 || scan.ImmediateWrites.Count > 0 || scan.Calls.Count > 0 || scan.FilteredCalls.Count > 0 || scan.LeadingLikes.Count > 0) scans[nodeId] = scan;
         }
-        if (!scans.Values.Any(s => s.Hits.Count > 0)) return graph;
+        if (!scans.Values.Any(s => s.Hits.Count > 0 || s.ImmediateWrites.Count > 0)) return graph;
 
         var schema = repositorySchema ?? await SchemaAsync(solution, baseDirectory, ct);
         var tables = schema.Tables.Where(t => t.Entity is not null)
@@ -99,6 +109,32 @@ internal static class DbAccessInspector
                     }
             }
 
+            // N+1 de escrita (Fase 43d): ExecuteUpdate, ExecuteDelete e SQL cru que gravam, no laço ou pela cadeia.
+            string WriteTable(ImmediateWrite w) => w.Hit is not null ? w.Hit.Procedure ?? TableOf(w.Hit) : w.Table ?? "SQL cru";
+            foreach (var write in scan.ImmediateWrites.Where(w => w.InLoop))
+                findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
+                    $"{name} grava em {WriteTable(write)} com {write.Method} dentro de um laço: uma ida ao banco a cada volta (N+1 de escrita). Agrupe a gravação fora do laço, com um Where que use Contains sobre os ids.",
+                    walker.LocationOf(write.At.GetLocation()), WriteTable(write)));
+
+            foreach (var call in scan.LoopCalls)
+            {
+                if (walker.TargetOf(call) is not { } targetId || targetId == nodeId || !walker.Methods.TryGetValue(targetId, out var callee)) continue;
+                var reached = Reach(targetId, nodeId, walker, scans, s => s.Calls, id => scans.TryGetValue(id, out var found) && found.ImmediateWrites.Count > 0);
+                var reported = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var path in reached)
+                {
+                    var leaf = walker.Methods[path[^1]];
+                    foreach (var write in scans[path[^1]].ImmediateWrites)
+                    {
+                        var table = WriteTable(write);
+                        if (!reported.Add(table)) continue;
+                        findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
+                            $"{name} chama {callee.ContainingType.Name}.{callee.Name} dentro de um laço, e ele{(path.Count == 1 ? string.Empty : $" chega a {leaf.ContainingType.Name}.{leaf.Name}, que")} grava em {table} com {write.Method}: uma ida ao banco a cada volta (N+1 de escrita). Agrupe a gravação fora do laço.",
+                            walker.LocationOf(call.GetLocation()), table));
+                    }
+                }
+            }
+
             // ToList só para apagar (Fase 43b): o aviso é o do ExecuteDelete, não o do filtro "Count" da lista.
             foreach (var (hit, removal) in scan.LoadToDelete)
                 findings.Add(new Finding(FindingKind.LoadToDelete, FindingSeverity.Warning, nodeId,
@@ -111,20 +147,22 @@ internal static class DbAccessInspector
                     walker.LocationOf(hit.LateFilter.Value.At.GetLocation()), TableOf(hit)));
 
             // O repositório devolve a lista já materializada e o chamador filtra na memória (Fase 43b).
+            var lateSeen = new HashSet<(int, string)>();
             foreach (var (call, filter, at) in scan.FilteredCalls)
             {
                 // A lista pode vir de um serviço fino que só devolve o que o repositório devolveu (Fase 43c):
                 // a cadeia de retornos diretos segue até o método que materializa.
                 if (walker.TargetOf(call) is not { } targetId || targetId == nodeId || !walker.Methods.TryGetValue(targetId, out var callee)) continue;
                 var reached = Reach(targetId, nodeId, walker, scans, s => s.Returned,
-                    id => scans.TryGetValue(id, out var found) && found.Hits.Any(h => h.Operation == DbOperation.Read && h.ReturnsMaterializedBy is not null));
+                    id => scans.TryGetValue(id, out var found) && found.Hits.Any(h => h.Operation == DbOperation.Read && h.ReturnsMaterializedBy is not null && !h.Bounded));
                 var reported = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var path in reached)
                 {
                     var leaf = walker.Methods[path[^1]];
-                    foreach (var source in scans[path[^1]].Hits.Where(h => h.Operation == DbOperation.Read && h.ReturnsMaterializedBy is not null).DistinctBy(TableOf))
+                    foreach (var source in scans[path[^1]].Hits.Where(h => h.Operation == DbOperation.Read && h.ReturnsMaterializedBy is not null && !h.Bounded).DistinctBy(TableOf))
                     {
-                        if (!reported.Add(TableOf(source))) continue;
+                        // A mesma variável pode receber a lista em ramos diferentes: um achado por filtro e tabela.
+                        if (!reported.Add(TableOf(source)) || !lateSeen.Add((at.SpanStart, TableOf(source)))) continue;
                         var origin = path.Count == 1 ? "que já a trouxe" : $"que repassa o resultado de {leaf.ContainingType.Name}.{leaf.Name}, e este já a trouxe";
                         findings.Add(new Finding(FindingKind.MaterializeBeforeFilter, FindingSeverity.Warning, nodeId,
                             $"{name} recebe {TableOf(source)} de {callee.ContainingType.Name}.{callee.Name}, {origin} com {source.ReturnsMaterializedBy} (a tabela inteira, sem este filtro), e só depois aplica {filter}: o filtro roda na memória. Passe o critério para {leaf.ContainingType.Name}.{leaf.Name} filtrar antes do {source.ReturnsMaterializedBy}.",
@@ -220,6 +258,9 @@ internal static class DbAccessInspector
         var written = scan.Hits.Where(h => h.Operation != DbOperation.Read).Select(h => h.Entity).ToHashSet(StringComparer.Ordinal);
         scan.Hits.RemoveAll(h => h.IsFind && h.Operation == DbOperation.Read && written.Contains(h.Entity));
 
+        foreach (var hit in scan.Hits.Where(h => h.ImmediateWrite is not null))
+            scan.ImmediateWrites.Add(new ImmediateWrite(hit.At, hit, null, hit.ImmediateWrite!, hit.InLoop));
+
         foreach (var hit in scan.Hits.Where(h => h.Operation == DbOperation.Read && h.MaterializedInto is not null))
             if (RemovalOnly(hit, body, model, ct) is { } removal) scan.LoadToDelete.Add((hit, removal));
         return scan;
@@ -281,10 +322,19 @@ internal static class DbAccessInspector
             scan.LeadingLikes.Add((call, pattern, LikeProperty(call, symbol)));
             return;
         }
-        if (RawCommands.Contains(symbol.Name) && IsEf(symbol) && ProcedureOf(call) is { } procedure)
+        if (RawCommands.Contains(symbol.Name) && IsEf(symbol))
         {
-            scan.Hits.Add(new Hit(null, null, procedure, symbol.Name, DbOperation.Execute, call, InLoop(call, body), false, null, RawSql(call, symbol.Name)));
-            return;
+            var procedure = ProcedureOf(call);
+            var sql = RawSql(call, symbol.Name);
+            Hit? hit = null;
+            if (procedure is not null)
+            {
+                hit = new Hit(null, null, procedure, symbol.Name, DbOperation.Execute, call, InLoop(call, body), false, null, sql);
+                scan.Hits.Add(hit);
+            }
+            if (WriteCommands.Contains(symbol.Name))
+                scan.ImmediateWrites.Add(new ImmediateWrite(call, hit, sql is not null && WrittenTable.Match(sql) is { Success: true } m ? DbNames.Unquote(m.Groups[1].Value) : null, symbol.Name, InLoop(call, body)));
+            if (hit is not null || WriteCommands.Contains(symbol.Name)) return;
         }
         if (!IsEf(symbol) && symbol.MethodKind == MethodKind.Ordinary)
         {
@@ -401,8 +451,15 @@ internal static class DbAccessInspector
         var sql = raw.Call is null ? null : RawSql(raw.Call, raw.Name);
         var materializer = chain.FirstOrDefault(c => Materializers.Contains(c.Name)).Name;
         var materializedLast = materializer is not null && Materializers.Contains(chain[^1].Name);
-        return new Hit(entity, setName, procedure, rawMethod, op, expr, InLoop(expr, body), tracked, LateFilter(chain, end, body), sql)
+        // A consulta que já filtra e limita no banco (Where com Take, First...) traz poucas linhas: o filtro em
+        // memória que vem depois não é achado (Fase 43d).
+        var materializerAt = chain.FindIndex(c => Materializers.Contains(c.Name));
+        var beforeMaterializer = materializerAt < 0 ? names : names.Take(materializerAt).ToList();
+        var bounded = beforeMaterializer.Contains("Where") && beforeMaterializer.Any(RowLimits.Contains);
+        return new Hit(entity, setName, procedure, rawMethod, op, expr, InLoop(expr, body), tracked, bounded ? null : LateFilter(chain, end, body), sql)
         {
+            Bounded = bounded,
+            ImmediateWrite = names.FirstOrDefault(ImmediateWriteMethods.Contains),
             End = end,
             IsFind = op == DbOperation.Read && names.Any(n => n is "Find" or "FindAsync"),
             Materializer = materializer,
@@ -446,15 +503,30 @@ internal static class DbAccessInspector
     {
         var filter = chain.Skip(from).FirstOrDefault(c => Filters.Contains(c.Name));
         if (filter.Call is not null) return (filter.Name, filter.Call);
-        if (!allowLocal || end.Parent is not EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax variable }) return null;
+        if (!allowLocal || ReceivingLocal(end) is not var (local, after)) return null;
 
-        var local = variable.Identifier.ValueText;
         var use = body.DescendantNodes().OfType<MemberAccessExpressionSyntax>()
-            .Where(m => m.SpanStart > variable.Span.End && m.Expression is IdentifierNameSyntax id && id.Identifier.ValueText == local
+            .Where(m => m.SpanStart > after && m.Expression is IdentifierNameSyntax id && id.Identifier.ValueText == local
                 && Filters.Contains(m.Name.Identifier.ValueText) && m.Parent is InvocationExpressionSyntax call && call.Expression == m)
             .OrderBy(m => m.SpanStart)
             .FirstOrDefault();
         return use is null ? null : (use.Name.Identifier.ValueText, use);
+    }
+
+    // A variável que recebe o resultado: "var x = ...", "x = ..." ou um dos ramos de "c ? a : b" (a atribuição em
+    // if/else diferentes cai no mesmo nome). Devolve o nome e onde a atribuição termina.
+    private static (string Local, int After)? ReceivingLocal(ExpressionSyntax end)
+    {
+        SyntaxNode current = end;
+        while (current.Parent is ParenthesizedExpressionSyntax || current.Parent is ConditionalExpressionSyntax c && c.Condition != current)
+            current = current.Parent!;
+        return current.Parent switch
+        {
+            EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax variable } => (variable.Identifier.ValueText, variable.Span.End),
+            AssignmentExpressionSyntax { Left: IdentifierNameSyntax id } assignment when assignment.Right == current && assignment.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.SimpleAssignmentExpression)
+                => (id.Identifier.ValueText, assignment.Span.End),
+            _ => null
+        };
     }
 
     private static DbOperation? Operation(IEnumerable<string> names)
@@ -612,7 +684,15 @@ internal static class DbAccessInspector
         public string? MaterializedInto { get; init; }
         // O materializador, quando a consulta devolve a lista como resultado do método.
         public string? ReturnsMaterializedBy { get; init; }
+        // A consulta já filtra (Where) e limita (Take, First...) no banco antes de materializar.
+        public bool Bounded { get; init; }
+        // ExecuteUpdate ou ExecuteDelete na cadeia: grava na hora, uma ida ao banco por chamada.
+        public string? ImmediateWrite { get; init; }
     }
+
+    // Gravação que vai ao banco na hora: ExecuteUpdate, ExecuteDelete, ExecuteSql e a procedure por SQL cru.
+    // Hit é a consulta do DbSet (quando há); Table é a tabela lida do texto do SQL cru, se for literal.
+    private sealed record ImmediateWrite(SyntaxNode At, Hit? Hit, string? Table, string Method, bool InLoop);
 
     private sealed class MethodScan(IMethodSymbol method)
     {
@@ -626,6 +706,7 @@ internal static class DbAccessInspector
         public List<(InvocationExpressionSyntax Call, string Filter, SyntaxNode At)> FilteredCalls { get; } = [];
         public List<(Hit Hit, (string Name, InvocationExpressionSyntax Call) Removal)> LoadToDelete { get; } = [];
         public List<(InvocationExpressionSyntax Call, string Pattern, string? Property)> LeadingLikes { get; } = [];
+        public List<ImmediateWrite> ImmediateWrites { get; } = [];
         public bool Writes { get; set; }
     }
 }
