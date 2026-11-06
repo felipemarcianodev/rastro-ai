@@ -9,6 +9,7 @@ namespace Microsoft.EntityFrameworkCore
         public Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry<T> Entry<T>(T entity) where T : class => new();
         public void Add<T>(T entity) where T : class { }
         public void Remove<T>(T entity) where T : class { }
+        public DatabaseFacade Database { get; } = new();
         public int SaveChanges() => 0;
         public Task<int> SaveChangesAsync(CancellationToken ct = default) => Task.FromResult(0);
     }
@@ -19,6 +20,19 @@ namespace Microsoft.EntityFrameworkCore
         public new void Remove(T entity) { }
         public void RemoveRange(IEnumerable<T> entities) { }
         public void Update(T entity) { }
+    }
+
+    public class DatabaseFacade { }
+
+    public class SetPropertyCalls<T>
+    {
+        public SetPropertyCalls<T> SetProperty<P>(Func<T, P> selector, P value) => this;
+    }
+
+    public static class RelationalDatabaseFacadeExtensions
+    {
+        public static Task<int> ExecuteSqlInterpolatedAsync(this DatabaseFacade database, FormattableString sql, CancellationToken ct = default) => Task.FromResult(0);
+        public static Task<int> ExecuteSqlRawAsync(this DatabaseFacade database, string sql, params object[] parameters) => Task.FromResult(0);
     }
 
     public class DbFunctions { }
@@ -37,6 +51,8 @@ namespace Microsoft.EntityFrameworkCore
     public static class EntityFrameworkQueryableExtensions
     {
         public static IEnumerable<T> AsNoTracking<T>(this IEnumerable<T> source) => source;
+        public static Task<int> ExecuteUpdateAsync<T>(this IEnumerable<T> source, Func<SetPropertyCalls<T>, SetPropertyCalls<T>> setters, CancellationToken ct = default) => Task.FromResult(0);
+        public static Task<int> ExecuteDeleteAsync<T>(this IEnumerable<T> source, CancellationToken ct = default) => Task.FromResult(0);
         public static Task<List<T>> ToListAsync<T>(this IEnumerable<T> source, CancellationToken ct = default) => Task.FromResult(source.ToList());
         public static Task<T?> FirstOrDefaultAsync<T>(this IEnumerable<T> source, Func<T, bool> predicate, CancellationToken ct = default) => Task.FromResult(source.FirstOrDefault(predicate));
     }

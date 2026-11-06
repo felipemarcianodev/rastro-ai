@@ -6,6 +6,9 @@ namespace Tarefas.Infra;
 public class AppDbContext : DbContext
 {
     public DbSet<Tarefa> Tarefas => Set<Tarefa>();
+    public DbSet<Item> Itens => Set<Item>();
+    public DbSet<Espaco> Espacos => Set<Espaco>();
+    public DbSet<Diario> Diarios => Set<Diario>();
 }
 
 public class EfRepository<T> : IRepository<T> where T : class
