@@ -71,9 +71,8 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
     // Uma análise: o texto, o esquema e o que já foi achado.
     private sealed class Run(PgSqlText text, DbSchema? schema)
     {
-        // Uma tabela apontada por tantas outras é a do tenant ou a do usuário, não o pai de uma lista filha.
-        private const int HubMinReferences = 3;
-        private readonly HashSet<string> _hubs = HubTables(schema);
+        // A chave de partição (o tenant): filtrar só por ela não é filtrar por um pai.
+        private readonly HashSet<string> _partition = DbPartition.Columns(schema);
         private readonly SqlDialect _dialect = schema?.Dialect ?? SqlDialect.PostgreSql;
         private readonly Dictionary<string, DbTable> _tables = (schema?.Tables ?? [])
             .GroupBy(t => DbNames.Key(t.Schema, t.Name, schema!.Dialect))
@@ -83,7 +82,11 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
             .ToHashSet();
         private readonly HashSet<string> _ctes = new(StringComparer.OrdinalIgnoreCase);
         private readonly List<QueryFinding> _findings = [];
-        private readonly List<(string Column, QueryFinding Finding)> _indexFindings = [];
+        private readonly List<(string Column, QueryFinding Finding, Scope Scope, TableRef Ref, bool Join)> _indexFindings = [];
+
+        // As colunas de cada tabela que o filtro ou o ON citam: um índice que começa por uma delas é o que o
+        // banco usa, e as outras colunas do filtro são conferidas nas linhas que ele já buscou.
+        private readonly List<(TableRef Ref, string Column, bool Join)> _filterColumns = [];
         private readonly HashSet<string> _covered = new(StringComparer.OrdinalIgnoreCase);
         private (int From, int To) _range;
         private Query? _top;
@@ -97,7 +100,7 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
 
         public List<QueryFinding> Findings() =>
             _findings
-                .Concat(_indexFindings.Where(f => !_covered.Contains(f.Column)).Select(f => f.Finding))
+                .Concat(_indexFindings.Where(f => !_covered.Contains(f.Column) && !Served(f.Scope, f.Ref, f.Join)).Select(f => f.Finding))
                 .OrderByDescending(f => f.Severity)
                 .ThenBy(f => f.Start)
                 .ThenBy(f => f.Kind)
@@ -594,7 +597,9 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
         {
             var resolved = scope.Resolve(column);
             if (resolved is not { Depth: 0, Ref.Table: { } table, Column: { } name }) return;
-            if (!table.Columns.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) || Covered(table, name, scope, resolved.Ref)) return;
+            if (!table.Columns.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase))) return;
+            _filterColumns.Add((resolved.Ref, DbNames.Unquote(name), join));
+            if (Covered(table, name, scope, resolved.Ref)) return;
             var key = ColumnKey(column, scope);
             if (_indexFindings.Any(f => f.Column.Equals(key, StringComparison.OrdinalIgnoreCase))) return;
 
@@ -604,7 +609,20 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
             var span = At(expression.ToSql());
             _indexFindings.Add((key, new QueryFinding(QueryFindingKind.ColumnWithoutIndex, QuerySeverity.Medium, span.Start, span.Length, span.Line, Snippet(span.Start, span.Length),
                 $"{resolved.Ref.Name}.{name} está {what} e não tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade ({have}): o banco pode ler a tabela inteira para achar as linhas. Confira o plano.",
-                resolved.Ref.Name)));
+                resolved.Ref.Name), scope, resolved.Ref, join));
+        }
+
+        // Coluna residual: algum índice (ou a chave primária) da tabela começa por uma coluna do filtro, então o
+        // banco busca as linhas por ele e confere as outras colunas nelas (o filtro e o ON são lidos cada um por si,
+        // porque a coluna de junção não restringe a tabela). Só acusa quando nenhum índice atende
+        // nenhuma coluna do filtro daquela tabela.
+        private bool Served(Scope scope, TableRef owner, bool join)
+        {
+            if (owner.Table is not { } table) return false;
+            var used = scope.EqualityColumns(owner, join);
+            foreach (var (r, column, onJoin) in _filterColumns)
+                if (ReferenceEquals(r, owner) && onJoin == join) used.Add(column);
+            return IndexColumns(table).Any(columns => columns.Count > 0 && used.Contains(DbNames.Unquote(columns[0])));
         }
 
         // Subconsulta escalar dentro de uma expressão (lista do SELECT, lado de comparação): é analisada
@@ -720,6 +738,19 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
                     return new Eq(column, null);
                 case Expression.IsNull isNull when Plain(isNull.Expression) is { } nullColumn:
                     return new Eq(nullColumn, null);
+                // Booleano: "col", "NOT col", "NOT (col)" e "col IS [NOT] TRUE/FALSE" são col = true e col = false.
+                case Expression.UnaryOp { Op: UnaryOperator.Not } not when Plain(not.Expression) is { } negated:
+                    return new Eq(negated, null);
+                case Expression.IsTrue { Expression: var t } when Plain(t) is { } isTrue:
+                    return new Eq(isTrue, null);
+                case Expression.IsNotTrue { Expression: var nt } when Plain(nt) is { } isNotTrue:
+                    return new Eq(isNotTrue, null);
+                case Expression.IsFalse { Expression: var f } when Plain(f) is { } isFalse:
+                    return new Eq(isFalse, null);
+                case Expression.IsNotFalse { Expression: var nf } when Plain(nf) is { } isNotFalse:
+                    return new Eq(isNotFalse, null);
+                case Expression bare when Plain(bare) is { } boolean:
+                    return new Eq(boolean, null);
                 default:
                     return null;
             }
@@ -775,26 +806,14 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
             return found;
         }
 
-        // Lista filha de um pai: algum filtro de igualdade do WHERE cai numa coluna de chave estrangeira. A
-        // chave para uma tabela que muitas outras apontam (o tenant, o usuário) não conta: filtrar por ela não
-        // limita o resultado a um pai pequeno.
+        // Lista filha de um pai: algum filtro de igualdade do WHERE cai numa coluna de chave estrangeira que não
+        // é a de partição (o tenant). Filtrar só pela chave de partição não limita o resultado a um pai pequeno.
         private bool FilteredByForeignKey(Scope? scope)
         {
             if (scope is null || ValueFilters(scope) is not { } filters) return false;
-            return filters.Any(f => f.Table.ForeignKeys.Any(fk => !_hubs.Contains(ShortName(fk.PrincipalTable))
-                && fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(f.Column), StringComparison.OrdinalIgnoreCase))));
+            return filters.Any(f => !_partition.Contains(DbNames.Unquote(f.Column))
+                && f.Table.ForeignKeys.Any(fk => fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(f.Column), StringComparison.OrdinalIgnoreCase))));
         }
-
-        // Tabelas apontadas por chave estrangeira de pelo menos HubMinReferences outras tabelas.
-        private static HashSet<string> HubTables(DbSchema? schema) => (schema?.Tables ?? [])
-            .SelectMany(t => t.ForeignKeys.Select(fk => (From: DbNames.Unquote(t.Name), To: ShortName(fk.PrincipalTable))))
-            .Where(r => !r.From.Equals(r.To, StringComparison.OrdinalIgnoreCase))
-            .GroupBy(r => r.To, StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Select(r => r.From).Distinct(StringComparer.OrdinalIgnoreCase).Count() >= HubMinReferences)
-            .Select(g => g.Key)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        private static string ShortName(string table) => DbNames.Unquote(table[(table.LastIndexOf('.') + 1)..]);
 
         // As colunas filtradas identificam uma linha: a chave primária ou uma única inteira.
         private static bool Identifies(DbTable table, IEnumerable<string> filtered)
@@ -973,10 +992,10 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
         public bool OnlyEqualities { get; set; }
 
         // As colunas de uma tabela desta consulta que o filtro compara com igualdade.
-        public HashSet<string> EqualityColumns(TableRef owner)
+        public HashSet<string> EqualityColumns(TableRef owner, bool? join = null)
         {
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var eq in Where.Concat(Joined))
+            foreach (var eq in join switch { null => Where.Concat(Joined), true => Joined, false => Where })
                 foreach (var side in eq.Right is null ? [eq.Left] : new[] { eq.Left, eq.Right })
                     if (Resolve(side) is { Depth: 0, Column: { } name } resolved && ReferenceEquals(resolved.Ref, owner))
                         names.Add(DbNames.Unquote(name));
