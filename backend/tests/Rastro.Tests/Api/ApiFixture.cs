@@ -142,6 +142,7 @@ public class RastroApiFactory(string connectionString) : WebApplicationFactory<R
             // Nem com banco vivo de verdade (Fase 40b): o real é testado com Testcontainers.
             services.RemoveAll<Rastro.Infrastructure.Database.Live.ILiveDatabase>();
             services.AddSingleton<Rastro.Infrastructure.Database.Live.ILiveDatabase, FakeLiveDatabase>();
+            services.AddSingleton<Rastro.Infrastructure.Database.Live.ILiveDatabase, FakePgLiveDatabase>();
         });
     }
 }

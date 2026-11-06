@@ -1,6 +1,6 @@
 <section class="plan" aria-labelledby="plan-title">
   <h2 id="plan-title" class="plan-title">Plano estimado pelo banco</h2>
-  <p class="muted plan-note">{{ note }}</p>
+  <p class="muted plan-note">{{ note() }}</p>
 
   <button type="button" class="btn btn-g btn-small" (click)="request()" [disabled]="busy()">{{ busy() ? 'Pedindo o plano…' : plan() ? 'Pedir o plano de novo' : 'Pedir o plano estimado' }}</button>
 

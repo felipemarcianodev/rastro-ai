@@ -29,6 +29,7 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             connection.Property(c => c.ConnectionProtected).IsRequired();
             connection.Property(c => c.Server).HasMaxLength(500).IsRequired();
             connection.Property(c => c.Database).HasMaxLength(200);
+            // Fase 42b: o dialeto da conexão; as cadastradas antes ficam com o 0 (SQL Server) da migration.
         });
 
         modelBuilder.Entity<Survey>(survey =>

@@ -80,7 +80,7 @@
   @if (!r.analysis.error) {
     <aside class="qa-side" aria-label="Plano e tabelas da consulta">
       @if (live()) {
-        <app-query-plan [repository]="repository()" [sql]="r.sql" />
+        <app-query-plan [repository]="repository()" [sql]="r.sql" [dialect]="liveDialect() ?? dialect()" />
       }
       <h2 class="qa-title">Tabelas da consulta</h2>
       @if (r.analysis.tables.length === 0) {

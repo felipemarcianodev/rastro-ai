@@ -58,8 +58,8 @@ jobs:
         with:
           dotnet-version: 10.0.x
 
-      - name: Testes do banco vivo (SQL Server no Testcontainers)
-        run: dotnet test backend/tests/Rastro.Tests -c Release --filter "FullyQualifiedName~SqlServerLiveDatabaseTests"
+      - name: Testes do banco vivo (SQL Server e PostgreSQL no Testcontainers)
+        run: dotnet test backend/tests/Rastro.Tests -c Release --filter "FullyQualifiedName~SqlServerLiveDatabaseTests|FullyQualifiedName~PostgreSqlLiveDatabaseTests"
 
   frontend:
     runs-on: ubuntu-latest

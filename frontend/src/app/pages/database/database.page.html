@@ -204,12 +204,12 @@
   }
 
   @if (!error() && schema()) {
-    <app-query-analysis role="tabpanel" id="db-panel-1" aria-labelledby="db-tab-query" [hidden]="tab() !== DbTab.Query" [repository]="nome()" [schema]="schema()" [live]="!!live()"
+    <app-query-analysis role="tabpanel" id="db-panel-1" aria-labelledby="db-tab-query" [hidden]="tab() !== DbTab.Query" [repository]="nome()" [schema]="schema()" [live]="!!live()" [liveDialect]="live()?.dialect ?? null"
       [initial]="consulta()" [origin]="origem()" (pickTable)="showInMap($event)" />
   }
 
   @if (connectionOpen()) {
-    <app-live-connection-dialog [repository]="nome()" [connection]="connection()" (closed)="connectionOpen.set(false)" (changed)="connectionChanged()" />
+    <app-live-connection-dialog [repository]="nome()" [connection]="connection()" [dialect]="liveDialect()" (closed)="connectionOpen.set(false)" (changed)="connectionChanged()" />
   }
 
   @if (message(); as m) {

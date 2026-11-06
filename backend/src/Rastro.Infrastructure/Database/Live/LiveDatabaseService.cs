@@ -1,6 +1,8 @@
+using System.Text.Json;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -23,21 +25,27 @@ public enum LivePlanOutcome
 public record LivePlanResult(LivePlanOutcome Outcome, QueryPlan? Plan = null, string? Reason = null);
 
 // Banco vivo de um repositório (Fase 40b, ADR-006): o teste da conexão, o catálogo para o esquema e o
-// plano estimado de uma consulta. Falha do banco vira mensagem para a tela (sem segredo) e log com o
-// número do erro; a string de conexão e o texto da consulta nunca vão para o log.
-public class LiveDatabaseService(IServiceScopeFactory scopes, ILiveDatabase database, ILogger<LiveDatabaseService> logger) : ILiveSchemaSource
+// plano estimado de uma consulta. O driver e a porta da consulta saem do dialeto da conexão (o
+// PostgreSQL na Fase 42b). Falha do banco vira mensagem para a tela (sem segredo) e log com o código do
+// erro; a string de conexão e o texto da consulta nunca vão para o log.
+public class LiveDatabaseService(IServiceScopeFactory scopes, IEnumerable<ILiveDatabase> databases, ILogger<LiveDatabaseService> logger) : ILiveSchemaSource
 {
+    private readonly Dictionary<SqlDialect, ILiveDatabase> _databases = databases.GroupBy(d => d.Dialect).ToDictionary(g => g.Key, g => g.Last());
+
+    private ILiveDatabase Database(SqlDialect dialect) =>
+        _databases.GetValueOrDefault(dialect) ?? throw new InvalidOperationException($"Sem driver do banco vivo para o dialeto {dialect}.");
+
     public async Task<SchemaFragment?> ReadAsync(string repository, CancellationToken ct)
     {
-        var connection = await ConnectionStringAsync(repository, ct);
-        if (connection is null) return null;
+        var live = await ConnectionAsync(repository, ct);
+        if (live is not { } connection) return null;
         try
         {
-            var fragment = await database.ReadCatalogAsync(connection, ct);
+            var fragment = await Database(connection.Dialect).ReadCatalogAsync(connection.ConnectionString, ct);
             logger.LogInformation("Catálogo do banco vivo do repositório {Repository} lido: {Tables} tabelas.", repository, fragment.Tables.Count);
             return fragment;
         }
-        catch (Exception ex) when (ex is SqlException or InvalidOperationException or TimeoutException)
+        catch (Exception ex) when (Expected(ex))
         {
             logger.LogWarning(ex, "O banco vivo do repositório {Repository} não respondeu ao catálogo.", repository);
             return SchemaFragment.Empty with { Notes = [new SchemaNote($"O banco vivo não respondeu ({Reason(ex)}): o esquema saiu só do código.", string.Empty, 0)] };
@@ -47,14 +55,14 @@ public class LiveDatabaseService(IServiceScopeFactory scopes, ILiveDatabase data
     // Nulo sem conexão cadastrada.
     public async Task<LiveConnectionTest?> TestAsync(string repository, CancellationToken ct)
     {
-        var connection = await ConnectionStringAsync(repository, ct);
-        if (connection is null) return null;
+        var live = await ConnectionAsync(repository, ct);
+        if (live is not { } connection) return null;
         try
         {
-            var tables = await database.CountTablesAsync(connection, ct);
+            var tables = await Database(connection.Dialect).CountTablesAsync(connection.ConnectionString, ct);
             return new LiveConnectionTest(true, tables == 1 ? "Conectou: 1 tabela no catálogo." : $"Conectou: {tables} tabelas no catálogo.");
         }
-        catch (Exception ex) when (ex is SqlException or InvalidOperationException or TimeoutException)
+        catch (Exception ex) when (Expected(ex))
         {
             logger.LogWarning(ex, "Teste da conexão com o banco vivo do repositório {Repository} falhou.", repository);
             return new LiveConnectionTest(false, $"Não conectou: {Reason(ex)}.");
@@ -63,20 +71,22 @@ public class LiveDatabaseService(IServiceScopeFactory scopes, ILiveDatabase data
 
     public async Task<LivePlanResult> PlanAsync(string repository, string sql, CancellationToken ct)
     {
-        var connection = await ConnectionStringAsync(repository, ct);
-        if (connection is null) return new(LivePlanOutcome.NoConnection);
+        var live = await ConnectionAsync(repository, ct);
+        if (live is not { } connection) return new(LivePlanOutcome.NoConnection);
 
-        var guard = TSqlPlanGuard.Check(sql);
+        // A porta do dialeto da conexão: o que o banco vai ler é o que ela conferiu.
+        var guard = SqlPlanGuards.Check(connection.Dialect, sql);
         if (!guard.Allowed) return new(LivePlanOutcome.NotAllowed, Reason: guard.Reason);
 
         try
         {
-            var plan = ShowPlanReader.Read(await database.ShowPlanXmlAsync(connection, sql, guard.Variables, ct));
+            var raw = await Database(connection.Dialect).EstimatedPlanAsync(connection.ConnectionString, sql, guard.Variables, ct);
+            var plan = connection.Dialect == SqlDialect.PostgreSql ? ExplainPlanReader.Read(raw) : ShowPlanReader.Read(raw);
             logger.LogInformation("Plano estimado pedido ao banco vivo do repositório {Repository}: custo {Cost}, {Missing} índices faltando.",
                 repository, plan.TotalCost, plan.MissingIndexes.Count);
             return new(LivePlanOutcome.Ok, plan);
         }
-        catch (Exception ex) when (ex is SqlException or InvalidOperationException or TimeoutException or System.Xml.XmlException)
+        catch (Exception ex) when (Expected(ex))
         {
             logger.LogWarning(ex, "Plano estimado do banco vivo do repositório {Repository} falhou.", repository);
             return new(LivePlanOutcome.DatabaseError, Reason: Reason(ex));
@@ -87,7 +97,7 @@ public class LiveDatabaseService(IServiceScopeFactory scopes, ILiveDatabase data
     // Nulo sem conexão cadastrada.
     public async Task<PlanComparison?> ComparePlansAsync(string repository, string before, string after, CancellationToken ct)
     {
-        if (await ConnectionStringAsync(repository, ct) is null) return null;
+        if (await ConnectionAsync(repository, ct) is null) return null;
         var original = await PlanAsync(repository, before, ct);
         var rewritten = await PlanAsync(repository, after, ct);
         var problem = original.Outcome != LivePlanOutcome.Ok
@@ -102,11 +112,15 @@ public class LiveDatabaseService(IServiceScopeFactory scopes, ILiveDatabase data
         _ => (result.Reason ?? "o banco vivo não respondeu").TrimEnd('.') + "."
     };
 
-    private async Task<string?> ConnectionStringAsync(string repository, CancellationToken ct)
+    private async Task<(string ConnectionString, SqlDialect Dialect)?> ConnectionAsync(string repository, CancellationToken ct)
     {
         using var scope = scopes.CreateScope();
-        return await scope.ServiceProvider.GetRequiredService<LiveConnectionStore>().ConnectionStringAsync(repository, ct);
+        return await scope.ServiceProvider.GetRequiredService<LiveConnectionStore>().ConnectionAsync(repository, ct);
     }
+
+    private static bool Expected(Exception ex) =>
+        ex is SqlException or NpgsqlException or InvalidOperationException or TimeoutException or System.Xml.XmlException
+            or JsonException or LivePlanUnavailableException;
 
     // O motivo para a tela, sem a mensagem crua do driver (que pode citar usuário e servidor).
     private static string Reason(Exception ex) => ex switch
@@ -121,7 +135,21 @@ public class LiveDatabaseService(IServiceScopeFactory scopes, ILiveDatabase data
         SqlException { Number: 53 or -1 or 2 or 11001 or 10060 or 10061 } => "servidor não encontrado ou fora do ar",
         SqlException { Class: >= 11 and <= 16 } sql => $"o banco recusou a consulta (erro {sql.Number})",
         SqlException sql => $"erro {sql.Number} do SQL Server",
-        System.Xml.XmlException => "o plano devolvido não pôde ser lido",
+        System.Xml.XmlException or JsonException => "o plano devolvido não pôde ser lido",
+        LivePlanUnavailableException unavailable => unavailable.Message,
+        // PostgreSQL (Fase 42b), pelo código do erro (SQLSTATE), nunca pela mensagem do servidor.
+        PostgresException { SqlState: "28P01" or "28000" } => "usuário ou senha recusados",
+        PostgresException { SqlState: "3D000" } => "o banco informado não existe",
+        // O PostgreSQL confere a permissão da instrução também no EXPLAIN: o SELECT (ou o INSERT, UPDATE e
+        // DELETE) na tabela da consulta. O Rastro nunca executa; a permissão é do banco.
+        PostgresException { SqlState: "42501" } => "o usuário não tem permissão para essa instrução na tabela da consulta: o PostgreSQL só mostra o plano a quem pode rodar a instrução (o SELECT, ou o INSERT, UPDATE e DELETE, nas tabelas, além do USAGE no schema)",
+        PostgresException { SqlState: "57014" } => "tempo esgotado",
+        PostgresException { SqlState: "25006" } => "o banco recusou porque a conexão é só de leitura",
+        PostgresException { SqlState: "42P01" } => "a tabela da consulta não existe no banco",
+        PostgresException { SqlState: "42601" } => "o PostgreSQL não entendeu a consulta (erro 42601)",
+        PostgresException pg => $"o banco recusou a consulta (erro {pg.SqlState})",
+        NpgsqlException { InnerException: System.Net.Sockets.SocketException or TimeoutException } => "servidor não encontrado ou fora do ar",
+        NpgsqlException { InnerException: System.IO.IOException } => "a conexão caiu",
         _ => "falha na conexão"
     };
 }
@@ -134,6 +162,7 @@ public static class LiveDatabaseServices
     {
         services.AddScoped<LiveConnectionStore>();
         services.AddSingleton<ILiveDatabase, SqlServerLiveDatabase>();
+        services.AddSingleton<ILiveDatabase, NpgsqlLiveDatabase>();
         services.AddSingleton<LiveDatabaseService>();
         services.AddSingleton<ILiveSchemaSource>(sp => sp.GetRequiredService<LiveDatabaseService>());
         return services;

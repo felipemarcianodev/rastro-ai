@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Rastro.Core.Database;
+using Rastro.Infrastructure.Database;
 using Rastro.Infrastructure.Database.Live;
 using Rastro.Infrastructure.Repositories;
 
@@ -14,6 +15,7 @@ public class LiveDatabaseController(
     RepositoryCatalog catalog,
     LiveConnectionStore connections,
     LiveDatabaseService live,
+    DbSchemaService schemas,
     ILogger<LiveDatabaseController> logger) : ControllerBase
 {
     [HttpGet("connection")]
@@ -26,8 +28,10 @@ public class LiveDatabaseController(
         if (catalog.RootOf(name) is null) return NotFoundRepository();
         try
         {
-            var view = await connections.SaveAsync(name, request.ConnectionString, ct);
-            logger.LogInformation("Conexão com o banco vivo do repositório {Repository} cadastrada (servidor {Server}).", name, view.Server);
+            // A string que serve aos dois drivers fica com o dialeto do código do repositório (Fase 42b).
+            var dialect = await schemas.DialectAsync(name, ct) ?? SqlDialect.SqlServer;
+            var view = await connections.SaveAsync(name, request.ConnectionString, dialect, ct);
+            logger.LogInformation("Conexão com o banco vivo do repositório {Repository} cadastrada (servidor {Server}, {Dialect}).", name, view.Server, view.Dialect);
             return Ok(view);
         }
         catch (ArgumentException ex)
@@ -56,7 +60,8 @@ public class LiveDatabaseController(
             : Error(StatusCodes.Status409Conflict, ErrorCodes.ConnectionMissing, "Cadastre a conexão com o banco vivo antes.");
     }
 
-    // Plano estimado (SET SHOWPLAN_XML ON): a consulta passa antes pelo leitor de T-SQL e nunca é executada.
+    // Plano estimado (SET SHOWPLAN_XML ON no SQL Server, EXPLAIN sem ANALYZE no PostgreSQL): a consulta passa
+    // antes pela porta do dialeto e nunca é executada.
     [HttpPost("schema/plan")]
     public async Task<ActionResult<QueryPlan>> Plan(string name, [FromBody] AnalyzeQueryRequest request, CancellationToken ct)
     {
@@ -70,7 +75,7 @@ public class LiveDatabaseController(
             LivePlanOutcome.Ok => Ok(result.Plan),
             LivePlanOutcome.NoConnection => Error(StatusCodes.Status409Conflict, ErrorCodes.ConnectionMissing, "Cadastre a conexão com o banco vivo antes."),
             LivePlanOutcome.NotAllowed => Error(StatusCodes.Status400BadRequest, ErrorCodes.PlanNotAllowed, result.Reason ?? "Consulta recusada."),
-            _ => Error(StatusCodes.Status502BadGateway, ErrorCodes.LiveDatabaseError, $"O banco vivo não respondeu: {result.Reason}.")
+            _ => Error(StatusCodes.Status502BadGateway, ErrorCodes.LiveDatabaseError, $"O plano não veio do banco vivo: {result.Reason}.")
         };
     }
 

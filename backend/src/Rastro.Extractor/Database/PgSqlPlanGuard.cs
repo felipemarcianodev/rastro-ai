@@ -81,6 +81,34 @@ public static partial class PgSqlPlanGuard
         return new PlanGuardResult(true, null, variables.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
     }
 
+    // O EXPLAIN do PostgreSQL só conhece o parâmetro posicional ($1): cada @nome (o do Npgsql e o @p0 que
+    // o Rastro tira do FromSql) vira um $n, depois do maior $n que a consulta já usa. Pelos tokens, para
+    // não mexer no @ de dentro de string nem de comentário. Count: quantos parâmetros a consulta tem.
+    public static (string Sql, int Count) Positional(string sql)
+    {
+        var text = PgSqlText.Read(sql, out _);
+        if (text is null) return (sql, 0);
+        var tokens = text.Tokens;
+        var highest = tokens
+            .Select(t => t.Token is SqlParser.Tokens.Placeholder p && p.ToString().StartsWith('$') && int.TryParse(p.ToString()[1..], out var n) ? n : 0)
+            .DefaultIfEmpty(0)
+            .Max();
+        var names = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var result = new System.Text.StringBuilder();
+        var copied = 0;
+        for (var i = 0; i + 1 < tokens.Count; i++)
+        {
+            if (tokens[i].Token is not SqlParser.Tokens.AtSign || tokens[i + 1].Token is not SqlParser.Tokens.Word word
+                || tokens[i].Start + 1 != tokens[i + 1].Start) continue;
+            if (!names.TryGetValue(word.Value, out var position)) names[word.Value] = position = highest + names.Count + 1;
+            result.Append(sql, copied, tokens[i].Start - copied).Append('$').Append(position);
+            copied = tokens[i + 1].Start + tokens[i + 1].Length;
+            i++;
+        }
+        result.Append(sql, copied, sql.Length - copied);
+        return (result.ToString(), highest + names.Count);
+    }
+
     private static string? Blocked(ObjectName? name)
     {
         if (name is null || name.Values.Count == 0) return null;

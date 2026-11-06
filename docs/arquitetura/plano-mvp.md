@@ -899,7 +899,7 @@ Dividida em dois PRs: 40a (análise pelo código) e 40b (banco vivo).
 - [ ] Sugestão da IA pelo agente com o custo antes e depois: o MCP não tem banco vivo (pendência da Fase 40b).
 - [ ] A conferência não prova que a reescrita devolve as mesmas linhas (só a mesma operação, a mesma tabela, as mesmas colunas e o mesmo limite); a tela diz "conferida pelo Rastro", e quem decide é o usuário.
 
-## Fase 42: PostgreSQL `[ ]` (depende das Fases 37 a 41)
+## Fase 42: PostgreSQL `[x]` (depende das Fases 37 a 41)
 
 Dividida em dois PRs: 42a (código: extrator, achados e conferência) e 42b (banco vivo).
 
@@ -918,9 +918,19 @@ Dividida em dois PRs: 42a (código: extrator, achados e conferência) e 42b (ban
 - [ ] Corpo de função em `BEGIN ATOMIC` (PostgreSQL 14) e tipo com precisão no meio (`timestamp(3) with time zone`) não são lidos por inteiro.
 - [ ] Relatar ao SqlParserCS o defeito da precedência do `LIKE` e tirar o contorno quando a versão corrigida sair.
 
-### Fase 42b: banco vivo do PostgreSQL `[ ]`
+### Fase 42b: banco vivo do PostgreSQL `[x]`
 
-- [ ] Com banco vivo: catálogo por `information_schema` e `pg_catalog`, plano estimado por `EXPLAIN` sem `ANALYZE` (nunca executa a consulta).
+- [x] Driver oficial `Npgsql` 10.0.3 (licença PostgreSQL, gerenciado) no pacote. `NpgsqlLiveDatabase`, ao lado do `SqlServerLiveDatabase`, atrás do mesmo `ILiveDatabase` (agora com o dialeto); o `LiveDatabaseService` escolhe o driver, a porta (`SqlPlanGuards`) e a leitura do plano pelo dialeto da conexão.
+- [x] Dialeto da conexão sem perguntar (`LiveConnectionDialect`): as chaves que só um driver aceita e, na string que serve aos dois, o dialeto do código do repositório (`DbSchemaService.DialectAsync`). Guardado com a conexão (migration `BancoVivoDialeto`, coluna `dialect`; as conexões de antes ficam como SQL Server) e devolvido na tela (`LiveConnectionView.Dialect`). A URL `postgresql://` é recusada com o formato certo.
+- [x] Catálogo pelo `pg_catalog`, com comandos fixos: tabelas (sem partição), colunas pelo `format_type`, nulo, padrão, identidade e `serial`, chave primária, índices com as colunas incluídas, chaves estrangeiras com a ação ao apagar, views (e a materializada) e as funções e procedures do usuário, sem as de extensão.
+- [x] Plano estimado por `EXPLAIN (FORMAT JSON)` sem `ANALYZE` (`ExplainPlanReader`: custo próprio, porcentagem e o `Seq Scan` como varredura). Camadas: a porta do PostgreSQL, a conexão com `default_transaction_read_only` e `statement_timeout`, sem pool e com tempo limite, a transação `READ ONLY` que sempre volta atrás e o lote de um comando só. Com parâmetro, `PREPARE` e o plano genérico (`plan_cache_mode = force_generic_plan`, PostgreSQL 12 em diante); o `@nome` vira `$n` pelos tokens (`PgSqlPlanGuard.Positional`). Erros pelo SQLSTATE, em pt-BR, nunca a mensagem crua do servidor.
+- [x] Tela: o diálogo com o dialeto da conexão, a permissão mínima do PostgreSQL e o modelo da string; o cartão do plano com a nota do `EXPLAIN` e os operadores do PostgreSQL em pt-BR. O erro do plano diz "O plano não veio do banco vivo" (antes, "não respondeu", também quando o banco respondeu recusando).
+- [x] CI: o job `banco-vivo` roda também os testes do PostgreSQL no Testcontainers.
+- [x] Testes: `INF-PGL-001` a `003` e `EXT-PGP-003` (sem banco), `API-PGL-001` e `002` (banco de mentira do dialeto), `INF-PGL-010` a `014` com PostgreSQL 17 de verdade no Testcontainers (catálogo, plano com parâmetro, `EXPLAIN` de `INSERT`, `UPDATE` e `DELETE` que não muda nenhuma linha, duas instruções e função que grava recusadas pelo banco, usuário só de leitura sem permissão de `DELETE`), `WEB-PGL-001` e `002`.
+- [x] Prints em `docs/telas/fase-42/` (PostgreSQL descartável em contêiner com usuário só de leitura, API local com `RASTRO_HOME` temporário, clique real) e levantamento de UX (seção da Fase 42b).
+- [ ] O PostgreSQL não aponta índice faltando: avaliar a sugestão de índice pelo plano (o `Seq Scan` com filtro) junto com os achados sem IA.
+- [ ] Banco vivo pelo MCP continua pendente (Fase 40b), agora nos dois dialetos.
+- [ ] (UX-PGL-05, risco médio) A permissão mínima do diálogo em lista, um comando por linha, com "Copiar".
 
 **Melhorias propostas na análise do pedido (para o dono decidir):**
 - [x] **O diferencial é a ligação com o código:** a ferramenta de banco mostra a tabela; o Rastro mostra quem a usa e por qual fluxo (Fase 39, feita logo depois da 38).
