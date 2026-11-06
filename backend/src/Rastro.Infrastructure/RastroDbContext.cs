@@ -17,9 +17,20 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
     public DbSet<SurveyDiagram> SurveyDiagrams => Set<SurveyDiagram>();
     public DbSet<SurveySegment> SurveySegments => Set<SurveySegment>();
     public DbSet<RouteIndex> RouteIndexes => Set<RouteIndex>();
+    public DbSet<Database.Live.LiveConnection> LiveConnections => Set<Database.Live.LiveConnection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        // Banco vivo (Fase 40b): uma conexão por repositório, com a string cifrada.
+        modelBuilder.Entity<Database.Live.LiveConnection>(connection =>
+        {
+            connection.HasKey(c => c.Repository);
+            connection.Property(c => c.Repository).HasMaxLength(100);
+            connection.Property(c => c.ConnectionProtected).IsRequired();
+            connection.Property(c => c.Server).HasMaxLength(500).IsRequired();
+            connection.Property(c => c.Database).HasMaxLength(200);
+        });
+
         modelBuilder.Entity<Survey>(survey =>
         {
             survey.HasKey(s => s.Id);

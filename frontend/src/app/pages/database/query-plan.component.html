@@ -1,0 +1,58 @@
+<section class="plan" aria-labelledby="plan-title">
+  <h2 id="plan-title" class="plan-title">Plano estimado pelo banco</h2>
+  <p class="muted plan-note">{{ note }}</p>
+
+  <button type="button" class="btn btn-g btn-small" (click)="request()" [disabled]="busy()">{{ busy() ? 'Pedindo o plano…' : plan() ? 'Pedir o plano de novo' : 'Pedir o plano estimado' }}</button>
+
+  @if (error(); as message) {
+    <p class="notice is-error" role="alert">{{ message }}</p>
+  }
+
+  @if (plan(); as p) {
+    <div role="status">
+      @if (p.operations.length === 0) {
+        <p class="muted">O banco não devolveu operações para esta consulta.</p>
+      } @else {
+        <ul class="plan-ops">
+          @for (o of showAll() ? p.operations : main(); track $index) {
+            <li class="plan-op">
+              <div class="plan-op-head">
+                <span>
+                  <strong>{{ label(o) }}</strong>
+                  @if (o.object) {
+                    <code class="plan-object">{{ o.object }}</code>
+                  }
+                  @if (o.scan) {
+                    <span class="plan-scan">varredura</span>
+                  }
+                </span>
+                <strong>{{ percentText(o) }}</strong>
+              </div>
+              <div class="plan-bar" aria-hidden="true"><div class="plan-bar-fill" [style.width.%]="barWidth(o)"></div></div>
+            </li>
+          }
+        </ul>
+        @if (minor().length > 0 && !showAll()) {
+          <button type="button" class="btn btn-g btn-small" (click)="showAll.set(true)">{{ minor().length === 1 ? 'mais 1 operação abaixo de 1%' : 'mais ' + minor().length + ' operações abaixo de 1%' }}</button>
+        }
+      }
+
+      @for (m of p.missingIndexes; track $index) {
+        <p class="plan-missing">
+          {{ indexText(m) }}.
+          @if (m.include.length > 0) {
+            <span class="muted">inclui: {{ m.include.join(', ') }}</span>
+          }
+        </p>
+      }
+
+      @if (p.warnings.length > 0) {
+        <ul class="plan-warnings">
+          @for (w of p.warnings; track $index) {
+            <li>{{ w }}</li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</section>

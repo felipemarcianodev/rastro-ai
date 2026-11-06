@@ -1,0 +1,63 @@
+<div class="overlay" appDialog (click)="closed.emit()">
+  <section class="dialog is-narrow" role="dialog" aria-modal="true" aria-labelledby="live-title" (click)="$event.stopPropagation()">
+    <header class="dialog-head">
+      <div>
+        <h2 id="live-title">Banco vivo</h2>
+        <p class="muted">Conexão só leitura com o banco de {{ repository() }}.</p>
+      </div>
+      <button type="button" class="btn btn-icon" (click)="closed.emit()" aria-label="Fechar">×</button>
+    </header>
+
+    <div class="dialog-body live-body">
+      @if (connection(); as c) {
+        @if (c.configured) {
+          <p class="live-current">Conexão salva: <strong class="code">{{ c.server }}</strong>, banco <strong class="code">{{ c.database }}</strong>.</p>
+        } @else {
+          <p class="muted">Nenhuma conexão salva. Sem ela, o Rastro lê só o código.</p>
+        }
+      }
+
+      <p class="live-grants">
+        Use um usuário só de leitura, com a permissão mínima. No SQL Server, <code>{{ grants }}</code> basta para o catálogo.
+        Para o plano estimado, também <code>{{ showplan }}</code> e o SELECT nas tabelas da consulta (<code>{{ select }}</code>, ou só nas tabelas que você quer analisar):
+        o SQL Server só mostra o plano a quem pode rodar a instrução.
+        O Rastro lê só o catálogo (tabelas, colunas, chaves e índices) e pede o plano estimado, sem executar a consulta.
+        Os dados das tabelas nunca são lidos. A string de conexão fica cifrada no banco local e nunca volta para a tela.
+      </p>
+
+      <div class="field">
+        <label class="field-label" for="live-key">{{ connection()?.configured ? 'Trocar a string de conexão' : 'String de conexão' }}</label>
+        <input id="live-key" class="input code" type="password" name="live-key" autocomplete="off" spellcheck="false"
+          [value]="key()" (input)="key.set($any($event.target).value)" (keydown.enter)="save()"
+          [placeholder]="connection()?.configured ? 'Deixe vazio para manter a atual' : 'Server=...;Database=...;User Id=...;Password=...'" />
+      </div>
+
+      @if (error(); as message) {
+        <p class="notice is-error" role="alert">{{ message }}</p>
+      }
+      @if (saved()) {
+        <p class="notice" role="status">Conexão salva. O esquema foi lido de novo.</p>
+      }
+      @if (testResult(); as t) {
+        <p class="notice" [class.is-error]="!t.ok" [attr.role]="t.ok ? 'status' : 'alert'">{{ t.message }}</p>
+      }
+      @if (confirmingRemove()) {
+        <div class="notice is-warning" role="alertdialog" aria-labelledby="live-remove-title">
+          <p id="live-remove-title">Remover a conexão? O Rastro volta a ler só o código.</p>
+          <div class="live-confirm">
+            <button type="button" class="btn btn-danger btn-small" (click)="remove()" [disabled]="busy()">Remover</button>
+            <button type="button" class="btn btn-g btn-small" (click)="confirmingRemove.set(false)">Manter</button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <footer class="dialog-foot live-foot">
+      @if (connection()?.configured && !confirmingRemove()) {
+        <button type="button" class="btn btn-g live-remove" (click)="confirmingRemove.set(true)" [disabled]="busy()">Remover conexão</button>
+        <button type="button" class="btn btn-g" (click)="test()" [disabled]="busy()">{{ busy() ? 'Aguarde…' : 'Testar conexão' }}</button>
+      }
+      <button type="button" class="btn btn-p" (click)="save()" [disabled]="!key().trim() || busy()">Salvar</button>
+    </footer>
+  </section>
+</div>

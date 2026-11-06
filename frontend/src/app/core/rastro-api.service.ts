@@ -34,6 +34,10 @@ import {
 } from './models';
 import { DbSchema, DbUsageReport } from './database/db-schema';
 import { QueryAnalysis } from './database/query-analysis';
+import { LiveConnectionTest, LiveConnectionView, QueryPlan } from './database/live-database';
+
+// Códigos cujo title traz o motivo exato em pt-BR, escrito pelo Rastro (nunca a mensagem crua do driver).
+const TITLE_CODES: ReadonlySet<string> = new Set(['PLAN_NOT_ALLOWED', 'LIVE_DATABASE_ERROR']);
 
 @Injectable({ providedIn: 'root' })
 export class RastroApi {
@@ -68,6 +72,32 @@ export class RastroApi {
   // Análise de uma consulta T-SQL contra o esquema do código, por regras fixas (Fase 40a).
   analyzeQuery(repository: string, sql: string): Observable<QueryAnalysis> {
     return this.http.post<QueryAnalysis>(`/api/repositories/${encodeURIComponent(repository)}/schema/analyze`, { sql });
+  }
+
+  // Banco vivo (Fase 40b): a conexão só leitura do repositório. A string nunca volta na resposta.
+  connection(repository: string): Observable<LiveConnectionView> {
+    return this.http.get<LiveConnectionView>(this.connectionUrl(repository));
+  }
+
+  saveConnection(repository: string, connectionString: string): Observable<LiveConnectionView> {
+    return this.http.put<LiveConnectionView>(this.connectionUrl(repository), { connectionString });
+  }
+
+  removeConnection(repository: string): Observable<void> {
+    return this.http.delete<void>(this.connectionUrl(repository));
+  }
+
+  testConnection(repository: string): Observable<LiveConnectionTest> {
+    return this.http.post<LiveConnectionTest>(`${this.connectionUrl(repository)}/test`, {});
+  }
+
+  // Plano estimado pelo banco (SET SHOWPLAN_XML): a consulta não é executada.
+  queryPlan(repository: string, sql: string): Observable<QueryPlan> {
+    return this.http.post<QueryPlan>(`/api/repositories/${encodeURIComponent(repository)}/schema/plan`, { sql });
+  }
+
+  private connectionUrl(repository: string): string {
+    return `/api/repositories/${encodeURIComponent(repository)}/connection`;
   }
 
   health(): Observable<RastroHealth> {
@@ -239,6 +269,9 @@ export function apiErrorMessage(error: unknown): string {
     const details = error.error?.errors as string[] | undefined;
     if (Array.isArray(details) && details.length > 0) return details.join(' ');
     const code = error.error?.code as string | undefined;
+    // O plano recusado e a falha do banco vivo trazem o motivo exato em pt-BR no title do problema.
+    const title = error.error?.title as string | undefined;
+    if (code && TITLE_CODES.has(code) && typeof title === 'string' && title.trim()) return title;
     if (code && API_ERROR_MESSAGE[code]) return API_ERROR_MESSAGE[code];
     if (error.status === 0) return 'O Rastro não respondeu. Confira se o comando rastro continua aberto no terminal e tente de novo.';
     if (error.status === 404) return 'Não encontrado.';

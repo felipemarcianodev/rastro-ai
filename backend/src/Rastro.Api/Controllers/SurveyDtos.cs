@@ -57,6 +57,9 @@ public record AddRepositoryRequest(string? Name, string? Path);
 // Consulta para a análise sem IA (Fase 40).
 public record AnalyzeQueryRequest(string? Sql);
 
+// String de conexão com o banco vivo (Fase 40b): só entra, nunca sai.
+public record SaveConnectionRequest(string? ConnectionString);
+
 public record ChangePrompt(string Prompt, int Changes);
 
 public record RefactorPrompt(string Prompt);
@@ -106,4 +109,8 @@ public static class ErrorCodes
     public const string CrossRepositoriesInvalid = "CROSS_REPOSITORIES_INVALID";
     public const string OriginNotAllowed = "ORIGIN_NOT_ALLOWED";
     public const string QueryInvalid = "QUERY_INVALID";
+    public const string ConnectionInvalid = "CONNECTION_INVALID";
+    public const string ConnectionMissing = "CONNECTION_MISSING";
+    public const string PlanNotAllowed = "PLAN_NOT_ALLOWED";
+    public const string LiveDatabaseError = "LIVE_DATABASE_ERROR";
 }

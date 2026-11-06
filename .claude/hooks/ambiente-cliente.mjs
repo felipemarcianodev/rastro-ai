@@ -30,6 +30,8 @@ const AMBIENTE = [
   { padrao: /^backend\/src\/Rastro\.Infrastructure\/Migrations\//, motivo: 'banco do cliente (migration)', docs: 'README.md (atualização do pacote) e o plano' },
   { padrao: /^backend\/src\/Rastro\.Infrastructure\/(Configuration|Storage)\//, motivo: 'configuração, pasta de dados ou variável de ambiente', docs: 'README.md e docs/pacote/README.md' },
   { padrao: /^backend\/src\/Rastro\.Infrastructure\/Repositories\/RepositoryCatalog\.cs$/, motivo: 'tipo de repositório ou caminho aceito', docs: 'README.md e a ADR da decisão' },
+  { padrao: /^backend\/src\/Rastro\.Infrastructure\/Database\/Live\//, motivo: 'banco vivo do cliente (conexão, catálogo e plano estimado)', docs: 'README.md, docs/pacote/README.md, SECURITY.md e a ADR-006' },
+  { padrao: /^backend\/src\/Rastro\.(Infrastructure|Extractor|Core)\/Rastro\.\w+\.csproj$/, motivo: 'dependência que vai dentro do pacote', docs: 'README.md e docs/pacote/README.md' },
   { padrao: /^backend\/src\/Rastro\.Cli\//, motivo: 'comando da CLI', docs: 'README.md e docs/pacote/README.md' },
   { padrao: /^backend\/src\/Rastro\.Mcp\//, motivo: 'ferramenta do MCP', docs: 'README.md e McpInstructions' },
   { padrao: /^backend\/src\/Rastro\.Ai\/Providers\//, motivo: 'o que sai da máquina (provedor de IA)', docs: 'README.md e SECURITY.md' },

@@ -60,3 +60,14 @@
 | UX-DBQ-04 | origem da consulta | "Veio do passo ..." continuava depois de trocar o texto por outra consulta | A origem só aparece enquanto o texto é o do passo | Médio | P | Feito |
 | UX-DBQ-05 | entrada pelo passo | Quem chega pelo "Analisar a consulta" do passo ainda precisa clicar em "Analisar" | Analisar sozinho ao chegar pelo passo | Alto (muda o fluxo aprovado no protótipo, que tem o botão) | P | `[ ]` no plano, espera aprovação |
 
+## Fase 40b: banco vivo
+
+**Escopo:** o diálogo "Banco vivo", o selo e a promessa da barra e o cartão "Plano estimado pelo banco". Verificação no navegador (Chrome, Papel no claro, 1440) com um SQL Server descartável em contêiner e um usuário só de leitura; clique real em "Conectar banco vivo", "Salvar", "Testar conexão", "Analisar" e "Pedir o plano estimado".
+
+| ID | Onde | Problema | Sugestão | Risco | Esforço | Destino |
+|---|---|---|---|---|---|---|
+| UX-DBL-01 | cartão do plano | A falha do banco mostrava só "O banco vivo não respondeu", sem o motivo (era permissão) | Mostrar o motivo que a API escreve (title do problema), como no plano recusado | Baixo | P | Feito |
+| UX-DBL-02 | diálogo, permissão mínima | O texto prometia que `VIEW DEFINITION` e `SHOWPLAN` bastavam, e o plano falhava por falta do `SELECT` | Texto corrigido: catálogo com `VIEW DEFINITION`; plano com `SHOWPLAN` e o `SELECT` nas tabelas da consulta | Médio | P | Feito |
+| UX-DBL-03 | cartão do plano | Coluna de 320px quebrava o nome do operador e o objeto em três linhas | Coluna lateral até 400px | Baixo | P | Feito |
+| UX-DBL-04 | cartão do plano | Operador com 0% ("Laços aninhados") ocupa linha sem dizer nada | Esconder os operadores abaixo de 1% atrás de "mais N operações" | Médio | P | Feito |
+

@@ -8,6 +8,7 @@ using Rastro.Api.Analysis;
 using Rastro.Api.Cli;
 using Rastro.Core;
 using Rastro.Infrastructure;
+using Rastro.Infrastructure.Database.Live;
 using Rastro.Infrastructure.Storage;
 
 // Acentos no terminal (no Windows o padrão é a página de código do console).
@@ -42,6 +43,8 @@ if (packagePort is not null)
 builder.Services.AddRastroCore(builder.Configuration);
 // Modo provedor da IA (ADR-001): só a API registra; o núcleo e o MCP não conhecem o Rastro.Ai.
 builder.Services.AddRastroAi(builder.Configuration);
+// Banco vivo (Fase 40b, ADR-006): só leitura, cadastrado pela tela, com a string cifrada.
+builder.Services.AddRastroLiveDatabase();
 builder.Services.AddSingleton<SurveyQueue>();
 builder.Services.AddSingleton<RastroMetrics>();
 builder.Services.AddHostedService<SurveyWorker>();

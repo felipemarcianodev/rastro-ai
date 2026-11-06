@@ -11,6 +11,7 @@ import {
   querySegments,
 } from '../../core/database/query-analysis';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { QueryPlanComponent } from './query-plan.component';
 
 interface Analyzed {
   sql: string;
@@ -21,6 +22,7 @@ interface Analyzed {
 // regras fixas. Sem IA e sem banco: a mesma consulta dá sempre o mesmo resultado.
 @Component({
   selector: 'app-query-analysis',
+  imports: [QueryPlanComponent],
   templateUrl: './query-analysis.component.html',
   styleUrl: './query-analysis.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -32,6 +34,8 @@ export class QueryAnalysisComponent {
 
   readonly repository = input.required<string>();
   readonly schema = input<DbSchema | null>(null);
+  // Com conexão ao banco vivo, o plano estimado pode ser pedido (Fase 40b).
+  readonly live = input(false);
   // ?consulta= e ?origem= da rota: o texto que veio de um passo do fluxo.
   readonly initial = input<string | undefined>();
   readonly origin = input<string | undefined>();

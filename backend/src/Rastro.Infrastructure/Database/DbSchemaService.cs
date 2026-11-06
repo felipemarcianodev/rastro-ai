@@ -8,7 +8,8 @@ namespace Rastro.Infrastructure.Database;
 // Esquema do banco de um repositório cadastrado (Fase 37, ADR-006): lê os .cs e os .sql pela única
 // porta de disco (RepositoryCatalog) e entrega ao extrator. Refeito a cada pedido, como o grafo: o
 // código é a fonte da verdade. Usado pela API (GET api/repositories/{nome}/schema) e pelo MCP (get_db_schema).
-public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService> logger)
+// Com a conexão viva cadastrada (Fase 40b, só na API), o catálogo do banco entra como mais uma fonte.
+public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService> logger, Live.ILiveSchemaSource? live = null)
 {
     private static readonly string[] Extensions = [".cs", ".sql"];
 
@@ -49,7 +50,8 @@ public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService>
             }
         }
 
-        var schema = DbSchemaExtractor.Extract(files);
+        var liveFragment = live is null ? null : await live.ReadAsync(repositoryName, ct);
+        var schema = DbSchemaExtractor.Extract(files, liveFragment is null ? null : [liveFragment]);
         logger.LogInformation("Esquema do banco do repositório {Repository} lido: {Tables} tabelas, {Divergences} divergências.",
             repositoryName, schema.Tables.Count, schema.Divergences.Count);
         return skipped.Count == 0 ? schema : schema with { Notes = [.. skipped, .. schema.Notes] };

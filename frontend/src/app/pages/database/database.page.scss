@@ -11,6 +11,11 @@
   font-size: var(--text-xs);
 }
 
+.db-live-pill {
+  background: var(--trail-wash);
+  color: var(--trail-ink);
+}
+
 .db-body {
   flex: 1;
   min-height: 0;

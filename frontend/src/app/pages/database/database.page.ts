@@ -23,6 +23,8 @@ import { readDiagramColors } from '../../core/mermaid-render';
 import { RepositoryItem } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { DbItemKind, DbPick, DbPanelComponent } from './db-panel.component';
+import { LiveConnectionView } from '../../core/database/live-database';
+import { LiveConnectionDialogComponent } from './live-connection-dialog.component';
 import { QueryAnalysisComponent } from './query-analysis.component';
 
 const MESSAGE_MS = 4000;
@@ -56,7 +58,7 @@ const DB_TABS = [DbTab.Map, DbTab.Query];
 // consulta um banco nem usa IA.
 @Component({
   selector: 'app-database-page',
-  imports: [RouterLink, DbPanelComponent, QueryAnalysisComponent],
+  imports: [RouterLink, DbPanelComponent, QueryAnalysisComponent, LiveConnectionDialogComponent],
   templateUrl: './database.page.html',
   styleUrl: './database.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -101,6 +103,10 @@ export class DatabasePage {
   protected readonly message = signal<{ ok: boolean; text: string } | null>(null);
   protected readonly copy = new CopyFeedback();
   private readonly reload = signal(0);
+  protected readonly connection = signal<LiveConnectionView | null>(null);
+  protected readonly connectionOpen = signal(false);
+  // Com conexão salva, o selo e a promessa mudam; sem ela, o banco nunca é consultado.
+  protected readonly live = computed(() => (this.connection()?.configured ? this.connection() : null));
   private messageTimer?: ReturnType<typeof setTimeout>;
 
   protected readonly DbItemKind = DbItemKind;
@@ -227,6 +233,17 @@ export class DatabasePage {
       });
     });
 
+    // A conexão do banco vivo acompanha o esquema (mesmo recarregamento). Sem ela, a tela segue lendo só o código.
+    effect((onCleanup) => {
+      const name = this.nome();
+      this.reload();
+      const sub = this.api.connection(name).subscribe({
+        next: (connection) => this.connection.set(connection),
+        error: () => this.connection.set(null),
+      });
+      onCleanup(() => sub.unsubscribe());
+    });
+
     this.api.repositories().subscribe({
       next: (repos) => this.repositories.set(repos),
       // Sem a lista, a troca de repositório some; a tela do banco continua.
@@ -311,8 +328,14 @@ export class DatabasePage {
     if (key) this.focusCard(key);
   }
 
+  // Salvou ou removeu a conexão: o esquema (a fonte "banco vivo" entra ou sai) e a conexão são lidos de novo.
+  protected connectionChanged(): void {
+    this.reload.update((n) => n + 1);
+  }
+
   protected onEscape(): void {
-    if (this.exportOpen()) this.exportOpen.set(false);
+    if (this.connectionOpen()) this.connectionOpen.set(false);
+    else if (this.exportOpen()) this.exportOpen.set(false);
     else if (this.selection()) this.closePanel();
   }
 

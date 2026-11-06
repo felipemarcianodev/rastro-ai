@@ -7,7 +7,9 @@ namespace Rastro.Extractor.Database;
 // abre conexão, não compila nem executa nada do cliente, e não usa IA (ADR-001).
 public static class DbSchemaExtractor
 {
-    public static DbSchema Extract(IReadOnlyList<SchemaFile> files)
+    // extra (Fase 40b): fragmentos de fora do código, como o catálogo do banco vivo, que entram na fusão
+    // depois das fontes do código (o código dá o nome; a divergência aparece com a fonte de cada lado).
+    public static DbSchema Extract(IReadOnlyList<SchemaFile> files, IReadOnlyList<SchemaFragment>? extra = null)
     {
         var ordered = files.OrderBy(f => f.RelativePath, StringComparer.Ordinal).ToList();
         var code = new CodeIndex(ordered.Where(f => f.RelativePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)).ToList());
@@ -25,6 +27,7 @@ public static class DbSchemaExtractor
                 Notes = [new SchemaNote($"Os arquivos .sql do {dialect} ainda não são lidos ({scripts.Count} arquivo(s)); o leitor entra na Fase 42.", scripts[0].RelativePath, 1)]
             });
 
+        if (extra is not null) fragments.AddRange(extra);
         return DbSchemaMerger.Merge(dialect, fragments);
     }
 }

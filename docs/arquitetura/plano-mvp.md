@@ -858,7 +858,7 @@ O dono pediu duas funcionalidades novas:
 - [ ] Dapper e ADO.NET: a tabela pelo texto do SQL (leitor de T-SQL), como a procedure.
 - [ ] Alteração por rastreamento (entidade lida, alterada e gravada no `SaveChanges`) aparece como leitura; ligar a escrita à tabela pela entidade alterada.
 
-## Fase 40: análise de consulta sem IA (feature 2, núcleo, API e tela) `[ ]` (depende da Fase 37)
+## Fase 40: análise de consulta sem IA (feature 2, núcleo, API e tela) `[x]` (depende da Fase 37)
 
 Dividida em dois PRs: 40a (análise pelo código) e 40b (banco vivo).
 
@@ -874,11 +874,17 @@ Dividida em dois PRs: 40a (análise pelo código) e 40b (banco vivo).
 - [ ] (UX, risco alto) Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05).
 - [ ] Consulta montada em partes no código (concatenação, `StringBuilder`) não vai para o passo: só o literal.
 
-### Fase 40b: banco vivo `[ ]`
+### Fase 40b: banco vivo `[x]`
 
-- [ ] Conexão viva (ADR-006): cadastro da string de conexão por repositório na tela (cifrada, nunca devolvida), `Microsoft.Data.SqlClient` no pacote, leitura do catálogo como mais uma fonte do esquema, README, README do pacote, `SECURITY.md` (tirar o "em construção") e um padrão novo no hook `ambiente-cliente.mjs` para o código da conexão.
-- [ ] Com banco vivo: plano estimado, sem executar a consulta (`SET SHOWPLAN_XML ON` no SQL Server), com as operações mais caras, varredura de tabela e índice que falta segundo o próprio banco. Antes de pedir o plano, a consulta passa pelo leitor de SQL: uma instrução só, sem `SET`, `EXEC` nem DDL.
-- [ ] Tela: o plano estimado ao lado dos achados e a recomendação de permissão mínima no cadastro da conexão.
+- [x] Conexão viva (ADR-006): cadastro da string de conexão por repositório na tela (diálogo "Banco vivo", campo de senha que nunca volta preenchido), cifrada pelo DataProtection com propósito próprio na tabela `live_connections` (migration `BancoVivo`), nunca devolvida na resposta, no log nem para a IA; a tela mostra só o servidor e o banco. Rotas `GET`, `PUT` e `DELETE api/repositories/{nome}/connection` e `POST .../connection/test`, com `AllowedHosts` e `Origin` valendo.
+- [x] `Microsoft.Data.SqlClient` 6.1.1 no pacote (com o `System.Security.Cryptography.Pkcs` fixado na versão corrigida), comandos fixos ao catálogo, conexão sem pool, com tempo limite e o nome "Rastro (só leitura)". O catálogo entra como mais uma fonte do esquema (`SchemaSourceKind.LiveDatabase`); banco fora do ar vira nota e o esquema sai do código.
+- [x] Plano estimado (`POST api/repositories/{nome}/schema/plan`): `TSqlPlanGuard` confere antes que é uma instrução só, `SELECT`, `INSERT`, `UPDATE`, `DELETE` ou `MERGE`, sem `SET`, `EXEC`, DDL, `GO`, `SELECT INTO`, `OUTPUT INTO` nem `OPENROWSET`, `OPENQUERY` e `OPENDATASOURCE`; as variáveis entram declaradas como texto; `SET SHOWPLAN_XML ON` e o `ShowPlanReader` tiram as operações mais caras (custo próprio), as varreduras, o índice que falta segundo o banco e os avisos. Códigos `CONNECTION_INVALID`, `CONNECTION_MISSING`, `PLAN_NOT_ALLOWED` e `LIVE_DATABASE_ERROR`, com o motivo em pt-BR e nunca a mensagem crua do driver.
+- [x] Tela: selo "Banco vivo: servidor/banco, só leitura" e a promessa trocada, o diálogo com testar e remover (confirmação no próprio diálogo) e a recomendação de permissão mínima, e o cartão "Plano estimado pelo banco" na aba de consulta, pedido pelo botão.
+- [x] **Correção da ADR-006 descoberta no navegador:** o SQL Server só mostra o plano a quem pode rodar a instrução, então o plano pede `SHOWPLAN` e o `SELECT` nas tabelas da consulta, além do `VIEW DEFINITION` do catálogo. ADR, README, README do pacote, `SECURITY.md` (sem o "em construção") e o texto da tela corrigidos; o erro 229 diz isso na tela.
+- [x] Hook `ambiente-cliente.mjs` com o padrão do código da conexão (`Rastro.Infrastructure/Database/Live/`) e do `.csproj` das bibliotecas do pacote, e o teste dele (`ambiente-cliente.test.mjs`). Job novo `banco-vivo` no workflow de PR (Linux, que tem Docker com contêiner Linux).
+- [x] Testes: `EXT-DBP-001` e `002` (a porta da consulta), `INF-DBL-001` e `002` (leitura do plano e tipos do catálogo), `API-DBL-001` a `005` (com o banco de mentira) e `INF-DBL-010` a `012` com SQL Server de verdade no Testcontainers (catálogo, plano da consulta do protótipo e o plano de um `DELETE` que não apaga nada; pulados com o motivo onde o Docker não roda contêiner Linux). Backend 504/504 e frontend 324/324.
+- [x] Prints em `docs/telas/fase-40/` (SQL Server descartável em contêiner, usuário só de leitura, API local com `RASTRO_HOME` temporário) e levantamento de UX (seção da Fase 40b).
+- [ ] Banco vivo pelo MCP (`get_db_schema` com o catálogo e o plano no `analyze_query`): hoje só pela tela e pela API, porque o MCP não registra o DataProtection.
 
 ## Fase 41: a IA sugere a melhora (feature 2, IA plugada) `[ ]` (depende da Fase 40)
 
@@ -904,7 +910,7 @@ Dividida em dois PRs: 40a (análise pelo código) e 40b (banco vivo).
 - [ ] **Comparar esquema entre branches**, como a comparação de levantamentos: tabela, coluna e índice novos ou removidos.
 - [x] **Migration sem índice na FK nova:** achado automático quando uma migration cria FK sem índice (Fase 38, vale também para o `.sql`).
 - [x] **Dados sensíveis:** marcar colunas com nome de dado pessoal (CPF, e-mail, telefone) no mapa, útil para LGPD, sem ler nenhum dado (Fase 38).
-- [ ] **Nunca ler dados das tabelas:** só catálogo e plano estimado. Isso precisa estar escrito na ADR e no `SECURITY.md`, porque é a pergunta que todo cliente faz antes de passar uma string de conexão.
+- [x] **Nunca ler dados das tabelas:** só catálogo e plano estimado, escrito na ADR-006 e no `SECURITY.md` (Fase 40b).
 
 ## Levantamento de UX do fim do plano `[x]`
 
