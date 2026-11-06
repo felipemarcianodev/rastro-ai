@@ -37,15 +37,20 @@ public enum QueryFindingKind
     NotInNullable = 9,
 
     // UPDATE ou DELETE sem WHERE: muda a tabela inteira.
-    WriteWithoutWhere = 10
+    WriteWithoutWhere = 10,
+
+    // SELECT sem LIMIT, TOP nem FETCH numa tabela filtrada só por igualdade em coluna que não identifica a
+    // linha (nem chave primária, nem única): o caso típico é só pelo tenant. O resultado cresce com a tabela.
+    ReadWithoutLimit = 11
 }
 
-// A ordem é a da lista na tela: alta primeiro.
+// Mesma escala do FindingSeverity: o valor maior é o mais grave. A lista na tela ordena do maior para o
+// menor (alta primeiro).
 public enum QuerySeverity
 {
-    High = 0,
+    Low = 0,
     Medium = 1,
-    Low = 2
+    High = 2
 }
 
 // Start e Length: o trecho no texto enviado, em caracteres (Start a partir de 0). Line: a linha do

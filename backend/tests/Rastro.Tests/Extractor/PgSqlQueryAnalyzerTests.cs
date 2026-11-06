@@ -88,7 +88,7 @@ public class PgSqlQueryAnalyzerTests
         var f = One(sql, QueryFindingKind.LeadingWildcardLike);
 
         Assert.Equal("c.email ILIKE '%@gmail.com'", Marked(sql, f));
-        Assert.Contains("o ILIKE lê todos os valores de c.email: o índice ux_clientes_email existe, mas não ajuda", f.Message);
+        Assert.Contains("o ILIKE pode ler todos os valores de c.email: o índice ux_clientes_email existe, mas não ajuda", f.Message);
         Assert.Contains("pg_trgm", f.Message);
         // O curinga concatenado com || também conta; sem curinga no começo, não.
         Assert.Single(Analyze("SELECT id FROM clientes WHERE email LIKE '%' || $1 LIMIT 5").Findings, x => x.Kind == QueryFindingKind.LeadingWildcardLike);
@@ -114,7 +114,7 @@ public class PgSqlQueryAnalyzerTests
         var f = One(sql, QueryFindingKind.ColumnWithoutIndex);
 
         Assert.Equal("g.pedido_id", Marked(sql, f));
-        Assert.Contains("pagamentos.pedido_id está na junção e não tem índice que comece por ela (o esquema tem pk_pagamentos (id))", f.Message);
+        Assert.Contains("pagamentos.pedido_id está na junção e não tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade (o esquema tem pk_pagamentos (id)): o banco pode ler a tabela inteira", f.Message);
     }
 
     [Fact] // EXT-PGQ-008

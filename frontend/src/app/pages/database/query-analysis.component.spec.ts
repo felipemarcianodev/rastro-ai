@@ -297,4 +297,18 @@ describe('QueryAnalysisComponent no PostgreSQL (Fase 42)', () => {
 
     expect(ctx.el.querySelector('.notice.is-error')!.textContent).toContain('O leitor de SQL do PostgreSQL não entendeu a consulta (linha 1, coluna 14): Expected identifier, found (');
   });
+  // WEB-DBQ-031
+  it('trechos sobrepostos pegam a cor da gravidade maior (alta vence baixa) e o achado novo tem título', () => {
+    const upper = SQL.indexOf('UPPER');
+    const ctx = render();
+    analyze(ctx, analysis({
+      findings: [
+        { kind: QueryFindingKind.ReadWithoutLimit, severity: QuerySeverity.Low, start: upper, length: 15, line: 1, snippet: 'UPPER(p.status)', message: 'Sem limite.', table: 'pedidos' },
+        { kind: QueryFindingKind.FunctionOnFilterColumn, severity: QuerySeverity.High, start: upper, length: 15, line: 1, snippet: 'UPPER(p.status)', message: 'A função impede o uso do índice.', table: 'pedidos' },
+      ],
+    }));
+
+    expect(ctx.el.querySelector('mark')!.classList).toContain('is-high');
+    expect(ctx.el.textContent).toContain('Leitura sem limite, filtrada só por igualdade');
+  });
 });

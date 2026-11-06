@@ -73,6 +73,8 @@ export interface DbIndex {
   unique: boolean;
   source: SchemaSource;
   convention: boolean;
+  // Método de acesso do PostgreSQL ("gin", "gist"...), quando o código o escreve (Fase 43a).
+  method?: string | null;
 }
 
 export interface DbTable {

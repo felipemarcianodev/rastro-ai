@@ -191,7 +191,7 @@ export class QueryAnalysisComponent {
 
   protected severityOf(segmentFindings: number[]): QueryFinding['severity'] | null {
     const findings = this.result()?.analysis.findings ?? [];
-    return segmentFindings.length ? Math.min(...segmentFindings.map((i) => findings[i].severity)) : null;
+    return segmentFindings.length ? Math.max(...segmentFindings.map((i) => findings[i].severity)) : null;
   }
 
   protected isActive(segmentFindings: number[]): boolean {

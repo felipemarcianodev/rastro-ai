@@ -100,7 +100,7 @@ public class TSqlQueryAnalyzerTests
         var findings = Analyze(sql).Findings.Where(f => f.Kind == QueryFindingKind.ColumnWithoutIndex).ToList();
 
         Assert.Equal(["pg.pedido_id", "p.status"], findings.Select(f => Marked(sql, f)));
-        Assert.Contains("pagamentos.pedido_id está na junção e não tem índice que comece por ela (o esquema tem pk_pagamentos (id))", findings[0].Message);
+        Assert.Contains("pagamentos.pedido_id está na junção e não tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade (o esquema tem pk_pagamentos (id)): o banco pode ler a tabela inteira", findings[0].Message);
         Assert.Contains("pedidos.status está no filtro", findings[1].Message);
         Assert.Equal(["pagamentos", "pedidos"], findings.Select(f => f.Table));
     }
@@ -148,12 +148,14 @@ public class TSqlQueryAnalyzerTests
     [Fact] // EXT-DBQ-010
     public void Analyze_OrderBySemLimite_SoNaConsultaDeFora()
     {
-        var sql = "SELECT id FROM pedidos WHERE cliente_id = 3 ORDER BY id DESC";
+        var sql = "SELECT id FROM pedidos WHERE status = 'novo' ORDER BY id DESC";
 
         var f = One(sql, QueryFindingKind.OrderByWithoutLimit);
 
         Assert.Equal("ORDER BY id DESC", Marked(sql, f));
         Assert.Empty(Analyze("SELECT id FROM pedidos WHERE cliente_id = 3 ORDER BY id OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY").Findings);
+        // Filtro de igualdade pela chave estrangeira (a lista filha de um pai, Fase 43a): a ordenação não é apontada.
+        Assert.DoesNotContain(Analyze("SELECT id FROM pedidos WHERE cliente_id = 3 ORDER BY id DESC").Findings, x => x.Kind == QueryFindingKind.OrderByWithoutLimit);
     }
 
     [Fact] // EXT-DBQ-011

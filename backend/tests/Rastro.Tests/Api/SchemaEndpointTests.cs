@@ -4,6 +4,7 @@ using System.Text.Json.Nodes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Rastro.Core;
+using Rastro.Core.Database;
 using Rastro.Core.Graph;
 using Rastro.Core.Surveys;
 using Rastro.Infrastructure;
@@ -143,7 +144,9 @@ public class SchemaEndpointTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal([1, 0, 8], findings.Select(f => f!["kind"]!.GetValue<int>()));
         var first = findings[0]!;
         Assert.Equal("YEAR(p.criado_em)", sql.Substring(first["start"]!.GetValue<int>(), first["length"]!.GetValue<int>()));
-        Assert.Equal(0, first["severity"]!.GetValue<int>());
+        // Mesma escala do FindingSeverity (Fase 43a): o valor maior é o mais grave.
+        Assert.Equal((int)QuerySeverity.High, first["severity"]!.GetValue<int>());
+        Assert.Equal(2, first["severity"]!.GetValue<int>());
         Assert.Equal("pedidos", first["table"]!.GetValue<string>());
         Assert.True(analysis["tables"]![0]!["inSchema"]!.GetValue<bool>());
         Assert.Null(analysis["error"]);

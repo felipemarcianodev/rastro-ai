@@ -41,6 +41,8 @@ public sealed class PgSqlSchemaReader : ISqlSchemaReader
                 continue;
             }
             if (head == Statement.AlterTable && builder.AlterIdentity(tokens, from, to)) continue;
+            // CREATE INDEX pelos tokens: o leitor de SQL não entende a classe de operador (gin_trgm_ops).
+            if (head == Statement.Index && builder.Index(tokens, from, to)) continue;
 
             var start = tokens.Tokens[from].Start;
             var end = tokens.Tokens[to - 1].Start + tokens.Tokens[to - 1].Length;
@@ -109,12 +111,14 @@ public sealed class PgSqlSchemaReader : ISqlSchemaReader
 
         private SchemaSource Source(int line) => new(kind, file, firstLine + Math.Max(line, 1) - 1);
 
-        private TableBuilder Table(ObjectName name, int line)
+        private TableBuilder Table(ObjectName name, int line) => Table(PgAst.SchemaOf(name), PgAst.Last(name), line);
+
+        private TableBuilder Table(string? schema, string name, int line)
         {
-            var key = DbNames.Key(PgAst.SchemaOf(name), PgAst.Last(name), Pg);
+            var key = DbNames.Key(schema, name, Pg);
             if (!_tables.TryGetValue(key, out var table))
             {
-                table = new TableBuilder(PgAst.SchemaOf(name), PgAst.Last(name), Source(line));
+                table = new TableBuilder(schema, name, Source(line));
                 _tables[key] = table;
                 _order.Add(key);
             }
@@ -157,6 +161,109 @@ public sealed class PgSqlSchemaReader : ISqlSchemaReader
                     Views.Add(new DbView(PgAst.SchemaOf(view.Name), PgAst.Last(view.Name), columns, view.Query is null ? [] : TablesOf(view.Query), Source(line)));
                     break;
             }
+        }
+
+        // CREATE [UNIQUE] INDEX [CONCURRENTLY] [IF NOT EXISTS] [nome] ON [ONLY] tabela [USING método]
+        // (coluna [COLLATE x] [classe_de_operador] [ASC|DESC] [NULLS FIRST|LAST], ...) [INCLUDE (...)] [WHERE ...].
+        // Falso quando o texto não tem essa forma: quem chama deixa o leitor de SQL dar o erro.
+        public bool Index(PgSqlText text, int from, int to)
+        {
+            var tokens = text.Tokens;
+            var unique = false;
+            var i = from + 1;
+            while (i < to && !tokens[i].Is("INDEX"))
+            {
+                if (tokens[i].Is("UNIQUE")) unique = true;
+                i++;
+            }
+            i++;
+            while (i < to && (tokens[i].Is("CONCURRENTLY") || tokens[i].Is("IF") || tokens[i].Is("NOT") || tokens[i].Is("EXISTS"))) i++;
+            string? indexName = null;
+            if (i < to && !tokens[i].Is("ON"))
+            {
+                indexName = tokens[i].Word;
+                i++;
+                if (i + 1 < to && tokens[i].Token is Period) { indexName = tokens[i + 1].Word; i += 2; }
+            }
+            if (i >= to || !tokens[i].Is("ON")) return false;
+            i++;
+            if (i < to && tokens[i].Is("ONLY")) i++;
+            var target = Name(text, i, to, out i);
+            if (target is null) return false;
+            string? method = null;
+            if (i + 1 < to && tokens[i].Is("USING"))
+            {
+                method = tokens[i + 1].Word?.ToLowerInvariant();
+                i += 2;
+            }
+            if (i >= to || tokens[i].Token is not LeftParen) return false;
+            var close = Close(text, i, to);
+            if (close >= to) return false;
+
+            var columns = new List<string>();
+            var classes = new List<string>();
+            var start = i + 1;
+            var depth = 0;
+            for (var j = i + 1; j <= close; j++)
+            {
+                if (j < close && tokens[j].Token is LeftParen) depth++;
+                else if (j < close && tokens[j].Token is RightParen) depth--;
+                if (j < close && !(depth == 0 && tokens[j].Token is Comma)) continue;
+                if (j > start) IndexElement(text, start, j, columns, classes);
+                start = j + 1;
+            }
+            if (columns.Count == 0) return false;
+
+            var included = new List<string>();
+            var after = close + 1;
+            if (after + 1 < to && tokens[after].Is("INCLUDE") && tokens[after + 1].Token is LeftParen)
+            {
+                var includeClose = Close(text, after + 1, to);
+                for (var j = after + 2; j < includeClose; j++)
+                    if (tokens[j].Word is { } word) included.Add(word);
+            }
+
+            var line = tokens[from].Line;
+            Table(target.Value.Schema, target.Value.Name, line).Indexes.Add(new DbIndex(
+                indexName, columns, included, unique, Source(line),
+                Method: method, OperatorClasses: classes.Any(c => c.Length > 0) ? classes : null));
+            return true;
+        }
+
+        // Um elemento da lista do índice: o nome da coluna ou o texto da expressão, e a classe de operador.
+        private static void IndexElement(PgSqlText text, int from, int to, List<string> columns, List<string> classes)
+        {
+            var tokens = text.Tokens;
+            var at = from;
+            string name;
+            if (tokens[from].Token is LeftParen || (tokens[from].Token is Word && from + 1 < to && tokens[from + 1].Token is LeftParen))
+            {
+                var open = tokens[from].Token is LeftParen ? from : from + 1;
+                var close = Close(text, open, to);
+                at = Math.Min(close + 1, to);
+                name = Spaced(text.Sql[tokens[from].Start..(tokens[Math.Min(close, to - 1)].Start + tokens[Math.Min(close, to - 1)].Length)]);
+            }
+            else
+            {
+                name = tokens[from].Word ?? Spaced(text.Sql[tokens[from].Start..(tokens[to - 1].Start + tokens[to - 1].Length)]);
+                at = from + 1;
+                if (tokens[from].Word is null) at = to;
+            }
+
+            var opClass = string.Empty;
+            while (at < to)
+            {
+                var token = tokens[at];
+                if (token.Is("COLLATE")) { at += 2; continue; }
+                if (token.Is("NULLS")) { at += 2; continue; }
+                if (token.Is("ASC") || token.Is("DESC")) { at++; continue; }
+                if (token.Word is { } word && opClass.Length == 0) opClass = word.ToLowerInvariant();
+                at++;
+                // Opções da classe de operador: gin_trgm_ops (...).
+                if (at < to && tokens[at].Token is LeftParen) at = Close(text, at, to) + 1;
+            }
+            columns.Add(name);
+            classes.Add(opClass);
         }
 
         // pg_dump escreve a identidade à parte: ALTER TABLE x ALTER COLUMN id ADD GENERATED ... AS IDENTITY.
