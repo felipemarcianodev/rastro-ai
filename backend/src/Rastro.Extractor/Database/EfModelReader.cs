@@ -268,8 +268,9 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
                 entity.Scalars.Add(new Scalar(name, typeName, nullableAnnotated, property, propertyFile));
             else if (dialect == SqlDialect.PostgreSql && NpgsqlScalar(typeName, element) is { } npgsqlType)
                 entity.Scalars.Add(new Scalar(name, npgsqlType, nullableAnnotated, property, propertyFile));
-            else if (dialect == SqlDialect.PostgreSql && IsJsonColumn(entity, name, property) && (element is not null || code.FindClass(typeName) is not null))
-                // Classe ou lista de classes guardada em jsonb (HasColumnType ou [Column(TypeName)]): é uma coluna só.
+            else if (dialect == SqlDialect.PostgreSql && IsJsonColumn(entity, name, property) && (element is not null || code.FindClass(typeName) is not null || IsGeneric(property.Type)))
+                // Classe, lista de classes ou tipo genérico (Dictionary<string, string>) guardado em jsonb (HasColumnType,
+                // com ou sem HasConversion, ou [Column(TypeName)]): é uma coluna só.
                 entity.Scalars.Add(new Scalar(name, element is null ? typeName : $"{typeName}<{element}>", nullableAnnotated, property, propertyFile));
             else if (element is null && code.FindClass(typeName) is not null)
                 _notes.Add(new SchemaNote($"{entity.ClrName}.{name} é do tipo {typeName}, que não é entidade do modelo: a propriedade ficou de fora.", propertyFile, Line(property)));
@@ -492,6 +493,13 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
             return (qg.Identifier.ValueText, nullable, BaseName(qg.TypeArgumentList.Arguments[0]));
         if (type is PredefinedTypeSyntax p) return (p.Keyword.ValueText, nullable, null);
         return (BaseName(type), nullable, null);
+    }
+
+    // Tipo genérico fechado (Dictionary<string, string>), com ou sem "?" e com ou sem namespace.
+    private static bool IsGeneric(TypeSyntax type)
+    {
+        if (type is NullableTypeSyntax n) type = n.ElementType;
+        return type is GenericNameSyntax or QualifiedNameSyntax { Right: GenericNameSyntax };
     }
 
     // Propriedade configurada com o tipo jsonb ou json (HasColumnType("jsonb") ou [Column(TypeName = "jsonb")]).

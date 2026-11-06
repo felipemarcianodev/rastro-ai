@@ -34,8 +34,9 @@ public class PgSqlQueryAnalyzerFase43aTests
         Assert.Contains("Confira o plano", f.Message);
         Assert.DoesNotContain("o banco lê a tabela inteira", f.Message);
 
-        // Com uma desigualdade na primeira coluna, a segunda não é atendida.
-        Assert.Single(Kinds("SELECT i.id FROM itens i WHERE i.tenant_id > @t AND i.loja_id = @l LIMIT 10", QueryFindingKind.ColumnWithoutIndex));
+        // Com uma faixa na primeira coluna, o índice é o que o banco usa e loja_id é conferida nas linhas
+        // buscadas (coluna residual, Fase 43c).
+        Assert.Empty(Kinds("SELECT i.id FROM itens i WHERE i.tenant_id > @t AND i.loja_id = @l LIMIT 10", QueryFindingKind.ColumnWithoutIndex));
 
         // (tenant_id, loja_id, criado_em): a terceira coluna serve a faixa depois de duas igualdades.
         var triple = Schema("CREATE TABLE itens (id uuid PRIMARY KEY, tenant_id uuid NOT NULL, loja_id uuid NOT NULL, criado_em timestamptz NOT NULL);\n"
@@ -177,26 +178,34 @@ public class PgSqlQueryAnalyzerFase43aTests
     }
 
     [Fact] // EXT-PGQ-030
-    public void Analyze_FiltroPelaChaveDoTenantApontadaPorVariasTabelas_NaoContaComoListaFilha()
+    public void Analyze_FiltroPelaChaveDeParticao_NaoContaComoListaFilhaEPelaOutraChaveEstrangeiraConta()
     {
-        // tenants é apontada por três tabelas: filtrar pela chave dela não limita o resultado a um pai pequeno.
+        // tenant_id está em todas as tabelas (a chave de partição). tarefas é apontada por quatro tabelas:
+        // filtrar por tarefa_id é uma lista filha, e filtrar só pelo tenant não é.
         var schema = Schema("""
             CREATE TABLE tenants (id uuid PRIMARY KEY);
-            CREATE TABLE projetos (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id));
-            CREATE TABLE tarefas (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id), projeto_id uuid NOT NULL REFERENCES projetos (id), titulo text NOT NULL);
-            CREATE TABLE notas (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id));
-            CREATE INDEX ix_tarefas_tenant ON tarefas (tenant_id);
-            CREATE INDEX ix_tarefas_projeto ON tarefas (projeto_id);
+            CREATE TABLE tarefas (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id), titulo text NOT NULL);
+            CREATE TABLE subtarefas (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id), tarefa_id uuid NOT NULL REFERENCES tarefas (id), titulo text NOT NULL);
+            CREATE TABLE comentarios (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id), tarefa_id uuid NOT NULL REFERENCES tarefas (id));
+            CREATE TABLE atividades (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id), tarefa_id uuid NOT NULL REFERENCES tarefas (id));
+            CREATE TABLE alertas (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id), tarefa_id uuid NOT NULL REFERENCES tarefas (id));
+            CREATE TABLE usuarios (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id));
+            CREATE TABLE espacos (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id));
+            CREATE TABLE etiquetas (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id));
+            CREATE TABLE anexos (id uuid PRIMARY KEY, tenant_id uuid NOT NULL REFERENCES tenants (id));
+            CREATE INDEX ix_sub_tenant ON subtarefas (tenant_id);
+            CREATE INDEX ix_sub_tarefa ON subtarefas (tarefa_id);
             """);
         List<QueryFinding> Found(string sql, QueryFindingKind kind) =>
             new PgSqlQueryAnalyzer().Analyze(sql, schema).Findings.Where(f => f.Kind == kind).ToList();
 
-        Assert.Single(Found("SELECT t.id FROM tarefas t WHERE t.tenant_id = @t", QueryFindingKind.ReadWithoutLimit));
-        Assert.Single(Found("SELECT t.id FROM tarefas t WHERE t.tenant_id = @t ORDER BY t.titulo", QueryFindingKind.OrderByWithoutLimit));
+        Assert.Single(Found("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t", QueryFindingKind.ReadWithoutLimit));
+        Assert.Single(Found("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t ORDER BY s.titulo", QueryFindingKind.OrderByWithoutLimit));
 
-        // projetos é apontada só por tarefas: é o pai de uma lista filha.
-        Assert.Empty(Found("SELECT t.id FROM tarefas t WHERE t.projeto_id = @p", QueryFindingKind.ReadWithoutLimit));
-        Assert.Empty(Found("SELECT t.id FROM tarefas t WHERE t.projeto_id = @p ORDER BY t.titulo", QueryFindingKind.OrderByWithoutLimit));
+        // A tarefa é apontada por quatro tabelas e mesmo assim é o pai de uma lista filha.
+        Assert.Empty(Found("SELECT s.id FROM subtarefas s WHERE s.tarefa_id = @id", QueryFindingKind.ReadWithoutLimit));
+        Assert.Empty(Found("SELECT s.id FROM subtarefas s WHERE s.tarefa_id = @id ORDER BY s.titulo", QueryFindingKind.OrderByWithoutLimit));
+        Assert.Empty(Found("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t AND s.tarefa_id = @id ORDER BY s.titulo", QueryFindingKind.OrderByWithoutLimit));
     }
 
     [Fact] // EXT-PGQ-028
