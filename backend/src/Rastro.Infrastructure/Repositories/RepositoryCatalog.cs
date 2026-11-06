@@ -95,6 +95,28 @@ public class RepositoryCatalog(IOptionsMonitor<RastroOptions> options, INodeRunt
             .ToList();
     }
 
+    // Arquivos do repositório com essas extensões (caminho relativo com "/"), fora de bin, obj, node_modules e
+    // semelhantes, até o limite. A leitura do esquema do banco (Fase 37) passa por aqui: só a raiz cadastrada.
+    public IReadOnlyList<string>? SourceFiles(string repositoryName, IReadOnlyCollection<string> extensions, int limit)
+    {
+        var root = RootOf(repositoryName);
+        if (root is null || !Directory.Exists(root)) return null;
+
+        var found = new List<string>();
+        var pending = new Stack<string>([root]);
+        while (pending.Count > 0 && found.Count < limit)
+        {
+            var folder = pending.Pop();
+            foreach (var file in Directory.EnumerateFiles(folder))
+                if (extensions.Contains(Path.GetExtension(file), StringComparer.OrdinalIgnoreCase) && found.Count < limit)
+                    found.Add(Path.GetRelativePath(root, file).Replace('\\', '/'));
+            foreach (var sub in Directory.EnumerateDirectories(folder))
+                if (!SkippedFolders.Contains(Path.GetFileName(sub)) && !File.GetAttributes(sub).HasFlag(FileAttributes.ReparsePoint))
+                    pending.Push(sub);
+        }
+        return found.OrderBy(p => p, StringComparer.Ordinal).ToList();
+    }
+
     // Só as solutions e projetos .NET: a costura e o MCP abrem o repositório pelo Roslyn e não servem de tsconfig.
     public IReadOnlyList<string>? DotNetSolutions(string repositoryName) =>
         Solutions(repositoryName)?.Where(p => SourceLanguages.FromPath(p) == SourceLanguage.DotNet).ToList();

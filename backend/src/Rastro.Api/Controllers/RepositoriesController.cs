@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Rastro.Core.Database;
 using Rastro.Infrastructure.Configuration;
+using Rastro.Infrastructure.Database;
 using Rastro.Infrastructure.Repositories;
 
 namespace Rastro.Api.Controllers;
@@ -14,6 +16,7 @@ public class RepositoriesController(
     IOptionsMonitor<RastroOptions> options,
     RepositoryConfigFile configFile,
     IConfiguration configuration,
+    DbSchemaService schemas,
     ILogger<RepositoriesController> logger) : ControllerBase
 {
     [HttpGet]
@@ -69,6 +72,14 @@ public class RepositoriesController(
     [HttpGet("{name}/solutions")]
     public ActionResult<IReadOnlyList<string>> Solutions(string name) =>
         catalog.Solutions(name) is { } solutions ? Ok(solutions) : NotFound();
+
+    // Esquema do banco lido do código do repositório (Fase 37, ADR-006): modelo do EF Core, migrations e .sql,
+    // com as divergências entre fontes. Só lê arquivos; nenhum banco é consultado.
+    [HttpGet("{name}/schema")]
+    public async Task<ActionResult<DbSchema>> Schema(string name, CancellationToken ct) =>
+        await schemas.ReadAsync(name, ct) is { } schema
+            ? Ok(schema)
+            : Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");
 
     // O file watcher recarrega o config.json sozinho, mas com atraso. Recarregar aqui, de forma
     // síncrona, faz o GET logo depois do POST ou do DELETE já ver a mudança.

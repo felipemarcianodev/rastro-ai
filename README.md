@@ -16,6 +16,7 @@ O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona 
 - **Visão consolidada:** o fluxo resumido em poucos passos de leitura de negócio, em Mermaid editável, com as cores que você escolher.
 - **Mapa do fluxo:** o nível de um diagrama C2, com uma faixa por sistema, poucos blocos em cada uma, as decisões que mudam o desfecho, as chamadas entre sistemas (verbo, rota e campos enviados) e, na API e no MCP, os caminhos de ponta a ponta. Os sistemas além do segundo salto vêm recolhidos e abrem ao clicar, e clicar no desfecho de uma decisão acende o caminho dele.
 - **Regras e perguntas:** as decisões viram regras em frase (bloqueia, permite, efeito colateral), com a fonte no código, e o Rastro responde perguntas prontas de quem revisa (TL, Staff, gerente). Com IA ligada, pergunta livre, sempre com as fontes conferidas.
+- **Esquema do banco pelo código:** tabelas, colunas, chaves, índices, views e procedures lidos do modelo do EF Core, das migrations e dos `.sql` (SQL Server), com a fonte de cada item e a divergência entre fontes marcada. Sem conectar em banco nenhum e sem ler dados. Por enquanto, na API e no MCP.
 - **Mudança desenhada no grafo:** você edita o fluxo, o Rastro gera o prompt da mudança e, depois que o agente aplica, valida contra o código novo (build, testes e o fluxo de novo).
 - **Arquitetura:** exporta o fluxo em Mermaid e SVG e a arquitetura em C4 (Structurizr), e aponta melhorias e dívida técnica (DDD, código limpo, métricas).
 
@@ -78,7 +79,7 @@ Regra que não se quebra: `Rastro.Core` e `Rastro.Extractor` **nunca** referenci
 claude mcp add rastro -- rastro mcp
 ```
 
-Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt` e `get_c4`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
+Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt`, `get_c4` e `get_db_schema`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
 
 - Toda proposta passa pelo validador de prova: o compilador confere o método de destino e o `arquivo:linha`. Prova errada volta recusada, com o motivo.
 - Proposta aceita entra como **inferida**. **Só você confirma ou descarta**, na tela; o agente não tem ferramenta para isso.
@@ -124,6 +125,18 @@ Limite do leitor de template: as bifurcações da tela vêm de uma leitura leve 
 Em `surveys/:id/visao` o fluxo aparece resumido em poucos passos, em frase, como um `flowchart` Mermaid: a entrada, as bifurcações com o texto de cada ramo, as chamadas externas e os retornos antecipados. A geração é determinística, sem IA. O texto do Mermaid fica ao lado da prévia e pode ser editado; clicar num passo abre a escolha de cor (fundo, borda e texto), que vira `classDef` no próprio texto. A versão editada fica salva no levantamento, e "Gerar de novo" mantém as cores e os textos dos passos que ainda existem.
 
 A visão também é o quarto desenho do fluxo: o botão que troca o desenho passa pelo horizontal, a linha do tempo, a árvore e o consolidado (ou o botão "Visão consolidada" da barra). Nele, clicar num passo abre o painel do passo, com o código, as ligações e o caminho desde a entrada. Arrastar o fundo move o desenho e a roda do mouse aproxima em volta do cursor. "Editar texto e cores" leva à tela de edição, onde "Ver no fluxo" volta ao passo escolhido.
+
+## Esquema do banco
+
+`GET api/repositories/{nome}/schema` (e a ferramenta `get_db_schema` no MCP) devolve o esquema do banco de um repositório cadastrado, lido só dos arquivos ([ADR-006](docs/adr/adr-006-visao-do-banco.md)):
+
+- **Modelo do EF Core**, pelo Roslyn, sem compilar nem rodar o seu código: `DbContext` e `DbSet`, atributos (`[Table]`, `[Key]`, `[Column]`, `[MaxLength]`, `[Index]`, `[ForeignKey]`), `OnModelCreating`, `IEntityTypeConfiguration`, as convenções do EF (chave `Id`, chave estrangeira `<Navegação>Id`, tabela pelo nome do `DbSet`) e o `UseSnakeCaseNamingConvention`.
+- **Migrations do EF Core**, aplicadas na ordem do id: `CreateTable`, `AddColumn`, `AlterColumn`, `CreateIndex`, `AddForeignKey` e o SQL de `migrationBuilder.Sql`. O snapshot e o `.Designer.cs` não são fonte.
+- **Arquivos `.sql` e projeto de banco** do SQL Server, pelo leitor oficial de T-SQL da Microsoft (`Microsoft.SqlServer.TransactSql.ScriptDom`, MIT, dentro do pacote): `CREATE TABLE`, `ALTER TABLE ... ADD CONSTRAINT`, `CREATE INDEX`, `CREATE VIEW` e `CREATE PROCEDURE` (parâmetros e as tabelas que ela lê e grava).
+
+Cada item traz o arquivo e a linha de onde veio. Quando as fontes discordam no tipo, no nulo, na chave primária ou na existência de uma coluna, a divergência mostra cada versão com a fonte, e a coluna divergente fica sem tipo (ou sem nulo): o Rastro não escolhe em silêncio. O que não dá para ler (arquivo `.sql` com erro, tipo próprio do EF com `OwnsOne`, entidade fora do repositório) vira uma nota. Ficam de fora as pastas `bin`, `obj` e `node_modules` e os `.sql` acima de 2 MB.
+
+Limites: o índice que o EF cria por convenção em cada chave estrangeira não é deduzido do modelo (ele vem da migration); configuração montada em tempo de execução não é lida. A tela do banco, a ligação com os fluxos, a análise de consulta, o banco vivo (opcional e só de leitura) e o PostgreSQL vêm nas próximas fases do [plano](docs/arquitetura/plano-mvp.md).
 
 ## Como funciona
 

@@ -58,6 +58,12 @@ O fluxo também tem um **mapa**, no nível de um diagrama C2: uma faixa por sist
 
 Cada levantamento tem uma visão resumida em poucos passos, em frase, como um diagrama Mermaid que você edita ao lado da prévia. Clique num passo para escolher a cor dele. A versão editada fica salva no levantamento. No fluxo, a visão também é um dos desenhos do botão que troca o desenho: clicar num passo abre o painel com o contexto dele, arrastar move o desenho e a roda do mouse aproxima.
 
+## Esquema do banco
+
+O Rastro lê o esquema do banco do próprio código do repositório, sem conectar em banco nenhum: o modelo do EF Core (`DbContext`, `DbSet`, atributos, `OnModelCreating`, `IEntityTypeConfiguration` e o `UseSnakeCaseNamingConvention`), as migrations e os arquivos `.sql` do projeto de banco (SQL Server, pelo leitor oficial de T-SQL da Microsoft, que vai dentro do pacote). Saem tabelas, colunas, chaves, índices, views e procedures, cada item com o arquivo e a linha de onde veio. Quando o modelo e a migration discordam (um tamanho de coluna, por exemplo), as duas versões aparecem e o Rastro não escolhe. Nada do seu código é compilado nem executado, e nenhum dado das tabelas é lido.
+
+Por enquanto, o esquema sai pela API (`GET api/repositories/{nome}/schema`) e pelo MCP (`get_db_schema`); a tela do banco vem numa próxima versão. O PostgreSQL também.
+
 ## Com o seu agente de IA (MCP)
 
 O Rastro funciona sem IA. Com um agente que fala MCP, como o Claude Code, o agente completa o que o compilador não resolveu e escreve as regras de cada passo, usando a assinatura dele:
@@ -69,6 +75,8 @@ claude mcp add rastro -- rastro mcp
 Para o fluxo entre sistemas, a ferramenta `list_cross_edges` lista as ligações HTTP e as chamadas ainda sem destino, e `propose_edge` aceita o parâmetro `system`, com o repositório de destino.
 
 Para perguntas sobre o fluxo, `get_flow_map` mostra o mapa por sistema (blocos, decisões, chamadas e caminhos) e `get_flow_rules` as regras tiradas das decisões, para o agente responder citando os passos.
+
+Para o banco, `get_db_schema` dá o esquema lido do código (ou só uma tabela), com a fonte de cada item e as divergências entre o modelo, as migrations e os `.sql`.
 
 Tudo o que a IA propõe chega marcado como inferido e só entra no fluxo quando você confirma.
 
