@@ -62,6 +62,20 @@
   font-size: var(--text-sm);
 }
 
+// Em tela estreita (360), as ações descem para uma linha própria: lado a lado, o título encolhe
+// até zero e o texto dele passa por baixo das ações.
+@media (max-width: 600px) {
+  .page-bar {
+    flex-wrap: wrap;
+    padding: var(--space-3);
+  }
+
+  .page-bar-side {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
+
 .page-state {
   height: 100%;
   display: flex;
