@@ -1030,6 +1030,14 @@ No segundo reteste, os 7 fluxos deram 21 achados, todos verdadeiros, e a anális
 - [x] Propriedade com `HasColumnType("jsonb")` cuja cadeia de configuração termina em `.Metadata.SetValueComparer(...)` é coluna do modelo.
 - [x] Testes: fluxos `EXT-DBF-030` a `037`; consulta `EXT-PGQ-035` e `036`, `EXT-DBQ-023` e `024` e `EXT-PG-046`. Decisões: o N+1 de escrita usa o achado de consulta dentro de laço, com mensagem própria; a gravação rastreada (`Update`, `Remove` com `SaveChanges`) não conta; a chave estrangeira implícita não exige índice. Causa do jsonb: a leitura da cadeia parava no `.Metadata`.
 
+## Depois da Fase 43 (2026-11-06)
+
+- [x] Terceiro teste no sistema real, com as Fases 43a a 43d: os fluxos deram 25 achados, todos verdadeiros; a análise de consulta caiu para 21 falsos, todos leitura sem limite em tabela pequena (só o banco vivo diz o tamanho).
+- [x] Release 0.7.0 (PR #74), com o passo de UX: barras e achados da consulta em 360 px corrigidos (PR #73). Prints em `docs/telas/fase-43/`.
+- [ ] Conferir se algum achado verdadeiro da análise de consulta se perdeu com o achado único por tabela (o teste caiu de 39 para 19 verdadeiros, sem lista item a item para comparar).
+- [ ] A lista pelo espaço (filtro por chave estrangeira de uma tabela grande) fica silenciada pela regra da lista filha, e `IS NOT NULL` não conta como filtro para a leitura sem limite.
+- [ ] Dois testes do backend falharam uma vez no CI e passaram na nova rodada (`PortProbeTests` e `LiveDatabaseEndpointTests`): pelo jeito, testes em paralelo disputam a porta e o cadastro de repositórios.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).

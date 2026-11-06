@@ -81,6 +81,16 @@ O que o SqlParserCS não dá, e como o Rastro resolve, sem palpite:
 
 Guardado no banco local: a string de conexão cifrada. O esquema é refeito a cada leitura, como o grafo do fluxo, e não é mantido em paralelo ao código.
 
+### Ajustes da Fase 43 (teste num sistema real, 2026-11-06)
+
+O teste das consultas de uma tela real (PostgreSQL, 87 tabelas) mostrou que as regras olhavam coluna por coluna e davam mais falsos que verdadeiros. As decisões, todas determinísticas:
+- **Índice:** a coluna do filtro está atendida quando um índice da tabela (ou a chave primária) começa por colunas do filtro em igualdade; as outras colunas do filtro são conferidas nas linhas já buscadas. Só há achado quando nenhum índice atende, e é um por tabela.
+- **Lista filha e partição:** a leitura sem limite e o `ORDER BY` sem limite não disparam quando o filtro é uma chave estrangeira, declarada ou implícita (a coluna `x_id` com a tabela `x` no esquema). A exceção não vale para a coluna de partição, aquela cujo nome aparece em pelo menos metade das tabelas (o tenant).
+- **Escala de gravidade:** a da análise de consulta passa a crescer com a gravidade (`Low = 0`, `High = 2`), no mesmo sentido dos achados do fluxo.
+- **Banco nos fluxos:** o repositório genérico é fechado pelo tipo da chamada, a chamada por interface é resolvida pelo tipo do receptor, e os achados seguem a cadeia de chamadas até quatro saltos.
+
+Sem o banco vivo, o Rastro não sabe o tamanho da tabela: a leitura sem limite numa tabela pequena continua aparecendo, com gravidade baixa.
+
 ## Alternativas recusadas
 
 - **Rodar o `DbContext` do cliente** (carregar o assembly e pedir o `Model` ao EF Core): o modelo sairia completo, mas o Rastro passaria a executar código do cliente, com as dependências e a configuração dele. A leitura pelo Roslyn cobre os casos comuns, e o que ela não alcança fica marcado, como no fluxo.
