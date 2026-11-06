@@ -5,7 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { EditorLinks, isAbsoluteFolder } from '../../core/editor-links';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { REPOSITORY_QUERY_PARAM } from '../surveys/surveys.page';
 import { shortDate } from '../../core/format';
 import {
   AI_PROVIDER_LABEL,
@@ -33,7 +34,7 @@ interface ProviderForm {
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, ConfirmDialogComponent],
+  imports: [FormsModule, RouterLink, ConfirmDialogComponent],
   templateUrl: './settings.page.html',
   styleUrl: './settings.page.scss',
 })
@@ -101,6 +102,11 @@ export class SettingsPage implements OnInit {
   ngOnInit(): void {
     this.ai.refresh();
     this.loadRepositories();
+    this.loadSettings();
+  }
+
+  protected loadSettings(): void {
+    this.loadError.set(null);
     this.api.aiSettings().subscribe({
       next: (view) => {
         this.fill(view);
@@ -108,6 +114,11 @@ export class SettingsPage implements OnInit {
       },
       error: (error) => this.loadError.set(apiErrorMessage(error)),
     });
+  }
+
+  // Tela inicial com o repositório já escolhido no formulário.
+  protected newSurveyParams(repo: RepositoryItem): Record<string, string> {
+    return { [REPOSITORY_QUERY_PARAM]: repo.name };
   }
 
   protected save(): void {

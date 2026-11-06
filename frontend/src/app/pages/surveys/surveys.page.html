@@ -5,7 +5,10 @@
       <p class="muted">Cada levantamento é o fluxo de um método, do jeito que estava no commit analisado.</p>
     </header>
 
-    <p class="saved-notice" role="status">{{ deletedNotice() ?? '' }}</p>
+    <span class="visually-hidden" role="status">{{ deletedNotice() ?? '' }}</span>
+    @if (deletedNotice(); as notice) {
+      <p class="saved-notice" aria-hidden="true">{{ notice }}</p>
+    }
 
     @if (listError(); as error) {
       <div class="notice is-error" role="alert">
@@ -13,7 +16,12 @@
         <button type="button" class="btn btn-g retry" (click)="retryList()">Tentar de novo</button>
       </div>
     } @else if (surveys() === null) {
-      <p class="muted" aria-live="polite">Carregando levantamentos…</p>
+      <div class="skeleton-list" aria-busy="true">
+        <p class="visually-hidden" role="status">Carregando levantamentos…</p>
+        @for (i of skeletonRows; track i) {
+          <div class="skeleton-row" aria-hidden="true"></div>
+        }
+      </div>
     } @else if (surveys()!.length === 0) {
       <div class="empty">
         <p>Nenhum levantamento ainda.</p>
@@ -84,6 +92,7 @@
           <button type="button" class="info-toggle" (click)="toggleInfo('repository')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.repository.summary"
             [attr.aria-expanded]="openInfo() === 'repository'" [attr.aria-controls]="openInfo() === 'repository' ? 'repository-info' : null" aria-label="O que é Repositório">i</button>
         </div>
+        <span id="repository-help" class="field-help">{{ fieldInfo.repository.summary }}</span>
         @if (openInfo() === 'repository') {
           <div id="repository-info" class="info-text" (keydown.escape)="openInfo.set(null)">
             @for (line of fieldInfo.repository.text; track $index) {
@@ -92,7 +101,7 @@
           </div>
         }
         <select id="repository" class="input" name="repository" [ngModel]="repository" (ngModelChange)="selectRepository($event)" [disabled]="!hasRepositories()"
-          [attr.aria-invalid]="!!fieldErrors().repository" aria-describedby="repository-error">
+          [attr.aria-invalid]="!!fieldErrors().repository" aria-describedby="repository-help repository-error">
           <option value="" disabled>{{ reposState() === 'loading' ? 'Carregando repositórios…' : 'Escolha um repositório' }}</option>
           @for (repo of repositories(); track repo.name) {
             <option [value]="repo.name">{{ repo.name }}</option>
@@ -108,7 +117,7 @@
         }
         <span id="repository-error" class="field-error" [hidden]="!fieldErrors().repository">{{ fieldErrors().repository }}</span>
         @if (repository) {
-          <a class="field-help"[routerLink]="['/repositorios', repository, 'banco']">Ver o mapa do banco de {{ repository }}</a>
+          <a class="btn btn-g btn-small db-link" [routerLink]="['/repositorios', repository, 'banco']">Ver o mapa do banco de {{ repository }}</a>
         }
       </div>
 
@@ -118,6 +127,7 @@
           <button type="button" class="info-toggle" (click)="toggleInfo('solution')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.solution.summary"
             [attr.aria-expanded]="openInfo() === 'solution'" [attr.aria-controls]="openInfo() === 'solution' ? 'solution-info' : null" aria-label="O que é Solution">i</button>
         </div>
+        <span id="solution-help" class="field-help">{{ fieldInfo.solution.summary }}</span>
         @if (openInfo() === 'solution') {
           <div id="solution-info" class="info-text" (keydown.escape)="openInfo.set(null)">
             @for (line of fieldInfo.solution.text; track $index) {
@@ -126,7 +136,7 @@
           </div>
         }
         <select id="solution" class="input code" name="solution" [(ngModel)]="solutionPath" [disabled]="!repository || loadingSolutions()"
-          [attr.aria-invalid]="!!fieldErrors().solution" aria-describedby="solution-error">
+          [attr.aria-invalid]="!!fieldErrors().solution" aria-describedby="solution-help solution-error">
           @if (loadingSolutions()) {
             <option value="">Procurando solutions…</option>
           } @else if (repository && solutions().length === 0) {
@@ -205,7 +215,7 @@
         <p class="field-error" role="alert">{{ error }}</p>
       }
 
-      <button class="btn btn-p" type="submit" [disabled]="submitting()">
+      <button class="btn btn-p" type="submit" [disabled]="submitting() || !repository">
         {{ submitting() ? 'Enviando…' : 'Levantar o fluxo' }}
       </button>
     </form>

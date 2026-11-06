@@ -15,18 +15,15 @@
         <h1 class="code">{{ d.survey.entryPoint }}</h1>
         <div class="page-bar-meta">
           <span>{{ d.survey.repository }}</span>
-          <a [routerLink]="['/repositorios', d.survey.repository, 'banco']" title="O mapa do banco deste repositório, lido do código">Banco</a>
           <span class="code muted meta-path" [title]="d.survey.solutionPath">{{ d.survey.solutionPath }}</span>
-          @if (d.survey.branch || d.survey.commitHash) {
+          @if (d.survey.commitHash) {
+            <span>commit <span class="code" [title]="d.survey.commitHash">{{ shortCommit(d.survey.commitHash) }}</span></span>
+          }
+          @if (d.survey.branch) {
             <details class="meta-details">
               <summary>Detalhes</summary>
               <span class="meta-details-body">
-                @if (d.survey.branch) {
-                  <span>Branch <span class="code">{{ d.survey.branch }}</span></span>
-                }
-                @if (d.survey.commitHash) {
-                  <span>Commit <span class="code" [title]="d.survey.commitHash">{{ shortCommit(d.survey.commitHash) }}</span></span>
-                }
+                <span>Branch <span class="code">{{ d.survey.branch }}</span></span>
               </span>
             </details>
           }
@@ -42,13 +39,16 @@
         }
         @if (validation(); as v) {
           <button type="button" class="btn btn-g btn-small" (click)="openValidation()" title="Abrir o resultado da última validação">
-            Validação:
+            Última validação:
             @if (v.result; as r) {
-              {{ verdictLabel[r.verdict] }} ({{ r.score }})
+              {{ verdictLabel[r.verdict] }}, nota {{ r.score }} de 100
             } @else {
               {{ v.status === ValidationStatus.Failed ? 'falhou' : 'em andamento' }}
             }
           </button>
+        }
+        @if (!editing()) {
+          <a class="btn btn-g btn-small" [routerLink]="['/repositorios', d.survey.repository, 'banco']" title="O mapa do banco deste repositório, lido do código">Mapa do banco</a>
         }
         @if (d.survey.status === SurveyStatus.Completed && !editing()) {
           <button type="button" class="btn btn-g btn-small" (click)="toggleConsolidated()" [attr.aria-pressed]="consolidated()"
@@ -59,24 +59,24 @@
             <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null">Comparar e exportar</button>
             @if (exportOpen()) {
               <div class="menu-backdrop" (click)="closePopovers()"></div>
-              <ul id="export-menu" class="popover-menu" (keydown)="onMenuKey($event)">
+              <ul id="export-menu" class="popover-menu" role="menu" aria-label="Comparar e exportar" (keydown)="onMenuKey($event)">
                 <li class="popover-group" role="presentation">Exportar o que está na tela</li>
-                <li><button type="button" (click)="exportImage('png')">Imagem PNG</button></li>
-                <li><button type="button" (click)="exportImage('svg')">Imagem SVG</button></li>
-                <li><button type="button" (click)="exportMermaid(false)">Copiar como Mermaid</button></li>
-                <li><button type="button" (click)="exportMermaid(true)">Baixar como Mermaid (.mmd)</button></li>
-                <li><button type="button" (click)="openC4()">Diagramas C4 (Structurizr DSL)</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">Imagem PNG</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">Imagem SVG</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">Copiar como Mermaid</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">Baixar como Mermaid (.mmd)</button></li>
+                <li role="none"><button type="button" role="menuitem" (click)="openC4()">Diagramas C4 (Structurizr DSL)</button></li>
                 <li class="popover-group" role="presentation">Comparar com outro levantamento deste método</li>
                 @if (siblingsState() === 'loading') {
-                  <li class="popover-empty muted" aria-live="polite">Procurando levantamentos…</li>
+                  <li class="popover-empty muted" role="presentation" aria-live="polite">Procurando levantamentos…</li>
                 } @else if (siblingsState() === 'error') {
                   <li class="popover-empty field-error" role="alert">Não deu para listar os levantamentos.</li>
-                  <li><button type="button" (click)="loadSiblings()">Tentar de novo</button></li>
+                  <li role="none"><button type="button" role="menuitem" (click)="loadSiblings()">Tentar de novo</button></li>
                 } @else {
                   @for (other of siblings(); track other.id) {
-                    <li><button type="button" (click)="compareWith(other.id)">{{ shortDate(other.createdAt) }}, commit {{ shortCommit(other.commitHash) || 'desconhecido' }}, {{ plural(other.nodeCount, 'nó', 'nós') }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="compareWith(other.id)">{{ shortDate(other.createdAt) }}, commit {{ shortCommit(other.commitHash) || 'desconhecido' }}, {{ plural(other.nodeCount, 'nó', 'nós') }}</button></li>
                   } @empty {
-                    <li class="popover-empty muted">Nenhum outro levantamento pronto deste método.</li>
+                    <li class="popover-empty muted" role="presentation">Nenhum outro levantamento pronto deste método.</li>
                   }
                 }
               </ul>
@@ -86,8 +86,8 @@
             <button type="button" class="btn btn-g btn-small" (click)="togglePopover('more')" [attr.aria-expanded]="moreOpen()" [attr.aria-controls]="moreOpen() ? 'more-menu' : null" aria-label="Mais ações do levantamento" title="Mais ações">⋯</button>
             @if (moreOpen()) {
               <div class="menu-backdrop" (click)="closePopovers()"></div>
-              <ul id="more-menu" class="popover-menu" (keydown)="onMenuKey($event)">
-                <li><button type="button" class="is-danger" (click)="requestDelete()">Excluir levantamento…</button></li>
+              <ul id="more-menu" class="popover-menu" role="menu" aria-label="Mais ações do levantamento" (keydown)="onMenuKey($event)">
+                <li role="none"><button type="button" role="menuitem" class="is-danger" (click)="requestDelete()">Excluir levantamento…</button></li>
               </ul>
             }
           </span>
@@ -113,7 +113,7 @@
         <button type="button" class="btn btn-g btn-small" (click)="undo()" [disabled]="!canUndo()" title="Desfazer (Ctrl+Z)">Desfazer</button>
         <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" title="Refazer (Ctrl+Shift+Z)">Refazer</button>
         <span class="muted editbar-count">{{ plural(changes(), 'mudança', 'mudanças') }}{{ dirty() ? ', não salvas' : '' }}</span>
-        <button type="button" class="btn btn-icon editbar-help" (click)="hintOpen.set(!hintOpen())" [attr.aria-expanded]="hintOpen()" aria-controls="edit-hint" aria-label="Como ligar e mover passos">?</button>
+        <button type="button" class="btn btn-g btn-small" (click)="hintOpen.set(!hintOpen())" [attr.aria-expanded]="hintOpen()" aria-controls="edit-hint" title="Como ligar e mover passos">Como funciona</button>
         @if (draftMessage(); as message) {
           <span [class]="message.ok ? 'editbar-ok' : 'field-error'" role="status">{{ message.text }}</span>
         }
@@ -133,8 +133,8 @@
             <button type="button" class="btn btn-g btn-small" (click)="togglePopover('more')" [attr.aria-expanded]="moreOpen()" [attr.aria-controls]="moreOpen() ? 'more-menu' : null" aria-label="Mais ações da edição">Mais</button>
             @if (moreOpen()) {
               <div class="menu-backdrop" (click)="closePopovers()"></div>
-              <ul id="more-menu" class="popover-menu" (keydown)="onMenuKey($event)">
-                <li><button type="button" class="is-danger" (click)="discardFromMenu()">Descartar rascunho…</button></li>
+              <ul id="more-menu" class="popover-menu" role="menu" aria-label="Mais ações da edição" (keydown)="onMenuKey($event)">
+                <li role="none"><button type="button" role="menuitem" class="is-danger" (click)="discardFromMenu()">Descartar rascunho…</button></li>
               </ul>
             }
           </span>
@@ -282,7 +282,7 @@
         }
         <button type="button" class="panel-toggle" (click)="togglePanel()" [attr.aria-expanded]="!panelCollapsed()" aria-controls="node-panel"
           [attr.aria-label]="panelCollapsed() ? 'Mostrar o painel do passo' : 'Recolher o painel do passo para ver mais do grafo'"
-          [title]="panelCollapsed() ? 'Mostrar o painel' : 'Recolher o painel'"><span aria-hidden="true">{{ panelCollapsed() ? '‹' : '›' }}</span></button>
+          [title]="panelCollapsed() ? 'Mostrar o painel' : 'Recolher o painel'"><span class="panel-toggle-arrow" aria-hidden="true">{{ panelCollapsed() ? '‹' : '›' }}</span><span class="panel-toggle-label" aria-hidden="true">Painel</span></button>
         <app-node-panel id="node-panel" [surveyId]="d.survey.id" [repository]="d.survey.repository" [commitHash]="d.survey.commitHash" [segments]="d.survey.segments" [language]="d.survey.language"[graph]="g" [summary]="summary()" [selectedId]="selectedId()" [trail]="trail()" [deciding]="deciding()"
           [canFillHoles]="canFillHoles()" [filling]="filling()" [fillMessages]="fillMessages()"
           [canDescribe]="canDescribe()" [describing]="describing()" [describeMessage]="describeMessage()"
@@ -317,6 +317,9 @@
 } @else {
   <div class="page-state">
     <h1 class="visually-hidden">Levantamento</h1>
+    <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+      <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+    </svg>
     <p class="muted" aria-live="polite">Carregando o levantamento…</p>
   </div>
 }

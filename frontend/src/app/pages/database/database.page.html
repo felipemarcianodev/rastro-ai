@@ -26,7 +26,9 @@
       } @else {
         <span class="muted db-promise">Lido do código. Nenhum banco é consultado.</span>
       }
-      <button type="button" class="btn btn-g btn-small" (click)="connectionOpen.set(true)" aria-haspopup="dialog">{{ live() ? 'Banco vivo' : 'Conectar banco vivo' }}</button>
+      @if (!error()) {
+        <button type="button" class="btn btn-g btn-small" (click)="connectionOpen.set(true)" aria-haspopup="dialog">{{ live() ? 'Banco vivo' : 'Conectar banco vivo' }}</button>
+      }
       @if (geometry() && tab() === DbTab.Map) {
         <span class="popover">
           <button type="button" class="btn btn-g btn-small" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
@@ -47,12 +49,14 @@
     </div>
   </header>
 
-  <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
-    @for (t of tabs; track t) {
-      <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="'db-panel-' + t"
-        [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)">{{ tabLabel[t] }}</button>
-    }
-  </div>
+  @if (!error()) {
+    <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
+      @for (t of tabs; track t) {
+        <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="'db-panel-' + t"
+          [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)">{{ tabLabel[t] }}</button>
+      }
+    </div>
+  }
 
   @if (error(); as message) {
     <div class="page-state">
@@ -60,6 +64,7 @@
       <div class="page-state-actions">
         <button type="button" class="btn btn-g" (click)="retry()">Tentar de novo</button>
         <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
+        <a class="btn btn-g" routerLink="/configuracoes">Abrir as configurações</a>
       </div>
     </div>
   } @else if (!schema()) {
@@ -75,6 +80,10 @@
       <p>Nenhum banco encontrado no código de {{ nome() }}.</p>
       <p class="muted">O Rastro procura um DbContext do EF Core, as migrations e arquivos .sql (SQL Server ou PostgreSQL).</p>
       <p class="muted">A análise de consulta funciona mesmo assim, só sem os achados de índice e de nulo.</p>
+      <div class="page-state-actions">
+        <button type="button" class="btn btn-g" (click)="selectTab(DbTab.Query)">Analisar uma consulta mesmo assim</button>
+        <a class="btn btn-g" routerLink="/configuracoes" fragment="editor">Conferir a pasta do repositório</a>
+      </div>
     </div>
   } @else {
     <div class="db-body" role="tabpanel" id="db-panel-0" aria-labelledby="db-tab-map" [hidden]="tab() !== DbTab.Map" [class.has-panel]="!!selection()">
@@ -197,7 +206,7 @@
 
       @if (selection(); as pick) {
         <aside class="db-panel" aria-label="Item escolhido">
-          <app-db-panel [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event, true)" (closed)="closePanel()" />
+          <app-db-panel [repository]="nome()" [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event, true)" (closed)="closePanel()" />
         </aside>
       }
     </div>

@@ -146,7 +146,7 @@ Os demais itens do plano [`plano-ux-2026-11-06-fim-plano-banco.md`](plano-ux-202
 
 Cada fase é commitável sozinha, com build, testes e prints em `docs/telas/`.
 
-### Fase A: entradas e rótulos sem mudar a estrutura (baixo risco) `[ ]`
+### Fase A: entradas e rótulos sem mudar a estrutura (baixo risco) `[x]`
 
 O que tira o banco do esconderijo sem mexer no cabeçalho nem na barra.
 - F01, F02: botão "Mapa do banco" no grupo das visões da barra do levantamento, no lugar do link de texto.
@@ -158,6 +158,8 @@ O que tira o banco do esconderijo sem mexer no cabeçalho nem na barra.
 - H03, H05, H11, H13, H15, H24, F14 a F19, F21, F22, B13, B20, B25: rótulos, estados, foco e acessibilidade.
 
 Aceite: da tela inicial, o mapa do banco a 2 cliques por um botão com rótulo; de qualquer achado de banco, 1 clique até a tabela. Testes de componente para os links novos.
+
+Feito em 2026-11-06: os itens acima, com a tela inicial lendo `?repositorio=` para pré-selecionar o repositório (as Configurações e o painel da tabela usam esse link). O botão "Mapa do banco" some durante a edição do fluxo, para não sair da tela com o rascunho aberto. Frontend 352/352. Prints em `docs/telas/ux-fase-a/`. Ficou para a Fase B: na tela do banco com repositório inexistente, o seletor mostra outro repositório.
 
 ### Fase B: comportamento (médio risco) `[ ]`
 

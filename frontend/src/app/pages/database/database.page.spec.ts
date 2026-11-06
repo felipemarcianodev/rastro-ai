@@ -1,8 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { DbSchema, DbUsageReport } from '../../core/database/db-schema';
+import { DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { DbOperation, FindingKind, FindingSeverity } from '../../core/models';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
 import { DatabasePage } from './database.page';
@@ -211,5 +212,29 @@ describe('DatabasePage (Fase 38)', () => {
     const missing = render(null);
     expect(missing.el.querySelector('[role="alert"]')).not.toBeNull();
     expect(missing.el.textContent).toContain('Tentar de novo');
+  });
+
+  // WEB-DBV-012 (B06)
+  it('sem banco no código, oferece analisar uma consulta mesmo assim e conferir a pasta', () => {
+    const { fixture, el } = render({ ...lojaSchema(), tables: [], views: [], procedures: [], divergences: [], findings: [], notes: [] });
+    const actions = el.querySelector('.page-state-actions')!;
+    const check = actions.querySelector<HTMLAnchorElement>('a')!;
+    expect(check.textContent).toContain('Conferir a pasta do repositório');
+    expect(check.getAttribute('href')).toBe('/configuracoes#editor');
+
+    const query = [...actions.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.includes('Analisar uma consulta mesmo assim'))!;
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    query.click();
+    fixture.detectChanges();
+    expect(navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { aba: DB_TAB_QUERY_PARAM } }));
+  });
+
+  // WEB-DBV-013 (B07)
+  it('no erro de carga, esconde as abas e o banco vivo e leva às configurações', () => {
+    const { el } = render(null);
+    expect(el.querySelector('[role="tablist"]')).toBeNull();
+    expect(el.querySelector('[role="tab"]')).toBeNull();
+    expect([...el.querySelectorAll('button')].some((b) => b.textContent!.includes('banco vivo'))).toBeFalse();
+    expect(el.querySelector('a[href="/configuracoes"]')!.textContent).toContain('configurações');
   });
 });

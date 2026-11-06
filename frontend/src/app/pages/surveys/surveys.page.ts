@@ -1,6 +1,6 @@
 import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { plural, shortCommit, shortDate } from '../../core/format';
 import {
   CreateSurveyRequest,
@@ -20,6 +20,10 @@ const TSCONFIG_SUFFIX = '.json';
 const COMPONENT_ENTRY = /Component\.\w/;
 const MIN_DEPTH = 1;
 const MAX_DEPTH = 40;
+// Linhas do esqueleto da lista enquanto os levantamentos carregam.
+const SKELETON_ROWS = [0, 1, 2];
+// Parâmetro da URL que pré-seleciona o repositório (usado pelas Configurações).
+export const REPOSITORY_QUERY_PARAM = 'repositorio';
 
 type Field = 'repository' | 'solution' | 'entry' | 'depth';
 
@@ -100,6 +104,7 @@ export function matchesSearch(survey: SurveySummary, query: string): boolean {
 export class SurveysPage implements OnInit {
   private readonly api = inject(RastroApi);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private pollTimer?: ReturnType<typeof setTimeout>;
   // Pedido de um levantamento que falhou (estado da navegação), para preencher o formulário.
@@ -131,6 +136,8 @@ export class SurveysPage implements OnInit {
   protected readonly shortDate = shortDate;
   protected readonly shortCommit = shortCommit;
   protected readonly plural = plural;
+
+  protected readonly skeletonRows = SKELETON_ROWS;
 
   protected readonly hasRepositories = computed(() => this.repositories().length > 0);
 
@@ -216,6 +223,7 @@ export class SurveysPage implements OnInit {
         this.reposState.set('ready');
         const retry = this.retry;
         this.retry = null;
+        const preselected = this.route.snapshot.queryParamMap.get(REPOSITORY_QUERY_PARAM);
         if (retry && repos.some((r) => r.name === retry.repository)) {
           this.selectRepository(retry.repository, retry.solutionPath);
           const cross = retry.crossRepositories ?? [];
@@ -223,7 +231,8 @@ export class SurveysPage implements OnInit {
           this.crossSelf.set(cross.includes(retry.repository));
           // Depois do render: o foco vai ao ponto de entrada, com o texto selecionado para trocar.
           setTimeout(() => this.host.nativeElement.querySelector<HTMLInputElement>('#entry')?.select());
-        } else if (repos.length === 1) this.selectRepository(repos[0].name);
+        } else if (preselected && repos.some((r) => r.name === preselected)) this.selectRepository(preselected);
+        else if (repos.length === 1) this.selectRepository(repos[0].name);
       },
       error: (error) => {
         this.reposError.set(apiErrorMessage(error));

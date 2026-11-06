@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { FindingKind, FindingSeverity, FlowGraph, NodeKind } from '../../core/models';
 import { FindingsListComponent } from './findings-list.component';
 
@@ -19,9 +20,10 @@ const graph: FlowGraph = {
 };
 
 function render(nodeId: string | null, source: FlowGraph = graph): { el: HTMLElement; prompts: number[] } {
-  TestBed.configureTestingModule({ imports: [FindingsListComponent] });
+  TestBed.configureTestingModule({ imports: [FindingsListComponent], providers: [provideRouter([])] });
   const fixture = TestBed.createComponent(FindingsListComponent);
   fixture.componentRef.setInput('graph', source);
+  fixture.componentRef.setInput('repository', 'LojaBanco');
   fixture.componentRef.setInput('nodeId', nodeId);
   const prompts: number[] = [];
   fixture.componentInstance.prompt.subscribe((index) => prompts.push(index));
@@ -51,6 +53,25 @@ describe('FindingsListComponent', () => {
     const { el } = render(null, { ...graph, findings: undefined });
 
     expect(el.textContent).toContain('Levante o fluxo de novo');
+  });
+
+  it('achado de banco leva ao mapa do banco com a tabela, e sem alvo vai sem tabela', () => {
+    // UX-F05
+    const { el } = render(null, {
+      ...graph,
+      findings: [
+        { kind: FindingKind.QueryInLoop, severity: FindingSeverity.Warning, nodeId: 'a', message: 'consulta em laço', target: 'Pedidos' },
+        { kind: FindingKind.ReadWithoutNoTracking, severity: FindingSeverity.Info, nodeId: 'b', message: 'leitura' },
+        { kind: FindingKind.SilentCatch, severity: FindingSeverity.Critical, nodeId: 'b', message: 'catch vazio' },
+      ],
+    });
+
+    const links = [...el.querySelectorAll<HTMLAnchorElement>('.finding-actions a')];
+    expect(links.length).toBe(2);
+    expect(links.every((a) => a.textContent?.trim() === 'Ver no mapa do banco')).toBeTrue();
+    const hrefs = links.map((a) => a.getAttribute('href'));
+    expect(hrefs).toContain('/repositorios/LojaBanco/banco?tabela=Pedidos');
+    expect(hrefs).toContain('/repositorios/LojaBanco/banco');
   });
 
   it('cada botão de prompt tem nome distinto e o local mostra o arquivo de caminho Windows', () => {

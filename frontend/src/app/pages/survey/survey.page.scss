@@ -47,8 +47,12 @@
   z-index: 2;
   top: 50%;
   right: clamp(420px, 28vw, 600px);
-  width: 20px;
-  height: 56px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  width: 26px;
+  height: 84px;
   padding: 0;
   transform: translateY(-50%);
   border: 1px solid var(--line);
@@ -66,11 +70,16 @@
   }
 }
 
+// "Painel" na vertical, ao lado da seta, para a aba dizer o que recolhe.
+.panel-toggle-label {
+  font-size: var(--text-xs);
+  writing-mode: vertical-rl;
+}
+
 .page-state .notice {
   max-width: 560px;
   text-align: left;
 }
-
 
 @media (max-width: 1000px) {
   .workspace {
@@ -89,16 +98,22 @@
     top: auto;
     right: 50%;
     bottom: 45%;
-    width: 56px;
-    height: 20px;
+    flex-direction: row;
+    justify-content: center;
+    width: 96px;
+    height: 24px;
     transform: translateX(50%);
     border: 1px solid var(--line);
     border-bottom: 0;
     border-radius: var(--radius-md) var(--radius-md) 0 0;
 
-    span {
+    .panel-toggle-arrow {
       display: inline-block;
       transform: rotate(90deg);
+    }
+
+    .panel-toggle-label {
+      writing-mode: horizontal-tb;
     }
   }
 
@@ -125,10 +140,6 @@
 
 .editbar-count {
   margin-left: var(--space-2);
-}
-
-.editbar-help {
-  border-radius: 50%;
 }
 
 .edit-hint {

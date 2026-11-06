@@ -33,6 +33,15 @@ export class QueryPlanComponent {
   protected readonly main = computed(() => (this.plan()?.operations ?? []).filter((o) => o.percent >= MIN_PERCENT));
   protected readonly minor = computed(() => (this.plan()?.operations ?? []).filter((o) => o.percent < MIN_PERCENT));
 
+  // Resumo anunciado quando o plano chega: o restante do cartão é lido pela navegação normal.
+  protected readonly summary = computed(() => {
+    const plan = this.plan();
+    if (!plan) return '';
+    const ops = plan.operations.length;
+    const missing = plan.missingIndexes.length;
+    return `Plano estimado recebido: ${ops === 1 ? '1 operação' : ops + ' operações'}, ${missing === 0 ? 'nenhum índice sugerido' : missing === 1 ? '1 índice sugerido' : missing + ' índices sugeridos'}.`;
+  });
+
   constructor() {
     inject(DestroyRef).onDestroy(() => this.sub?.unsubscribe());
   }

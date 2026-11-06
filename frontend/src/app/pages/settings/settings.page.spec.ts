@@ -57,6 +57,29 @@ describe('SettingsPage: repositórios', () => {
     expect(rows[1].textContent).not.toContain('sem .git');
   });
 
+  // UX-H07
+  it('cada repositório tem Mapa do banco e Novo levantamento com o repositório na URL', () => {
+    const { fixture, http, el } = render();
+    answerInitial(http, [repo('a-sistema'), repo('b-sistema')]);
+    fixture.detectChanges();
+
+    const links = Array.from(el.querySelectorAll('.repo')[1].querySelectorAll<HTMLAnchorElement>('a.btn'));
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Mapa do banco', 'Novo levantamento']);
+    expect(links[0].getAttribute('href')).toBe('/repositorios/b-sistema/banco');
+    expect(links[1].getAttribute('href')).toBe('/?repositorio=b-sistema');
+  });
+
+  // UX-H24
+  it('erro de carga da configuração oferece Tentar de novo', () => {
+    const { fixture, http, el } = render();
+    answerInitial(http, []);
+    fixture.detectChanges();
+    expect(el.querySelector('.notice.is-error')).not.toBeNull();
+
+    button(el, 'Tentar de novo').click();
+    http.expectOne('/api/settings/ai');
+  });
+
   it('mostra o estado vazio', () => {
     const { fixture, http, el } = render();
     answerInitial(http, []);

@@ -3,7 +3,7 @@
   min-height: 0;
   display: grid;
   // Linha longa demais cansa a leitura dos motivos: a coluna da consulta para em 960px, com as tabelas ao lado.
-  grid-template-columns: minmax(0, 960px) minmax(280px, 400px);
+  grid-template-columns: minmax(0, 960px) minmax(280px, 520px);
   overflow: auto;
 }
 

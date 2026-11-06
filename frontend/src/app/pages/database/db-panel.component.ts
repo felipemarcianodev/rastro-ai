@@ -53,6 +53,7 @@ const CARDINALITY_BACK: Record<Cardinality, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DbPanelComponent {
+  readonly repository = input.required<string>();
   readonly schema = input.required<DbSchema>();
   readonly relations = input.required<readonly DbRelation[]>();
   readonly selection = input.required<DbPick>();

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   FINDING_CATEGORY_LABEL,
   FINDING_CATEGORY_OF,
@@ -23,6 +24,7 @@ const CATEGORY_ORDER = [FindingCategory.Database, FindingCategory.Ddd, FindingCa
 // Achados de qualidade do fluxo (Fase 10), agrupados por categoria. Com nodeId, só os do passo.
 @Component({
   selector: 'app-findings-list',
+  imports: [RouterLink],
   templateUrl: './findings-list.component.html',
   styleUrl: './findings-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -30,6 +32,9 @@ const CATEGORY_ORDER = [FindingCategory.Database, FindingCategory.Ddd, FindingCa
 export class FindingsListComponent {
   readonly graph = input.required<FlowGraph>();
   readonly nodeId = input<string | null>(null);
+  // Nome do repositório no catálogo: é o que leva o achado de banco ao mapa do banco.
+  readonly repository = input<string>('');
+  protected readonly FindingCategory = FindingCategory;
   readonly selectNode = output<string>();
   readonly prompt = output<number>();
 

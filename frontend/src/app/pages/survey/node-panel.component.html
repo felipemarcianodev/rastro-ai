@@ -70,6 +70,8 @@
         <p class="muted">Sem regra escrita para este nó. Um agente conectado (MCP) pode escrever{{ canDescribe() ? ', ou peça à IA abaixo' : '' }}.</p>
         @if (!aiActive()) {
           <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
+        } @else if (!canDescribe()) {
+          <p class="muted ai-off">Para a IA escrever a regra, ligue o uso "Escrever regras" em <a routerLink="/configuracoes">Configurações</a>.</p>
         }
       }
       @if (canDescribe()) {
@@ -148,7 +150,7 @@
               }
               <span class="muted">linha {{ a.line }}</span>
               @if (a.sql && repository()) {
-                <a class="db-sql-link" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="{ aba: queryTab, consulta: a.sql, origem: node.label }" title="Abrir a consulta deste passo na análise de consulta">Analisar a consulta</a>
+                <a class="db-sql-link" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="{ aba: queryTab, consulta: a.sql, origem: node.label }" title="Abrir a consulta deste passo na análise de consulta" [attr.aria-label]="'Analisar a consulta de ' + a.target + ', linha ' + a.line">Analisar a consulta</a>
               }
             </li>
           }
@@ -166,7 +168,7 @@
     @if (hasFindings(node.id)) {
       <div class="block">
         <h3>Melhorias neste passo</h3>
-        <app-findings-list [graph]="graph()" [nodeId]="node.id" (prompt)="refactorPrompt.emit($event)" />
+        <app-findings-list [graph]="graph()" [nodeId]="node.id" [repository]="repository()" (prompt)="refactorPrompt.emit($event)" />
       </div>
     }
 
@@ -191,6 +193,8 @@
         }
         @if (!canFillHoles() && !aiActive()) {
           <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
+        } @else if (!canFillHoles()) {
+          <p class="muted ai-off">Para a IA propor destinos, ligue o uso "Completar buracos" em <a routerLink="/configuracoes">Configurações</a>.</p>
         }
         @if (fillMessages().length > 0) {
           <ul class="fill-messages" aria-live="polite">
@@ -309,6 +313,8 @@
         <p class="muted">Chamadas que o compilador não ligou sozinho. Um agente conectado (MCP) ou a IA, se ligada, propõe o destino; você confirma.</p>
         @if (!aiActive()) {
           <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
+        } @else if (!canFillHoles()) {
+          <p class="muted ai-off">Para a IA propor destinos, ligue o uso "Completar buracos" em <a routerLink="/configuracoes">Configurações</a>.</p>
         }
         <ul class="holes">
           @for (hole of unresolved(); track hole.id) {
@@ -383,7 +389,7 @@
 
     <details class="section" open>
       <summary><h3>Melhorias e dívida técnica <span class="muted">({{ findingCount() }})</span></h3></summary>
-      <app-findings-list [graph]="graph()" (selectNode)="selectNode.emit($event)" (prompt)="refactorPrompt.emit($event)" />
+      <app-findings-list [graph]="graph()" [repository]="repository()" (selectNode)="selectNode.emit($event)" (prompt)="refactorPrompt.emit($event)" />
     </details>
 
     @if (unresolved().length === 0) {
