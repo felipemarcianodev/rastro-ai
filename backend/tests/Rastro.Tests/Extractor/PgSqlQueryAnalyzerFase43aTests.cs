@@ -45,7 +45,7 @@ public class PgSqlQueryAnalyzerFase43aTests
         Assert.DoesNotContain(new PgSqlQueryAnalyzer().Analyze(query, triple).Findings, x => x.Kind == QueryFindingKind.ColumnWithoutIndex);
         // Só a segunda coluna e a terceira, sem a primeira: o índice não ajuda.
         var skipped = "SELECT i.id FROM itens i WHERE i.loja_id = @l AND i.criado_em > @d LIMIT 10";
-        Assert.Equal(2, new PgSqlQueryAnalyzer().Analyze(skipped, triple).Findings.Count(x => x.Kind == QueryFindingKind.ColumnWithoutIndex));
+        Assert.Single(new PgSqlQueryAnalyzer().Analyze(skipped, triple).Findings, x => x.Kind == QueryFindingKind.ColumnWithoutIndex);
         // E a junção também: o ON com igualdade conta para o índice composto.
         var join = "SELECT i.id FROM categorias c JOIN itens i ON i.tenant_id = c.tenant_id AND i.loja_id = c.id WHERE c.id = @c LIMIT 10";
         Assert.DoesNotContain(Kinds(join, QueryFindingKind.ColumnWithoutIndex), x => x.Table == "itens");

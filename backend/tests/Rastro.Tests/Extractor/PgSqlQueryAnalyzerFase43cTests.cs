@@ -32,10 +32,12 @@ public class PgSqlQueryAnalyzerFase43cTests
     [Fact] // EXT-PGQ-032
     public void Analyze_NenhumIndiceAtendeOFiltro_ContinuaAcusando()
     {
-        // category e role não começam índice nenhum e nenhuma coluna do filtro atende um: os dois são achados.
+        // category e role não começam índice nenhum e nenhuma coluna do filtro atende um: um achado só, marcado na primeira.
         var sql = "SELECT t.id FROM tarefas t WHERE t.category = @c AND t.role = @r LIMIT 10";
 
-        Assert.Equal(["t.category", "t.role"], Missing(sql).Select(f => sql.Substring(f.Start, f.Length)));
+        var found = Assert.Single(Missing(sql));
+        Assert.Equal("t.category", sql.Substring(found.Start, found.Length));
+        Assert.Contains("category e role", found.Message);
         // A segunda coluna do índice sem a primeira não atende.
         Assert.Single(Missing("SELECT t.id FROM tarefas t WHERE t.space_id = @s LIMIT 10"));
     }
@@ -68,5 +70,40 @@ public class PgSqlQueryAnalyzerFase43cTests
         var sql = $"SELECT a.id FROM alertas a {where} LIMIT 10";
 
         Assert.Empty(Missing(sql));
+    }
+
+    private static readonly DbSchema Implicita = DbSchemaExtractor.Extract([new SchemaFile("banco/y.sql", """
+        CREATE TABLE task_items (id uuid PRIMARY KEY, tenant_id uuid NOT NULL, titulo text NOT NULL);
+        CREATE TABLE subtasks (id uuid PRIMARY KEY, tenant_id uuid NOT NULL, task_item_id uuid NOT NULL, user_id uuid NOT NULL, role text NULL, titulo text NOT NULL);
+        CREATE TABLE spaces (id uuid PRIMARY KEY, tenant_id uuid NOT NULL);
+        CREATE TABLE users (id uuid PRIMARY KEY, tenant_id uuid NOT NULL);
+        CREATE TABLE memberships (id uuid PRIMARY KEY, tenant_id uuid NOT NULL, user_id uuid NOT NULL, role text NOT NULL, company_id uuid NULL);
+        """)]);
+
+    private static List<QueryFinding> Kinds(string sql, QueryFindingKind kind) =>
+        new PgSqlQueryAnalyzer().Analyze(sql, Implicita).Findings.Where(f => f.Kind == kind).ToList();
+
+    [Fact] // EXT-PGQ-035
+    public void Analyze_ListaFilhaPorChaveImplicitaSemFkDeclarada_NaoDisparaELeituraPeloTenantDispara()
+    {
+        // Nenhuma FK declarada: task_item_id aponta para task_items e user_id para users, pelo nome.
+        Assert.Empty(Kinds("SELECT s.id FROM subtasks s WHERE s.task_item_id = @id", QueryFindingKind.ReadWithoutLimit));
+        Assert.Empty(Kinds("SELECT s.id FROM subtasks s WHERE s.task_item_id = @id ORDER BY s.titulo", QueryFindingKind.OrderByWithoutLimit));
+        Assert.Empty(Kinds("SELECT s.id FROM subtasks s WHERE s.user_id = @u", QueryFindingKind.ReadWithoutLimit));
+        // A coluna de partição (tenant_id) continua não valendo, e company_id sem tabela company(s) também não.
+        Assert.Single(Kinds("SELECT s.id FROM subtasks s WHERE s.tenant_id = @t", QueryFindingKind.ReadWithoutLimit));
+        Assert.Single(Kinds("SELECT m.id FROM memberships m WHERE m.company_id = @c", QueryFindingKind.ReadWithoutLimit));
+    }
+
+    [Fact] // EXT-PGQ-036
+    public void Analyze_DuasColunasSemIndiceNoFiltro_UmAchadoPorTabelaMarcadoNaPrimeira()
+    {
+        var sql = "SELECT m.id FROM memberships m WHERE m.user_id = @u AND m.role = @r LIMIT 10";
+
+        var found = Assert.Single(Kinds(sql, QueryFindingKind.ColumnWithoutIndex));
+
+        Assert.Equal("m.user_id", sql.Substring(found.Start, found.Length));
+        Assert.Contains("user_id e role", found.Message);
+        Assert.Equal("memberships", found.Table);
     }
 }
