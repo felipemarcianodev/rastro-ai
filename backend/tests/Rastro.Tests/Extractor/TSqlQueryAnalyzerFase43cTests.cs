@@ -34,8 +34,8 @@ public class TSqlQueryAnalyzerFase43cTests
     {
         Assert.Empty(Kinds("SELECT TOP 10 t.id FROM tarefas t WHERE t.tenant_id = @t AND t.space_id = @s AND t.archived_at IS NULL", QueryFindingKind.ColumnWithoutIndex));
         Assert.Empty(Kinds("SELECT TOP 10 t.id FROM tarefas t WHERE t.tenant_id > @t AND t.titulo = @x", QueryFindingKind.ColumnWithoutIndex));
-        // Nenhum índice atende nenhuma coluna do filtro: os dois são achados.
-        Assert.Equal(2, Kinds("SELECT TOP 10 t.id FROM tarefas t WHERE t.titulo = @x AND t.archived_at = @d", QueryFindingKind.ColumnWithoutIndex).Count);
+        // Nenhum índice atende nenhuma coluna do filtro: um achado só, citando os dois.
+        Assert.Single(Kinds("SELECT TOP 10 t.id FROM tarefas t WHERE t.titulo = @x AND t.archived_at = @d", QueryFindingKind.ColumnWithoutIndex));
         // A junção, por tabela: o residual do ON fica sem achado quando o índice da tabela atende o ON.
         Assert.Empty(Kinds("SELECT TOP 10 s.id FROM tarefas t JOIN subtarefas s ON s.tenant_id = t.tenant_id AND s.titulo = t.titulo WHERE t.id = @i", QueryFindingKind.ColumnWithoutIndex));
     }
@@ -55,5 +55,33 @@ public class TSqlQueryAnalyzerFase43cTests
         Assert.Single(Kinds("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t ORDER BY s.titulo", QueryFindingKind.OrderByWithoutLimit));
         Assert.Empty(Kinds("SELECT s.id FROM subtarefas s WHERE s.tarefa_id = @id", QueryFindingKind.ReadWithoutLimit));
         Assert.Empty(Kinds("SELECT s.id FROM subtarefas s WHERE s.tarefa_id = @id ORDER BY s.titulo", QueryFindingKind.OrderByWithoutLimit));
+    }
+
+    private static readonly DbSchema Implicita = DbSchemaExtractor.Extract([new SchemaFile("banco/y.sql", """
+        CREATE TABLE [dbo].[TaskItems] ([Id] uniqueidentifier NOT NULL PRIMARY KEY, [TenantId] uniqueidentifier NOT NULL);
+        CREATE TABLE [dbo].[Subtasks] ([Id] uniqueidentifier NOT NULL PRIMARY KEY, [TenantId] uniqueidentifier NOT NULL, [TaskItemId] uniqueidentifier NOT NULL, [UserId] uniqueidentifier NOT NULL, [Role] nvarchar(20) NULL);
+        CREATE TABLE [dbo].[Users] ([Id] uniqueidentifier NOT NULL PRIMARY KEY, [TenantId] uniqueidentifier NOT NULL);
+        """)]);
+
+    private static List<QueryFinding> ImplicitKinds(string sql, QueryFindingKind kind) =>
+        new TSqlQueryAnalyzer().Analyze(sql, Implicita).Findings.Where(f => f.Kind == kind).ToList();
+
+    [Fact] // EXT-DBQ-023
+    public void Analyze_ListaFilhaPorChaveImplicitaCamelCase_NaoDisparaELeituraPeloTenantDispara()
+    {
+        Assert.Empty(ImplicitKinds("SELECT s.Id FROM Subtasks s WHERE s.TaskItemId = @id", QueryFindingKind.ReadWithoutLimit));
+        Assert.Empty(ImplicitKinds("SELECT s.Id FROM Subtasks s WHERE s.UserId = @u", QueryFindingKind.ReadWithoutLimit));
+        Assert.Single(ImplicitKinds("SELECT s.Id FROM Subtasks s WHERE s.TenantId = @t", QueryFindingKind.ReadWithoutLimit));
+    }
+
+    [Fact] // EXT-DBQ-024
+    public void Analyze_DuasColunasSemIndiceNoFiltro_UmAchadoPorTabelaMarcadoNaPrimeira()
+    {
+        var sql = "SELECT TOP 10 s.Id FROM Subtasks s WHERE s.UserId = @u AND s.Role = @r";
+
+        var found = Assert.Single(ImplicitKinds(sql, QueryFindingKind.ColumnWithoutIndex));
+
+        Assert.Equal("s.UserId", sql.Substring(found.Start, found.Length));
+        Assert.Contains("UserId e Role", found.Message);
     }
 }

@@ -58,6 +58,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
     {
         // A chave de partição (o tenant): filtrar só por ela não é filtrar por um pai.
         private readonly HashSet<string> _partition = DbPartition.Columns(schema);
+        private readonly HashSet<string> _tableKeys = DbPartition.TableKeys(schema);
         private readonly SqlDialect _dialect = schema?.Dialect ?? SqlDialect.SqlServer;
         private readonly Dictionary<string, DbTable> _tables = (schema?.Tables ?? [])
             .GroupBy(t => DbNames.Key(t.Schema, t.Name, schema!.Dialect))
@@ -70,7 +71,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
 
         // Coluna sem índice fica para o fim: se a mesma coluna levou o achado de função ou de LIKE, o
         // motivo já está lá e o achado de índice sai.
-        private readonly List<(string Column, QueryFinding Finding, Scope Scope, TableRef Ref, bool Join)> _indexFindings = [];
+        private readonly List<(string Column, QueryFinding Finding, Scope Scope, TableRef Ref, bool Join, string Name)> _indexFindings = [];
 
         // As colunas de cada tabela que o filtro ou o ON citam: um índice que começa por uma delas é o que o
         // banco usa, e as outras colunas do filtro são conferidas nas linhas que ele já buscou.
@@ -82,7 +83,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
 
         public List<QueryFinding> Findings() =>
             _findings
-                .Concat(_indexFindings.Where(f => !_covered.Contains(f.Column) && !Served(f.Scope, f.Ref, f.Join)).Select(f => f.Finding))
+                .Concat(IndexFindings())
                 .OrderByDescending(f => f.Severity)
                 .ThenBy(f => f.Start)
                 .ThenBy(f => f.Kind)
@@ -494,7 +495,27 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             var span = Span(column);
             _indexFindings.Add((key, new QueryFinding(QueryFindingKind.ColumnWithoutIndex, QuerySeverity.Medium, span.Start, span.Length, column.StartLine, Snippet(span.Start, span.Length),
                 $"{resolved.Ref.Name}.{name} está {what} e não tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade ({have}): o banco pode ler a tabela inteira para achar as linhas. Confira o plano.",
-                resolved.Ref.Name), scope, resolved.Ref, join));
+                resolved.Ref.Name), scope, resolved.Ref, join, DbNames.Unquote(name)));
+        }
+
+        // Um achado de índice por tabela (e por filtro ou junção): cita todas as colunas sem índice, e o trecho
+        // fica marcado na primeira delas.
+        private IEnumerable<QueryFinding> IndexFindings()
+        {
+            var pending = _indexFindings.Where(f => !_covered.Contains(f.Column) && !Served(f.Scope, f.Ref, f.Join)).ToList();
+            foreach (var group in pending.GroupBy(f => (f.Ref, f.Join)))
+            {
+                var first = group.First();
+                if (group.Count() == 1) { yield return first.Finding; continue; }
+                var table = first.Ref.Name;
+                var names = Join(group.Select(f => f.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
+                var what = first.Join ? "na junção" : "no filtro";
+                var have = first.Ref.Table is { } t && IndexList(t) is { Count: > 0 } indexes ? $"o esquema tem {Join(indexes)}" : "a tabela não tem índice nenhum";
+                yield return first.Finding with
+                {
+                    Message = $"{table}: {names} estão {what} e nenhuma tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade ({have}): o banco pode ler a tabela inteira para achar as linhas. Confira o plano."
+                };
+            }
         }
 
         // Coluna residual: algum índice (ou a chave primária) da tabela começa por uma coluna do filtro, então o
@@ -663,8 +684,10 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         private bool FilteredByForeignKey(Scope? scope)
         {
             if (scope is null || ValueFilters(scope) is not { } filters) return false;
+            // Sem FK declarada, a coluna x_id cuja tabela x, xs ou xes existe no esquema conta como FK implícita.
             return filters.Any(f => !_partition.Contains(DbNames.Unquote(f.Column))
-                && f.Table.ForeignKeys.Any(fk => fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(f.Column), StringComparison.OrdinalIgnoreCase))));
+                && (f.Table.ForeignKeys.Any(fk => fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(f.Column), StringComparison.OrdinalIgnoreCase)))
+                    || DbPartition.IsImplicitForeignKey(_tableKeys, f.Column)));
         }
 
         // As colunas filtradas identificam uma linha: a chave primária ou uma única inteira.

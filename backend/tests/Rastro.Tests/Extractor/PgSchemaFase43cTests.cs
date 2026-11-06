@@ -76,4 +76,29 @@ public class PgSchemaFase43cTests
         Assert.DoesNotContain(schema.Divergences, d => d is { Table: "paineis", Column: "nota" });
         Assert.Contains(schema.Divergences, d => d is { Table: "paineis", Column: "meta" });
     }
+
+    [Fact] // EXT-PG-046
+    public void Extract_JsonbComConversaoMultilinhaEValueComparerViaMetadata_ViraColunaSemDivergencia()
+    {
+        var schema = Extract("""
+            builder.Property(x => x.Entries)
+                .HasColumnName("entries")
+                .HasColumnType("jsonb")
+                .HasDefaultValueSql("'{}'::jsonb")
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, string>())
+                .Metadata.SetValueComparer(
+                    new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<Dictionary<string, string>>(
+                        (a, b) => (a == null && b == null) || (a != null && b != null && a.SequenceEqual(b)),
+                        v => v.Aggregate(0, (h, kv) => HashCode.Combine(h, kv.Key.GetHashCode(), kv.Value.GetHashCode())),
+                        v => new Dictionary<string, string>(v)));
+            builder.Property(x => x.Meta).HasColumnType("jsonb");
+            builder.Property(x => x.Nota).HasColumnType("jsonb");
+            """);
+
+        var table = Assert.Single(schema.Tables);
+        Assert.Equal("jsonb", table.Columns.Single(c => c.Name == "entries").Type);
+        Assert.DoesNotContain(schema.Divergences, d => d is { Table: "paineis", Column: "entries" });
+    }
 }

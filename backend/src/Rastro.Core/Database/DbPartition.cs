@@ -18,4 +18,25 @@ public static class DbPartition
             if (group.Count() >= 2 && group.Count() * 2 >= tables.Count) keys.Add(group.Key);
         return keys;
     }
+
+    // Os nomes das tabelas do esquema sem underscore e em minúsculas, para conferir a chave estrangeira implícita.
+    public static HashSet<string> TableKeys(DbSchema? schema) =>
+        (schema?.Tables ?? []).Select(t => Flat(t.Name)).ToHashSet();
+
+    // Chave estrangeira implícita: o sistema não declara a FK, mas a coluna "x_id" (ou "xId") aponta para a
+    // tabela "x", "xs", "xes" ou "xies" (task_item_id aponta para task_items). Só o nome conta, não exige índice.
+    public static bool IsImplicitForeignKey(HashSet<string> tableKeys, string column)
+    {
+        var name = DbNames.Unquote(column);
+        string? baseName = null;
+        if (name.EndsWith("_id", StringComparison.OrdinalIgnoreCase)) baseName = name[..^3];
+        else if (name.Length > 2 && name.EndsWith("Id", StringComparison.Ordinal) && char.IsLower(name[^3])) baseName = name[..^2];
+        if (string.IsNullOrEmpty(baseName)) return false;
+        var flat = Flat(baseName);
+        if (flat.Length == 0) return false;
+        return tableKeys.Contains(flat) || tableKeys.Contains(flat + "s") || tableKeys.Contains(flat + "es")
+            || (flat.EndsWith('y') && tableKeys.Contains(flat[..^1] + "ies"));
+    }
+
+    private static string Flat(string name) => DbNames.Unquote(name).Replace("_", "", StringComparison.Ordinal).ToLowerInvariant();
 }
