@@ -1,0 +1,149 @@
+@if (table(); as t) {
+  <header class="db-panel-head">
+    <h2 class="code">{{ t.key }}</h2>
+    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" title="Fechar o painel (Esc)">Fechar</button>
+  </header>
+  <p class="muted db-origin">
+    {{ t.sources.length === 1 ? 'Fonte:' : 'Fontes:' }}
+    @for (s of t.sources; track $index) {
+      <span>{{ sourceLabel[s.kind] }} <code>{{ s.file }}:{{ s.line }}</code>@if (!$last) {, }</span>
+    }
+  </p>
+  @if (t.link) {
+    <p class="db-link-note">{{ t.link }}</p>
+  }
+
+  @for (d of t.divergences; track $index) {
+    <div class="notice is-warning db-note" role="note">
+      <strong>Divergência entre fontes: {{ d.title }}.</strong>
+      @for (v of d.values; track $index) {
+        <span class="db-divergence">{{ v }}</span>
+      }
+      <span>O Rastro mostra as versões e não escolhe: confira no código.</span>
+    </div>
+  }
+
+  @if (t.findings.length > 0) {
+    <h3 class="db-h">Achados sem IA</h3>
+    @for (f of t.findings; track $index) {
+      <div class="db-finding"><strong class="db-finding-title">{{ findingTitle[f.kind] }}</strong>{{ findingText(f) }}</div>
+    }
+  }
+
+  <h3 class="db-h">Campos</h3>
+  <table class="db-fields">
+    <thead>
+      <tr><th scope="col">Campo</th><th scope="col">Tipo</th><th scope="col">Nulo</th><th scope="col">Chave</th></tr>
+    </thead>
+    <tbody>
+      @for (c of t.columns; track c.name) {
+        <tr>
+          <td class="code">
+            {{ c.name }}
+            @if (c.personal) {
+              <span class="db-personal" title="O nome da coluna é de dado pessoal (LGPD). O Rastro não lê o conteúdo.">pessoal</span>
+            }
+          </td>
+          <td class="code" [class.db-divergent]="c.divergent">
+            {{ c.type }}
+            @if (c.identity) {
+              <span class="muted db-extra">identidade</span>
+            }
+            @if (c.default) {
+              <span class="muted db-extra">padrão {{ c.default }}</span>
+            }
+          </td>
+          <td [class.db-divergent]="c.nullable === 'divergente'">{{ c.nullable }}</td>
+          <td>{{ c.keyText }}</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+  @if (t.noKey) {
+    <p class="muted db-small">Sem chave primária.</p>
+  }
+
+  <h3 class="db-h">Índices</h3>
+  @if (t.indexes.length === 0) {
+    <p class="muted db-small">Nenhum índice no código.</p>
+  } @else {
+    <ul class="db-list code db-small">
+      @for (i of t.indexes; track $index) {
+        <li>
+          {{ i.name }} ({{ i.columns }})@if (i.extra) {, {{ i.extra }}}
+          @if (i.convention) {
+            <span class="origin-badge" title="O EF Core cria este índice sozinho na chave estrangeira; ele não está escrito no código">convenção do EF</span>
+          }
+        </li>
+      }
+    </ul>
+  }
+
+  <h3 class="db-h">Relações</h3>
+  @if (t.relations.length === 0 && t.views.length === 0 && t.procedures.length === 0) {
+    <p class="muted db-small">Nenhuma chave estrangeira liga esta tabela a outra.</p>
+  }
+  <ul class="db-list">
+    @for (r of t.relations; track $index) {
+      <li>
+        <button type="button" class="source-link" (click)="pickTable(r.target)">{{ r.text }}</button>
+        @if (r.onDelete) {
+          <span class="muted db-small">{{ r.onDelete }}</span>
+        }
+      </li>
+    }
+    @for (v of t.views; track v) {
+      <li><button type="button" class="source-link" (click)="pickItem(DbItemKind.View, v)">A view {{ v }} lê esta tabela</button></li>
+    }
+    @for (p of t.procedures; track p.key) {
+      <li><button type="button" class="source-link" (click)="pickItem(DbItemKind.Procedure, p.key)">A procedure {{ p.key }} {{ p.writes ? 'grava' : 'lê' }} esta tabela</button></li>
+    }
+  </ul>
+} @else if (view(); as v) {
+  <header class="db-panel-head">
+    <h2 class="code">{{ v.key }}</h2>
+    <span class="muted">view</span>
+    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" title="Fechar o painel (Esc)">Fechar</button>
+  </header>
+  <p class="muted db-origin">Fonte: {{ sourceText(v.view.source) }}</p>
+  <h3 class="db-h">Colunas que devolve</h3>
+  <p class="code db-small">{{ v.view.columns.length > 0 ? v.view.columns.join(', ') : 'não deu para ler pelo texto' }}</p>
+  <h3 class="db-h">Tabelas que lê</h3>
+  <ul class="db-list">
+    @for (r of v.reads; track r.name) {
+      <li>@if (r.key) { <button type="button" class="source-link code" (click)="pickTable(r.key)">{{ r.name }}</button> } @else { <span class="code">{{ r.name }}</span> <span class="muted">(fora do esquema)</span> }</li>
+    }
+  </ul>
+} @else if (procedure(); as p) {
+  <header class="db-panel-head">
+    <h2 class="code">{{ p.key }}</h2>
+    <span class="muted">procedure</span>
+    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" title="Fechar o painel (Esc)">Fechar</button>
+  </header>
+  <p class="muted db-origin">Fonte: {{ sourceText(p.procedure.source) }}</p>
+  <h3 class="db-h">Parâmetros</h3>
+  @if (p.procedure.parameters.length === 0) {
+    <p class="muted db-small">Nenhum.</p>
+  }
+  <ul class="db-list code db-small">
+    @for (x of p.procedure.parameters; track x.name) {
+      <li>{{ x.name }} {{ x.type }}@if (x.output) { <span class="muted">(saída)</span> }</li>
+    }
+  </ul>
+  <h3 class="db-h">Grava</h3>
+  <ul class="db-list">
+    @for (r of p.writes; track r.name) {
+      <li>@if (r.key) { <button type="button" class="source-link code" (click)="pickTable(r.key)">{{ r.name }}</button> } @else { <span class="code">{{ r.name }}</span> }</li>
+    } @empty {
+      <li class="muted db-small">Nenhuma tabela.</li>
+    }
+  </ul>
+  <h3 class="db-h">Lê</h3>
+  <ul class="db-list">
+    @for (r of p.reads; track r.name) {
+      <li>@if (r.key) { <button type="button" class="source-link code" (click)="pickTable(r.key)">{{ r.name }}</button> } @else { <span class="code">{{ r.name }}</span> }</li>
+    } @empty {
+      <li class="muted db-small">Nenhuma tabela.</li>
+    }
+  </ul>
+}

@@ -90,7 +90,9 @@ public class SchemaEndpointTests(ApiFixture fixture) : IAsyncLifetime
         var tools = scope.ServiceProvider.GetRequiredService<RastroTools>();
 
         var all = await tools.GetDbSchema(_name);
-        Assert.Contains("Banco: SQL Server. 6 tabelas, 2 views, 1 procedures, 1 divergências entre fontes.", all);
+        Assert.Contains("Banco: SQL Server. 6 tabelas, 2 views, 1 procedures, 1 divergências entre fontes, 2 achados.", all);
+        Assert.Contains("Achado: chave estrangeira pedido_id sem índice", all);
+        Assert.Contains("[dado pessoal pelo nome]", all);
         Assert.Contains("Divergência de tipo em status: modelo do EF diz nvarchar(20) (modelo do EF, Loja.Api/Dados/Configuracoes/PedidoConfiguration.cs:10); migration diz nvarchar(30)", all);
         Assert.Contains("Procedure sp_baixar_estoque", all);
         Assert.DoesNotContain("fantasma", all);

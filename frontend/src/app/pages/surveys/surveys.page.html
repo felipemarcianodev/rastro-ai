@@ -107,6 +107,9 @@
           <span class="field-help">Nenhum repositório cadastrado. Cadastre a pasta do seu código em <a routerLink="/configuracoes" fragment="editor">Configurações</a>.</span>
         }
         <span id="repository-error" class="field-error" [hidden]="!fieldErrors().repository">{{ fieldErrors().repository }}</span>
+        @if (repository) {
+          <a class="field-help"[routerLink]="['/repositorios', repository, 'banco']">Ver o mapa do banco de {{ repository }}</a>
+        }
       </div>
 
       <div class="field">

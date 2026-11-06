@@ -32,6 +32,7 @@ import {
   C4Person,
   SurveySummary,
 } from './models';
+import { DbSchema } from './database/db-schema';
 
 @Injectable({ providedIn: 'root' })
 export class RastroApi {
@@ -51,6 +52,11 @@ export class RastroApi {
 
   solutions(repository: string): Observable<string[]> {
     return this.http.get<string[]>(`/api/repositories/${encodeURIComponent(repository)}/solutions`);
+  }
+
+  // Esquema do banco lido do código do repositório (Fase 37); nenhum banco é consultado.
+  schema(repository: string): Observable<DbSchema> {
+    return this.http.get<DbSchema>(`/api/repositories/${encodeURIComponent(repository)}/schema`);
   }
 
   health(): Observable<RastroHealth> {

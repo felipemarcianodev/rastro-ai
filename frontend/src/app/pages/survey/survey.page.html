@@ -15,6 +15,7 @@
         <h1 class="code">{{ d.survey.entryPoint }}</h1>
         <div class="page-bar-meta">
           <span>{{ d.survey.repository }}</span>
+          <a [routerLink]="['/repositorios', d.survey.repository, 'banco']" title="O mapa do banco deste repositório, lido do código">Banco</a>
           <span class="code muted meta-path" [title]="d.survey.solutionPath">{{ d.survey.solutionPath }}</span>
           @if (d.survey.branch || d.survey.commitHash) {
             <details class="meta-details">

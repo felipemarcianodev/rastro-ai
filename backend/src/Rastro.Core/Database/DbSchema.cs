@@ -55,14 +55,19 @@ public enum SchemaDivergenceKind
 public record SchemaSource(SchemaSourceKind Kind, string File, int Line);
 
 // Type e Nullable ficam nulos quando as fontes divergem: o Rastro não escolhe (ver Divergences).
-public record DbColumn(string Name, string? Type, bool? Nullable, string? Default, bool Identity, IReadOnlyList<SchemaSource> Sources);
+// Personal (Fase 38): o nome da coluna é de dado pessoal (CPF, e-mail, telefone), pelo nome e nunca
+// pelo conteúdo, que o Rastro não lê (ver PersonalData).
+public record DbColumn(string Name, string? Type, bool? Nullable, string? Default, bool Identity, IReadOnlyList<SchemaSource> Sources, bool Personal = false);
 
 public record DbPrimaryKey(string? Name, IReadOnlyList<string> Columns, SchemaSource Source);
 
 // PrincipalTable no formato de DbNames.Display (sem o schema padrão do dialeto).
 public record DbForeignKey(string? Name, IReadOnlyList<string> Columns, string PrincipalTable, IReadOnlyList<string> PrincipalColumns, DeleteAction OnDelete, SchemaSource Source);
 
-public record DbIndex(string? Name, IReadOnlyList<string> Columns, IReadOnlyList<string> Included, bool Unique, SchemaSource Source);
+// Convention (Fase 38): índice que o EF Core cria sozinho em cada chave estrangeira, deduzido do modelo
+// (não está escrito no código). Só aparece quando a tabela não tem migration nem .sql, que dizem o que
+// o banco de fato tem.
+public record DbIndex(string? Name, IReadOnlyList<string> Columns, IReadOnlyList<string> Included, bool Unique, SchemaSource Source, bool Convention = false);
 
 // Schema nulo é o padrão do dialeto (dbo no SQL Server, public no PostgreSQL).
 public record DbTable(
@@ -89,13 +94,25 @@ public record SchemaDivergence(SchemaDivergenceKind Kind, string Table, string C
 // O que o leitor viu e não conseguiu ler (arquivo que o leitor de SQL não entendeu, configuração fora do alcance).
 public record SchemaNote(string Message, string File, int Line);
 
+// Achado do esquema, sem IA (Fase 38). A mesma entrada dá sempre os mesmos achados.
+public enum SchemaFindingKind
+{
+    // A migration ou o .sql cria a chave estrangeira sem um índice que comece pelas colunas dela:
+    // toda busca pela FK (e todo DELETE na tabela de destino) varre a tabela.
+    ForeignKeyWithoutIndex = 0
+}
+
+// Source: onde a chave estrangeira foi criada (a migration ou o .sql).
+public record SchemaFinding(SchemaFindingKind Kind, string Table, IReadOnlyList<string> Columns, SchemaSource Source);
+
 public record DbSchema(
     SqlDialect Dialect,
     IReadOnlyList<DbTable> Tables,
     IReadOnlyList<DbView> Views,
     IReadOnlyList<DbProcedure> Procedures,
     IReadOnlyList<SchemaDivergence> Divergences,
-    IReadOnlyList<SchemaNote> Notes);
+    IReadOnlyList<SchemaNote> Notes,
+    IReadOnlyList<SchemaFinding> Findings);
 
 // O que uma fonte leu, antes da fusão: cada coluna, chave e índice com uma fonte só.
 public record SchemaFragment(

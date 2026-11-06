@@ -1,0 +1,196 @@
+<div class="page-layout">
+  <header class="page-bar">
+    <a class="page-back" routerLink="/" aria-label="Voltar aos levantamentos">←</a>
+    <div class="page-bar-title">
+      <h1>Mapa do banco</h1>
+      <div class="page-bar-meta">
+        @if (repositories().length > 1) {
+          <label class="visually-hidden" for="db-repo">Repositório</label>
+          <select id="db-repo" class="input is-small" [value]="nome()" (change)="switchRepository($any($event.target).value)">
+            @for (repo of repositories(); track repo.name) {
+              <option [value]="repo.name" [selected]="repo.name === nome()">{{ repo.name }}</option>
+            }
+          </select>
+        } @else {
+          <span>{{ nome() }}</span>
+        }
+        @if (schema(); as s) {
+          <span class="muted">{{ dialectLabel[s.dialect] }}@if (sourcesText()) {, lido de {{ sourcesText() }}}</span>
+        }
+      </div>
+    </div>
+    <div class="page-bar-side">
+      <span class="muted db-promise">Lido do código. Nenhum banco é consultado.</span>
+      @if (geometry()) {
+        <span class="popover">
+          <button type="button" class="btn btn-g btn-small" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
+            {{ copy.label('Exportar') }}
+          </button>
+          @if (exportOpen()) {
+            <div class="menu-backdrop" (click)="exportOpen.set(false)"></div>
+            <ul id="db-export-menu" class="popover-menu">
+              <li class="popover-group" role="presentation">Exportar o que está no mapa</li>
+              <li><button type="button" (click)="exportImage('png')" [disabled]="pngBusy()">Imagem PNG</button></li>
+              <li><button type="button" (click)="exportImage('svg')">Imagem SVG</button></li>
+              <li><button type="button" (click)="copyMermaid()">Copiar como Mermaid (erDiagram)</button></li>
+              <li><button type="button" (click)="downloadMermaid()">Baixar como Mermaid (.mmd)</button></li>
+            </ul>
+          }
+        </span>
+      }
+    </div>
+  </header>
+
+  @if (error(); as message) {
+    <div class="page-state">
+      <p class="notice is-error" role="alert">{{ message }}</p>
+      <div class="page-state-actions">
+        <button type="button" class="btn btn-g" (click)="retry()">Tentar de novo</button>
+        <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
+      </div>
+    </div>
+  } @else if (!schema()) {
+    <div class="page-state" role="status">
+      <p class="muted">Lendo o esquema do banco no código do repositório…</p>
+    </div>
+  } @else if (schema()!.tables.length === 0 && schema()!.views.length === 0 && schema()!.procedures.length === 0) {
+    <div class="page-state" role="status">
+      <p>Nenhum banco encontrado no código de {{ nome() }}.</p>
+      <p class="muted">O Rastro procura um DbContext do EF Core, as migrations e arquivos .sql (SQL Server).</p>
+    </div>
+  } @else {
+    <div class="db-body" [class.has-panel]="!!selection()">
+      <aside class="db-side" aria-label="Tabelas, views e procedures">
+        <label class="visually-hidden" for="db-search">Buscar tabela, view, procedure ou campo</label>
+        <input id="db-search" class="input is-small" type="search" placeholder="Buscar tabela ou campo" autocomplete="off"
+          [value]="query()" (input)="query.set($any($event.target).value)" />
+        @if (list(); as l) {
+          <p class="visually-hidden" role="status">{{ l.tables.length + l.views.length + l.procedures.length }} itens encontrados</p>
+          <h2 class="db-group">Tabelas <span class="muted">{{ l.tables.length }}</span></h2>
+          <ul class="db-items">
+            @for (key of l.tables; track key) {
+              <li><button type="button" class="db-item code" [class.is-active]="selectedTable() === key" [attr.aria-pressed]="selectedTable() === key"
+                (click)="choose({ kind: DbItemKind.Table, key }, true)">{{ key }}@if (badges().get(key); as b) { <span class="db-alert">{{ b }}</span> }</button></li>
+            } @empty {
+              <li class="muted db-none">Nenhuma tabela com esse nome ou campo.</li>
+            }
+          </ul>
+          @if (schema()!.views.length > 0) {
+            <h2 class="db-group">Views <span class="muted">{{ l.views.length }}</span></h2>
+            <ul class="db-items">
+              @for (key of l.views; track key) {
+                <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.View && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.View && selection()?.key === key"
+                  (click)="choose({ kind: DbItemKind.View, key })">{{ key }}</button></li>
+              }
+            </ul>
+          }
+          @if (schema()!.procedures.length > 0) {
+            <h2 class="db-group">Procedures <span class="muted">{{ l.procedures.length }}</span></h2>
+            <ul class="db-items">
+              @for (key of l.procedures; track key) {
+                <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key"
+                  (click)="choose({ kind: DbItemKind.Procedure, key })">{{ key }}</button></li>
+              }
+            </ul>
+          }
+        }
+        @if (schema()!.notes.length > 0) {
+          <details class="db-notes">
+            <summary>O que não deu para ler ({{ schema()!.notes.length }})</summary>
+            <ul>
+              @for (n of schema()!.notes; track $index) {
+                <li>{{ n.message }}@if (n.file) { <code>{{ n.file }}:{{ n.line }}</code> }</li>
+              }
+            </ul>
+          </details>
+        }
+      </aside>
+
+      <section class="db-map" aria-label="Mapa relacional">
+        <div class="db-map-bar" role="group" aria-label="Recorte do mapa">
+          <label for="db-hops">Mostrar</label>
+          <select id="db-hops" class="input is-small" [value]="hops()" (change)="setHops($any($event.target).value)" [disabled]="!selectedTable()"
+            [title]="selectedTable() ? 'Recorta o mapa na tabela escolhida' : 'Escolha uma tabela para recortar o mapa nela'">
+            <option value="0" [selected]="hops() === 0">o banco inteiro</option>
+            @for (n of hopChoices; track n) {
+              <option [value]="n" [selected]="hops() === n">{{ selectedTable() ?? 'a tabela' }} e vizinhas até {{ n === 1 ? '1 salto' : n + ' saltos' }}</option>
+            }
+          </select>
+          @if (hiddenCount() > 0) {
+            <span class="muted">{{ hiddenCount() === 1 ? '1 tabela fora do recorte' : hiddenCount() + ' tabelas fora do recorte' }}</span>
+          }
+          <span class="db-zoom-tools" role="group" aria-label="Zoom do mapa">
+            <button type="button" class="btn btn-icon" (click)="zoomBy(-1)" [disabled]="zoom() <= zoomMin" aria-label="Diminuir o mapa" title="Diminuir">−</button>
+            <button type="button" class="btn btn-g btn-small" (click)="zoom.set(1)" [disabled]="zoom() === 1" title="Voltar ao tamanho normal">{{ zoomPercent() }}</button>
+            <button type="button" class="btn btn-icon" (click)="zoomBy(1)" [disabled]="zoom() >= zoomMax" aria-label="Aumentar o mapa" title="Aumentar">+</button>
+          </span>
+          <span class="muted db-legend">Setas pela chave estrangeira, com a cardinalidade. <span class="db-key is-pk">PK</span> <span class="db-key is-fk">FK</span> <span class="db-personal">pessoal</span> pelo nome da coluna.</span>
+        </div>
+        @if (geometry(); as g) {
+          <div class="db-scroll" #scroller>
+            <div class="db-zoom" [style.width.px]="g.width * zoom()" [style.height.px]="g.height * zoom()">
+            <div class="db-canvas" [style.width.px]="g.width" [style.height.px]="g.height" [style.transform]="'scale(' + zoom() + ')'">
+              <svg class="db-links" [attr.width]="g.width" [attr.height]="g.height" aria-hidden="true">
+                <defs>
+                  <marker id="db-map-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="db-arrow" /></marker>
+                  <marker id="db-map-arrow-lit" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L10 5 L0 10 z" class="db-arrow is-lit" /></marker>
+                </defs>
+                @for (l of g.links; track l.index) {
+                  @let on = !!selectedTable() && (l.relation.from === selectedTable() || l.relation.to === selectedTable());
+                  <path [attr.d]="l.d" class="db-link" [class.is-lit]="on" [class.is-dim]="!!selectedTable() && !on" [attr.marker-end]="on ? 'url(#db-map-arrow-lit)' : 'url(#db-map-arrow)'" />
+                }
+              </svg>
+              @for (l of g.links; track l.index) {
+                <span class="db-label" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [title]="l.relation.from + '.' + l.relation.fk.columns.join(', ') + ' aponta para ' + l.relation.to">{{ l.text }}</span>
+              }
+              @for (c of g.cards; track c.key) {
+                <button type="button" class="db-card" [attr.data-table]="c.key" [style.left.px]="c.x" [style.top.px]="c.y" [style.width.px]="card.width" [style.height.px]="c.height"
+                  [class.is-selected]="selectedTable() === c.key" [class.is-lit]="!selectedTable() && !!lit()?.has(c.key)"
+                  [class.is-dim]="(!!matching() && !matching()!.has(c.key)) || (!!lit() && !selectedTable() && !lit()!.has(c.key))"
+                  [attr.aria-pressed]="selectedTable() === c.key" [attr.aria-label]="cardLabel(c.key, c.table.columns.length, badges().get(c.key))" (click)="pickTable(c.key)">
+                  <span class="db-card-head">
+                    <strong class="code">{{ c.key }}</strong>
+                    @if (badges().get(c.key); as b) {
+                      <span class="db-alert">{{ b }}</span>
+                    }
+                  </span>
+                  @for (r of c.rows; track r.name) {
+                    <span class="db-row">
+                      <span class="db-key" [class.is-pk]="r.mark.includes('PK')" [class.is-fk]="r.mark === 'FK'">{{ r.mark || '·' }}</span>
+                      <span class="db-row-name">{{ r.name }}</span>
+                      @if (r.personal) {
+                        <span class="db-personal">pessoal</span>
+                      }
+                      <span class="db-row-type" [class.is-divergent]="r.divergent" [title]="r.divergent ? 'As fontes divergem: veja no painel' : r.type">{{ r.type }}</span>
+                    </span>
+                  }
+                  @if (c.more > 0) {
+                    <span class="db-row muted">+{{ c.more }} campos (todos no painel)</span>
+                  }
+                </button>
+              }
+            </div>
+            </div>
+          </div>
+        } @else {
+          <p class="muted db-empty">O esquema tem views ou procedures, mas nenhuma tabela para desenhar.</p>
+        }
+      </section>
+
+      @if (selection(); as pick) {
+        <aside class="db-panel" aria-label="Item escolhido">
+          <app-db-panel [schema]="schema()!" [relations]="relations()" [selection]="pick" (pick)="choose($event, true)" (closed)="closePanel()" />
+        </aside>
+      }
+    </div>
+  }
+
+  @if (message(); as m) {
+    <div class="toast is-fixed" [class.is-error]="!m.ok" [attr.role]="m.ok ? 'status' : 'alert'">
+      <span>{{ m.text }}</span>
+      @if (!m.ok) {
+        <button type="button" class="btn btn-g btn-small" (click)="message.set(null)">Fechar</button>
+      }
+    </div>
+  }
+</div>

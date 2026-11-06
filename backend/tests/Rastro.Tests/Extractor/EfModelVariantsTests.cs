@@ -111,6 +111,32 @@ public class EfModelVariantsTests
         Assert.Equal("bigint", auditoria.Columns.Single(c => c.Name == "Momento").Type);
     }
 
+    [Fact] // EXT-DB-016
+    public void Extract_SoOModelo_IndiceDaConvencaoEmCadaFkSemAchado()
+    {
+        const string model = """
+            public class Ctx : DbContext
+            {
+                public DbSet<Cliente> Clientes { get; set; } = null!;
+                public DbSet<Pedido> Pedidos { get; set; } = null!;
+                public DbSet<Item> Itens { get; set; } = null!;
+            }
+            public class Cliente { public int Id { get; set; } public List<Pedido> Pedidos { get; set; } = new(); }
+            public class Pedido { public int Id { get; set; } public int ClienteId { get; set; } public Cliente Cliente { get; set; } = null!; }
+            public class Item { public int Id { get; set; } public int PedidoId { get; set; } public Pedido Pedido { get; set; } = null!; }
+            """;
+
+        var schema = DbSchemaExtractor.Extract([new SchemaFile("src/Ctx.cs", model)]);
+
+        var index = Assert.Single(Assert.Single(schema.Tables, t => t.Name == "Pedidos").Indexes);
+        Assert.Equal(("IX_Pedidos_ClienteId", true), (index.Name, index.Convention));
+        Assert.Equal(["ClienteId"], index.Columns);
+        Assert.True(Assert.Single(Assert.Single(schema.Tables, t => t.Name == "Itens").Indexes).Convention);
+        Assert.Empty(schema.Findings);
+        // O índice do HasIndex que já começa pela FK dispensa o da convenção.
+        Assert.DoesNotContain(Table("Produto").Indexes, i => i.Convention);
+    }
+
     [Fact] // EXT-DB-013
     public void Extract_DbSetDeEntidadeForaDoRepositorio_NotaEmVezDeTabela()
     {
