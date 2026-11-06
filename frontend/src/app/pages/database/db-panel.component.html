@@ -147,3 +147,34 @@
     }
   </ul>
 }
+
+@if (flows(); as fl) {
+  <h3 class="db-h">{{ selection().kind === DbItemKind.Procedure ? 'Fluxos que chamam esta procedure' : 'Fluxos que usam esta tabela' }}</h3>
+  @if (fl.uses.length === 0) {
+    <p class="muted db-small">Nenhum levantamento deste repositório {{ selection().kind === DbItemKind.Procedure ? 'chama esta procedure' : 'lê ou grava esta tabela' }} pelo EF Core. Levantamentos feitos antes desta versão do Rastro não têm essa informação: levante o fluxo de novo.</p>
+  } @else {
+    <ul class="db-access">
+      @for (u of fl.uses; track $index) {
+        <li>
+          <span class="db-op is-{{ opSlug[u.operation] }}">{{ opShort[u.operation] }}</span>
+          <a [routerLink]="['/surveys', u.surveyId]" [queryParams]="{ passo: u.nodeId }" [title]="'Abrir o passo no fluxo ' + u.entryPoint">{{ u.entryPoint }} › {{ u.nodeLabel }}</a>
+          @if (u.location) {
+            <code class="muted">linha {{ u.location.line }}</code>
+          }
+        </li>
+      }
+    </ul>
+  }
+  @if (fl.findings.length > 0) {
+    <h3 class="db-h">Achados sem IA nos fluxos</h3>
+    @for (f of fl.findings; track $index) {
+      <div class="db-finding">
+        <strong class="db-finding-title">{{ kindLabel[f.kind] }} <span class="muted">({{ severityLabel[f.severity] }})</span></strong>
+        {{ f.message }}
+        <a [routerLink]="['/surveys', f.surveyId]" [queryParams]="{ passo: f.nodeId }">Ver no fluxo {{ f.entryPoint }}</a>
+      </div>
+    }
+  }
+} @else if (usageError() && selection().kind !== DbItemKind.View) {
+  <p class="muted db-small">Não deu para buscar os fluxos que usam este item. O resto do painel não depende disso.</p>
+}

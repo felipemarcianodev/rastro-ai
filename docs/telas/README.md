@@ -30,3 +30,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | 38 | Recorte: `pedidos` e as vizinhas até 1 salto, com a contagem do que ficou fora | [fase-38/03-recorte-por-tabela.jpg](fase-38/03-recorte-por-tabela.jpg) |
 | 38 | A procedure `sp_baixar_estoque` escolhida acende as tabelas que ela lê e grava | [fase-38/04-procedure-acende-tabelas.jpg](fase-38/04-procedure-acende-tabelas.jpg) |
 | 38 | Exportar o que está no mapa: PNG, SVG e Mermaid `erDiagram` | [fase-38/05-exportar.jpg](fase-38/05-exportar.jpg) |
+| 39 | Painel de `pedidos` com "Fluxos que usam esta tabela" (inclusão em `PedidosController.Fechar` e leitura em `PedidoRepositorio.AbertosAsync`) e os achados sem IA dos fluxos ("ToList antes do filtro" e "Leitura sem AsNoTracking"); os blocos com selo de achado | [fase-39/01-fluxos-que-usam-a-tabela.jpg](fase-39/01-fluxos-que-usam-a-tabela.jpg) |
+| 39 | O passo `PedidoRepositorio.AbertosAsync` aberto pelo link do painel da tabela: "No banco" (lê `pedidos`, linha 18), a etiqueta "banco" nos passos e a categoria "Banco de dados" nas melhorias | [fase-39/02-passo-no-banco.jpg](fase-39/02-passo-no-banco.jpg) |
+| 39 | A procedure `sp_baixar_estoque` com o fluxo que a chama por `ExecuteSqlRaw` e o achado "Procedure por SQL cru" | [fase-39/03-procedure-chamada-pelo-fluxo.jpg](fase-39/03-procedure-chamada-pelo-fluxo.jpg) |

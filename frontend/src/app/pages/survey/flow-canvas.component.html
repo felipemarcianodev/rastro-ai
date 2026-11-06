@@ -108,7 +108,7 @@
               <span [class]="'flow-node-outcome is-' + outcome.slug" [title]="'Se a condição vale: ' + outcome.label"><span aria-hidden="true">→ </span>{{ outcome.label }}</span>
             }
             @if (item.effect !== undefined) {
-              <span [class]="'flow-node-effect is-' + effectSlug[item.effect]" [title]="effectHint[item.effect]">{{ effectLabel[item.effect] }}</span>
+              <span [class]="'flow-node-effect is-' + effectSlug[item.effect]" [title]="effectText(item.node, item.effect)">{{ effectLabel[item.effect] }}</span>
             }
             @let fold = folds().get(item.node.id);
             @if (fold !== undefined) {

@@ -847,11 +847,16 @@ O dono pediu duas funcionalidades novas:
 - [ ] (UX, risco alto) Entrada "Banco" no cabeçalho do Rastro, ao lado das configurações, sem depender de escolher o repositório antes.
 - [ ] Banco grande: com centenas de tabelas, o desenho fica largo (colunas de 8 tabelas). Avaliar enquadrar na tela e um minimapa quando aparecer um caso real.
 
-## Fase 39: banco nos fluxos `[ ]` (depende da Fase 37)
+## Fase 39: banco nos fluxos `[x]` (depende da Fase 37)
 
-- [ ] O passo com etiqueta "banco" diz qual tabela lê ou grava (pelo `DbSet` e pelo método do EF: consulta, inclusão, alteração, exclusão).
-- [ ] No painel da tabela, "Fluxos que usam esta tabela", com os levantamentos e os passos.
-- [ ] Achados sem IA no fluxo: consulta dentro de laço (N+1), `ToList` antes do filtro, consulta só de leitura sem `AsNoTracking` e procedure chamada por `FromSql` ou `ExecuteSql`.
+- [x] O passo diz qual tabela lê ou grava (`FlowNode.Db`, `DbAccess`: tabela ou procedure, operação e linha), pelo `DbSet` (ou `Set<T>`) e pelo método do EF da cadeia (consulta, inclusão, alteração, exclusão, `ExecuteUpdate` e `ExecuteDelete`), pelo `Add`, `Update` e `Remove` do `DbContext` e pela procedure com `EXEC` em `FromSql`, `ExecuteSql` e `SqlQuery` (execução). `DbAccessInspector` no `Rastro.Extractor`, sem IA. A tabela sai do esquema do repositório inteiro (`ExtractionOptions.Schema`, pelo `DbSchemaService` e pela porta única de disco), ligada à entidade por `DbTable.Entity`; sem esquema, fica o nome do `DbSet`. O passo com EF ganha a etiqueta "banco" mesmo que o nome não diga, e o painel do passo mostra "No banco" com o link para a tabela no mapa (`?tabela=`).
+- [x] No painel da tabela e da procedure, "Fluxos que usam esta tabela" e "Fluxos que chamam esta procedure": a operação, o fluxo e o passo (link para `/surveys/{id}?passo=`), do levantamento mais novo de cada método, só o trecho do próprio repositório. Rota nova `GET api/repositories/{nome}/schema/usage` (`DbUsageReport`: usos e achados). Levantamento anterior à fase não tem a informação, e o painel diz isso.
+- [x] Achados sem IA (categoria "Banco de dados", com `Finding.Target` para a tela do banco): consulta dentro de laço (N+1, direta ou por um método do fluxo que consulta; a coleção do `foreach` não conta), `ToList` antes do filtro (na cadeia ou na variável que guarda a lista), leitura sem `AsNoTracking` só em método que não grava e sem projeção, e procedure por SQL cru (avisa quando ela não está nos `.sql`). O prompt de refatoração ganhou a orientação e o critério de aceite de cada um.
+- [x] Testes: `EXT-DBF-001` a `007` (fixture `LojaFluxo`, com um pedaço do EF Core nos mesmos nomes), `API-DB-003`, `WEB-DBF-001` e `002` e `WEB-DBV-009` a `011`. Backend 463/463 e frontend 295/295.
+- [x] Prints em `docs/telas/fase-39/` (loja fictícia, dois levantamentos de verdade pela API local com `RASTRO_HOME` temporário) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md) (seção da Fase 39).
+- [ ] Escrever a tabela no próprio bloco do mapa do fluxo e no nó do grafo. Hoje: a etiqueta "banco" com a dica e o rótulo de acessibilidade ("Lê pedidos") e o painel do passo.
+- [ ] Dapper e ADO.NET: a tabela pelo texto do SQL (leitor de T-SQL), como a procedure.
+- [ ] Alteração por rastreamento (entidade lida, alterada e gravada no `SaveChanges`) aparece como leitura; ligar a escrita à tabela pela entidade alterada.
 
 ## Fase 40: análise de consulta sem IA (feature 2, núcleo, API e tela) `[ ]` (depende da Fase 37)
 
@@ -880,7 +885,7 @@ O dono pediu duas funcionalidades novas:
 - [ ] Loja fictícia com uma versão PostgreSQL do esquema e testes por achado.
 
 **Melhorias propostas na análise do pedido (para o dono decidir):**
-- [ ] **O diferencial é a ligação com o código:** a ferramenta de banco mostra a tabela; o Rastro mostra quem a usa e por qual fluxo (Fase 39). Vale priorizar a Fase 39 junto com a 38.
+- [x] **O diferencial é a ligação com o código:** a ferramenta de banco mostra a tabela; o Rastro mostra quem a usa e por qual fluxo (Fase 39, feita logo depois da 38).
 - [ ] **Impacto de mudança no banco:** antes de mudar uma coluna, listar os fluxos, views e procedures que dependem dela, usando o grafo que já existe.
 - [ ] **Validação da mudança (Fase 9) olhando o banco:** o rascunho que mexe em consulta mostra os achados da Fase 40 antes e depois.
 - [ ] **Comparar esquema entre branches**, como a comparação de levantamentos: tabela, coluna e índice novos ou removidos.

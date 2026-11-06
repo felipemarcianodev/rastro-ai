@@ -1,4 +1,4 @@
-import { FlowGraph, FlowNode, NodeKind } from '../models';
+import { DB_OPERATION_LABEL, FlowGraph, FlowNode, NodeKind } from '../models';
 
 // Leitura do fluxo de relance (Fase 23): o nome do método legível e o que o passo faz no mundo.
 // Tudo determinístico, pelo nome e pelo tipo do passo; nada de IA.
@@ -72,9 +72,20 @@ const EFFECT_KINDS = new Set([NodeKind.Method, NodeKind.External, NodeKind.Unres
 
 // Só chamadas de método ganham etiqueta: um "if" que olha o cache não toca o cache.
 export function effectOf(node: FlowNode): NodeEffect | undefined {
+  if (!EFFECT_KINDS.has(node.kind) && node.kind !== NodeKind.Entry) return undefined;
+  // O extrator viu o EF Core no método (Fase 39): é banco, qualquer que seja o nome.
+  if (node.db?.length) return NodeEffect.Database;
   if (!EFFECT_KINDS.has(node.kind)) return undefined;
   const text = `${node.label} ${node.symbol ?? ''}`;
   return EFFECT_RULES.find(([, rule]) => rule.test(text))?.[0];
+}
+
+// Dica da etiqueta do passo: com o EF visto no método (Fase 39), o que ele faz em cada tabela
+// ("lê pedidos; inclui em pagamentos"); sem isso, a explicação da etiqueta.
+export function effectText(node: FlowNode, effect: NodeEffect): string {
+  if (effect !== NodeEffect.Database || !node.db?.length) return NODE_EFFECT_HINT[effect];
+  const text = node.db.map((a) => `${DB_OPERATION_LABEL[a.operation]} ${a.target}`).join('; ');
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
 // Modo "Resumo" (Fase 23): só o código do método de entrada. Os métodos que ele chama aparecem,

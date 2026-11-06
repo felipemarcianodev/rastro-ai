@@ -90,7 +90,50 @@ export interface FlowNode {
   metrics?: MethodMetrics;
   // Repositório de onde o passo vem, quando não é o primeiro sistema do fluxo (Fase 25).
   system?: string;
+  // O que o método lê e grava no banco pelo EF Core (Fase 39).
+  db?: DbAccess[];
 }
+
+// Operação de um passo no banco (Fase 39).
+export enum DbOperation {
+  Read = 0,
+  Insert = 1,
+  Update = 2,
+  Delete = 3,
+  Execute = 4,
+}
+
+// target: a tabela ou, na execução, a procedure; line: a linha da chamada no arquivo do método.
+export interface DbAccess {
+  target: string;
+  operation: DbOperation;
+  line: number;
+  entity?: string;
+}
+
+export const DB_OPERATION_LABEL: Record<DbOperation, string> = {
+  [DbOperation.Read]: 'lê',
+  [DbOperation.Insert]: 'inclui em',
+  [DbOperation.Update]: 'altera',
+  [DbOperation.Delete]: 'exclui de',
+  [DbOperation.Execute]: 'executa',
+};
+
+export const DB_OPERATION_SHORT: Record<DbOperation, string> = {
+  [DbOperation.Read]: 'lê',
+  [DbOperation.Insert]: 'inclui',
+  [DbOperation.Update]: 'altera',
+  [DbOperation.Delete]: 'exclui',
+  [DbOperation.Execute]: 'executa',
+};
+
+export const DB_OPERATION_SLUG: Record<DbOperation, string> = {
+  [DbOperation.Read]: 'read',
+  [DbOperation.Insert]: 'insert',
+  [DbOperation.Update]: 'update',
+  [DbOperation.Delete]: 'delete',
+  [DbOperation.Execute]: 'execute',
+};
 
 // Chamada HTTP entre sistemas (Fase 25): verbo em maiúsculas e rota sem host, nula se não resolveu.
 export interface HttpCall {
@@ -576,12 +619,18 @@ export enum FindingKind {
   EntityChangedOutsideDomain = 6,
   PublicSetterOnEntity = 7,
   PersistenceOutsideDomain = 8,
+  // Banco no fluxo (Fase 39).
+  QueryInLoop = 9,
+  MaterializeBeforeFilter = 10,
+  ReadWithoutNoTracking = 11,
+  ProcedureByRawSql = 12,
 }
 
 export enum FindingCategory {
   Metric = 0,
   CleanCode = 1,
   Ddd = 2,
+  Database = 3,
 }
 
 export enum FindingSeverity {
@@ -596,6 +645,8 @@ export interface Finding {
   nodeId: string;
   message: string;
   location?: SourceLocation;
+  // Nos achados de banco (Fase 39): a tabela ou a procedure.
+  target?: string;
 }
 
 export const FINDING_CATEGORY_OF: Record<FindingKind, FindingCategory> = {
@@ -608,12 +659,17 @@ export const FINDING_CATEGORY_OF: Record<FindingKind, FindingCategory> = {
   [FindingKind.EntityChangedOutsideDomain]: FindingCategory.Ddd,
   [FindingKind.PublicSetterOnEntity]: FindingCategory.Ddd,
   [FindingKind.PersistenceOutsideDomain]: FindingCategory.Ddd,
+  [FindingKind.QueryInLoop]: FindingCategory.Database,
+  [FindingKind.MaterializeBeforeFilter]: FindingCategory.Database,
+  [FindingKind.ReadWithoutNoTracking]: FindingCategory.Database,
+  [FindingKind.ProcedureByRawSql]: FindingCategory.Database,
 };
 
 export const FINDING_CATEGORY_LABEL: Record<FindingCategory, string> = {
   [FindingCategory.Ddd]: 'Regras de DDD',
   [FindingCategory.CleanCode]: 'Código limpo',
   [FindingCategory.Metric]: 'Métricas',
+  [FindingCategory.Database]: 'Banco de dados',
 };
 
 export const FINDING_KIND_LABEL: Record<FindingKind, string> = {
@@ -626,6 +682,10 @@ export const FINDING_KIND_LABEL: Record<FindingKind, string> = {
   [FindingKind.EntityChangedOutsideDomain]: 'Entidade alterada fora do domínio',
   [FindingKind.PublicSetterOnEntity]: 'Setter público na entidade',
   [FindingKind.PersistenceOutsideDomain]: 'Gravação fora do domínio',
+  [FindingKind.QueryInLoop]: 'Consulta dentro de laço (N+1)',
+  [FindingKind.MaterializeBeforeFilter]: 'ToList antes do filtro',
+  [FindingKind.ReadWithoutNoTracking]: 'Leitura sem AsNoTracking',
+  [FindingKind.ProcedureByRawSql]: 'Procedure por SQL cru',
 };
 
 export const FINDING_SEVERITY_LABEL: Record<FindingSeverity, string> = {

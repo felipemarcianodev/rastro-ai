@@ -73,6 +73,18 @@ public static class RefactorPromptBuilder
             "O código de fora passa a chamar esse método; a propriedade deixa de ter setter público.",
         ],
         FindingKind.PublicSetterOnEntity => ["Torne os setters privados (ou init) e exponha métodos de negócio que mudam o estado com validação."],
+        FindingKind.QueryInLoop =>
+        [
+            "Traga os dados de uma vez antes do laço: Include na consulta de fora, ou um Where com Contains sobre os ids do laço.",
+            "Dentro do laço, use o que já está na memória (um dicionário pelo id, por exemplo).",
+        ],
+        FindingKind.MaterializeBeforeFilter => ["Ponha o filtro (Where, First, Any) na consulta, antes do ToList, para o banco filtrar e devolver só o que precisa."],
+        FindingKind.ReadWithoutNoTracking => ["Acrescente AsNoTracking à consulta que só lê. Se a entidade lida for alterada e gravada depois, deixe como está e diga isso no código."],
+        FindingKind.ProcedureByRawSql =>
+        [
+            "Confira que a procedure existe com esse nome e esses parâmetros no projeto de banco.",
+            "Passe os valores como parâmetros (nunca concatenados no texto) e cubra a chamada com um teste de integração.",
+        ],
         _ =>
         [
             "Leve a gravação para o serviço de domínio da entidade, que valida antes de persistir.",
@@ -90,6 +102,10 @@ public static class RefactorPromptBuilder
         FindingKind.ServiceLocator => "Nenhum GetService ou GetRequiredService fora da raiz de composição.",
         FindingKind.EntityChangedOutsideDomain => "Nenhuma atribuição a propriedade da entidade fora dela e do domínio.",
         FindingKind.PublicSetterOnEntity => "A entidade sem setter público nas propriedades de estado.",
+        FindingKind.QueryInLoop => "Nenhuma consulta ao banco dentro do laço.",
+        FindingKind.MaterializeBeforeFilter => "O filtro roda no banco, antes do ToList.",
+        FindingKind.ReadWithoutNoTracking => "A consulta que só lê usa AsNoTracking.",
+        FindingKind.ProcedureByRawSql => "A procedure chamada existe no projeto de banco e recebe os valores como parâmetros.",
         _ => "Nenhuma gravação da entidade pelo repositório fora do domínio."
     };
 

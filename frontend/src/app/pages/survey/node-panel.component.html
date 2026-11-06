@@ -134,6 +134,25 @@
       </p>
     }
 
+    @if (node.db?.length) {
+      <div class="block">
+        <h3>No banco</h3>
+        <ul class="db-access">
+          @for (a of node.db; track $index) {
+            <li>
+              <span class="db-op is-{{ dbSlug[a.operation] }}">{{ dbShort[a.operation] }}</span>
+              @if (repository()) {
+                <a class="code" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="{ tabela: a.target }" [title]="'Ver ' + a.target + ' no mapa do banco'">{{ a.target }}</a>
+              } @else {
+                <span class="code">{{ a.target }}</span>
+              }
+              <span class="muted">linha {{ a.line }}</span>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
     @if (node.metrics; as m) {
       <div class="block">
         <h3>Métricas do método</h3>

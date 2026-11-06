@@ -395,7 +395,7 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
             indexes.Add(new DbIndex($"IX_{tableName}_{string.Join("_", fk.Columns)}", fk.Columns, [], false, fk.Source, Convention: true));
         }
 
-        return new DbTable(entity.Schema, tableName, columns, primaryKey, foreignKeys, indexes, [entity.Source]);
+        return new DbTable(entity.Schema, tableName, columns, primaryKey, foreignKeys, indexes, [entity.Source], entity.ClrName);
     }
 
     private DbColumn Column(Entity entity, Scalar scalar, PropertyConfig? config, bool isKey, bool keyLike, bool identityCandidate)

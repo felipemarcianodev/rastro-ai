@@ -140,7 +140,9 @@ Cada item traz o arquivo e a linha de onde veio. Quando as fontes discordam no t
 
 O índice que o EF cria por convenção em cada chave estrangeira é deduzido do modelo e marcado como convenção, e só aparece quando a tabela não tem migration nem `.sql` (eles dizem o que o banco de fato tem). Achado sem IA: a migration ou o `.sql` que cria uma chave estrangeira sem um índice que comece pelas colunas dela (`findings` na resposta).
 
-Limites: configuração montada em tempo de execução não é lida. A ligação com os fluxos, a análise de consulta, o banco vivo (opcional e só de leitura) e o PostgreSQL vêm nas próximas fases do [plano](docs/arquitetura/plano-mvp.md).
+**Banco nos fluxos.** No levantamento, o passo que usa o EF Core diz qual tabela lê ou grava e por qual operação (consulta, inclusão, alteração, exclusão), pelo `DbSet` (ou `Set<T>`), pelo método do EF e pelo `Add`, `Update` e `Remove` do `DbContext`; a procedure chamada por `FromSql`, `ExecuteSql` ou `SqlQuery` com `EXEC` aparece como execução. O nome da tabela sai do esquema do repositório. No painel da tabela, "Fluxos que usam esta tabela" lista os passos (do levantamento mais novo de cada método) com o link para o passo, e `GET api/repositories/{nome}/schema/usage` devolve os mesmos usos e os achados. Achados sem IA, na categoria "Banco de dados" das melhorias: consulta dentro de laço (N+1, direta ou por um método que consulta), `ToList` antes do filtro, leitura sem `AsNoTracking` num método que não grava e procedure chamada por SQL cru. Levantamento feito antes desta versão não tem essa informação: levante o fluxo de novo. Dapper e ADO.NET continuam só com a etiqueta "banco", sem a tabela.
+
+Limites: configuração montada em tempo de execução não é lida. A análise de consulta, o banco vivo (opcional e só de leitura) e o PostgreSQL vêm nas próximas fases do [plano](docs/arquitetura/plano-mvp.md).
 
 ## Como funciona
 

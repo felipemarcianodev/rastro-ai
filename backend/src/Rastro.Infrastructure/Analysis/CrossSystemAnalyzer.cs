@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using Rastro.Core.Graph;
 using Rastro.Core.Http;
 using Rastro.Extractor;
+using Rastro.Infrastructure.Database;
 using Rastro.Infrastructure.Processes;
 using Rastro.Infrastructure.Repositories;
 
@@ -24,7 +25,8 @@ public class CrossSystemAnalyzer(
     RouteIndexStore routeIndexes,
     ITypeScriptExtractor typeScript,
     IGitInfo git,
-    ILogger<CrossSystemAnalyzer> logger)
+    ILogger<CrossSystemAnalyzer> logger,
+    DbSchemaService? schemas = null)
 {
     // Teto de trechos por levantamento: segura a explosão de um grafo de serviços muito ligados.
     public const int MaxSegments = 30;
@@ -39,13 +41,16 @@ public class CrossSystemAnalyzer(
         if (crossRepositories.Count == 0 && first.Language == SourceLanguage.Angular)
             return new CrossAnalysis((await typeScript.ExtractAsync(first, entryPoint, maxDepth, ct)).Graph, []);
 
+        // O esquema do banco do primeiro repositório (Fase 39): os trechos de outros sistemas falam do banco deles.
+        var schema = schemas is null ? null : await schemas.ReadAsync(first.RepositoryName, ct);
+
         if (crossRepositories.Count == 0)
         {
             var plain = await OpenAsync(first, ct);
             try
             {
                 var graph = await FlowExtractor.ExtractAsync(plain.Solution, entryPoint,
-                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = plain.BaseDirectory }, ct);
+                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = plain.BaseDirectory, Schema = schema }, ct);
                 return new CrossAnalysis(graph, []);
             }
             catch (FlowEntryNotFoundException ex)
@@ -70,7 +75,7 @@ public class CrossSystemAnalyzer(
             try
             {
                 firstResult = await FlowExtractor.ExtractWithCallsAsync(handle.Solution, entryPoint,
-                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = handle.BaseDirectory, HttpCalls = true }, ct);
+                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = handle.BaseDirectory, HttpCalls = true, Schema = schema }, ct);
             }
             catch (FlowEntryNotFoundException ex)
             {

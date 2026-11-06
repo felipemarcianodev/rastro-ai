@@ -33,3 +33,17 @@
 
 - A aba "Analisar consulta" (Fase 40) e o "Fluxos que usam esta tabela" (Fase 39).
 - Enquadrar e minimapa para bancos com centenas de tabelas: registrado no plano até aparecer um caso real.
+
+## Fase 39: banco nos fluxos
+
+**Escopo:** o painel da tabela e da procedure ("Fluxos que usam esta tabela", achados dos fluxos), o selo do bloco e a seção "No banco" do painel do passo. Verificação no navegador com dois levantamentos de verdade da loja fictícia.
+
+- Clique real conferido: o link do passo no painel da tabela abre o levantamento com o passo escolhido, e o link da tabela no "No banco" do passo volta ao mapa com a tabela escolhida. Console sem erro.
+
+| ID | Onde | Problema | Sugestão | Risco | Esforço | Destino |
+|---|---|---|---|---|---|---|
+| UX-DBF-01 | bloco do mapa e lista | Com achado de fluxo junto, o selo virava "2 achados" e perdia o nome "FK sem índice" | Nome do achado do esquema com "+N" dos outros | Baixo | P | Feito |
+| UX-DBF-02 | abertura por `?tabela=` | A tabela vinda do passo ganhava o foco do teclado ao abrir a tela | Só escolher e trazer para a vista, sem foco | Baixo | P | Feito |
+| UX-DBF-03 | painel da tabela | Operação, link do passo e linha quebravam em três linhas | O link ocupa o espaço que sobra; a linha fica numa coluna só | Baixo | P | Feito |
+| UX-DBF-04 | lista de tabelas | O selo "FK sem índice +1" quebrava em duas linhas | Selo numa linha só | Baixo | P | Feito |
+| UX-DBF-05 | grafo do fluxo | A tabela só aparecia no painel do passo; no nó, só a etiqueta "banco" | A dica e o rótulo de acessibilidade da etiqueta dizem a operação e a tabela ("Lê pedidos") | Médio | P | Feito; o nome no próprio bloco fica `[ ]` no plano |

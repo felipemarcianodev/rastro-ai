@@ -27,7 +27,24 @@ public record FlowNode(
     string? Project = null,
     // Repositório cadastrado a que o nó pertence quando o fluxo atravessa sistemas (Fase 25).
     // Nulo: primeiro trecho, o do repositório do levantamento.
-    string? System = null);
+    string? System = null,
+    // O que o método lê e grava no banco pelo EF Core (Fase 39). Nulo quando não toca o banco.
+    IReadOnlyList<DbAccess>? Db = null);
+
+// Operação de um passo no banco (Fase 39), pelo método do EF: consulta, inclusão, alteração,
+// exclusão ou execução de procedure por SQL cru.
+public enum DbOperation
+{
+    Read = 0,
+    Insert = 1,
+    Update = 2,
+    Delete = 3,
+    Execute = 4
+}
+
+// Target: a tabela (nome do esquema lido do código, ou o do DbSet quando o modelo não diz) ou, na
+// execução, a procedure. Entity: a classe da entidade, quando há. Line: linha da chamada no arquivo do método.
+public record DbAccess(string Target, DbOperation Operation, int Line, string? Entity = null);
 
 // Chamada HTTP de uma aresta entre sistemas. Method em maiúsculas (GET, POST, PUT, PATCH, DELETE);
 // Route sem host e sem "/" no começo (api/pedidos/{id}/cancelamento), nula quando não resolveu.

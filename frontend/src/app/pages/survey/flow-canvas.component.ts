@@ -42,7 +42,7 @@ import {
   flowDrawing,
   timelineRoutes,
 } from '../../core/graph/timeline-layout';
-import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, entryCodeOnly, splitLabel } from '../../core/graph/reading';
+import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, effectText, entryCodeOnly, splitLabel } from '../../core/graph/reading';
 import { FlowSummary, flowSummary, readingLabel } from '../../core/graph/summary';
 import { TREE_CONNECTION, TreeConnectionBuilder } from '../../core/graph/tree-connection';
 import { Trail } from '../../core/graph/trail';
@@ -188,6 +188,7 @@ export class FlowCanvasComponent {
   protected readonly brief = signal(readBrief());
   protected readonly effectLabel = NODE_EFFECT_LABEL;
   protected readonly effectHint = NODE_EFFECT_HINT;
+  protected readonly effectText = effectText;
   protected readonly effectSlug = NODE_EFFECT_SLUG;
   protected readonly blockSlug = BLOCK_KIND_SLUG;
   private readonly effects = computed(
@@ -521,7 +522,7 @@ export class FlowCanvasComponent {
     const outcome = this.guards().get(node.id);
     const parts = [`${this.kindLabel[node.kind]}: ${node.label}${outcome ? `, então ${outcome.label}` : ''}`];
     const effect = this.effects().get(node.id);
-    if (effect !== undefined) parts.push(this.effectHint[effect]);
+    if (effect !== undefined) parts.push(effectText(node, effect));
     if (node.change !== undefined) parts.push(this.changeLabel[node.change]);
     const badge = this.findingBadges().get(node.id);
     if (badge) parts.push(badge.title);

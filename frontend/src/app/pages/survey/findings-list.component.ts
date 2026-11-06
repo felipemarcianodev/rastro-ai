@@ -18,7 +18,7 @@ interface IndexedFinding {
 }
 
 // DDD primeiro: é o que o dono pediu para "trazer à luz"; métricas por último.
-const CATEGORY_ORDER = [FindingCategory.Ddd, FindingCategory.CleanCode, FindingCategory.Metric];
+const CATEGORY_ORDER = [FindingCategory.Database, FindingCategory.Ddd, FindingCategory.CleanCode, FindingCategory.Metric];
 
 // Achados de qualidade do fluxo (Fase 10), agrupados por categoria. Com nodeId, só os do passo.
 @Component({
