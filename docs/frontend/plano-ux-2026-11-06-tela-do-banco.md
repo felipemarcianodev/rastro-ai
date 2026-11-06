@@ -84,3 +84,14 @@
 | UX-DBA-05 | botão | Com uma sugestão na tela, o botão continuava "Sugerir melhora com a IA" | "Pedir outra sugestão" quando já há uma | Baixo | P | Feito |
 | UX-DBA-06 | erro do provedor (todas as telas de IA) | `AI_PROVIDER_ERROR` mostra sempre "O provedor de IA não respondeu", e o motivo que o Rastro escreve (chave inválida, limite de uso) se perde; as mensagens dos provedores ainda falam em "nó" | Mostrar o title do problema, como no plano recusado, e tirar "nó" das mensagens dos provedores | Médio (muda todas as telas de IA, fora do escopo desta fase) | P | `[ ]` no plano |
 
+## Fase 42a: PostgreSQL pelo código
+
+**Escopo:** o mapa do banco e a aba "Analisar consulta" com um repositório PostgreSQL (loja fictícia `LojaBancoPg`). Verificação no navegador (Chrome, Papel no claro, 1440) com a API local e `RASTRO_HOME` temporário; clique real na aba "Analisar consulta", em "Analisar" e em "Editar a consulta". Sem banco vivo (Fase 42b).
+
+| ID | Onde | Problema | Sugestão | Risco | Esforço | Destino |
+|---|---|---|---|---|---|---|
+| UX-PG-01 | rótulo da caixa da consulta | Dizia "Consulta SQL (SQL Server)" num repositório PostgreSQL | O dialeto do repositório no rótulo | Baixo | P | Feito |
+| UX-PG-02 | erro de leitura | "O leitor de T-SQL não entendeu" numa consulta do PostgreSQL | O leitor do dialeto da análise | Baixo | P | Feito |
+| UX-PG-03 | painel da tabela, índices | A chave sem nome escrito aparecia como "chave primária (id), chave primária" | O nome que o PostgreSQL dá (`produtos_pkey`), o mesmo do catálogo | Baixo | P | Feito |
+| UX-PG-04 | título do achado | "Função na coluna do filtro" para a conversão `::date` | "Função ou conversão na coluna do filtro"; o curinga vira "LIKE ou ILIKE" | Baixo | P | Feito |
+| UX-PG-05 | erro de leitura | A mensagem do leitor do PostgreSQL vem em inglês ("Expected an expression, found ="), como a do leitor de T-SQL | Traduzir as mensagens mais comuns dos dois leitores | Médio (muda o texto dos dois dialetos) | M | `[ ]` no plano |

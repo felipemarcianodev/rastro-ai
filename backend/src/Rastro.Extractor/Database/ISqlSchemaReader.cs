@@ -3,7 +3,7 @@ using Rastro.Core.Database;
 namespace Rastro.Extractor.Database;
 
 // Um leitor de SQL por dialeto (ADR-006): o SQL Server pelo ScriptDom (Fase 37) e o PostgreSQL por um
-// leitor a mais (Fase 42), sem mudar o modelo nem a fusão. Lê o texto, nunca executa nada.
+// leitor a mais (Fase 42, PgSqlSchemaReader), sem mudar o modelo nem a fusão. Lê o texto, nunca executa nada.
 public interface ISqlSchemaReader
 {
     SqlDialect Dialect { get; }
@@ -15,7 +15,7 @@ public interface ISqlSchemaReader
 
 public static class SqlSchemaReaders
 {
-    private static readonly ISqlSchemaReader[] All = [new TSqlSchemaReader()];
+    private static readonly ISqlSchemaReader[] All = [new TSqlSchemaReader(), new PgSqlSchemaReader()];
 
     public static ISqlSchemaReader? For(SqlDialect dialect) => All.FirstOrDefault(r => r.Dialect == dialect);
 }

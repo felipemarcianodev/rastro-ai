@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { DbSchema, findTable, sameName, tableKey } from '../../core/database/db-schema';
+import { DbSchema, SQL_DIALECT_LABEL, SQL_READER_LABEL, SqlDialect, findTable, sameName, tableKey } from '../../core/database/db-schema';
 import {
   QUERY_FINDING_TITLE,
   QUERY_SEVERITY_LABEL,
@@ -22,7 +22,8 @@ interface Analyzed {
   analysis: QueryAnalysis;
 }
 
-// Aba "Analisar consulta" (Fase 40a): lê uma consulta T-SQL contra o esquema lido do código, com
+// Aba "Analisar consulta" (Fase 40a): lê uma consulta no dialeto do repositório (T-SQL ou, desde a
+// Fase 42, PostgreSQL) contra o esquema lido do código, com
 // regras fixas. Sem IA e sem banco: a mesma consulta dá sempre o mesmo resultado.
 @Component({
   selector: 'app-query-analysis',
@@ -52,6 +53,10 @@ export class QueryAnalysisComponent {
   protected readonly result = signal<Analyzed | null>(null);
   protected readonly active = signal<number | null>(null);
 
+  // O dialeto sai do repositório (Fase 42): o rótulo da caixa e a mensagem de erro de leitura.
+  protected readonly dialect = computed(() => this.schema()?.dialect ?? SqlDialect.SqlServer);
+  protected readonly dialectLabel = SQL_DIALECT_LABEL;
+  protected readonly readerLabel = SQL_READER_LABEL;
   protected readonly title = QUERY_FINDING_TITLE;
   protected readonly severityLabel = QUERY_SEVERITY_LABEL;
   protected readonly severitySlug = QUERY_SEVERITY_SLUG;

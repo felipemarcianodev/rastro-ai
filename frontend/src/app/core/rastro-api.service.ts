@@ -70,7 +70,7 @@ export class RastroApi {
     return this.http.get<DbUsageReport>(`/api/repositories/${encodeURIComponent(repository)}/schema/usage`);
   }
 
-  // Análise de uma consulta T-SQL contra o esquema do código, por regras fixas (Fase 40a).
+  // Análise de uma consulta (T-SQL ou PostgreSQL, o dialeto do repositório) contra o esquema do código, por regras fixas (Fase 40a).
   analyzeQuery(repository: string, sql: string): Observable<QueryAnalysis> {
     return this.http.post<QueryAnalysis>(`/api/repositories/${encodeURIComponent(repository)}/schema/analyze`, { sql });
   }

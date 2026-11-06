@@ -59,8 +59,8 @@ export const DB_TAB_QUERY_PARAM = 'consulta';
 
 export const QUERY_FINDING_TITLE: Record<QueryFindingKind, string> = {
   [QueryFindingKind.SelectStar]: 'SELECT *',
-  [QueryFindingKind.FunctionOnFilterColumn]: 'Função na coluna do filtro',
-  [QueryFindingKind.LeadingWildcardLike]: 'Curinga no começo do LIKE',
+  [QueryFindingKind.FunctionOnFilterColumn]: 'Função ou conversão na coluna do filtro',
+  [QueryFindingKind.LeadingWildcardLike]: 'Curinga no começo do LIKE ou ILIKE',
   [QueryFindingKind.OrAcrossColumns]: 'OR entre colunas diferentes',
   [QueryFindingKind.ColumnWithoutIndex]: 'Coluna sem índice no filtro ou na junção',
   [QueryFindingKind.JoinWithoutCondition]: 'Junção sem condição',

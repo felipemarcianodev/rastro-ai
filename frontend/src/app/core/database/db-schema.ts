@@ -181,6 +181,12 @@ export const SQL_DIALECT_LABEL: Record<SqlDialect, string> = {
   [SqlDialect.PostgreSql]: 'PostgreSQL',
 };
 
+// Quem lê a consulta em cada dialeto, para a mensagem de erro de leitura (Fase 42).
+export const SQL_READER_LABEL: Record<SqlDialect, string> = {
+  [SqlDialect.SqlServer]: 'O leitor de T-SQL',
+  [SqlDialect.PostgreSql]: 'O leitor de SQL do PostgreSQL',
+};
+
 export const SCHEMA_SOURCE_LABEL: Record<SchemaSourceKind, string> = {
   [SchemaSourceKind.EfModel]: 'modelo do EF Core',
   [SchemaSourceKind.EfMigration]: 'migration',

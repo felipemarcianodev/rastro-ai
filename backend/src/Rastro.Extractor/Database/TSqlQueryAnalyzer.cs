@@ -16,7 +16,7 @@ public interface ISqlQueryAnalyzer
 
 public static class SqlQueryAnalyzers
 {
-    private static readonly ISqlQueryAnalyzer[] All = [new TSqlQueryAnalyzer()];
+    private static readonly ISqlQueryAnalyzer[] All = [new TSqlQueryAnalyzer(), new PgSqlQueryAnalyzer()];
 
     public static ISqlQueryAnalyzer? For(SqlDialect dialect) => All.FirstOrDefault(a => a.Dialect == dialect);
 }

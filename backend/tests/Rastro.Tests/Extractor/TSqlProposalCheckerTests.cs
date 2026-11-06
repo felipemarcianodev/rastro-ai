@@ -175,7 +175,7 @@ public class TSqlProposalCheckerTests
 
         Assert.Equal(5, indexes.Count);
         Assert.Equal("Já existe o índice IX_pedidos_cliente_id (cliente_id), que começa por essas colunas.", indexes[0].Refusal);
-        Assert.Equal("Já existe a chave primária PK_pedidos (id), que começa por essas colunas.", indexes[1].Refusal);
+        Assert.Equal("Já existe a chave primária pk_pedidos (id), que começa por essas colunas.", indexes[1].Refusal);
         Assert.Equal("A coluna desconto não existe em pedidos.", indexes[2].Refusal);
         Assert.Equal("A tabela pedidos_arquivo não está no esquema lido do código.", indexes[3].Refusal);
         Assert.Equal("vw_pedidos_por_cliente é uma view: o índice vai na tabela.", indexes[4].Refusal);

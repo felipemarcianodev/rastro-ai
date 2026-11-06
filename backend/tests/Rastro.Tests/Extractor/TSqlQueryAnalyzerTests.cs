@@ -100,7 +100,7 @@ public class TSqlQueryAnalyzerTests
         var findings = Analyze(sql).Findings.Where(f => f.Kind == QueryFindingKind.ColumnWithoutIndex).ToList();
 
         Assert.Equal(["pg.pedido_id", "p.status"], findings.Select(f => Marked(sql, f)));
-        Assert.Contains("pagamentos.pedido_id está na junção e não tem índice que comece por ela (o esquema tem PK_pagamentos (id))", findings[0].Message);
+        Assert.Contains("pagamentos.pedido_id está na junção e não tem índice que comece por ela (o esquema tem pk_pagamentos (id))", findings[0].Message);
         Assert.Contains("pedidos.status está no filtro", findings[1].Message);
         Assert.Equal(["pagamentos", "pedidos"], findings.Select(f => f.Table));
     }
