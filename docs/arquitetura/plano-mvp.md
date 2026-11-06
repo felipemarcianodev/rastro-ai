@@ -997,6 +997,24 @@ O dono pediu para testar com o Rastro todas as consultas de uma tela de tarefas 
 - [x] Testes `EXT-DBF-009` a `017` com a fixture fictícia `Fixtures/TarefasRepo`. Achados novos: `LoadToDelete` (carrega a lista só para o `RemoveRange`; a dica é `ExecuteDeleteAsync`) e `LeadingWildcardLike` (o `LIKE` com `%` no começo montado no código). O `FindAsync` que carrega a entidade antes de gravá-la, no mesmo método, não conta como leitura: o `UpdateAsync` do repositório aparece só como alteração.
 - [ ] `Entry(x).State = Modified` como alteração; repositório que devolve a lista por uma variável local ou por outro método que a repassa; levantamento antigo com alvo "DbSet" só muda quando é refeito.
 
+## Fase 43c: o que o reteste mostrou `[x]` (pedido do dono em 2026-11-06)
+
+O reteste no mesmo sistema, com as Fases 43a e 43b, deu 14 achados verdadeiros e nenhum falso nos fluxos, mas mostrou cinco lacunas.
+
+**Banco nos fluxos:**
+- [x] N+1 e "ToList antes do filtro" através de um serviço fino: o laço (ou o filtro em memória) chama um método que só repassa a chamada a outro, até o repositório. Hoje só vale a chamada direta.
+- [x] A chamada à interface que redefine com `new` um membro da interface base genérica (`ITarefaRepository : IRepository<Tarefa>`, com o `GetAllAsync` redefinido) ainda fica sem resolver no sistema real; reproduzir a forma exata e resolver.
+- [x] O `LIKE` com curinga no começo montado no código não é achado quando a coluna tem índice trigrama no esquema.
+
+**Análise de consulta e mapa:**
+- [x] "Coluna sem índice" não acusa a coluna a mais do filtro quando um índice da mesma tabela já atende o filtro pelas colunas iniciais (o `archived_at` depois de `(tenant_id, space_id)`).
+- [x] A exceção da lista filha usa outro critério: a chave do tenant é a coluna de chave estrangeira cujo nome aparece em pelo menos metade das tabelas do esquema, e não a tabela apontada por três ou mais.
+- [x] `NOT (t.coluna_booleana)` e `t.coluna_booleana` contam como igualdade para o índice.
+- [x] `Dictionary<string, string>` com `HasColumnType("jsonb")` e `HasConversion` é coluna do modelo.
+- [x] Testes: fluxos `EXT-DBF-018` a `029` (fixture de dois projetos `Fixtures/TarefasMulti`), consulta `EXT-PGQ-031` a `034`, `EXT-DBQ-020` a `022` e `EXT-PG-044` e `045`. A análise de consulta entra pelo PR #69.
+- [x] Causa da chamada sem resolver: a interface derivada não redeclarava o membro; o símbolo chamado era o da interface base, e o Rastro procurava quem implementa a base (o repositório genérico e o derivado). Agora os candidatos são os tipos que implementam o tipo do receptor. Também corrigido no caminho: o corpo de método de expressão (`=> _repo.X()`) ficava de fora da leitura das chamadas.
+- [ ] A cadeia do N+1 segue qualquer chamada até 4 saltos: um método no meio que só consulta num ramo também vira achado. `NOT (col = 1)` no T-SQL não conta como igualdade.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).
