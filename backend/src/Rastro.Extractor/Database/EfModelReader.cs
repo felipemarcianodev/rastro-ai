@@ -101,7 +101,7 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
     // modelBuilder.Entity<T>(b => { ... }) e modelBuilder.Entity<T>().Property(...)...
     private void ReadModelBuilderStatement(ExpressionSyntax statement, string builder, string file)
     {
-        var (root, calls) = Chain(statement);
+        var (root, calls) = EntityChain(statement);
         if (root is not IdentifierNameSyntax id || id.Identifier.ValueText != builder || calls.Count == 0) return;
         if (MethodName(calls[0]) != "Entity" || GenericArgument(calls[0]) is not { } type) return;
 
@@ -112,9 +112,23 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
         ApplyCalls(entity, calls.Skip(1).ToList(), file);
     }
 
-    private void ReadEntityChain(ExpressionSyntax statement, string builder, Entity entity, string file)
+    // Como Chain, mas atravessa ".Metadata": Property(...).HasConversion(...).Metadata.SetValueComparer(...) continua
+    // sendo a configuração da mesma propriedade (o ValueComparer não muda a coluna).
+    private static (ExpressionSyntax Root, List<InvocationExpressionSyntax> Calls) EntityChain(ExpressionSyntax statement)
     {
         var (root, calls) = Chain(statement);
+        while (root is MemberAccessExpressionSyntax { Name.Identifier.ValueText: "Metadata" } metadata)
+        {
+            var (inner, before) = Chain(metadata.Expression);
+            before.AddRange(calls);
+            (root, calls) = (inner, before);
+        }
+        return (root, calls);
+    }
+
+    private void ReadEntityChain(ExpressionSyntax statement, string builder, Entity entity, string file)
+    {
+        var (root, calls) = EntityChain(statement);
         if (root is IdentifierNameSyntax id && id.Identifier.ValueText == builder) ApplyCalls(entity, calls, file);
     }
 
