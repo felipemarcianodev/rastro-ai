@@ -25,6 +25,14 @@
   background: var(--surface);
 }
 
+.qa-ai {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
 .qa-origin {
   margin: 0;
   font-size: var(--text-sm);

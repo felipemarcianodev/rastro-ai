@@ -10,8 +10,12 @@ import {
   QueryTableUse,
   querySegments,
 } from '../../core/database/query-analysis';
+import { QueryAiSuggestion } from '../../core/database/query-suggestion';
+import { AI_PROVIDER_LABEL, AiUse, aiCan } from '../../core/models';
+import { AiStatusService } from '../../core/ai-status.service';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { QueryPlanComponent } from './query-plan.component';
+import { QuerySuggestionComponent } from './query-suggestion.component';
 
 interface Analyzed {
   sql: string;
@@ -22,7 +26,7 @@ interface Analyzed {
 // regras fixas. Sem IA e sem banco: a mesma consulta dá sempre o mesmo resultado.
 @Component({
   selector: 'app-query-analysis',
-  imports: [QueryPlanComponent],
+  imports: [QueryPlanComponent, QuerySuggestionComponent],
   templateUrl: './query-analysis.component.html',
   styleUrl: './query-analysis.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -52,7 +56,19 @@ export class QueryAnalysisComponent {
   protected readonly severityLabel = QUERY_SEVERITY_LABEL;
   protected readonly severitySlug = QUERY_SEVERITY_SLUG;
 
+  private readonly ai = inject(AiStatusService);
+  // Sugestão da IA (Fase 41): só com a IA ligada e o uso "Sugestões"; sem isso, nada aparece.
+  protected readonly canSuggest = computed(() => aiCan(this.ai.status(), AiUse.Suggestions));
+  protected readonly providerName = computed(() => {
+    const status = this.ai.status();
+    return status ? AI_PROVIDER_LABEL[status.provider] : '';
+  });
+  protected readonly suggesting = signal(false);
+  protected readonly suggestError = signal<string | null>(null);
+  protected readonly suggestion = signal<QueryAiSuggestion | null>(null);
+
   private sub?: Subscription;
+  private suggestSub?: Subscription;
 
   protected readonly segments = computed(() => {
     const r = this.result();
@@ -80,7 +96,10 @@ export class QueryAnalysisComponent {
         this.text.set(initial ?? '');
       });
     });
-    inject(DestroyRef).onDestroy(() => this.sub?.unsubscribe());
+    inject(DestroyRef).onDestroy(() => {
+      this.sub?.unsubscribe();
+      this.suggestSub?.unsubscribe();
+    });
   }
 
   protected edit(value: string): void {
@@ -94,6 +113,39 @@ export class QueryAnalysisComponent {
     this.result.set(null);
     this.error.set(null);
     this.active.set(null);
+    this.discardSuggestion();
+  }
+
+  private discardSuggestion(): void {
+    this.suggestSub?.unsubscribe();
+    this.suggesting.set(false);
+    this.suggestion.set(null);
+    this.suggestError.set(null);
+  }
+
+  // A resposta da IA chega abaixo dos achados, fora da vista: rola só até o começo da seção (UX-DBA-01).
+  private revealSuggestion(): void {
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('.qa-ai')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+  }
+
+  protected suggest(): void {
+    const sql = this.result()?.sql;
+    if (!sql || this.suggesting()) return;
+    this.suggesting.set(true);
+    this.suggestError.set(null);
+    this.suggestSub?.unsubscribe();
+    this.suggestSub = this.api.suggestQuery(this.repository(), sql).subscribe({
+      next: (suggestion) => {
+        this.suggesting.set(false);
+        this.suggestion.set(suggestion);
+        this.revealSuggestion();
+      },
+      error: (error) => {
+        this.suggesting.set(false);
+        this.suggestError.set(apiErrorMessage(error));
+        this.revealSuggestion();
+      },
+    });
   }
 
   protected analyze(): void {
@@ -102,6 +154,7 @@ export class QueryAnalysisComponent {
     this.busy.set(true);
     this.error.set(null);
     this.active.set(null);
+    this.discardSuggestion();
     this.sub?.unsubscribe();
     this.sub = this.api.analyzeQuery(this.repository(), sql).subscribe({
       next: (analysis) => {

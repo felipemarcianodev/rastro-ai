@@ -34,6 +34,7 @@ import {
 } from './models';
 import { DbSchema, DbUsageReport } from './database/db-schema';
 import { QueryAnalysis } from './database/query-analysis';
+import { QueryAiSuggestion } from './database/query-suggestion';
 import { LiveConnectionTest, LiveConnectionView, QueryPlan } from './database/live-database';
 
 // Códigos cujo title traz o motivo exato em pt-BR, escrito pelo Rastro (nunca a mensagem crua do driver).
@@ -72,6 +73,11 @@ export class RastroApi {
   // Análise de uma consulta T-SQL contra o esquema do código, por regras fixas (Fase 40a).
   analyzeQuery(repository: string, sql: string): Observable<QueryAnalysis> {
     return this.http.post<QueryAnalysis>(`/api/repositories/${encodeURIComponent(repository)}/schema/analyze`, { sql });
+  }
+
+  // A IA (modo provedor) sugere a melhora da consulta; o Rastro confere e a tela só mostra (Fase 41).
+  suggestQuery(repository: string, sql: string): Observable<QueryAiSuggestion> {
+    return this.http.post<QueryAiSuggestion>(`/api/repositories/${encodeURIComponent(repository)}/schema/ai/suggestion`, { sql });
   }
 
   // Banco vivo (Fase 40b): a conexão só leitura do repositório. A string nunca volta na resposta.

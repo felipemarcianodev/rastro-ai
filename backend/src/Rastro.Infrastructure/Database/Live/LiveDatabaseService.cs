@@ -83,6 +83,25 @@ public class LiveDatabaseService(IServiceScopeFactory scopes, ILiveDatabase data
         }
     }
 
+    // Custo estimado antes e depois de uma reescrita (Fase 41): dois pedidos de plano, sem executar nada.
+    // Nulo sem conexão cadastrada.
+    public async Task<PlanComparison?> ComparePlansAsync(string repository, string before, string after, CancellationToken ct)
+    {
+        if (await ConnectionStringAsync(repository, ct) is null) return null;
+        var original = await PlanAsync(repository, before, ct);
+        var rewritten = await PlanAsync(repository, after, ct);
+        var problem = original.Outcome != LivePlanOutcome.Ok
+            ? $"O plano da consulta original não veio: {Problem(original)}"
+            : rewritten.Outcome != LivePlanOutcome.Ok ? $"O plano da consulta reescrita não veio: {Problem(rewritten)}" : null;
+        return new PlanComparison(original.Plan?.TotalCost, rewritten.Plan?.TotalCost, problem);
+    }
+
+    private static string Problem(LivePlanResult result) => result.Outcome switch
+    {
+        LivePlanOutcome.NoConnection => "a conexão com o banco vivo foi removida.",
+        _ => (result.Reason ?? "o banco vivo não respondeu").TrimEnd('.') + "."
+    };
+
     private async Task<string?> ConnectionStringAsync(string repository, CancellationToken ct)
     {
         using var scope = scopes.CreateScope();

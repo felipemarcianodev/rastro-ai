@@ -39,6 +39,7 @@ public static class RastroAiServices
         services.AddScoped<Suggestions.RefactorAdvisor>();
         services.AddScoped<Suggestions.ContextAdvisor>();
         services.AddScoped<Suggestions.QuestionAdvisor>();
+        services.AddScoped<Suggestions.QueryAdvisor>();
         return services;
     }
 

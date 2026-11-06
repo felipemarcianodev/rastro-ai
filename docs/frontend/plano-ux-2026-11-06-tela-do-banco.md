@@ -71,3 +71,16 @@
 | UX-DBL-03 | cartão do plano | Coluna de 320px quebrava o nome do operador e o objeto em três linhas | Coluna lateral até 400px | Baixo | P | Feito |
 | UX-DBL-04 | cartão do plano | Operador com 0% ("Laços aninhados") ocupa linha sem dizer nada | Esconder os operadores abaixo de 1% atrás de "mais N operações" | Médio | P | Feito |
 
+## Fase 41: a IA sugere a melhora
+
+**Escopo:** a seção "Sugestão da IA" da aba "Analisar consulta" (`query-analysis.component`) e o resultado (`query-suggestion.component`). Verificação no navegador (Chrome, Papel no claro, janela de 1920) com a loja fictícia e a API local com `RASTRO_HOME` temporário; clique real em "Analisar", "Sugerir melhora com a IA", "Pedir outra sugestão" e "Copiar a consulta reescrita". O caminho de erro foi com uma chave falsa de teste (o provedor recusou, nada foi gasto); a resposta aceita e a recusada foram respostas da IA simuladas, conferidas pelo núcleo de verdade. Com a IA desligada, a tela não tem botão de IA. O comparativo de custo (banco vivo) ficou só nos testes, sem SQL Server nesta verificação.
+
+| ID | Onde | Problema | Sugestão | Risco | Esforço | Destino |
+|---|---|---|---|---|---|---|
+| UX-DBA-01 | seção da sugestão | A resposta (e o erro) chegava abaixo dos achados, fora da vista: parecia que nada tinha acontecido | Rolar até o começo da seção quando a resposta chega | Médio | P | Feito |
+| UX-DBA-02 | código (tema) | A ligadura da fonte de código desenhava `>=` como `≥` na consulta reescrita: quem lê copiaria outro texto | `font-variant-ligatures: none` no `code` e no `.code` do tema | Baixo | P | Feito |
+| UX-DBA-03 | estado da reescrita e do índice | "Reescrita aceita pela conferência" e "Aceito", com borda, pareciam botões ao lado do "Copiar" | Estado em texto, sem borda | Baixo | P | Feito |
+| UX-DBA-04 | reescrita recusada | A lista "Mudanças" descrevia o texto recusado como se valesse | Título "Mudanças da reescrita recusada" | Baixo | P | Feito |
+| UX-DBA-05 | botão | Com uma sugestão na tela, o botão continuava "Sugerir melhora com a IA" | "Pedir outra sugestão" quando já há uma | Baixo | P | Feito |
+| UX-DBA-06 | erro do provedor (todas as telas de IA) | `AI_PROVIDER_ERROR` mostra sempre "O provedor de IA não respondeu", e o motivo que o Rastro escreve (chave inválida, limite de uso) se perde; as mensagens dos provedores ainda falam em "nó" | Mostrar o title do problema, como no plano recusado, e tirar "nó" das mensagens dos provedores | Médio (muda todas as telas de IA, fora do escopo desta fase) | P | `[ ]` no plano |
+

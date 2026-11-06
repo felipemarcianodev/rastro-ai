@@ -80,10 +80,11 @@ Regra que não se quebra: `Rastro.Core` e `Rastro.Extractor` **nunca** referenci
 claude mcp add rastro -- rastro mcp
 ```
 
-Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt`, `get_c4`, `get_db_schema` e `analyze_query`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
+Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt`, `get_c4`, `get_db_schema`, `analyze_query` e `propose_query_rewrite`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
 
 - Toda proposta passa pelo validador de prova: o compilador confere o método de destino e o `arquivo:linha`. Prova errada volta recusada, com o motivo.
 - Proposta aceita entra como **inferida**. **Só você confirma ou descarta**, na tela; o agente não tem ferramenta para isso.
+- Para uma consulta SQL, `analyze_query` dá os achados e o esquema só das tabelas que ela usa, e `propose_query_rewrite` recebe a consulta reescrita e os índices sugeridos, com o motivo de cada mudança. O Rastro confere e recusa com o motivo o que não passar; nada é aplicado nem executado, e quem copia é você.
 - Para perguntas sobre o fluxo ("quando o pedido é recusado?", "o que acontece se a API de pagamentos cair?"), `get_flow_map` e `get_flow_rules` dão ao agente o mapa e as regras, e ele responde citando os passos.
 
 ### Perguntas no modo provedor
@@ -152,7 +153,9 @@ O índice que o EF cria por convenção em cada chave estrangeira é deduzido do
 
 O Rastro **nunca lê os dados das tabelas**. Os comandos ao catálogo são fixos no código, a conexão tem tempo limite e não entra em pool, e o driver é o oficial da Microsoft (`Microsoft.Data.SqlClient`, dentro do pacote). Use um usuário só de leitura: no SQL Server, `GRANT VIEW DEFINITION TO usuario` basta para o catálogo; o plano estimado pede também `GRANT SHOWPLAN TO usuario` e o `SELECT` nas tabelas da consulta, porque o SQL Server só mostra o plano a quem pode rodar a instrução. Na API: `GET`, `PUT` e `DELETE api/repositories/{nome}/connection`, `POST api/repositories/{nome}/connection/test` e `POST api/repositories/{nome}/schema/plan`. O banco vivo é só pela tela e pela API; o MCP continua lendo o esquema do código.
 
-Limites: configuração montada em tempo de execução não é lida. A sugestão de melhora pela IA e o PostgreSQL vêm nas próximas fases do [plano](docs/arquitetura/plano-mvp.md).
+**A IA sugere a melhora (opcional).** Com o modo provedor ligado e o uso **Sugestões** marcado, a aba "Analisar consulta" ganha o botão "Sugerir melhora com a IA"; sem IA ligada, o botão não aparece. A IA devolve a consulta reescrita e os índices sugeridos, com o motivo de cada mudança, e o Rastro confere tudo antes de mostrar, sem IA: a reescrita precisa ser lida pelo leitor de T-SQL, ser uma instrução só da mesma operação na mesma tabela, citar só tabelas e colunas que existem no esquema e devolver as mesmas colunas, com os mesmos nomes e na mesma ordem, sem limitar as linhas (`TOP` ou `OFFSET`) que a original não limita; o índice só usa colunas que existem e não repete um índice nem a chave primária que já começa pelas mesmas colunas. O que não passa aparece recusado, com o motivo. A tela mostra a consulta antes e depois lado a lado, os achados antes e depois e, com banco vivo, o custo estimado do plano das duas, sem executar nenhuma. O comando `CREATE INDEX` é escrito pelo Rastro. **Nada é aplicado**: quem copia a consulta e cria o índice é você. Vão ao provedor numa análise: a consulta como você colou (inclusive os literais), os achados e só as tabelas que ela usa (nomes, colunas, tipos, nulo, chaves e índices, do código e, com banco vivo, do catálogo), marcados como dado. **Nunca vão** a string de conexão, os dados das tabelas nem as outras tabelas do esquema. Na API: `POST api/repositories/{nome}/schema/ai/suggestion` com `{ "sql": "..." }`; no MCP, `analyze_query` seguido de `propose_query_rewrite`, com a mesma conferência.
+
+Limites: configuração montada em tempo de execução não é lida. O PostgreSQL vem na próxima fase do [plano](docs/arquitetura/plano-mvp.md).
 
 ## Como funciona
 

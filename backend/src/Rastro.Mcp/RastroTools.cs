@@ -36,7 +36,7 @@ public class RastroTools(
     TimeProvider clock,
     Rastro.Infrastructure.Architecture.DeploymentReader deployments,
     Rastro.Infrastructure.Database.DbSchemaService schemas,
-    Rastro.Infrastructure.Database.QueryAnalysisService queries)
+    Rastro.Infrastructure.Database.QueryProposalService queryProposals)
 {
     private const int MaxOutlineLines = 400;
 
@@ -427,7 +427,7 @@ public class RastroTools(
         return DbSchemaText.Format(schema, string.IsNullOrWhiteSpace(table) ? null : table.Trim());
     }
 
-    [McpServerTool(Name = "analyze_query"), Description("Analisa uma consulta SQL (SQL Server) sem executá-la e sem IA: os achados de gargalo pelo leitor de T-SQL, cruzados com o esquema lido do código do repositório (SELECT *, função na coluna do filtro, LIKE com curinga no começo, OR entre colunas, coluna sem índice no filtro ou na junção, junção sem condição, DISTINCT sobre junção, subconsulta correlacionada, ORDER BY sem limite, NOT IN com coluna que aceita nulo, UPDATE ou DELETE sem WHERE), cada um com a gravidade, o trecho e o motivo, e as tabelas que a consulta usa. Nenhum banco é consultado.")]
+    [McpServerTool(Name = "analyze_query"), Description("Analisa uma consulta SQL (SQL Server) sem executá-la e sem IA: os achados de gargalo pelo leitor de T-SQL, cruzados com o esquema lido do código do repositório (SELECT *, função na coluna do filtro, LIKE com curinga no começo, OR entre colunas, coluna sem índice no filtro ou na junção, junção sem condição, DISTINCT sobre junção, subconsulta correlacionada, ORDER BY sem limite, NOT IN com coluna que aceita nulo, UPDATE ou DELETE sem WHERE), cada um com a gravidade, o trecho e o motivo, as tabelas que a consulta usa e o esquema só dessas tabelas (colunas, tipos e índices), para propor a melhora com propose_query_rewrite. Nenhum banco é consultado.")]
     public async Task<string> AnalyzeQuery(
         [Description("Nome do repositório (list_repositories), para cruzar com o esquema.")] string repository,
         [Description("A consulta SQL (T-SQL), como o usuário escreveu.")] string sql,
@@ -435,8 +435,32 @@ public class RastroTools(
     {
         if (string.IsNullOrWhiteSpace(sql) || sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
             return "Informe uma consulta de até 100 mil caracteres.";
-        var analysis = await queries.AnalyzeAsync(repository, sql, ct);
-        return analysis is null ? "Repositório não cadastrado. Use list_repositories." : QueryAnalysisText.Format(analysis);
+        var context = await queryProposals.ContextAsync(repository, sql, ct);
+        return context is null ? "Repositório não cadastrado. Use list_repositories." : QueryAnalysisText.Format(context.Analysis, context.Schema);
+    }
+
+    [McpServerTool(Name = "propose_query_rewrite"), Description("Propõe a melhora de uma consulta SQL (SQL Server) já vista no analyze_query: a consulta reescrita e os índices sugeridos, com o motivo de cada mudança. O Rastro confere antes de aceitar, sem IA: a reescrita precisa ser lida pelo leitor de T-SQL, ser uma instrução só da mesma operação na mesma tabela (sem SET, EXEC nem DDL), citar só tabelas e colunas que existem e devolver as mesmas colunas, com os mesmos nomes e na mesma ordem, sem acrescentar TOP nem OFFSET; o índice só usa colunas que existem e não repete um índice nem a chave primária que já começa pelas mesmas colunas. O que não passa volta recusado com o motivo: corrija e proponha de novo. Nada é aplicado nem executado: quem copia e aplica é o usuário.")]
+    public async Task<string> ProposeQueryRewrite(
+        [Description("Nome do repositório (list_repositories).")] string repository,
+        [Description("A consulta original, exatamente como foi analisada.")] string sql,
+        [Description("A consulta reescrita (T-SQL). Vazio quando a proposta é só de índice.")] string? rewrittenSql = null,
+        [Description("Cada mudança da reescrita, com o motivo (até 8).")] QueryChangeInput[]? changes = null,
+        [Description("Índices sugeridos (até 5).")] QueryIndexInput[]? indexes = null,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
+            return "Informe a consulta original, de até 100 mil caracteres.";
+        if (string.IsNullOrWhiteSpace(rewrittenSql) && (indexes is null || indexes.Length == 0))
+            return "Nada para conferir: informe a consulta reescrita, os índices ou os dois.";
+
+        var proposal = new Rastro.Core.Database.QueryProposal(rewrittenSql,
+            (changes ?? []).Select(c => new Rastro.Core.Database.QueryChange(c.What ?? string.Empty, c.Why ?? string.Empty)).ToList(),
+            (indexes ?? []).Select(i => new Rastro.Core.Database.IndexSuggestion(i.Table ?? string.Empty, i.Columns ?? [], i.Include ?? [], i.Unique, i.Reason ?? string.Empty)).ToList(),
+            ProposalOrigin.Agent);
+        var context = await queryProposals.ContextAsync(repository, sql, ct);
+        if (context is null) return "Repositório não cadastrado. Use list_repositories.";
+        if (context.Analysis.Error is not null) return QueryAnalysisText.Format(context.Analysis);
+        return QueryProposalText.Format(queryProposals.Review(repository, context, sql, proposal));
     }
 
     [McpServerTool(Name = "get_c4"), Description("Diagramas C4 do fluxo em Structurizr DSL (C1 contexto, C2 containers, C3 componentes, C4 visão dinâmica do fluxo). As pessoas do C1 são as que o usuário cadastrou na tela.")]

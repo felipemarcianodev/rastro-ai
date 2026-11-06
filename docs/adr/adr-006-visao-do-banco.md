@@ -53,7 +53,7 @@ O Rastro já lê o repositório (Roslyn, ADR-001 e ADR-005). Quase todo sistema 
 | O quê | Para onde | Quando |
 |---|---|---|
 | Consultas ao catálogo e pedido de plano estimado | o servidor de banco que o usuário cadastrou (pode estar em outra máquina) | só com banco vivo ligado |
-| A consulta analisada, os achados e só as tabelas que ela usa (nomes, colunas, tipos, índices) | o provedor de IA | só com o modo provedor ligado e no clique de "Sugerir melhora" (Fase 41) |
+| A consulta analisada, os achados e só as tabelas que ela usa (nomes, colunas, tipos, índices) | o provedor de IA | só com o modo provedor ligado e o uso "Sugestões", no clique de "Sugerir melhora com a IA" (implementado na Fase 41). No modo agente, o `analyze_query` entrega o mesmo recorte ao agente |
 | Dados das tabelas | lugar nenhum | nunca: o Rastro não os lê |
 | String de conexão | lugar nenhum | nunca sai da máquina nem do banco local |
 

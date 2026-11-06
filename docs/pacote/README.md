@@ -68,6 +68,8 @@ Na aba **Analisar consulta** da mesma tela, você cola uma consulta SQL Server (
 
 **Banco vivo, opcional e só de leitura:** pelo botão "Conectar banco vivo", você cadastra a string de conexão de um SQL Server (cifrada no banco local, nunca devolvida para a tela). O catálogo entra como mais uma fonte do esquema, e a aba de consulta pede o plano estimado ao banco (`SET SHOWPLAN_XML ON`), sem executar a consulta, com as operações mais caras, as varreduras e o índice que o próprio banco diz faltar. Os dados das tabelas nunca são lidos. Use um usuário só de leitura: `VIEW DEFINITION` para o catálogo e, para o plano, `SHOWPLAN` e o `SELECT` nas tabelas da consulta (o SQL Server só mostra o plano a quem pode rodar a instrução). O PostgreSQL vem numa próxima versão.
 
+**A IA sugere a melhora (opcional):** com o modo provedor ligado e o uso "Sugestões", o botão "Sugerir melhora com a IA" pede a consulta reescrita e os índices, com o motivo de cada mudança. O Rastro confere antes de mostrar (a reescrita é lida pelo leitor de T-SQL, faz a mesma operação, cita só tabelas e colunas que existem e devolve as mesmas colunas; o índice usa colunas que existem e não repete um que já existe) e recusa com o motivo o que não passar. Antes e depois aparecem lado a lado, com o custo estimado do plano das duas quando há banco vivo, sem executar nada. Nada é aplicado: quem copia é você. Vão ao provedor a consulta (com os literais), os achados e só as tabelas que ela usa (nomes, colunas, tipos e índices). A string de conexão e os dados das tabelas nunca vão.
+
 ## Com o seu agente de IA (MCP)
 
 O Rastro funciona sem IA. Com um agente que fala MCP, como o Claude Code, o agente completa o que o compilador não resolveu e escreve as regras de cada passo, usando a assinatura dele:
@@ -80,7 +82,7 @@ Para o fluxo entre sistemas, a ferramenta `list_cross_edges` lista as ligações
 
 Para perguntas sobre o fluxo, `get_flow_map` mostra o mapa por sistema (blocos, decisões, chamadas e caminhos) e `get_flow_rules` as regras tiradas das decisões, para o agente responder citando os passos.
 
-Para o banco, `get_db_schema` dá o esquema lido do código (ou só uma tabela), com a fonte de cada item e as divergências entre o modelo, as migrations e os `.sql`, e `analyze_query` dá os achados de uma consulta SQL, sem executá-la.
+Para o banco, `get_db_schema` dá o esquema lido do código (ou só uma tabela), com a fonte de cada item e as divergências entre o modelo, as migrations e os `.sql`, e `analyze_query` dá os achados de uma consulta SQL, sem executá-la, com o esquema só das tabelas que ela usa. Com `propose_query_rewrite`, o agente propõe a consulta reescrita e os índices; o Rastro confere do mesmo jeito que na tela e recusa com o motivo o que não passar. Nada é aplicado: quem copia é você.
 
 Tudo o que a IA propõe chega marcado como inferido e só entra no fluxo quando você confirma.
 
