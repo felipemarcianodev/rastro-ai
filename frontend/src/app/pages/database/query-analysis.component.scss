@@ -204,6 +204,21 @@
   font-size: var(--text-xs);
 }
 
+// Em 360, o "ver no mapa" ao lado deixava o motivo numa coluna estreita: ele desce para baixo.
+@media (max-width: 600px) {
+  .qa-finding {
+    flex-wrap: wrap;
+  }
+
+  .qa-finding-btn {
+    flex-basis: 100%;
+  }
+
+  .qa-map {
+    margin: 0 var(--space-3) var(--space-3);
+  }
+}
+
 @media (max-width: 900px) {
   :host {
     display: flex;

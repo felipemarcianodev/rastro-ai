@@ -15,7 +15,23 @@
   background: var(--surface);
 }
 
+// Em 360 a barra não cabe numa linha: os controles descem, sem rolagem horizontal.
+@media (max-width: 600px) {
+  .topbar {
+    flex-wrap: wrap;
+    height: auto;
+    min-height: 52px;
+    row-gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .nav {
+    margin-right: 0;
+  }
+}
+
 .brand {
+  white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
