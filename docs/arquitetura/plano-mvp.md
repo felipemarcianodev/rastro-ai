@@ -1,4 +1,4 @@
-# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 34 executadas (prints e UX da Fase 31 pendentes)
+# Plano do Rastro AI (MVP): EXECUTADO (Fases 0 a 14, 17 a 21 e 23 a 29); Fases 15, 16 e 22 esperam o uso real; Fases 30 a 35 executadas (prints e UX da Fase 31 pendentes); plano do banco (Fases 36 a 42) EXECUTADO em 2026-11-06
 
 > Criado em 2026-10-15. Visão e decisões: [`visao.md`](visao.md).
 > Execução fase a fase, no mesmo molde da skill `executar-plano-faseado` de outro projeto do dono: **uma fase por vez, portões verdes, commit, e só então a próxima.**
@@ -799,7 +799,9 @@ No primeiro uso da 0.4.0 num fluxo real (uma tela Angular e duas APIs, 344 passo
 - [ ] Extrator de metadados de CRM (fluxos e gatilhos do Salesforce), para "fora do código" deixar de ser parede. Fase grande, com ADR própria.
 - [ ] Serviço próprio que repassa para o `MatDialog` (ficou fora da issue #32): o desenho começa no modal e perde as condições do botão que o abre.
 
-## Visão do banco e análise de consulta (Fases 36 a 41) (pedido do dono em 2026-11-05)
+## Visão do banco e análise de consulta (Fases 36 a 42) (pedido do dono em 2026-11-05) `[x]`
+
+**Status: EXECUTADO em 2026-11-06.** As Fases 36 a 42 estão na `main` (a última pelo PR #61). O levantamento de UX do fim do plano e as pendências que ficaram estão em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).
 
 O dono pediu duas funcionalidades novas:
 - **Feature 1, visão do banco:** tabelas (campos, tipos, nulos, PK, FK, índices), relacionamentos, views e procedures, com um mapa relacional das tabelas.
@@ -807,7 +809,7 @@ O dono pediu duas funcionalidades novas:
 
 **Princípios que valem para as seis fases:**
 - **Núcleo sem IA (ADR-001):** esquema, mapa relacional e achados da consulta são determinísticos. A IA só propõe a reescrita e o índice, e a proposta passa por conferência do núcleo antes de aparecer.
-- **Primeiro pelo código, depois pelo banco:** a fonte padrão é o que já está no repositório (modelo do EF Core, migrations, arquivos `.sql` e projeto de banco). Conectar num banco vivo é opcional, só leitura, e muda o ambiente do cliente (ADR nova).
+- **Primeiro pelo código, depois pelo banco:** a fonte padrão é o que já está no repositório (modelo do EF Core, migrations, arquivos `.sql` e projeto de banco). Conectar num banco vivo é opcional, só de leitura, e muda o ambiente do cliente (ADR nova).
 - **Ligação com os fluxos:** o diferencial do Rastro não é ser mais um visualizador de banco, é ligar tabela e consulta ao passo do fluxo que as usa.
 
 **Decisões do dono (aprovadas em 2026-11-06, sobre o protótipo navegável da tela):**
@@ -941,7 +943,38 @@ Dividida em dois PRs: 42a (código: extrator, achados e conferência) e 42b (ban
 - [x] **Dados sensíveis:** marcar colunas com nome de dado pessoal (CPF, e-mail, telefone) no mapa, útil para LGPD, sem ler nenhum dado (Fase 38).
 - [x] **Nunca ler dados das tabelas:** só catálogo e plano estimado, escrito na ADR-006 e no `SECURITY.md` (Fase 40b).
 
+## Fim do plano do banco: pendências consolidadas
+
+Levantamento de UX completo do fim do plano em [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md): 54 achados (33 de risco baixo, 18 de risco médio e 3 de risco alto), em cinco fases. Nada foi implementado; tudo espera a aprovação do dono. Os itens abaixo são os `[ ]` das Fases 36 a 42, agrupados, e continuam registrados na própria fase.
+
+**Esperam a aprovação do dono (UX):**
+- [ ] Entrada "Banco" no cabeçalho, sem escolher o repositório antes (UX-DB-09, Fase 38, risco alto).
+- [ ] Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05, Fase 40a, risco alto).
+- [ ] O motivo do erro do provedor em todas as telas de IA, sem "nó" nas mensagens (UX-DBA-06, Fase 41).
+- [ ] As mensagens mais comuns dos leitores de SQL em pt-BR, nos dois dialetos (UX-PG-05, Fase 42a).
+- [ ] A permissão mínima do diálogo "Banco vivo" em lista, um comando por linha, com "Copiar" (UX-PGL-05, Fase 42b).
+- [ ] As Fases A a E do levantamento do fim do plano (a Fase E, item a item).
+
+**Leitura do código:**
+- [ ] Argumento posicional nas migrations e configuração em método auxiliar (Fase 37).
+- [ ] Divergência de chave estrangeira e de índice entre fontes (Fase 37).
+- [ ] A tabela pelo texto do SQL em Dapper, ADO.NET e no `ExecuteSql` e `SqlQuery` que não são `EXEC` (Fases 39 e 40a).
+- [ ] Alteração por rastreamento ligada à escrita da tabela (Fase 39).
+- [ ] Consulta montada em partes no código (Fase 40a).
+- [ ] `BEGIN ATOMIC` e tipo com precisão no meio no PostgreSQL; relatar o defeito do `LIKE` ao SqlParserCS (Fase 42a).
+
+**Banco vivo, MCP e tela:**
+- [ ] Banco vivo pelo MCP nos dois dialetos, e com ele o custo antes e depois na sugestão pelo agente (Fases 40b, 41 e 42b).
+- [ ] Índice faltando no PostgreSQL, pelo plano (Fase 42b).
+- [ ] A tabela no bloco do mapa do fluxo e no nó do grafo (Fase 39).
+- [ ] Banco com centenas de tabelas: enquadrar e minimapa, quando aparecer um caso real (Fase 38).
+- [ ] Limite registrado: a conferência da reescrita não prova que ela devolve as mesmas linhas (Fase 41).
+
+**Melhorias propostas, sem decisão:** impacto de mudança no banco, validação da mudança olhando o banco e comparação de esquema entre branches (lista da Fase 42).
+
 ## Levantamento de UX do fim do plano `[x]`
+
+- [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).
 
 - [x] **Revisão geral de 2026-10-30** (pedido do dono, depois da Fase 28): [`plano-ux-2026-10-30-revisao-geral.md`](../frontend/plano-ux-2026-10-30-revisao-geral.md). O botão desalinhado era o "Mostrar chamadas do .NET" (8px abaixo dos vizinhos); as três alturas de controle viraram dois tokens; o texto do passo, o rótulo da moldura na abertura e o desenho consolidado foram acertados. Os itens de risco alto (fase A) esperam aprovação.
 
