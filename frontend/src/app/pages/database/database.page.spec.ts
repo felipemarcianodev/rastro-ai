@@ -29,6 +29,7 @@ function render(schema: DbSchema | null = lojaSchema(), tabela?: string, report:
   const http = TestBed.inject(HttpTestingController);
   fixture.detectChanges();
   http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:/loja' }]);
+  http.expectOne('/api/repositories/loja/connection').flush({ configured: false, server: null, database: null, updatedAt: null });
   const request = http.expectOne('/api/repositories/loja/schema');
   if (schema) request.flush(schema);
   else request.flush({ code: 'REPOSITORY_NOT_FOUND' }, { status: 404, statusText: 'Not Found' });

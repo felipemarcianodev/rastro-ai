@@ -417,6 +417,10 @@ export const API_ERROR_MESSAGE: Record<string, string> = {
   REPOSITORY_NOT_FOUND: 'Esse repositório não está mais cadastrado.',
   CROSS_REPOSITORIES_INVALID: 'Escolha no máximo 10 repositórios para seguir as chamadas HTTP.',
   QUERY_INVALID: 'Cole uma consulta de até 100 mil caracteres.',
+  CONNECTION_INVALID: 'String de conexão inválida: confira o servidor (Data Source) e o formato, com até 2.000 caracteres.',
+  CONNECTION_MISSING: 'Cadastre a conexão com o banco vivo antes.',
+  PLAN_NOT_ALLOWED: 'O plano só sai para uma instrução SELECT, INSERT, UPDATE, DELETE ou MERGE, sem SET, EXEC nem DDL.',
+  LIVE_DATABASE_ERROR: 'O banco vivo não respondeu. Confira a conexão e tente de novo.',
   ORIGIN_NOT_ALLOWED: 'Pedido recusado: só a tela do próprio Rastro pode alterar dados.',
 };
 

@@ -20,7 +20,13 @@
       </div>
     </div>
     <div class="page-bar-side">
-      <span class="muted db-promise">Lido do código. Nenhum banco é consultado.</span>
+      @if (live(); as l) {
+        <span class="pill db-live-pill">Banco vivo: {{ l.server }}/{{ l.database }}, só leitura</span>
+        <span class="muted db-promise">Lido do código e do catálogo do banco vivo. Nenhum dado das tabelas é lido.</span>
+      } @else {
+        <span class="muted db-promise">Lido do código. Nenhum banco é consultado.</span>
+      }
+      <button type="button" class="btn btn-g btn-small" (click)="connectionOpen.set(true)" aria-haspopup="dialog">{{ live() ? 'Banco vivo' : 'Conectar banco vivo' }}</button>
       @if (geometry() && tab() === DbTab.Map) {
         <span class="popover">
           <button type="button" class="btn btn-g btn-small" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
@@ -198,8 +204,12 @@
   }
 
   @if (!error() && schema()) {
-    <app-query-analysis role="tabpanel" id="db-panel-1" aria-labelledby="db-tab-query" [hidden]="tab() !== DbTab.Query" [repository]="nome()" [schema]="schema()"
+    <app-query-analysis role="tabpanel" id="db-panel-1" aria-labelledby="db-tab-query" [hidden]="tab() !== DbTab.Query" [repository]="nome()" [schema]="schema()" [live]="!!live()"
       [initial]="consulta()" [origin]="origem()" (pickTable)="showInMap($event)" />
+  }
+
+  @if (connectionOpen()) {
+    <app-live-connection-dialog [repository]="nome()" [connection]="connection()" (closed)="connectionOpen.set(false)" (changed)="connectionChanged()" />
   }
 
   @if (message(); as m) {

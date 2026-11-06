@@ -62,7 +62,10 @@
 
 @if (result(); as r) {
   @if (!r.analysis.error) {
-    <aside class="qa-side" aria-label="Tabelas da consulta">
+    <aside class="qa-side" aria-label="Plano e tabelas da consulta">
+      @if (live()) {
+        <app-query-plan [repository]="repository()" [sql]="r.sql" />
+      }
       <h2 class="qa-title">Tabelas da consulta</h2>
       @if (r.analysis.tables.length === 0) {
         <p class="muted">Nenhuma tabela citada.</p>

@@ -211,6 +211,7 @@ describe('DatabasePage: abas (Fase 40a)', () => {
     const http = TestBed.inject(HttpTestingController);
     fixture.detectChanges();
     http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:/loja' }]);
+    http.expectOne('/api/repositories/loja/connection').flush({ configured: false, server: null, database: null, updatedAt: null });
     http.expectOne('/api/repositories/loja/schema').flush(lojaSchema());
     http.expectOne('/api/repositories/loja/schema/usage').flush({ uses: [], findings: [] });
     fixture.detectChanges();

@@ -437,6 +437,39 @@ namespace Rastro.Infrastructure.Migrations
                     b.ToTable("survey_validations", (string)null);
                 });
 
+            modelBuilder.Entity("Rastro.Infrastructure.Database.Live.LiveConnection", b =>
+                {
+                    b.Property<string>("Repository")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("repository");
+
+                    b.Property<string>("ConnectionProtected")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("connection_protected");
+
+                    b.Property<string>("Database")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("database");
+
+                    b.Property<string>("Server")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("server");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Repository")
+                        .HasName("pk_live_connections");
+
+                    b.ToTable("live_connections", (string)null);
+                });
+
             modelBuilder.Entity("Rastro.Core.Surveys.SurveyArchitecture", b =>
                 {
                     b.HasOne("Rastro.Core.Surveys.Survey", null)

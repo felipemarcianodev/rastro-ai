@@ -122,7 +122,7 @@ Na dúvida se a mudança afeta o cliente, ela afeta: confira a lista acima e dig
 - **Processo externo** (git, dotnet, build e testes da validação) roda pelo `ProcessRunner`: argumentos separados, **sem shell** e com timeout. O comando vem só da configuração, nunca da requisição.
 - **Secrets:**
   - Nunca em arquivo versionado. Local, use user-secrets.
-  - A chave de API dos provedores fica cifrada no banco (DataProtection) e nunca volta na resposta nem no log.
+  - A chave de API dos provedores e a string de conexão do banco vivo ficam cifradas no banco (DataProtection, um propósito para cada) e nunca voltam na resposta, no log nem para a IA.
 - **Banco do cliente** ([ADR-006](docs/adr/adr-006-visao-do-banco.md)): o esquema sai do código. Banco vivo é opcional e só de leitura: nunca ler dados das tabelas, só catálogo (comandos fixos, com parâmetros) e plano estimado sem executar, com a consulta conferida antes pelo leitor de SQL. A string de conexão segue a regra da chave de API (cifrada, nunca na resposta, no log nem na IA).
 - **A API** só escuta em `127.0.0.1` (o `rastro` sobe na 7450).
 - **Código aberto** ([ADR-004](docs/adr/adr-004-codigo-aberto.md)): o repositório é público. Nada privado entra nele (nome de cliente, projeto pessoal fechado, caminho da máquina, print de código que não é público); prints só de repositórios públicos.
