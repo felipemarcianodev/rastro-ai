@@ -36,4 +36,37 @@ public static class DbNames
     // "NVARCHAR (30)" e "nvarchar(30)" são o mesmo tipo.
     public static string NormalizeType(string type) =>
         new string(type.Where(c => !char.IsWhiteSpace(c) && c is not '[' and not ']' and not '"').ToArray()).ToLowerInvariant();
+
+    // No PostgreSQL, o mesmo tipo tem vários nomes: o .sql escreve "int", "varchar(100)" e "timestamptz",
+    // e o Npgsql e o catálogo escrevem "integer", "character varying(100)" e "timestamp with time zone".
+    // Para comparar entre fontes, os sinônimos viram o nome do catálogo (serial vira o inteiro dele).
+    // O tipo mostrado continua como cada fonte escreve.
+    public static string NormalizeType(string type, SqlDialect dialect)
+    {
+        if (dialect != SqlDialect.PostgreSql) return NormalizeType(type);
+        var text = string.Join(" ", type.Trim().ToLowerInvariant().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)).Replace(" (", "(");
+        var array = text.EndsWith("[]", StringComparison.Ordinal);
+        if (array) text = text[..^2];
+        var paren = text.IndexOf('(');
+        var (name, args) = paren < 0 ? (text, "") : (text[..paren].Trim(), text[paren..].Replace(" ", ""));
+        name = name switch
+        {
+            "int" or "int4" or "serial" or "serial4" => "integer",
+            "int8" or "bigserial" or "serial8" => "bigint",
+            "int2" or "smallserial" or "serial2" => "smallint",
+            "varchar" => "character varying",
+            "char" or "bpchar" => "character",
+            "timestamptz" => "timestamp with time zone",
+            "timestamp" => "timestamp without time zone",
+            "timetz" => "time with time zone",
+            "time" => "time without time zone",
+            "bool" => "boolean",
+            "float8" or "float" => "double precision",
+            "float4" => "real",
+            "decimal" => "numeric",
+            _ => name
+        };
+        if (name == "character" && args.Length == 0) args = "(1)";
+        return NormalizeType(name + args + (array ? "[]" : ""));
+    }
 }

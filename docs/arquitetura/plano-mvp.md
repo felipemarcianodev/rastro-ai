@@ -901,12 +901,26 @@ Dividida em dois PRs: 40a (análise pelo código) e 40b (banco vivo).
 
 ## Fase 42: PostgreSQL `[ ]` (depende das Fases 37 a 41)
 
-- [ ] Extrator de `.sql` do PostgreSQL (`CREATE TABLE`, chaves, índices, views e funções), com um leitor de SQL do PostgreSQL de licença aberta escolhido e registrado na ADR-006.
-- [ ] O extrator do EF Core já cobre o modelo; conferir os tipos e os nomes que o provedor Npgsql gera (`snake_case`, `jsonb`, `uuid`, `serial` e identidade).
-- [ ] Achados da análise de consulta no dialeto do PostgreSQL (as mesmas regras da Fase 40, mais `ILIKE '%...'` e conversão com `::` na coluna do filtro).
+Dividida em dois PRs: 42a (código: extrator, achados e conferência) e 42b (banco vivo).
+
+### Fase 42a: PostgreSQL pelo código `[x]`
+
+- [x] Leitor de SQL do PostgreSQL escolhido e registrado na [ADR-006](../adr/adr-006-visao-do-banco.md): **SqlParserCS 0.6.5** (MIT, código gerenciado, sem biblioteca nativa, no `Rastro.Extractor` e dentro do pacote). Descartados o `libpg_query` (`pgsqlparser`, `Npgquery`, `PgQuery`: nativo, uma DLL por sistema), a gramática do ANTLR (lenta, Java no build) e o leitor comercial. O leitor não dá a posição de cada nó: o trecho sai dos tokens (`PgSqlText.Locate`). Defeito do leitor contornado: no dialeto do PostgreSQL, o padrão do `LIKE` engolia o `AND` seguinte (`FixedPostgreSqlDialect`, `EXT-PGQ-018`).
+- [x] Extrator de `.sql` do PostgreSQL (`PgSqlSchemaReader`): `CREATE TABLE` (com `serial`, identidade e as chaves na coluna ou na tabela), `ALTER TABLE ... ADD` (chave, coluna, a identidade à parte do `pg_dump`), `CREATE INDEX`, `CREATE VIEW` (e a materializada), `CREATE FUNCTION` e `CREATE PROCEDURE` pelos tokens (parâmetros com o modo e as tabelas que o corpo em PL/pgSQL lê e grava). Cada instrução é lida sozinha (a que falha vira nota), e a carga do `COPY ... FROM stdin` é ignorada. A chave sem nome escrito ganha o nome do PostgreSQL (`tabela_pkey`).
+- [x] Tipos e nomes do Npgsql conferidos: o mapa de tipos por convenção (`text`, `character varying(n)`, `timestamp with time zone`, `uuid`, `jsonb`, `numeric`, `bytea`, vetores), `JsonDocument` e `string[]` como coluna, a identidade por `UseIdentityByDefaultColumn`, `UseIdentityAlwaysColumn`, `UseSerialColumn` e pela anotação `Npgsql:ValueGenerationStrategy` da migration, e os sinônimos (`int` e `integer`, `varchar` e `character varying`, `timestamptz`) comparados pelo nome do catálogo, sem divergência falsa. Com o `UseSnakeCaseNamingConvention`, a chave, a FK e o índice por convenção ganham o nome em minúsculas (`pk_pedidos`), nos dois dialetos.
+- [x] O dialeto sai do repositório (`DbSchemaExtractor.DialectOf`): o provedor do EF, as anotações das migrations e, sem EF, as marcas dos `.sql` pelos tokens.
+- [x] Achados da análise de consulta no PostgreSQL (`PgSqlQueryAnalyzer`): as regras da Fase 40, com `LIMIT` ou `FETCH` no lugar do `TOP`, o `UPDATE ... FROM` e o `DELETE ... USING` como junção e o `LEFT JOIN LATERAL` na subconsulta correlacionada, mais o `ILIKE` com curinga no começo (com a sugestão do índice trigrama) e a conversão com `::` na coluna do filtro. `$1` e `@nome` são parâmetros.
+- [x] A conferência da proposta da IA no PostgreSQL (`PgSqlProposalChecker`) e a porta da consulta para o banco vivo (`PgSqlPlanGuard`: uma instrução só, sem `SELECT INTO`, sem escrita dentro de outra instrução e sem função de efeito colateral conhecida). O provedor recebe o texto do sistema no dialeto, e o `CREATE INDEX` sai com aspas duplas e o nome em até 63 caracteres. Ferramentas e instruções do MCP falam dos dois dialetos.
+- [x] Tela: o rótulo da caixa e o erro de leitura no dialeto do repositório; os títulos "Função ou conversão na coluna do filtro" e "Curinga no começo do LIKE ou ILIKE".
+- [x] Loja fictícia `Fixtures/LojaBancoPg` (a mesma loja no Npgsql, com `.sql` do PostgreSQL, função, procedure, trecho do `pg_dump` e arquivo quebrado). Testes: `EXT-PG-001` a `012`, `EXT-PGQ-001` a `018`, `EXT-PGA-001` a `006`, `EXT-PGP-001` e `002`, `API-PG-001` a `003`, `MCP-PG-001` e `WEB-PG-001`.
+- [x] Prints em `docs/telas/fase-42/` (loja fictícia, API local com `RASTRO_HOME` temporário, clique real) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md) (seção da Fase 42a).
+- [ ] (UX-PG-05, risco médio) Traduzir as mensagens mais comuns dos leitores de SQL (hoje em inglês, nos dois dialetos).
+- [ ] Corpo de função em `BEGIN ATOMIC` (PostgreSQL 14) e tipo com precisão no meio (`timestamp(3) with time zone`) não são lidos por inteiro.
+- [ ] Relatar ao SqlParserCS o defeito da precedência do `LIKE` e tirar o contorno quando a versão corrigida sair.
+
+### Fase 42b: banco vivo do PostgreSQL `[ ]`
+
 - [ ] Com banco vivo: catálogo por `information_schema` e `pg_catalog`, plano estimado por `EXPLAIN` sem `ANALYZE` (nunca executa a consulta).
-- [ ] A conferência da proposta da IA (Fase 41) no dialeto do PostgreSQL.
-- [ ] Loja fictícia com uma versão PostgreSQL do esquema e testes por achado.
 
 **Melhorias propostas na análise do pedido (para o dono decidir):**
 - [x] **O diferencial é a ligação com o código:** a ferramenta de banco mostra a tabela; o Rastro mostra quem a usa e por qual fluxo (Fase 39, feita logo depois da 38).

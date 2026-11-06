@@ -16,7 +16,7 @@ public interface ISqlProposalChecker
 
 public static class SqlProposalCheckers
 {
-    private static readonly ISqlProposalChecker[] All = [new TSqlProposalChecker()];
+    private static readonly ISqlProposalChecker[] All = [new TSqlProposalChecker(), new PgSqlProposalChecker()];
 
     public static ISqlProposalChecker? For(SqlDialect dialect) => All.FirstOrDefault(c => c.Dialect == dialect);
 }

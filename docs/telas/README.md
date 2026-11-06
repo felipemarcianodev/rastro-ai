@@ -44,3 +44,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | 41 | Índices sugeridos: um aceito, com o `CREATE INDEX` escrito pelo Rastro, e um recusado porque o índice já existe | [fase-41/04-indices-aceito-e-recusado.jpg](fase-41/04-indices-aceito-e-recusado.jpg) |
 | 41 | Reescrita recusada: devolvia 2 das 10 colunas da original; o motivo aparece e o texto fica escondido | [fase-41/05-reescrita-recusada.jpg](fase-41/05-reescrita-recusada.jpg) |
 | 41 | IA desligada: a análise sem nenhum botão de IA (ADR-001) | [fase-41/06-sem-ia-sem-botao.jpg](fase-41/06-sem-ia-sem-botao.jpg) |
+| 42 | Mapa do banco de um repositório PostgreSQL (loja fictícia `LojaBancoPg`, API local com `RASTRO_HOME` temporário): os tipos do Npgsql (`jsonb`, `uuid`, `text[]`, `timestamp with time zone`), a tabela `produtos` do `.sql` com `serial` e a chave `produtos_pkey` | [fase-42/01-mapa-do-banco-postgresql.jpg](fase-42/01-mapa-do-banco-postgresql.jpg) |
+| 42 | "Analisar consulta" no PostgreSQL: a conversão `::date` e o `ILIKE '%...'` marcados no texto, com o motivo de cada um | [fase-42/02-achados-ilike-e-conversao.jpg](fase-42/02-achados-ilike-e-conversao.jpg) |
+| 42 | Consulta que o leitor do PostgreSQL não entende: o aviso com a linha e a coluna | [fase-42/03-erro-de-leitura-postgresql.jpg](fase-42/03-erro-de-leitura-postgresql.jpg) |

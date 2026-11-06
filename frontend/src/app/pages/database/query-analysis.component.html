@@ -8,7 +8,7 @@
   </p>
 
   @if (!result()) {
-    <label class="qa-label" for="qa-sql">Consulta SQL (SQL Server)</label>
+    <label class="qa-label" for="qa-sql">Consulta SQL ({{ dialectLabel[dialect()] }})</label>
     <textarea #box id="qa-sql" class="input qa-box code" rows="12" spellcheck="false" autocomplete="off"
       placeholder="SELECT ... FROM ..." [value]="text()" (input)="edit($any($event.target).value)"
       (keydown.control.enter)="analyze()" (keydown.meta.enter)="analyze()"></textarea>
@@ -31,7 +31,7 @@
     <pre class="qa-sql code" tabindex="0" aria-label="Consulta analisada, com os trechos dos achados marcados"><code>@for (s of segments(); track $index) {@if (s.findings.length) {<mark class="qa-mark is-{{ severitySlug[severityOf(s.findings)!] }}" [class.is-active]="isActive(s.findings)" [attr.data-f]="s.key">{{ s.text }}</mark>}@else{<ng-container>{{ s.text }}</ng-container>}}</code></pre>
 
     @if (r.analysis.error; as e) {
-      <p class="notice is-error" role="alert">O leitor de T-SQL não entendeu a consulta (linha {{ e.line }}, coluna {{ e.column }}): {{ e.message }}</p>
+      <p class="notice is-error" role="alert">{{ readerLabel[r.analysis.dialect] }} não entendeu a consulta (linha {{ e.line }}, coluna {{ e.column }}): {{ e.message }}</p>
     } @else {
       <div class="qa-count">
         <h2 class="qa-title">{{ countText() }}</h2>

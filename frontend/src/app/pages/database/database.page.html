@@ -73,7 +73,7 @@
   } @else if (schema()!.tables.length === 0 && schema()!.views.length === 0 && schema()!.procedures.length === 0) {
     <div class="page-state" role="tabpanel" id="db-panel-0" aria-labelledby="db-tab-map" [hidden]="tab() !== DbTab.Map">
       <p>Nenhum banco encontrado no código de {{ nome() }}.</p>
-      <p class="muted">O Rastro procura um DbContext do EF Core, as migrations e arquivos .sql (SQL Server).</p>
+      <p class="muted">O Rastro procura um DbContext do EF Core, as migrations e arquivos .sql (SQL Server ou PostgreSQL).</p>
       <p class="muted">A análise de consulta funciona mesmo assim, só sem os achados de índice e de nulo.</p>
     </div>
   } @else {

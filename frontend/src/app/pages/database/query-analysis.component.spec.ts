@@ -93,7 +93,7 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     expect(ctx.el.textContent).toContain('Regra fixa, sem IA');
     const items = [...ctx.el.querySelectorAll('.qa-finding')];
     expect(items[0].textContent).toContain('Alta');
-    expect(items[0].textContent).toContain('Função na coluna do filtro');
+    expect(items[0].textContent).toContain('Função ou conversão na coluna do filtro');
     expect(items[0].textContent).toContain('A função impede o uso do índice.');
     expect(items[1].textContent).toContain('Baixa');
     expect(items[1].textContent).toContain('SELECT *');
@@ -274,5 +274,27 @@ describe('DatabasePage: abas (Fase 40a)', () => {
 
     expect(navigate).toHaveBeenCalledWith([], { queryParams: { aba: null, tabela: 'pedidos' }, queryParamsHandling: 'merge' });
     expect(el.querySelector('.db-card[data-table="pedidos"]')!.classList).toContain('is-selected');
+  });
+});
+
+describe('QueryAnalysisComponent no PostgreSQL (Fase 42)', () => {
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+
+  // WEB-PG-001
+  it('o rótulo da caixa e o erro de leitura saem do dialeto do repositório', () => {
+    TestBed.configureTestingModule({
+      imports: [QueryAnalysisComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(QueryAnalysisComponent);
+    fixture.componentRef.setInput('repository', 'loja');
+    fixture.componentRef.setInput('schema', { ...lojaSchema(), dialect: SqlDialect.PostgreSql });
+    fixture.detectChanges();
+    const ctx = { fixture, http: TestBed.inject(HttpTestingController), el: fixture.nativeElement as HTMLElement };
+    expect(ctx.el.querySelector('label[for="qa-sql"]')!.textContent).toContain('Consulta SQL (PostgreSQL)');
+
+    analyze(ctx, analysis({ dialect: SqlDialect.PostgreSql, findings: [], tables: [], error: { message: 'Expected identifier, found (', line: 1, column: 14 } }));
+
+    expect(ctx.el.querySelector('.notice.is-error')!.textContent).toContain('O leitor de SQL do PostgreSQL não entendeu a consulta (linha 1, coluna 14): Expected identifier, found (');
   });
 });

@@ -66,14 +66,14 @@ public static class DbSchemaMerger
         foreach (var byName in group.SelectMany(t => t.Columns).GroupBy(c => DbNames.Unquote(c.Name), StringComparer.OrdinalIgnoreCase))
         {
             var versions = byName.ToList();
-            var type = Agree(versions.Where(c => c.Type is not null).Select(c => (Value: c.Type!, Key: DbNames.NormalizeType(c.Type!), Source: First(c.Sources))).ToList(),
+            var type = Agree(versions.Where(c => c.Type is not null).Select(c => (Value: c.Type!, Key: DbNames.NormalizeType(c.Type!, dialect), Source: First(c.Sources))).ToList(),
                 SchemaDivergenceKind.ColumnType, display, byName.Key, divergences);
             var nullable = Agree(versions.Where(c => c.Nullable is not null).Select(c => (Value: c.Nullable!.Value ? "aceita nulo" : "não aceita nulo", Key: c.Nullable!.Value.ToString(), Source: First(c.Sources))).ToList(),
                 SchemaDivergenceKind.ColumnNullability, display, byName.Key, divergences);
 
             columns.Add(new DbColumn(
                 DbNames.Unquote(versions[0].Name),
-                type is null ? null : versions.First(c => c.Type is not null && DbNames.NormalizeType(c.Type) == type).Type,
+                type is null ? null : versions.First(c => c.Type is not null && DbNames.NormalizeType(c.Type, dialect) == type).Type,
                 nullable is null ? null : bool.Parse(nullable),
                 versions.Select(c => c.Default).FirstOrDefault(d => d is not null),
                 versions.Any(c => c.Identity),

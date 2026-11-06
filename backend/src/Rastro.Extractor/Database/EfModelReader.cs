@@ -197,7 +197,8 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
             case "HasDefaultValueSql": property.Default = String(Arg(call, "sql", 0)); break;
             case "HasDefaultValue": property.Default = call.ArgumentList.Arguments.FirstOrDefault()?.Expression.ToString(); break;
             case "ValueGeneratedNever": property.GeneratedNever = true; break;
-            case "UseIdentityColumn": property.Identity = true; break;
+            // UseIdentityByDefaultColumn, UseIdentityAlwaysColumn e UseSerialColumn: os do Npgsql.
+            case "UseIdentityColumn" or "UseIdentityByDefaultColumn" or "UseIdentityAlwaysColumn" or "UseSerialColumn": property.Identity = true; break;
         }
     }
 
@@ -260,6 +261,8 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
                 entity.References[name] = (typeName, property, propertyFile);
             else if (element is null && (ClrTypeMap.IsValueType(typeName) || code.EnumUnderlying(typeName) is not null || typeName is "string" or "String" or "byte[]"))
                 entity.Scalars.Add(new Scalar(name, typeName, nullableAnnotated, property, propertyFile));
+            else if (dialect == SqlDialect.PostgreSql && NpgsqlScalar(typeName, element) is { } npgsqlType)
+                entity.Scalars.Add(new Scalar(name, npgsqlType, nullableAnnotated, property, propertyFile));
             else if (element is null && code.FindClass(typeName) is not null)
                 _notes.Add(new SchemaNote($"{entity.ClrName}.{name} é do tipo {typeName}, que não é entidade do modelo: a propriedade ficou de fora.", propertyFile, Line(property)));
         }
@@ -362,14 +365,14 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
 
         var tableName = entity.TableName!;
         DbPrimaryKey? primaryKey = keyProps.Count == 0 ? null
-            : new DbPrimaryKey("PK_" + tableName, entity.Key!.Select(entity.ColumnOf).ToList(), entity.KeySource ?? entity.Source);
+            : new DbPrimaryKey(Conventional("PK_" + tableName), entity.Key!.Select(entity.ColumnOf).ToList(), entity.KeySource ?? entity.Source);
 
         var foreignKeys = mine.Select(r =>
         {
             var columnsOf = r.ForeignKey.Select(entity.ColumnOf).ToList();
             var required = r.ForeignKey.All(p => columns.FirstOrDefault(c => c.Name == entity.ColumnOf(p))?.Nullable == false);
             return new DbForeignKey(
-                $"FK_{tableName}_{r.Principal.TableName}_{string.Join("_", columnsOf)}",
+                Conventional($"FK_{tableName}_{r.Principal.TableName}_{string.Join("_", columnsOf)}"),
                 columnsOf,
                 DbNames.Display(r.Principal.Schema, r.Principal.TableName!, dialect),
                 (r.Principal.Key ?? []).Select(r.Principal.ColumnOf).ToList(),
@@ -382,7 +385,7 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
             .Select(i =>
             {
                 var cols = i.Properties.Select(entity.ColumnOf).ToList();
-                return new DbIndex(i.Name ?? $"IX_{tableName}_{string.Join("_", cols)}", cols, i.Include.Select(entity.ColumnOf).ToList(), i.Unique, i.Source);
+                return new DbIndex(i.Name ?? Conventional($"IX_{tableName}_{string.Join("_", cols)}"), cols, i.Include.Select(entity.ColumnOf).ToList(), i.Unique, i.Source);
             })
             .ToList();
 
@@ -392,7 +395,7 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
         {
             if (primaryKey is not null && Prefix(primaryKey.Columns, fk.Columns)) continue;
             if (indexes.Any(i => Prefix(i.Columns, fk.Columns))) continue;
-            indexes.Add(new DbIndex($"IX_{tableName}_{string.Join("_", fk.Columns)}", fk.Columns, [], false, fk.Source, Convention: true));
+            indexes.Add(new DbIndex(Conventional($"IX_{tableName}_{string.Join("_", fk.Columns)}"), fk.Columns, [], false, fk.Source, Convention: true));
         }
 
         return new DbTable(entity.Schema, tableName, columns, primaryKey, foreignKeys, indexes, [entity.Source], entity.ClrName);
@@ -482,10 +485,25 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
         return (BaseName(type), nullable, null);
     }
 
+    // O que o Npgsql mapeia sozinho e o SQL Server não: vetor e lista de tipo simples (text[], integer[]) e
+    // JsonDocument ou JsonElement (jsonb).
+    private static string? NpgsqlScalar(string typeName, string? element)
+    {
+        static bool Simple(string t) => ClrTypeMap.IsValueType(t) || t is "string" or "String";
+        if (typeName is "JsonDocument" or "JsonElement") return typeName;
+        if (element is null && typeName.EndsWith("[]", StringComparison.Ordinal) && Simple(typeName[..^2])) return typeName;
+        if (element is not null && typeName is "List" or "IList" && Simple(element)) return element + "[]";
+        return null;
+    }
+
     private static string? Attr(MemberDeclarationSyntax member, string name, out AttributeSyntax? attribute) =>
         Attribute(member, name, out attribute);
 
     private string Name(string name) => _snakeCase ? EfNaming.SnakeCase(name) : name;
+
+    // O nome que o EF dá à chave, à FK e ao índice: com o UseSnakeCaseNamingConvention, em minúsculas
+    // (pk_pedidos, fk_pedidos_clientes_cliente_id, ix_pedidos_cliente_id).
+    private string Conventional(string name) => _snakeCase ? name.ToLowerInvariant() : name;
 
     private sealed class Entity(string clrName, SchemaSource source)
     {

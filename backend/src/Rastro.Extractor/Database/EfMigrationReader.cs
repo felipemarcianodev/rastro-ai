@@ -143,7 +143,7 @@ internal sealed class EfMigrationReader(CodeIndex code, SqlDialect dialect)
                 var definition = chain.FirstOrDefault(c => MethodName(c) == "Column") ?? column;
                 var columnName = String(Arg(definition, "name")) ?? member.NameEquals?.Name.Identifier.ValueText ?? LastName(member.Expression) ?? string.Empty;
                 var built = Column(definition, columnName, Source(Kind, file, member));
-                if (chain.Any(c => MethodName(c) == "Annotation" && String(Arg(c, "name", 0)) is { } annotation && annotation.EndsWith(":Identity", StringComparison.Ordinal)))
+                if (chain.Any(c => MethodName(c) == "Annotation" && String(Arg(c, "name", 0)) is { } annotation && IdentityAnnotation(annotation, Arg(c, "value", 1)?.ToString())))
                     built = built with { Identity = true };
                 table.Columns.Add(built);
             }
@@ -187,6 +187,14 @@ internal sealed class EfMigrationReader(CodeIndex code, SqlDialect dialect)
         // Sem "nullable", o EF entende que a coluna não aceita nulo.
         return new DbColumn(name, type, Bool(Arg(call, "nullable")) ?? false, defaultValue, false, [source]);
     }
+
+    // SqlServer:Identity; no Npgsql, Npgsql:ValueGenerationStrategy com a identidade ou o serial (o HiLo
+    // usa uma sequência à parte e não conta).
+    private static bool IdentityAnnotation(string name, string? value) =>
+        name.EndsWith(":Identity", StringComparison.Ordinal)
+        || (name == "Npgsql:ValueGenerationStrategy" && value is not null
+            && (value.Contains("Identity", StringComparison.Ordinal) || value.Contains("SerialColumn", StringComparison.Ordinal)))
+        || (name == "Npgsql:SerialColumn" && value == "true");
 
     private DbForeignKey ForeignKey(InvocationExpressionSyntax call, SchemaSource source)
     {

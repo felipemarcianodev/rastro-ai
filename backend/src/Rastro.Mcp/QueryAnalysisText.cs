@@ -11,7 +11,7 @@ public static class QueryAnalysisText
     public static string Format(QueryAnalysis analysis, DbSchema? schema = null)
     {
         if (analysis.Error is { } error)
-            return $"O leitor de T-SQL não entendeu a consulta (linha {error.Line}, coluna {error.Column}): {error.Message}";
+            return $"{(analysis.Dialect == SqlDialect.PostgreSql ? "O leitor de SQL do PostgreSQL" : "O leitor de T-SQL")} não entendeu a consulta (linha {error.Line}, coluna {error.Column}): {error.Message}";
 
         var text = new StringBuilder();
         text.AppendLine($"{Count(analysis.Statements, "instrução lida", "instruções lidas")}, {Count(analysis.Findings.Count, "achado", "achados")} (regra fixa, sem IA; a consulta não foi executada).");
