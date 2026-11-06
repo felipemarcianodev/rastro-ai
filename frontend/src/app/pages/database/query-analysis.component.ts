@@ -41,6 +41,8 @@ export class QueryAnalysisComponent {
   readonly schema = input<DbSchema | null>(null);
   // Com conexão ao banco vivo, o plano estimado pode ser pedido (Fase 40b).
   readonly live = input(false);
+  // O dialeto da conexão viva (Fase 42b): a nota do plano diz como ele foi pedido.
+  readonly liveDialect = input<SqlDialect | null>(null);
   // ?consulta= e ?origem= da rota: o texto que veio de um passo do fluxo.
   readonly initial = input<string | undefined>();
   readonly origin = input<string | undefined>();

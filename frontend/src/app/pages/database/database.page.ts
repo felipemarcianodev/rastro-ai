@@ -10,6 +10,7 @@ import {
   SCHEMA_SOURCE_LABEL,
   SQL_DIALECT_LABEL,
   SchemaSourceKind,
+  SqlDialect,
   findTable,
   matches,
   neighborhood,
@@ -107,6 +108,8 @@ export class DatabasePage {
   protected readonly connectionOpen = signal(false);
   // Com conexão salva, o selo e a promessa mudam; sem ela, o banco nunca é consultado.
   protected readonly live = computed(() => (this.connection()?.configured ? this.connection() : null));
+  // O dialeto da conexão salva ou, sem ela, o do código do repositório (Fase 42b).
+  protected readonly liveDialect = computed(() => this.live()?.dialect ?? this.schema()?.dialect ?? SqlDialect.SqlServer);
   private messageTimer?: ReturnType<typeof setTimeout>;
 
   protected readonly DbItemKind = DbItemKind;

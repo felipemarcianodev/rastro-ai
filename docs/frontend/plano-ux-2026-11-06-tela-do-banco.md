@@ -95,3 +95,15 @@
 | UX-PG-03 | painel da tabela, índices | A chave sem nome escrito aparecia como "chave primária (id), chave primária" | O nome que o PostgreSQL dá (`produtos_pkey`), o mesmo do catálogo | Baixo | P | Feito |
 | UX-PG-04 | título do achado | "Função na coluna do filtro" para a conversão `::date` | "Função ou conversão na coluna do filtro"; o curinga vira "LIKE ou ILIKE" | Baixo | P | Feito |
 | UX-PG-05 | erro de leitura | A mensagem do leitor do PostgreSQL vem em inglês ("Expected an expression, found ="), como a do leitor de T-SQL | Traduzir as mensagens mais comuns dos dois leitores | Médio (muda o texto dos dois dialetos) | M | `[ ]` no plano |
+
+## Fase 42b: banco vivo do PostgreSQL
+
+**Escopo:** o diálogo "Banco vivo", o selo e o cartão "Plano estimado pelo banco" com um PostgreSQL 17 descartável em contêiner e um usuário só de leitura. Verificação no navegador (Chrome, Papel no claro, 1440) com a API local e `RASTRO_HOME` temporário; clique real em "Conectar banco vivo", "Salvar", "Testar conexão", "Analisar" e "Pedir o plano estimado".
+
+| ID | Onde | Problema | Sugestão | Risco | Esforço | Destino |
+|---|---|---|---|---|---|---|
+| UX-PGL-01 | diálogo | A permissão mínima e o modelo da string eram só do SQL Server | O texto, o modelo da string e o dialeto da conexão salva pelo dialeto | Baixo | P | Feito |
+| UX-PGL-02 | cartão do plano | A nota falava do `SHOWPLAN_XML` num banco PostgreSQL | A nota do `EXPLAIN` sem `ANALYZE` e do plano genérico com parâmetro | Baixo | P | Feito |
+| UX-PGL-03 | erro do plano | "O banco vivo não respondeu" quando o banco respondeu recusando (permissão), nos dois dialetos | "O plano não veio do banco vivo", com o motivo | Baixo | P | Feito |
+| UX-PGL-04 | erro do plano | O motivo da permissão citava só o `SELECT` num `DELETE` | Citar o `SELECT`, ou o `INSERT`, `UPDATE` e `DELETE` | Baixo | P | Feito |
+| UX-PGL-05 | diálogo | O parágrafo da permissão mínima ficou longo (três comandos no PostgreSQL) | Lista curta com um comando por linha e o botão "Copiar" | Médio (muda o desenho do diálogo nos dois dialetos) | P | `[ ]` no plano |

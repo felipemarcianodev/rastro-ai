@@ -1,12 +1,13 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
 import { Subscription } from 'rxjs';
-import { MissingIndex, PLAN_SHOWPLAN_NOTE, PlanOperation, QueryPlan, missingIndexText, operatorLabel } from '../../core/database/live-database';
+import { SqlDialect } from '../../core/database/db-schema';
+import { MissingIndex, PLAN_NOTE, PlanOperation, QueryPlan, missingIndexText, operatorLabel } from '../../core/database/live-database';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 const MIN_PERCENT = 1;
 
-// Cartão "Plano estimado pelo banco" (Fase 40b): o SET SHOWPLAN_XML do banco vivo, pedido só pelo
-// botão. O banco diz como faria; a consulta não é executada.
+// Cartão "Plano estimado pelo banco" (Fase 40b): o SET SHOWPLAN_XML do SQL Server ou o EXPLAIN sem
+// ANALYZE do PostgreSQL (Fase 42b), pedido só pelo botão. O banco diz como faria; a consulta não é executada.
 @Component({
   selector: 'app-query-plan',
   templateUrl: './query-plan.component.html',
@@ -19,12 +20,13 @@ export class QueryPlanComponent {
 
   readonly repository = input.required<string>();
   readonly sql = input.required<string>();
+  readonly dialect = input<SqlDialect>(SqlDialect.SqlServer);
 
   protected readonly busy = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly plan = signal<QueryPlan | null>(null);
 
-  protected readonly note = PLAN_SHOWPLAN_NOTE;
+  protected readonly note = computed(() => PLAN_NOTE[this.dialect()]);
   protected readonly showAll = signal(false);
 
   // Operação com menos de 1% do custo não diz nada: fica atrás de "mais N operações" (UX-DBL-04).

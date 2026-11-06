@@ -1,6 +1,17 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, output, signal } from '@angular/core';
 import { DialogDirective } from '../../core/dialog.directive';
-import { LIVE_PERMISSION_GRANTS, LIVE_PERMISSION_SELECT, LIVE_PERMISSION_SHOWPLAN, LiveConnectionTest, LiveConnectionView } from '../../core/database/live-database';
+import { SQL_DIALECT_LABEL, SqlDialect } from '../../core/database/db-schema';
+import {
+  LIVE_CONNECTION_PLACEHOLDER,
+  LIVE_PERMISSION_GRANTS,
+  LIVE_PERMISSION_SELECT,
+  LIVE_PERMISSION_SHOWPLAN,
+  LIVE_PG_PERMISSION_CONNECT,
+  LIVE_PG_PERMISSION_SELECT,
+  LIVE_PG_READ_ONLY,
+  LiveConnectionTest,
+  LiveConnectionView,
+} from '../../core/database/live-database';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 // Diálogo do banco vivo (Fase 40b, ADR-006): cadastra, testa e remove a conexão só leitura do
@@ -18,6 +29,8 @@ export class LiveConnectionDialogComponent {
 
   readonly repository = input.required<string>();
   readonly connection = input<LiveConnectionView | null>(null);
+  // O dialeto da conexão salva ou, sem ela, o do repositório (Fase 42b): a permissão mínima de cada um.
+  readonly dialect = input<SqlDialect>(SqlDialect.SqlServer);
   readonly closed = output<void>();
   // Salvou ou removeu: a tela recarrega o esquema e a conexão.
   readonly changed = output<void>();
@@ -32,6 +45,12 @@ export class LiveConnectionDialogComponent {
   protected readonly grants = LIVE_PERMISSION_GRANTS;
   protected readonly showplan = LIVE_PERMISSION_SHOWPLAN;
   protected readonly select = LIVE_PERMISSION_SELECT;
+  protected readonly pgConnect = LIVE_PG_PERMISSION_CONNECT;
+  protected readonly pgSelect = LIVE_PG_PERMISSION_SELECT;
+  protected readonly pgReadOnly = LIVE_PG_READ_ONLY;
+  protected readonly placeholder = LIVE_CONNECTION_PLACEHOLDER;
+  protected readonly dialectLabel = SQL_DIALECT_LABEL;
+  protected readonly SqlDialect = SqlDialect;
 
   constructor() {
     inject(DestroyRef).onDestroy(() => (this.closing = true));

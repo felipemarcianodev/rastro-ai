@@ -1,5 +1,7 @@
+import { SqlDialect } from './db-schema';
+
 // Banco vivo (Fase 40b, ADR-006): a conexão só leitura do repositório e o plano estimado pelo banco.
-// A string de conexão nunca volta da API: a tela só vê o servidor e o banco.
+// A string de conexão nunca volta da API: a tela só vê o servidor, o banco e o dialeto (Fase 42b).
 
 export interface LiveConnectionView {
   configured: boolean;
@@ -8,6 +10,8 @@ export interface LiveConnectionView {
   // Initial Catalog.
   database: string | null;
   updatedAt: string | null;
+  // Fase 42b: tirado da própria string, ou do repositório quando a string serve aos dois drivers.
+  dialect: SqlDialect;
 }
 
 export interface LiveConnectionTest {
@@ -45,8 +49,28 @@ export interface QueryPlan {
   warnings: string[];
 }
 
-// Operadores como o SQL Server escreve, em pt-BR. O desconhecido fica como veio.
+// Operadores como o SQL Server e o PostgreSQL (Fase 42b) escrevem, em pt-BR. O desconhecido fica como veio.
 export const PLAN_OPERATOR_LABEL: Record<string, string> = {
+  'Seq Scan': 'Varredura da tabela',
+  'Index Only Scan': 'Busca só no índice',
+  'Bitmap Heap Scan': 'Leitura da tabela pelo mapa do índice',
+  'Bitmap Index Scan': 'Busca no índice (mapa)',
+  'Nested Loop': 'Laços aninhados',
+  'Hash Join': 'Junção por hash',
+  Hash: 'Tabela de hash',
+  Aggregate: 'Agregação',
+  HashAggregate: 'Agregação por hash',
+  GroupAggregate: 'Agregação por grupo',
+  Limit: 'Limite',
+  ModifyTable: 'Alteração da tabela',
+  Materialize: 'Materialização',
+  Gather: 'Junção dos processos paralelos',
+  'Gather Merge': 'Junção ordenada dos processos paralelos',
+  Unique: 'Remoção de repetidos',
+  'Subquery Scan': 'Leitura da subconsulta',
+  'CTE Scan': 'Leitura do CTE',
+  Result: 'Resultado',
+  'Incremental Sort': 'Ordenação incremental',
   'Clustered Index Scan': 'Varredura do índice clustered',
   'Index Scan': 'Varredura do índice',
   'Table Scan': 'Varredura da tabela',
@@ -71,7 +95,24 @@ export function missingIndexText(index: MissingIndex): string {
 
 export const PLAN_SHOWPLAN_NOTE = 'SET SHOWPLAN_XML: o banco diz como faria, sem executar a consulta. Parâmetros (@p0) entram como texto.';
 
+// Como o plano é pedido, por dialeto (Fase 42b).
+export const PLAN_NOTE: Record<SqlDialect, string> = {
+  [SqlDialect.SqlServer]: PLAN_SHOWPLAN_NOTE,
+  [SqlDialect.PostgreSql]: 'EXPLAIN sem ANALYZE, numa conexão só de leitura: o banco diz como faria, sem executar a consulta. Com parâmetro ($1, @nome), o plano é o genérico, que não depende do valor.',
+};
+
 export const LIVE_PERMISSION_GRANTS = 'GRANT VIEW DEFINITION TO usuario';
 export const LIVE_PERMISSION_SHOWPLAN = 'GRANT SHOWPLAN TO usuario';
 // O SQL Server só mostra o plano a quem pode rodar a instrução: o SELECT nas tabelas da consulta.
 export const LIVE_PERMISSION_SELECT = 'GRANT SELECT ON SCHEMA::dbo TO usuario';
+
+// PostgreSQL (Fase 42b): o catálogo (pg_catalog) se lê só com o CONNECT; o EXPLAIN confere a permissão
+// da instrução, então o plano pede o USAGE no schema e o SELECT nas tabelas da consulta.
+export const LIVE_PG_PERMISSION_CONNECT = 'GRANT CONNECT ON DATABASE banco TO usuario';
+export const LIVE_PG_PERMISSION_SELECT = 'GRANT USAGE ON SCHEMA public TO usuario; GRANT SELECT ON ALL TABLES IN SCHEMA public TO usuario';
+export const LIVE_PG_READ_ONLY = 'ALTER ROLE usuario SET default_transaction_read_only = on';
+
+export const LIVE_CONNECTION_PLACEHOLDER: Record<SqlDialect, string> = {
+  [SqlDialect.SqlServer]: 'Server=...;Database=...;User Id=...;Password=...',
+  [SqlDialect.PostgreSql]: 'Host=...;Database=...;Username=...;Password=...',
+};

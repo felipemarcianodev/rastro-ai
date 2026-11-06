@@ -454,6 +454,10 @@ namespace Rastro.Infrastructure.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("database");
 
+                    b.Property<int>("Dialect")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("dialect");
+
                     b.Property<string>("Server")
                         .IsRequired()
                         .HasMaxLength(500)

@@ -20,6 +20,22 @@ public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService>
     // Nulo quando o repositório não está cadastrado (ou a pasta sumiu).
     public async Task<DbSchema?> ReadAsync(string repositoryName, CancellationToken ct)
     {
+        if (await FilesAsync(repositoryName, ct) is not var (files, skipped)) return null;
+
+        var liveFragment = live is null ? null : await live.ReadAsync(repositoryName, ct);
+        var schema = DbSchemaExtractor.Extract(files, liveFragment is null ? null : [liveFragment]);
+        logger.LogInformation("Esquema do banco do repositório {Repository} lido: {Tables} tabelas, {Divergences} divergências.",
+            repositoryName, schema.Tables.Count, schema.Divergences.Count);
+        return skipped.Count == 0 ? schema : schema with { Notes = [.. skipped, .. schema.Notes] };
+    }
+
+    // O dialeto do código do repositório (Fase 42b), sem o banco vivo: decide a string de conexão que
+    // serve aos dois drivers. Nulo quando o repositório não está cadastrado.
+    public async Task<SqlDialect?> DialectAsync(string repositoryName, CancellationToken ct) =>
+        await FilesAsync(repositoryName, ct) is var (files, _) ? DbSchemaExtractor.DialectOf(files) : null;
+
+    private async Task<(List<SchemaFile> Files, List<SchemaNote> Skipped)?> FilesAsync(string repositoryName, CancellationToken ct)
+    {
         var root = catalog.RootOf(repositoryName);
         var paths = catalog.SourceFiles(repositoryName, Extensions, MaxFiles + 1);
         if (root is null || paths is null) return null;
@@ -50,10 +66,6 @@ public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService>
             }
         }
 
-        var liveFragment = live is null ? null : await live.ReadAsync(repositoryName, ct);
-        var schema = DbSchemaExtractor.Extract(files, liveFragment is null ? null : [liveFragment]);
-        logger.LogInformation("Esquema do banco do repositório {Repository} lido: {Tables} tabelas, {Divergences} divergências.",
-            repositoryName, schema.Tables.Count, schema.Divergences.Count);
-        return skipped.Count == 0 ? schema : schema with { Notes = [.. skipped, .. schema.Notes] };
+        return (files, skipped);
     }
 }

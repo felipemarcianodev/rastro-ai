@@ -4,18 +4,25 @@ using Rastro.Core.Database;
 
 namespace Rastro.Infrastructure.Database.Live;
 
-// O que o Rastro pede a um banco vivo (Fase 40b, ADR-006). Só três coisas, todas só de leitura: o
-// catálogo, o plano estimado de uma consulta já conferida pelo TSqlPlanGuard e a contagem de tabelas
-// para o teste da conexão. Nunca os dados das tabelas.
+// O que o Rastro pede a um banco vivo (Fase 40b, ADR-006), um por dialeto (o PostgreSQL na Fase 42b).
+// Só três coisas, todas só de leitura: o catálogo, o plano estimado de uma consulta já conferida pela
+// porta do dialeto (TSqlPlanGuard ou PgSqlPlanGuard) e a contagem de tabelas para o teste da conexão.
+// Nunca os dados das tabelas.
 public interface ILiveDatabase
 {
+    SqlDialect Dialect { get; }
+
     Task<SchemaFragment> ReadCatalogAsync(string connectionString, CancellationToken ct);
 
-    // sql: a consulta conferida; variables: as variáveis dela, declaradas como texto antes do pedido.
-    Task<string> ShowPlanXmlAsync(string connectionString, string sql, IReadOnlyList<string> variables, CancellationToken ct);
+    // sql: a consulta conferida; variables: os parâmetros dela. Devolve o plano como o banco escreve (o
+    // XML do SHOWPLAN no SQL Server, o JSON do EXPLAIN no PostgreSQL), lido pelo LiveDatabaseService.
+    Task<string> EstimatedPlanAsync(string connectionString, string sql, IReadOnlyList<string> variables, CancellationToken ct);
 
     Task<int> CountTablesAsync(string connectionString, CancellationToken ct);
 }
+
+// O banco recusou dar o plano por um motivo que o Rastro sabe dizer (versão antiga, por exemplo).
+public class LivePlanUnavailableException(string reason) : Exception(reason);
 
 // SQL Server pelo driver oficial (Microsoft.Data.SqlClient). Os comandos ao catálogo são constantes,
 // sem texto nenhum da requisição. Toda conexão tem tempo limite, sem pool (o SET SHOWPLAN_XML de uma
@@ -25,6 +32,8 @@ public sealed class SqlServerLiveDatabase : ILiveDatabase
     public const int ConnectTimeoutSeconds = 10;
     public const int CommandTimeoutSeconds = 30;
     private static readonly SchemaSource Live = new(SchemaSourceKind.LiveDatabase, "banco vivo", 0);
+
+    public SqlDialect Dialect => SqlDialect.SqlServer;
 
     private const string ColumnsSql = """
         SELECT s.name, t.name, c.name, ty.name, c.max_length, c.precision, c.scale, c.is_nullable, c.is_identity, dc.definition
@@ -186,7 +195,7 @@ public sealed class SqlServerLiveDatabase : ILiveDatabase
         return new SchemaFragment(built, views, procedures, []);
     }
 
-    public async Task<string> ShowPlanXmlAsync(string connectionString, string sql, IReadOnlyList<string> variables, CancellationToken ct)
+    public async Task<string> EstimatedPlanAsync(string connectionString, string sql, IReadOnlyList<string> variables, CancellationToken ct)
     {
         await using var connection = await OpenAsync(connectionString, ct);
         await using (var on = Command(connection, "SET SHOWPLAN_XML ON"))

@@ -11,8 +11,10 @@ namespace Rastro.Tests.Api;
 
 // Banco vivo de mentira para os testes da API: o real (SQL Server) é testado com Testcontainers.
 // Guarda o que recebeu, para o teste conferir o que chegaria ao banco.
-public sealed class FakeLiveDatabase : ILiveDatabase
+public class FakeLiveDatabase : ILiveDatabase
 {
+    public virtual SqlDialect Dialect => SqlDialect.SqlServer;
+
     public static string? LastConnection { get; private set; }
     public static string? LastSql { get; private set; }
     public static IReadOnlyList<string> LastVariables { get; private set; } = [];
@@ -49,13 +51,27 @@ public sealed class FakeLiveDatabase : ILiveDatabase
             [], [], []));
     }
 
-    public Task<string> ShowPlanXmlAsync(string connectionString, string sql, IReadOnlyList<string> variables, CancellationToken ct)
+    public Task<string> EstimatedPlanAsync(string connectionString, string sql, IReadOnlyList<string> variables, CancellationToken ct)
     {
-        (LastConnection, LastSql, LastVariables) = (connectionString, sql, variables);
-        return Fail ? throw new InvalidOperationException("caiu") : Task.FromResult(PlanXml);
+        (LastConnection, LastSql, LastVariables, LastDialect) = (connectionString, sql, variables, Dialect);
+        return Fail ? throw new InvalidOperationException("caiu") : Task.FromResult(Dialect == SqlDialect.PostgreSql ? PlanJson : PlanXml);
     }
 
-    public static void Reset() => (LastConnection, LastSql, LastVariables, Fail) = (null, null, [], false);
+    public static SqlDialect? LastDialect { get; private set; }
+
+    // O EXPLAIN (FORMAT JSON) do PostgreSQL de mentira (Fase 42b): uma varredura de pedidos sob a ordenação.
+    public const string PlanJson = """
+        [{"Plan": {"Node Type": "Sort", "Total Cost": 20.5, "Plan Rows": 100,
+          "Plans": [{"Node Type": "Seq Scan", "Relation Name": "pedidos", "Alias": "p", "Total Cost": 15.0, "Plan Rows": 100}]}}]
+        """;
+
+    public static void Reset() => (LastConnection, LastSql, LastVariables, Fail, LastDialect) = (null, null, [], false, null);
+}
+
+// O mesmo banco de mentira no dialeto do PostgreSQL (Fase 42b): o real é testado com Testcontainers.
+public sealed class FakePgLiveDatabase : FakeLiveDatabase
+{
+    public override SqlDialect Dialect => SqlDialect.PostgreSql;
 }
 
 // Cenários API-DBL-NNN: a conexão com o banco vivo pela API (Fase 40b, ADR-006), com o banco de mentira.

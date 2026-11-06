@@ -133,7 +133,7 @@ public class SqlServerLiveDatabaseTests(SqlServerContainer server) : IClassFixtu
             """;
         var guard = TSqlPlanGuard.Check(sql);
 
-        var plan = ShowPlanReader.Read(await _live.ShowPlanXmlAsync(server.ConnectionString, sql, guard.Variables, default));
+        var plan = ShowPlanReader.Read(await _live.EstimatedPlanAsync(server.ConnectionString, sql, guard.Variables, default));
 
         Assert.True(plan.TotalCost > 0);
         Assert.Contains(plan.Operations, o => o.Scan && o.Object?.StartsWith("pedidos", StringComparison.Ordinal) == true);
@@ -145,7 +145,7 @@ public class SqlServerLiveDatabaseTests(SqlServerContainer server) : IClassFixtu
     {
         var before = await SqlServerContainer.CountAsync(server.ConnectionString, "dbo.pedidos");
 
-        var plan = ShowPlanReader.Read(await _live.ShowPlanXmlAsync(server.ConnectionString, "DELETE FROM pedidos", [], default));
+        var plan = ShowPlanReader.Read(await _live.EstimatedPlanAsync(server.ConnectionString, "DELETE FROM pedidos", [], default));
 
         Assert.NotEmpty(plan.Operations);
         Assert.Equal(before, await SqlServerContainer.CountAsync(server.ConnectionString, "dbo.pedidos"));

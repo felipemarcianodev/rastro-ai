@@ -8,8 +8,9 @@ import { SqlDialect } from '../../core/database/db-schema';
 import { QueryAnalysis } from '../../core/database/query-analysis';
 import { DatabasePage } from './database.page';
 
-const NONE: LiveConnectionView = { configured: false, server: null, database: null, updatedAt: null };
-const LIVE: LiveConnectionView = { configured: true, server: 'srv-loja', database: 'Loja', updatedAt: '2026-11-06T10:00:00Z' };
+const NONE: LiveConnectionView = { configured: false, server: null, database: null, updatedAt: null, dialect: SqlDialect.SqlServer };
+const LIVE: LiveConnectionView = { configured: true, server: 'srv-loja', database: 'Loja', updatedAt: '2026-11-06T10:00:00Z', dialect: SqlDialect.SqlServer };
+const LIVE_PG: LiveConnectionView = { configured: true, server: 'pg-loja:5433', database: 'loja', updatedAt: '2026-11-06T10:00:00Z', dialect: SqlDialect.PostgreSql };
 const SECRET = 'Server=srv-loja;Database=Loja;User Id=leitor;Password=segredo123';
 const SQL = 'SELECT * FROM pedidos WHERE criado_em > @p0';
 const CONNECTION_URL = '/api/repositories/loja/connection';
@@ -143,7 +144,7 @@ describe('Banco vivo (Fase 40b)', () => {
     expect(ctx.el.querySelector<HTMLInputElement>('#live-key')!.value).toBe('');
     expect(ctx.el.innerHTML).not.toContain('segredo123');
     expect(ctx.el.querySelector('.db-live-pill')!.textContent).toContain('srv-loja/Loja');
-    expect(ctx.el.querySelector('.dialog')!.textContent).toContain('Conexão salva: srv-loja, banco Loja.');
+    expect(ctx.el.querySelector('.dialog')!.textContent).toContain('Conexão salva (SQL Server): srv-loja, banco Loja.');
     expect(ctx.el.querySelector('.dialog [role="status"]')!.textContent).toContain('Conexão salva');
   });
 
@@ -311,5 +312,34 @@ describe('Banco vivo: rótulos (Fase 40b)', () => {
     expect(missingIndexText({ table: 'pedidos', equality: ['status'], inequality: ['criado_em'], include: [], impact: 86.6 })).toBe(
       'O próprio banco aponta índice faltando em pedidos (status, criado_em), ganho estimado de 87%',
     );
+  });
+});
+
+describe('Banco vivo do PostgreSQL (Fase 42b)', () => {
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+
+  // WEB-PGL-001
+  it('o diálogo mostra o dialeto e a permissão mínima do PostgreSQL', () => {
+    const ctx = renderPage(LIVE_PG);
+    open(ctx, 'Banco vivo');
+
+    const dialog = ctx.el.querySelector('.dialog')!.textContent!;
+    expect(dialog).toContain('Conexão salva (PostgreSQL): pg-loja:5433, banco loja.');
+    expect(dialog).toContain('GRANT CONNECT ON DATABASE banco TO usuario');
+    expect(dialog).toContain('ALTER ROLE usuario SET default_transaction_read_only = on');
+    expect(dialog).toContain('EXPLAIN sem ANALYZE');
+    expect(dialog).not.toContain('SHOWPLAN');
+  });
+
+  // WEB-PGL-002
+  it('o cartão do plano diz que o EXPLAIN não executa e traduz os operadores do PostgreSQL', () => {
+    const ctx = renderPage(LIVE_PG, 'consulta');
+    analyze(ctx);
+
+    const card = ctx.el.querySelector('app-query-plan')!;
+    expect(card.textContent).toContain('EXPLAIN sem ANALYZE, numa conexão só de leitura');
+    expect(card.textContent).not.toContain('SHOWPLAN');
+    expect(operatorLabel('Seq Scan')).toBe('Varredura da tabela');
+    expect(operatorLabel('Hash Join')).toBe('Junção por hash');
   });
 });
