@@ -49,7 +49,7 @@ internal static class DbAccessInspector
             var model = await body.Document.GetSemanticModelAsync(ct);
             if (model is null) continue;
             var scan = Scan(method, body.Node, model, ct);
-            if (scan.Hits.Count > 0 || scan.LoopCalls.Count > 0) scans[nodeId] = scan;
+            if (scan.Hits.Count > 0 || scan.LoopCalls.Count > 0 || scan.FilteredCalls.Count > 0 || scan.LeadingLikes.Count > 0) scans[nodeId] = scan;
         }
         if (!scans.Values.Any(s => s.Hits.Count > 0)) return graph;
 
@@ -76,10 +76,12 @@ internal static class DbAccessInspector
                     $"{name} consulta {TableOf(hit)} dentro de um laço: uma ida ao banco a cada volta (N+1). Traga os dados antes do laço, com Include ou com um Where que use Contains.",
                     walker.LocationOf(hit.At.GetLocation()), TableOf(hit)));
 
-            foreach (var (call, callee) in scan.LoopCalls)
+            foreach (var call in scan.LoopCalls)
             {
-                var target = walker.Methods.FirstOrDefault(m => Same(m.Value, callee));
-                if (target.Key is null || target.Key == nodeId || !accesses.TryGetValue(target.Key, out var reads)) continue;
+                // O método que a chamada alcança é o que o percurso do fluxo resolveu (a implementação da
+                // interface, já com o tipo genérico fechado), não o que o nome da chamada sugere.
+                if (walker.TargetOf(call) is not { } targetId || targetId == nodeId
+                    || !accesses.TryGetValue(targetId, out var reads) || !walker.Methods.TryGetValue(targetId, out var callee)) continue;
                 var read = reads.Where(a => a.Operation == DbOperation.Read).Select(a => a.Target).Distinct().ToList();
                 foreach (var table in read)
                     findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
@@ -87,10 +89,33 @@ internal static class DbAccessInspector
                         walker.LocationOf(call.GetLocation()), table));
             }
 
-            foreach (var hit in scan.Hits.Where(h => h.LateFilter is not null))
+            // ToList só para apagar (Fase 43b): o aviso é o do ExecuteDelete, não o do filtro "Count" da lista.
+            foreach (var (hit, removal) in scan.LoadToDelete)
+                findings.Add(new Finding(FindingKind.LoadToDelete, FindingSeverity.Warning, nodeId,
+                    $"{name} traz {TableOf(hit)} com {hit.Materializer} só para apagar com {removal.Name}: o EF lê cada linha e depois manda um DELETE por linha. Use ExecuteDeleteAsync sobre o Where (ele devolve quantas linhas apagou) e apaga numa instrução só.",
+                    walker.LocationOf(removal.Call.GetLocation()), TableOf(hit)));
+
+            foreach (var hit in scan.Hits.Where(h => h.LateFilter is not null && !(h.LateFilter.Value.Filter == "Count" && scan.LoadToDelete.Any(l => l.Hit == h))))
                 findings.Add(new Finding(FindingKind.MaterializeBeforeFilter, FindingSeverity.Warning, nodeId,
                     $"{name} traz {TableOf(hit)} com {hit.LateFilter!.Value.Materializer} e só depois aplica {hit.LateFilter.Value.Filter}: o filtro roda na memória, depois de ler a tabela. Ponha o {hit.LateFilter.Value.Filter} antes do {hit.LateFilter.Value.Materializer}.",
                     walker.LocationOf(hit.LateFilter.Value.At.GetLocation()), TableOf(hit)));
+
+            // O repositório devolve a lista já materializada e o chamador filtra na memória (Fase 43b).
+            foreach (var (call, filter, at) in scan.FilteredCalls)
+            {
+                if (walker.TargetOf(call) is not { } targetId || targetId == nodeId
+                    || !scans.TryGetValue(targetId, out var targetScan) || !walker.Methods.TryGetValue(targetId, out var callee)) continue;
+                foreach (var source in targetScan.Hits.Where(h => h.Operation == DbOperation.Read && h.ReturnsMaterializedBy is not null).DistinctBy(TableOf))
+                    findings.Add(new Finding(FindingKind.MaterializeBeforeFilter, FindingSeverity.Warning, nodeId,
+                        $"{name} recebe {TableOf(source)} de {callee.ContainingType.Name}.{callee.Name}, que já a trouxe com {source.ReturnsMaterializedBy} (a tabela inteira, sem este filtro), e só depois aplica {filter}: o filtro roda na memória. Passe o critério para {callee.ContainingType.Name}.{callee.Name} filtrar antes do {source.ReturnsMaterializedBy}.",
+                        walker.LocationOf(at.GetLocation()), TableOf(source)));
+            }
+
+            foreach (var (like, pattern) in scan.LeadingLikes)
+                if (LikeTable(like, scan) is { } likeHit)
+                    findings.Add(new Finding(FindingKind.LeadingWildcardLike, FindingSeverity.Info, nodeId,
+                        $"{name} busca em {TableOf(likeHit)} com um LIKE que começa por curinga ({pattern}): o banco não usa índice B-tree e lê a tabela inteira. Se a busca é por prefixo, tire o % do começo; no meio do texto, use índice trigram (PostgreSQL) ou busca de texto completo.",
+                        walker.LocationOf(like.GetLocation()), TableOf(likeHit)));
 
             if (!scan.Writes && scan.Hits.All(h => h.Operation is DbOperation.Read))
                 foreach (var hit in scan.Hits.Where(h => h.TrackedRead).DistinctBy(TableOf))
@@ -127,14 +152,46 @@ internal static class DbAccessInspector
             switch (node)
             {
                 case ExpressionSyntax expr when expr is not SimpleNameSyntax || expr.Parent is not MemberAccessExpressionSyntax { Name: var n } || n != expr:
-                    if (DbSetEntity(model.GetTypeInfo(expr, ct).Type) is { } entity && !IsInsideDbSetExpression(expr, model, ct))
-                        if (FromDbSet(expr, entity, body, model, ct) is { } hit) scan.Hits.Add(hit);
+                    // A entidade de um DbSet<T> dentro de um repositório genérico é o T da chamada (Closed); sem
+                    // T fechado não há tabela a dizer, e o passo fica sem acesso em vez de inventar um nome.
+                    if (DbSetEntity(model.GetTypeInfo(expr, ct).Type) is { } entityType && !IsInsideDbSetExpression(expr, model, ct)
+                        && Closed(entityType, method) is { } entity)
+                        if (FromDbSet(expr, entity.Name, body, model, ct) is { } hit) scan.Hits.Add(hit);
                     if (expr is InvocationExpressionSyntax call && Symbol(call, model, ct) is { } symbol)
                         Invocation(scan, call, symbol, body, model, ct);
                     break;
             }
         }
+
+        // Carregar para alterar: o FindAsync que o repositório faz antes de gravar a mesma entidade é parte
+        // da alteração, não uma consulta (nem conta no N+1 do laço que chama o repositório).
+        var written = scan.Hits.Where(h => h.Operation != DbOperation.Read).Select(h => h.Entity).ToHashSet(StringComparer.Ordinal);
+        scan.Hits.RemoveAll(h => h.IsFind && h.Operation == DbOperation.Read && written.Contains(h.Entity));
+
+        foreach (var hit in scan.Hits.Where(h => h.Operation == DbOperation.Read && h.MaterializedInto is not null))
+            if (RemovalOnly(hit, body, model, ct) is { } removal) scan.LoadToDelete.Add((hit, removal));
         return scan;
+    }
+
+    // ToList, RemoveRange e (no máximo) o tamanho da lista: a lista só serve para apagar. Qualquer outro uso
+    // dela (um foreach, um Select) quer dizer que as linhas são lidas de fato, e o aviso não vale.
+    private static (string Name, InvocationExpressionSyntax Call)? RemovalOnly(Hit hit, SyntaxNode body, SemanticModel model, CancellationToken ct)
+    {
+        (string, InvocationExpressionSyntax)? removal = null;
+        var uses = body.DescendantNodes().OfType<IdentifierNameSyntax>()
+            .Where(id => id.SpanStart > hit.End.Span.End && id.Identifier.ValueText == hit.MaterializedInto)
+            .ToList();
+        foreach (var use in uses)
+        {
+            if (use.Parent is ArgumentSyntax { Parent: ArgumentListSyntax { Parent: InvocationExpressionSyntax call } }
+                && Symbol(call, model, ct) is { Name: "RemoveRange" } remove && IsEf(remove))
+                removal ??= (remove.Name, call);
+            else if (use.Parent is MemberAccessExpressionSyntax access && access.Expression == use && access.Name.Identifier.ValueText is "Count" or "Length")
+                continue;
+            else
+                return null;
+        }
+        return removal;
     }
 
     // Chamada fora da cadeia de um DbSet: Add/Update/Remove do DbContext, SQL cru do Database, SaveChanges
@@ -147,10 +204,29 @@ internal static class DbAccessInspector
             scan.Writes = true;
             return;
         }
-        if (onContext && Operation([symbol.Name]) is { } op and not DbOperation.Read && EntityArgument(symbol, call, model, ct) is { } entity)
+        if (onContext && Operation([symbol.Name]) is { } op and not DbOperation.Read
+            && Closed(EntityArgument(symbol, call, model, ct), scan.Method) is { } entity)
         {
             scan.Writes = true;
-            scan.Hits.Add(new Hit(entity, null, null, null, op, call, InLoop(call, body), false, null, null));
+            scan.Hits.Add(new Hit(entity.Name, null, null, null, op, call, InLoop(call, body), false, null, null));
+            return;
+        }
+        // _db.Entry(x).CurrentValues.SetValues(e): copia os valores sobre a entidade rastreada, é uma alteração.
+        if (symbol.Name == "SetValues" && IsEf(symbol))
+        {
+            var entry = call.DescendantNodes().OfType<InvocationExpressionSyntax>()
+                .Select(i => (Call: i, Symbol: Symbol(i, model, ct)))
+                .FirstOrDefault(x => x.Symbol is { Name: "Entry" } && DerivesFrom(x.Symbol.ContainingType, "DbContext"));
+            if (entry.Symbol is not null && Closed(EntityArgument(entry.Symbol, entry.Call, model, ct), scan.Method) is { } changed)
+            {
+                scan.Writes = true;
+                scan.Hits.Add(new Hit(changed.Name, null, null, null, DbOperation.Update, call, InLoop(call, body), false, null, null));
+            }
+            return;
+        }
+        if (LikePattern(call, symbol, body, model, ct) is { } pattern)
+        {
+            scan.LeadingLikes.Add((call, pattern));
             return;
         }
         if (RawCommands.Contains(symbol.Name) && IsEf(symbol) && ProcedureOf(call) is { } procedure)
@@ -158,18 +234,66 @@ internal static class DbAccessInspector
             scan.Hits.Add(new Hit(null, null, procedure, symbol.Name, DbOperation.Execute, call, InLoop(call, body), false, null, RawSql(call, symbol.Name)));
             return;
         }
-        if (InLoop(call, body) && !IsEf(symbol) && symbol.MethodKind == MethodKind.Ordinary)
-            scan.LoopCalls.Add((call, symbol));
+        if (!IsEf(symbol) && symbol.MethodKind == MethodKind.Ordinary)
+        {
+            if (InLoop(call, body)) scan.LoopCalls.Add(call);
+            var (chain, end) = Chain(call);
+            if (FilterAfter(chain, 0, end, body, allowLocal: chain.All(c => c.Name == "ConfigureAwait")) is { } late)
+                scan.FilteredCalls.Add((call, late.Filter, late.At));
+        }
     }
+
+    // O padrão de LIKE que o código monta e passa a EF.Functions.Like/ILike ou a Contains, quando começa por
+    // curinga: a interpolação com % na frente, a concatenação com "%" na frente ou a variável que guarda um
+    // desses. Devolve o texto do padrão.
+    private static string? LikePattern(InvocationExpressionSyntax call, IMethodSymbol symbol, SyntaxNode body, SemanticModel model, CancellationToken ct)
+    {
+        ExpressionSyntax? argument = null;
+        if (symbol.Name is "Like" or "ILike" && IsEf(symbol))
+            argument = call.ArgumentList.Arguments.Count >= 2 ? call.ArgumentList.Arguments[1].Expression : null;
+        else if (symbol.Name == "Contains" && symbol.ContainingType.SpecialType == SpecialType.System_String)
+            argument = call.ArgumentList.Arguments.FirstOrDefault()?.Expression;
+        return argument is not null && StartsWithWildcard(argument, body, model, ct, 0) ? Collapse(argument) : null;
+    }
+
+    private static bool StartsWithWildcard(ExpressionSyntax expression, SyntaxNode body, SemanticModel model, CancellationToken ct, int depth)
+    {
+        if (depth > 3) return false;
+        if (model.GetConstantValue(expression, ct) is { HasValue: true, Value: string text }) return text.StartsWith('%');
+        switch (expression)
+        {
+            case ParenthesizedExpressionSyntax parenthesized:
+                return StartsWithWildcard(parenthesized.Expression, body, model, ct, depth);
+            case InterpolatedStringExpressionSyntax interpolated:
+                return interpolated.Contents.FirstOrDefault() is InterpolatedStringTextSyntax first && first.TextToken.ValueText.StartsWith('%');
+            case BinaryExpressionSyntax binary when binary.IsKind(Microsoft.CodeAnalysis.CSharp.SyntaxKind.AddExpression):
+                return StartsWithWildcard(binary.Left, body, model, ct, depth);
+            case IdentifierNameSyntax id:
+                var declaration = body.DescendantNodes().OfType<VariableDeclaratorSyntax>()
+                    .FirstOrDefault(v => v.Identifier.ValueText == id.Identifier.ValueText && v.Initializer is not null && v.SpanStart < id.SpanStart);
+                return declaration is not null && StartsWithWildcard(declaration.Initializer!.Value, body, model, ct, depth + 1);
+            default:
+                return false;
+        }
+    }
+
+    // A consulta do banco que contém o LIKE; sem uma que o contenha, a única tabela lida pelo método.
+    private static Hit? LikeTable(SyntaxNode like, MethodScan scan)
+    {
+        var inside = scan.Hits.FirstOrDefault(h => h.Operation == DbOperation.Read && h.End.Span.Contains(like.Span));
+        if (inside is not null) return inside;
+        var reads = scan.Hits.Where(h => h.Operation == DbOperation.Read && h.Entity is not null).DistinctBy(h => h.Entity).ToList();
+        return reads.Count == 1 ? reads[0] : null;
+    }
+
+    private static string Collapse(SyntaxNode node) => Regex.Replace(node.ToString(), @"\s+", " ", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1)).Trim();
 
     private static Hit? FromDbSet(ExpressionSyntax expr, string entity, SyntaxNode body, SemanticModel model, CancellationToken ct)
     {
-        var setName = expr switch
-        {
-            MemberAccessExpressionSyntax m => m.Name.Identifier.ValueText,
-            IdentifierNameSyntax id => id.Identifier.ValueText,
-            _ => null
-        };
+        // O nome da propriedade do DbContext (Pedidos), que serve de tabela quando o esquema não diz; um
+        // campo do repositório genérico (_set) ou um Set<T>() não é nome de tabela.
+        var setSymbol = model.GetSymbolInfo(expr, ct).Symbol;
+        var setName = setSymbol is IPropertySymbol or IFieldSymbol && DerivesFrom(setSymbol.ContainingType, "DbContext") ? setSymbol.Name : null;
         var (chain, end) = Chain(expr);
         var names = chain.Select(c => c.Name).ToList();
         var iterated = end.Parent is CommonForEachStatementSyntax loop && loop.Expression == end;
@@ -188,7 +312,16 @@ internal static class DbAccessInspector
         var tracked = op == DbOperation.Read && !names.Any(NoTracking.Contains) && !names.Contains("Select")
             && (iterated || names.Any(EntityTerminals.Contains));
         var sql = raw.Call is null ? null : RawSql(raw.Call, raw.Name);
-        return new Hit(entity, setName, procedure, rawMethod, op, expr, InLoop(expr, body), tracked, LateFilter(chain, end, body), sql);
+        var materializer = chain.FirstOrDefault(c => Materializers.Contains(c.Name)).Name;
+        var materializedLast = materializer is not null && Materializers.Contains(chain[^1].Name);
+        return new Hit(entity, setName, procedure, rawMethod, op, expr, InLoop(expr, body), tracked, LateFilter(chain, end, body), sql)
+        {
+            End = end,
+            IsFind = op == DbOperation.Read && names.Any(n => n is "Find" or "FindAsync"),
+            Materializer = materializer,
+            MaterializedInto = materializedLast && end.Parent is EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax variable } ? variable.Identifier.ValueText : null,
+            ReturnsMaterializedBy = op == DbOperation.Read && materializedLast && end.Parent is ReturnStatementSyntax or ArrowExpressionClauseSyntax ? materializer : null
+        };
     }
 
     // A cadeia de chamadas que sai do DbSet, atravessando await e parênteses: "Where", "ToListAsync", ...
@@ -216,17 +349,25 @@ internal static class DbAccessInspector
     {
         var at = chain.FindIndex(c => Materializers.Contains(c.Name));
         if (at < 0) return null;
-        var materializer = chain[at].Name;
-        var filter = chain.Skip(at + 1).FirstOrDefault(c => Filters.Contains(c.Name));
-        if (filter.Call is not null) return (materializer, filter.Name, filter.Call);
-        if (at != chain.Count - 1 || end.Parent is not EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax variable }) return null;
+        return FilterAfter(chain, at + 1, end, body, allowLocal: at == chain.Count - 1) is { } late ? (chain[at].Name, late.Filter, late.At) : null;
+    }
+
+    // O primeiro filtro aplicado ao resultado, a partir de chain[from]: na própria cadeia, ou no uso da variável
+    // que o recebe. Só chamada conta (Where(...), Count()): ".Count" sem parênteses é o tamanho da lista, que já
+    // está na memória, e não um filtro.
+    private static (string Filter, SyntaxNode At)? FilterAfter(List<(string Name, InvocationExpressionSyntax Call)> chain, int from, ExpressionSyntax end, SyntaxNode body, bool allowLocal)
+    {
+        var filter = chain.Skip(from).FirstOrDefault(c => Filters.Contains(c.Name));
+        if (filter.Call is not null) return (filter.Name, filter.Call);
+        if (!allowLocal || end.Parent is not EqualsValueClauseSyntax { Parent: VariableDeclaratorSyntax variable }) return null;
 
         var local = variable.Identifier.ValueText;
         var use = body.DescendantNodes().OfType<MemberAccessExpressionSyntax>()
-            .Where(m => m.SpanStart > variable.Span.End && m.Expression is IdentifierNameSyntax id && id.Identifier.ValueText == local && Filters.Contains(m.Name.Identifier.ValueText))
+            .Where(m => m.SpanStart > variable.Span.End && m.Expression is IdentifierNameSyntax id && id.Identifier.ValueText == local
+                && Filters.Contains(m.Name.Identifier.ValueText) && m.Parent is InvocationExpressionSyntax call && call.Expression == m)
             .OrderBy(m => m.SpanStart)
             .FirstOrDefault();
-        return use is null ? null : (materializer, use.Name.Identifier.ValueText, use);
+        return use is null ? null : (use.Name.Identifier.ValueText, use);
     }
 
     private static DbOperation? Operation(IEnumerable<string> names)
@@ -292,24 +433,40 @@ internal static class DbAccessInspector
         return parts.Count > 1 && !parts[^2].Equals("dbo", StringComparison.OrdinalIgnoreCase) ? $"{parts[^2]}.{parts[^1]}" : parts[^1];
     }
 
-    private static string? DbSetEntity(ITypeSymbol? type) =>
-        type is INamedTypeSymbol { Name: "DbSet", TypeArguments.Length: 1 } set ? set.TypeArguments[0].Name : null;
+    private static ITypeSymbol? DbSetEntity(ITypeSymbol? type) =>
+        type is INamedTypeSymbol { Name: "DbSet", TypeArguments.Length: 1 } set ? set.TypeArguments[0] : null;
+
+    // O tipo da entidade já fechado: o T de um repositório genérico vira o tipo da chamada (Tarefa). Sem T
+    // fechado (o método foi alcançado pelo tipo aberto), devolve nulo.
+    private static ITypeSymbol? Closed(ITypeSymbol? type, IMethodSymbol method)
+    {
+        if (type is null or IErrorTypeSymbol) return null;
+        if (type is not ITypeParameterSymbol parameter) return type;
+        var owner = method.ContainingType;
+        if (owner is null || !owner.IsGenericType) return null;
+        for (var i = 0; i < owner.OriginalDefinition.TypeParameters.Length; i++)
+            if (SymbolEqualityComparer.Default.Equals(owner.OriginalDefinition.TypeParameters[i], parameter))
+                return owner.TypeArguments[i] is ITypeParameterSymbol ? null : owner.TypeArguments[i];
+        return null;
+    }
 
     // "_db.Pedidos" é o DbSet; o "_db.Set<Pedido>" dentro de "_db.Set<Pedido>()" não conta duas vezes.
     private static bool IsInsideDbSetExpression(ExpressionSyntax expr, SemanticModel model, CancellationToken ct) =>
         expr.Parent is InvocationExpressionSyntax inv && inv.Expression == expr && DbSetEntity(model.GetTypeInfo(inv, ct).Type) is not null;
 
-    private static string? EntityArgument(IMethodSymbol symbol, InvocationExpressionSyntax call, SemanticModel model, CancellationToken ct)
+    private static ITypeSymbol? EntityArgument(IMethodSymbol symbol, InvocationExpressionSyntax call, SemanticModel model, CancellationToken ct)
     {
-        if (symbol.IsGenericMethod && symbol.TypeArguments.Length == 1 && symbol.TypeArguments[0] is INamedTypeSymbol { SpecialType: SpecialType.None } t && t.Name != "Object")
-            return t.Name;
+        if (symbol.IsGenericMethod && symbol.TypeArguments.Length == 1 && symbol.TypeArguments[0] is { SpecialType: SpecialType.None } t
+            && t.Name != "Object" && t is INamedTypeSymbol or ITypeParameterSymbol)
+            return t;
         var argument = call.ArgumentList.Arguments.FirstOrDefault()?.Expression;
         var type = argument is null ? null : model.GetTypeInfo(argument, ct).Type;
         return type switch
         {
-            IArrayTypeSymbol array => array.ElementType.Name,
-            INamedTypeSymbol { TypeArguments.Length: 1 } generic when symbol.Name.EndsWith("Range", StringComparison.Ordinal) => generic.TypeArguments[0].Name,
-            INamedTypeSymbol { SpecialType: SpecialType.None } named when named.Name != "Object" => named.Name,
+            IArrayTypeSymbol array => array.ElementType,
+            INamedTypeSymbol { TypeArguments.Length: 1 } generic when symbol.Name.EndsWith("Range", StringComparison.Ordinal) => generic.TypeArguments[0],
+            INamedTypeSymbol { SpecialType: SpecialType.None } named when named.Name != "Object" => named,
+            ITypeParameterSymbol parameter => parameter,
             _ => null
         };
     }
@@ -328,15 +485,6 @@ internal static class DbAccessInspector
         for (var current = type; current is not null; current = current.BaseType)
             if (current.Name == name) return true;
         return false;
-    }
-
-    // O método chamado no laço e o nó do fluxo: o mesmo método, ou a implementação da interface chamada.
-    private static bool Same(IMethodSymbol node, IMethodSymbol called)
-    {
-        if (node.OriginalDefinition.ToDisplayString() == called.OriginalDefinition.ToDisplayString()) return true;
-        if (called.ContainingType.TypeKind != TypeKind.Interface) return false;
-        return node.ContainingType.AllInterfaces.Any(i => i.OriginalDefinition.ToDisplayString() == called.ContainingType.OriginalDefinition.ToDisplayString())
-            && node.Name == called.Name && node.Parameters.Length == called.Parameters.Length;
     }
 
     private static int Line(SyntaxNode node) => node.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
@@ -366,13 +514,27 @@ internal static class DbAccessInspector
         bool InLoop,
         bool TrackedRead,
         (string Materializer, string Filter, SyntaxNode At)? LateFilter,
-        string? Sql);
+        string? Sql)
+    {
+        // O fim da cadeia que sai do DbSet (depois de await e parênteses): onde o resultado é usado.
+        public SyntaxNode End { get; init; } = At;
+        // Leitura de uma entidade por chave (Find, FindAsync).
+        public bool IsFind { get; init; }
+        public string? Materializer { get; init; }
+        // A variável que recebe a lista materializada (var l = await ...ToListAsync()).
+        public string? MaterializedInto { get; init; }
+        // O materializador, quando a consulta devolve a lista como resultado do método.
+        public string? ReturnsMaterializedBy { get; init; }
+    }
 
     private sealed class MethodScan(IMethodSymbol method)
     {
         public IMethodSymbol Method { get; } = method;
         public List<Hit> Hits { get; } = [];
-        public List<(InvocationExpressionSyntax Call, IMethodSymbol Callee)> LoopCalls { get; } = [];
+        public List<InvocationExpressionSyntax> LoopCalls { get; } = [];
+        public List<(InvocationExpressionSyntax Call, string Filter, SyntaxNode At)> FilteredCalls { get; } = [];
+        public List<(Hit Hit, (string Name, InvocationExpressionSyntax Call) Removal)> LoadToDelete { get; } = [];
+        public List<(InvocationExpressionSyntax Call, string Pattern)> LeadingLikes { get; } = [];
         public bool Writes { get; set; }
     }
 }

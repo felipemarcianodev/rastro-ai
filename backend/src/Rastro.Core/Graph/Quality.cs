@@ -24,7 +24,12 @@ public enum FindingKind
     // Método que só lê e não pede AsNoTracking: o EF rastreia entidades que ninguém vai gravar.
     ReadWithoutNoTracking = 11,
     // Procedure chamada por FromSql ou ExecuteSql: o compilador não confere nome nem parâmetros.
-    ProcedureByRawSql = 12
+    ProcedureByRawSql = 12,
+    // Banco nos fluxos, repositório genérico (Fase 43b).
+    // Carrega as linhas com ToList só para apagar com RemoveRange: o certo é ExecuteDelete.
+    LoadToDelete = 13,
+    // LIKE montado no código com curinga no começo (%termo%): o índice B-tree não ajuda.
+    LeadingWildcardLike = 14
 }
 
 public enum FindingCategory
@@ -62,7 +67,8 @@ public static class QualityThresholds
     {
         FindingKind.HighComplexity or FindingKind.LongMethod or FindingKind.DeepNesting or FindingKind.TooManyDependencies => FindingCategory.Metric,
         FindingKind.SilentCatch or FindingKind.ServiceLocator => FindingCategory.CleanCode,
-        FindingKind.QueryInLoop or FindingKind.MaterializeBeforeFilter or FindingKind.ReadWithoutNoTracking or FindingKind.ProcedureByRawSql => FindingCategory.Database,
+        FindingKind.QueryInLoop or FindingKind.MaterializeBeforeFilter or FindingKind.ReadWithoutNoTracking or FindingKind.ProcedureByRawSql
+            or FindingKind.LoadToDelete or FindingKind.LeadingWildcardLike => FindingCategory.Database,
         _ => FindingCategory.Ddd
     };
 }

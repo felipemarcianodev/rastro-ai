@@ -972,6 +972,30 @@ Levantamento de UX completo do fim do plano em [`plano-ux-2026-11-06-fim-plano-b
 
 **Melhorias propostas, sem decisão:** impacto de mudança no banco, validação da mudança olhando o banco e comparação de esquema entre branches (lista da Fase 42).
 
+## Fase 43: correções do teste num sistema real `[ ]` (pedido do dono em 2026-11-06)
+
+O dono pediu para testar com o Rastro todas as consultas de uma tela de tarefas de um sistema dele (PostgreSQL com EF Core, 87 tabelas, 36 consultas). O teste mostrou 13 defeitos e lacunas do Rastro. Depois das correções, o mesmo teste roda de novo.
+
+**Fase 43a, análise de consulta e mapa do banco:**
+- [ ] "Coluna sem índice" aceita o índice composto cujas colunas iniciais estão todas no filtro com igualdade (`tenant_id = @t AND space_id = @s` com o índice `(tenant_id, space_id)`), e a mensagem deixa de afirmar como fato que o banco lê a tabela inteira.
+- [ ] O trecho marcado aponta a coluna no predicado (`WHERE`, `ON`), não a primeira menção dela na lista do `SELECT`.
+- [ ] O mapa lê índice com classe de operador e método (`USING gin (title gin_trgm_ops)`) no SQL de `migrationBuilder.Sql`; o achado de `LIKE` com curinga no começo não sugere criar o índice trigrama que já existe.
+- [ ] Propriedade de tipo complexo com `HasColumnType("jsonb")` (ou `json`) é coluna: sem a divergência falsa "existe na migration, não no modelo".
+- [ ] Regra nova: leitura sem `LIMIT` (`TOP`, `FETCH`) de tabela filtrada só por igualdade de uma coluna que não é chave (o tenant, por exemplo), de gravidade baixa. "ORDER BY sem LIMIT" deixa de disparar quando o filtro já é pela chave estrangeira de uma lista filha.
+- [ ] Mensagens: OR na mesma coluna sugere `IN`, não "colunas diferentes" com `UNION ALL`; o operador jsonb `->>` não é chamado de "conta"; a forma que o EF gera para `!Contains` não vira "impede índice em t.id"; `ILIKE` e `= ANY` sobre coluna array (`unnest`) são apontados como sem índice B-tree.
+- [ ] Subconsulta correlacionada que bate na chave primária da tabela de dentro cai para gravidade baixa.
+- [ ] As duas escalas de gravidade ficam no mesmo sentido: `QuerySeverity` passa a `Low = 0`, `Medium = 1`, `High = 2`, como o `FindingSeverity` (`Info = 0`). A v0.6.0, com a escala antiga, não chegou ao NuGet.
+
+**Fase 43b, banco nos fluxos:** `[x]`
+- [x] Repositório genérico (`EfRepository<T>` com `DbSet<T>`): o `T` é fechado pela chamada (`IRepository<TaskItem>`), a tabela sai pelo tipo e "DbSet" deixa de aparecer como tabela; o `Update` e o `Delete` do repositório genérico contam como alteração.
+- [x] Chamada pela interface que um tipo reimplementa (`new` sobre o método da base genérica) resolve para a implementação certa pelas regras do C#, sem ficar "não resolvido" com dois candidatos.
+- [x] Com o repositório genérico resolvido, o N+1 dentro de laço aparece também quando a consulta está no repositório.
+- [x] "ToList antes do filtro" entre métodos: o repositório devolve a lista inteira e o chamador aplica `Where` em memória.
+- [x] "Count depois de ToListAsync" não dispara quando o `Count` é a propriedade da lista carregada para `RemoveRange`; nesse caso, a dica é `ExecuteDeleteAsync`.
+- [x] O padrão de `LIKE` montado no código (`$"%{x}%"`) aparece no passo do fluxo ligado à consulta.
+- [x] Testes `EXT-DBF-009` a `017` com a fixture fictícia `Fixtures/TarefasRepo`. Achados novos: `LoadToDelete` (carrega a lista só para o `RemoveRange`; a dica é `ExecuteDeleteAsync`) e `LeadingWildcardLike` (o `LIKE` com `%` no começo montado no código). O `FindAsync` que carrega a entidade antes de gravá-la, no mesmo método, não conta como leitura: o `UpdateAsync` do repositório aparece só como alteração.
+- [ ] `Entry(x).State = Modified` como alteração; repositório que devolve a lista por uma variável local ou por outro método que a repassa; levantamento antigo com alvo "DbSet" só muda quando é refeito.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).

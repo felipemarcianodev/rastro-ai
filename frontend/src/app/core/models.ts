@@ -631,6 +631,9 @@ export enum FindingKind {
   MaterializeBeforeFilter = 10,
   ReadWithoutNoTracking = 11,
   ProcedureByRawSql = 12,
+  // Banco nos fluxos, repositório genérico (Fase 43b).
+  LoadToDelete = 13,
+  LeadingWildcardLike = 14,
 }
 
 export enum FindingCategory {
@@ -670,6 +673,8 @@ export const FINDING_CATEGORY_OF: Record<FindingKind, FindingCategory> = {
   [FindingKind.MaterializeBeforeFilter]: FindingCategory.Database,
   [FindingKind.ReadWithoutNoTracking]: FindingCategory.Database,
   [FindingKind.ProcedureByRawSql]: FindingCategory.Database,
+  [FindingKind.LoadToDelete]: FindingCategory.Database,
+  [FindingKind.LeadingWildcardLike]: FindingCategory.Database,
 };
 
 export const FINDING_CATEGORY_LABEL: Record<FindingCategory, string> = {
@@ -693,6 +698,8 @@ export const FINDING_KIND_LABEL: Record<FindingKind, string> = {
   [FindingKind.MaterializeBeforeFilter]: 'ToList antes do filtro',
   [FindingKind.ReadWithoutNoTracking]: 'Leitura sem AsNoTracking',
   [FindingKind.ProcedureByRawSql]: 'Procedure por SQL cru',
+  [FindingKind.LoadToDelete]: 'Carrega para apagar',
+  [FindingKind.LeadingWildcardLike]: 'LIKE com curinga no começo',
 };
 
 export const FINDING_SEVERITY_LABEL: Record<FindingSeverity, string> = {
