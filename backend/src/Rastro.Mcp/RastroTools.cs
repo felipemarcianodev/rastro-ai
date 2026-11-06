@@ -34,7 +34,8 @@ public class RastroTools(
     ChangeValidationService validations,
     IOptions<RastroOptions> options,
     TimeProvider clock,
-    Rastro.Infrastructure.Architecture.DeploymentReader deployments)
+    Rastro.Infrastructure.Architecture.DeploymentReader deployments,
+    Rastro.Infrastructure.Database.DbSchemaService schemas)
 {
     private const int MaxOutlineLines = 400;
 
@@ -410,6 +411,19 @@ public class RastroTools(
         if (graph.Findings is not { } findings || index < 0 || index >= findings.Count) return "Índice fora da lista. Use list_findings.";
 
         return RefactorPromptBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), graph, findings[index]);
+    }
+
+    [McpServerTool(Name = "get_db_schema"), Description("Esquema do banco de um repositório, lido do código (modelo do EF Core, migrations e arquivos .sql; SQL Server): tabelas, colunas, chaves, índices, views e procedures, com arquivo:linha de cada item e as divergências entre fontes. Só lê arquivos: nenhum banco é consultado e nenhum dado das tabelas é lido.")]
+    public async Task<string> GetDbSchema(
+        [Description("Nome do repositório (list_repositories).")] string repository,
+        [Description("Opcional: só uma tabela (ex.: pedidos ou dbo.pedidos). Sem ela, o esquema inteiro.")] string? table = null,
+        CancellationToken ct = default)
+    {
+        var schema = await schemas.ReadAsync(repository, ct);
+        if (schema is null) return "Repositório não cadastrado. Use list_repositories.";
+        if (schema.Tables.Count == 0 && schema.Views.Count == 0 && schema.Procedures.Count == 0)
+            return "Nenhuma tabela encontrada no código deste repositório (DbContext do EF Core, migrations ou arquivos .sql).";
+        return DbSchemaText.Format(schema, string.IsNullOrWhiteSpace(table) ? null : table.Trim());
     }
 
     [McpServerTool(Name = "get_c4"), Description("Diagramas C4 do fluxo em Structurizr DSL (C1 contexto, C2 containers, C3 componentes, C4 visão dinâmica do fluxo). As pessoas do C1 são as que o usuário cadastrou na tela.")]

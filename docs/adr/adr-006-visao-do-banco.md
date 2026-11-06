@@ -43,7 +43,7 @@ O Rastro já lê o repositório (Roslyn, ADR-001 e ADR-005). Quase todo sistema 
 - **Comandos fixos.** As consultas ao catálogo são constantes no código, com parâmetros; nenhum texto da requisição entra montado no SQL.
 - **Consulta do plano conferida antes.** A consulta que o usuário cola só vai ao banco depois de passar pelo leitor de SQL: uma única instrução `SELECT`, `INSERT`, `UPDATE`, `DELETE` ou `MERGE`, sem `SET`, `EXEC`, `GO`, DDL nem mais de uma instrução. Assim um `SET SHOWPLAN_XML OFF` escondido na consulta não chega ao banco.
 - **Tempo limite** em todo comando e na abertura da conexão.
-- **Usuário de banco recomendado com permissão mínima** (no SQL Server, `VIEW DEFINITION` e `SHOWPLAN`), dito no README. A garantia do Rastro é o código acima; a permissão mínima é a segunda camada, do lado do cliente.
+- **Usuário de banco recomendado com permissão mínima** (no SQL Server, `VIEW DEFINITION` e `SHOWPLAN`), escrito no README quando a conexão entrar. A garantia do Rastro é o código acima; a permissão mínima é a segunda camada, do lado do cliente.
 - **String de conexão cifrada.** Fica no banco local do Rastro (`~/.rastro/rastro.db`), cifrada com DataProtection, como a chave da IA, com um propósito próprio. Nunca volta na resposta da API, nunca vai para o log e nunca vai para a IA. A tela só mostra se há conexão e o servidor (sem usuário e senha).
 - **Por repositório.** A conexão é cadastrada no repositório, pela tela, e só vale para ele. O driver é o oficial de cada banco (`Microsoft.Data.SqlClient` no SQL Server e `Npgsql` no PostgreSQL), dentro do pacote.
 - **Quando entra no código:** a conexão viva é implementada na Fase 40, a primeira que precisa dela (plano estimado), junto com a leitura do catálogo como mais uma fonte do esquema.

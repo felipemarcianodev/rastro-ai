@@ -821,14 +821,18 @@ O dono pediu duas funcionalidades novas:
 - [x] Conexão viva: só leitura, nunca os dados das tabelas, comandos fixos ao catálogo, plano estimado sem executar e com a consulta conferida antes pelo leitor de SQL (uma instrução, sem `SET`, `EXEC` nem DDL), timeout, string de conexão cifrada por DataProtection no banco local, nunca na resposta, no log nem na IA. **Implementada na Fase 40**, a primeira que precisa dela.
 - [x] `visao.md`, `SECURITY.md` e `CLAUDE.md` (segurança e lista do ambiente do cliente) atualizados. O README e o README do pacote mudam quando o código entrar (Fase 37 em diante).
 
-## Fase 37: esquema pelo código (feature 1, núcleo e API) `[ ]` (depende da Fase 36)
+## Fase 37: esquema pelo código (feature 1, núcleo e API) `[x]` (depende da Fase 36)
 
-- [ ] Modelo no `Rastro.Core` (`DbSchema`): tabela, coluna (tipo, nulo, padrão, identidade), chave primária, chave estrangeira (colunas, tabela de destino, ação ao apagar), índice (único, colunas, inclusão), view (colunas e tabelas que ela lê) e procedure (parâmetros e tabelas que ela lê e grava).
-- [ ] Extrator do EF Core pelo Roslyn, sem rodar o código do cliente: `DbContext`, `DbSet`, atributos, `OnModelCreating` e `IEntityTypeConfiguration` (nome de tabela, chave, relacionamento, índice).
-- [ ] Extrator de `.sql` e de projeto de banco pelo leitor de T-SQL: `CREATE TABLE`, `ALTER TABLE ... FOREIGN KEY`, `CREATE INDEX`, `CREATE VIEW` e `CREATE PROCEDURE`.
-- [ ] Quando as fontes divergem (o modelo diz uma coisa e a migration outra), o Rastro mostra as duas e marca a divergência, sem escolher em silêncio.
-- [ ] `GET api/repositories/{nome}/schema` e a ferramenta MCP `get_db_schema`.
-- [ ] Testes com a loja fictícia ganhando um `DbContext` e um `.sql` próprios (pedidos, itens, clientes, pagamentos), incluindo FK composta, tabela sem PK e view.
+- [x] Modelo no `Rastro.Core` (`Database/DbSchema`): tabela, coluna (tipo, nulo, padrão, identidade), chave primária, chave estrangeira (colunas, tabela de destino, ação ao apagar), índice (único, colunas, inclusão), view (colunas e tabelas que ela lê) e procedure (parâmetros e tabelas que ela lê e grava), cada item com a fonte (`SchemaSource`: tipo, arquivo e linha). O dialeto é um campo (`SqlDialect`: SQL Server e PostgreSQL), e o tipo fica como o banco escreve.
+- [x] Extrator do EF Core pelo Roslyn, só pela árvore de sintaxe, sem compilar nem rodar o código do cliente: `DbContext`, `DbSet`, atributos, `OnModelCreating`, `IEntityTypeConfiguration`, as convenções do EF (chave, chave estrangeira, nome da tabela, tipo por convenção do SQL Server, identidade) e o `UseSnakeCaseNamingConvention`.
+- [x] **Migrations também são fonte:** o `Up` de cada migration, na ordem do id, aplicado num estado só (`CreateTable`, `AddColumn`, `AlterColumn`, `DropColumn`, `RenameColumn`, `CreateIndex`, `AddForeignKey` e o SQL de `migrationBuilder.Sql`). O snapshot e o `.Designer.cs` ficam de fora.
+- [x] Extrator de `.sql` e de projeto de banco pelo leitor de T-SQL (`ScriptDom` 180.140.0, MIT, no `Rastro.Extractor` e dentro do pacote): `CREATE TABLE`, `ALTER TABLE ... ADD CONSTRAINT`, `CREATE INDEX`, `CREATE VIEW` e `CREATE PROCEDURE`. Atrás de `ISqlSchemaReader`, um leitor por dialeto: o PostgreSQL entra na Fase 42 como mais um.
+- [x] Divergência entre fontes (`DbSchemaMerger`): tipo, nulo, chave primária e coluna que existe no modelo e não na migration (ou o contrário). A coluna divergente fica sem tipo (ou sem nulo), e a divergência mostra cada versão com a fonte.
+- [x] `GET api/repositories/{nome}/schema` (pela única porta de disco, `RepositoryCatalog.SourceFiles`, sem `bin`, `obj` e `node_modules`) e a ferramenta MCP `get_db_schema` (o esquema inteiro ou uma tabela), com a instrução no `McpInstructions`. README e README do pacote atualizados.
+- [x] Testes com a loja fictícia `Fixtures/LojaBanco` (os dados do protótipo: clientes, pedidos, itens com PK composta, pagamentos com FK sem índice, produtos vindo de `.sql`, tabela sem PK, views, procedure e o `status` com 20 no modelo e 30 na migration): `EXT-DB-001` a `013`, `CORE-DB-001` a `007`, `API-DB-001` e `002` e `MCP-DB-001`.
+- [ ] Índice que o EF cria por convenção em cada chave estrangeira: não é deduzido do modelo (vem da migration). Sem ele, o modelo sozinho mostra a FK sem índice; decidir antes do achado "FK sem índice".
+- [ ] Argumento posicional nas migrations e configuração em método auxiliar (`ConfigurarPedido(modelBuilder)`) não são lidos; o EF gera argumentos com nome, então só código escrito à mão sofre.
+- [ ] Divergência de chave estrangeira e de índice entre fontes (hoje só a primeira fonte fica, sem marcar).
 
 ## Fase 38: mapa relacional e tela do banco (feature 1, tela) `[ ]` (depende da Fase 37)
 
