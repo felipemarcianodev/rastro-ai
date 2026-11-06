@@ -16,7 +16,7 @@ description: Executa um plano faseado em markdown do Rastro AI (`docs/arquitetur
 - **Status no mesmo commit:** o próprio plano é o registro (fase `[x]`, o que foi feito, sub-itens descobertos como `[ ]`).
 - **Checkpoint:** registrar o resultado no plano e seguir para a próxima fase, sem pausa (pedido do dono; ver `CLAUDE.md`).
 - **"Requer aprovação"** (alto risco de UX ou item marcado assim no plano): parar e mostrar ao dono antes de seguir. Nunca assumir aprovação.
-- **Release** só quando o dono pedir.
+- **Release** só quando o dono pedir, pela skill `gerar-release` (com o passo de UX das telas criadas ou alteradas desde a última tag).
 
 ## Antes de começar
 1. Ler o plano inteiro, o `CLAUDE.md`, `docs/arquitetura/visao.md` e as ADRs em `docs/adr/`.

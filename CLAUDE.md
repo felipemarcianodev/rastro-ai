@@ -53,6 +53,7 @@ Vale só para perguntas. Na execução de código, o rigor e a verificação nor
 - Os checkpoints do plano viram registro avaliado por você, não pausa.
 - **Prints de cada tela no fim de cada fase**, em `docs/telas/fase-NN/`, com índice em `docs/telas/README.md`.
 - Mudança grande no frontend: ao fim da fase, rodar a skill `levantamento-ux`. No fim do plano, rodar o levantamento completo. Mudança de alto risco de UX só entra com a minha aprovação.
+- **Release** pela skill `gerar-release`: antes do PR da versão, ver no navegador cada tela criada ou alterada desde a última tag, em todos os estados que o diff toca, e corrigir quadro vazio e cartão desproporcional antes de publicar.
 - **Comandos sempre com caminho explícito** (`git -C <pasta do repositório>`, caminhos absolutos). Sessões costumam rodar com cwd em outro projeto: um `cd` dentro de uma cadeia `&&` que falhou já fez build e `git add` rodarem no repositório errado.
 - Minhas mensagens costumam chegar por voz (transcrição). Exemplos: "faro" significa "rastro"; "complexidade psicológica" significa complexidade ciclomática.
 
