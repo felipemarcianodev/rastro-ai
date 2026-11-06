@@ -1038,6 +1038,10 @@ No segundo reteste, os 7 fluxos deram 21 achados, todos verdadeiros, e a anális
 - [ ] A lista pelo espaço (filtro por chave estrangeira de uma tabela grande) fica silenciada pela regra da lista filha, e `IS NOT NULL` não conta como filtro para a leitura sem limite.
 - [ ] Dois testes do backend falharam uma vez no CI e passaram na nova rodada (`PortProbeTests` e `LiveDatabaseEndpointTests`): pelo jeito, testes em paralelo disputam a porta e o cadastro de repositórios.
 
+## Repaginação da usabilidade `[ ]` (pedido do dono em 2026-11-06)
+
+O dono não achou a tela do banco: a entrada era um link de texto na barra do levantamento, e o cabeçalho não tem navegação. Ele pediu para repaginar a usabilidade. O levantamento está em [`plano-ux-2026-11-06-repaginacao.md`](../frontend/plano-ux-2026-11-06-repaginacao.md): a Fase A (entradas e rótulos) e a Fase B (comportamento) seguem o ciclo normal; a Fase C (cabeçalho com as áreas do produto, tela inicial por repositório, barra do levantamento em grupos e textos) espera a aprovação do dono item a item, com um protótipo antes.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).

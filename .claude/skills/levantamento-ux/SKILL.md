@@ -5,12 +5,12 @@ description: Faz o levantamento de melhorias de UX e UI do frontend do Rastro AI
 
 # Levantamento de UX para plano faseado
 
-Adaptada da skill de mesmo nome do `meu-portfolio` (a que gerou o plano de UX do blog). Revista na Fase 17 (2026-10-17), quando o dono olhou a tela como cliente e achou dado dele no produto, tela sem volta e diálogo passando da tela, nada disso apontado pelos levantamentos anteriores.
+Adaptada da skill de mesmo nome do `meu-portfolio` (a que gerou o plano de UX do blog). Revista na Fase 17 (2026-10-17), quando o dono olhou a tela como cliente e achou dado dele no produto, tela sem volta e diálogo passando da tela, nada disso apontado pelos levantamentos anteriores. Revista de novo em 2026-11-06, quando o dono não achou a tela do banco: ela existia desde a Fase 38, mas a entrada era um link pequeno na barra do levantamento, e nenhum levantamento contou quantos cliques e quanta procura levavam até ela. A passada de navegação e a tabela de cobertura vieram da skill do `meu-portfolio`.
 
 ## Antes de começar (bloqueante)
 1. Se o MCP Knowledge estiver disponível, ler `mcp__knowledge__get_pattern("ux-refactor-process")` (inventário, classificação, lint UX, plano com aprovação, aplicação por risco, métricas antes e depois). Fora do ar: avisar o dono e seguir as etapas abaixo.
 2. Ler o `CLAUDE.md`, `docs/arquitetura/visao.md` e o design system do frontend (`docs/frontend/design-system.md`, quando existir).
-3. Escopo: as telas tocadas pela fase, ou o frontend inteiro no fim do plano.
+3. Escopo: as telas tocadas pela fase, ou o frontend inteiro no fim do plano. **Descobrir as telas pelo código, nunca por lista fixa:** as rotas do `app.routes.ts`, os links do cabeçalho e as funcionalidades da `visao.md` (cada item de "o que o Rastro faz" precisa ter um caminho até a tela). Conferir também os planos de UX anteriores (`docs/frontend/plano-ux-*.md`) no código de hoje: item "esperando aprovação" pode ser justamente o problema que o dono sentiu.
 
 ## Coleta (paralela, só leitura)
 Até 3 agentes `Explore` (sonnet), cada um com uma fatia de telas, por exemplo: (1) lista de levantamentos e painel do nó; (2) canvas do grafo (visualização, edição, drag and drop); (3) prompt, validação, sugestões, C4 e feature flags. Cada um devolve linhas no formato:
@@ -29,9 +29,12 @@ Checagens obrigatórias:
 - **Olhar de cliente** (o Rastro é produto, ADR-002): nada da máquina do dono na tela. Procurar no código de tela (`frontend/src`, fora dos specs) e nas descrições do MCP nomes de repositórios e classes reais e caminhos da máquina em placeholder, exemplo e mensagem de erro (o `node scripts/verificar-publico.mjs` acha os da lista privada); trocar por exemplo genérico (`PedidosController.Criar`, `C:\codigo\meu-sistema`). E também o que só se faz pelo terminal e o cliente esperaria na tela.
 - **Primeiro uso:** subir com `RASTRO_HOME` numa pasta temporária vazia (sem repositório, sem levantamento, sem IA) e conferir que cada tela diz o que fazer em seguida.
 - **Ida e volta:** toda tela se alcança pelo cabeçalho ou por um link visível e tem como voltar (botão "Voltar" ou o caminho de origem), sem depender do botão do navegador.
+- **Descoberta (navegação):** para cada funcionalidade da `visao.md`, contar quantos cliques ela leva a partir da tela inicial e se a entrada é achável por quem não sabe que ela existe: item no cabeçalho ou botão com rótulo, não link pequeno no meio de outro texto, ícone sem rótulo ou ação só no hover. Funcionalidade principal que só se acha por link de texto numa barra de outra tela é achado de impacto alto. Ver também quantos itens ficam à vista no cabeçalho e se os nomes e grupos fazem sentido.
+- **Aparência:** hierarquia visual, densidade, alinhamento, espaço em branco, largura aproveitada (área vazia grande em 1920), estado ativo visível, ícones repetidos e consistência entre telas parecidas.
 
 ## Verificação no navegador (obrigatória, além da análise estática)
-A análise do código não pega diálogo cortado nem clique que não chega ao botão. Com o Rastro no ar e dados reais:
+A análise do código não pega diálogo cortado, clique que não chega ao botão nem funcionalidade que ninguém acha. Com o Rastro no ar e dados reais (API local com `RASTRO_HOME` temporário e repositórios públicos, como as lojas fictícias dos testes; nunca o `~/.rastro` do dono):
+- **Como cliente que chega agora:** da tela inicial, tentar chegar a cada funcionalidade só pelo que está à vista, anotando os cliques e onde a procura travou. Print de cada tela, em 1280, 1920 e 360 (se o navegador não redimensionar, registrar que a largura não foi vista).
 - **Clique de verdade**, nunca `element.click()` por JavaScript (ver `CLAUDE.md`). Para não errar o alvo, clique pelo `ref` do `find` ou do `read_page`, não por coordenada lida de print reduzido. Botão com efeito (levantar de novo, excluir, validar) só pelo `ref`, e o que for criado por engano é apagado e dito ao dono.
 - **Diálogos com conteúdo real e grande** (C4 com o DSL inteiro, prompt longo, validação com muitos itens) nas larguras 1280 e 1920 e numa janela baixa: medir com `getBoundingClientRect` que o `.dialog` cabe no `.overlay`, que só o corpo rola e que o rodapé fica visível. Foi assim que o diálogo do C4 apareceu com 1870px de altura numa janela de 911px.
 - **Console** sem erro em cada tela visitada.
@@ -44,11 +47,13 @@ Métricas por tela: elementos visíveis simultâneos, profundidade máxima do DO
 - **Alto (aprovação item a item):** esconder conteúdo atrás de toggle, reordenar seções ou menu, mudar copy, remover elemento.
 
 ## Saída: `docs/frontend/plano-ux-AAAA-MM-DD.md`
-1. **Status** (PROPOSTA), escopo e data.
-2. **Diagnóstico:** métricas por tela e os 10 principais problemas por impacto.
-3. **Achados:** tabela completa com IDs (só o que tem evidência no código).
-4. **Fases** por risco crescente, cada uma commitável sozinha, com IDs, arquivos, critérios de aceite e métricas-alvo. **Última fase: "Alto risco, requer aprovação"**, que não é executada sem aprovação.
-5. **Fora do escopo** e **riscos**.
+1. **Status** (PROPOSTA), escopo, data e **cobertura**: tabela com cada tela e funcionalidade, marcando o que foi lido no código, o que foi visto na tela (e em que larguras) e o que ficou de fora e por quê.
+2. **Confiabilidade:** o que o coordenador conferiu no código ou na tela, e o que é estimativa. Limite permanente: sem usuário real nem dados de uso, os achados são prováveis, não comprovados.
+3. **Descoberta:** tabela com cada funcionalidade da `visao.md`, a entrada dela e quantos cliques leva da tela inicial.
+4. **Diagnóstico:** métricas por tela e os 10 principais problemas por impacto.
+5. **Achados:** tabela completa com IDs (só o que tem evidência no código ou em print da tela).
+6. **Fases** por risco crescente, cada uma commitável sozinha, com IDs, arquivos, critérios de aceite e métricas-alvo. **Última fase: "Alto risco, requer aprovação"**, com cada item separado e a pergunta a fazer ao dono, que não é executada sem aprovação.
+7. **Fora do escopo** e **riscos**. Reestruturar uma tela ou o cabeçalho que está ruim não fica fora: entra como proposta na fase de alto risco, e a decisão visual é do dono.
 
 Commit: `docs(ux): plano de melhorias de UX (levantamento)`, sem assinatura de IA.
 
