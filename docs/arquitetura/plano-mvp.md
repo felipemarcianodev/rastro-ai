@@ -972,19 +972,20 @@ Levantamento de UX completo do fim do plano em [`plano-ux-2026-11-06-fim-plano-b
 
 **Melhorias propostas, sem decisão:** impacto de mudança no banco, validação da mudança olhando o banco e comparação de esquema entre branches (lista da Fase 42).
 
-## Fase 43: correções do teste num sistema real `[ ]` (pedido do dono em 2026-11-06)
+## Fase 43: correções do teste num sistema real `[x]` (pedido do dono em 2026-11-06)
 
 O dono pediu para testar com o Rastro todas as consultas de uma tela de tarefas de um sistema dele (PostgreSQL com EF Core, 87 tabelas, 36 consultas). O teste mostrou 13 defeitos e lacunas do Rastro. Depois das correções, o mesmo teste roda de novo.
 
-**Fase 43a, análise de consulta e mapa do banco:**
-- [ ] "Coluna sem índice" aceita o índice composto cujas colunas iniciais estão todas no filtro com igualdade (`tenant_id = @t AND space_id = @s` com o índice `(tenant_id, space_id)`), e a mensagem deixa de afirmar como fato que o banco lê a tabela inteira.
-- [ ] O trecho marcado aponta a coluna no predicado (`WHERE`, `ON`), não a primeira menção dela na lista do `SELECT`.
-- [ ] O mapa lê índice com classe de operador e método (`USING gin (title gin_trgm_ops)`) no SQL de `migrationBuilder.Sql`; o achado de `LIKE` com curinga no começo não sugere criar o índice trigrama que já existe.
-- [ ] Propriedade de tipo complexo com `HasColumnType("jsonb")` (ou `json`) é coluna: sem a divergência falsa "existe na migration, não no modelo".
-- [ ] Regra nova: leitura sem `LIMIT` (`TOP`, `FETCH`) de tabela filtrada só por igualdade de uma coluna que não é chave (o tenant, por exemplo), de gravidade baixa. "ORDER BY sem LIMIT" deixa de disparar quando o filtro já é pela chave estrangeira de uma lista filha.
-- [ ] Mensagens: OR na mesma coluna sugere `IN`, não "colunas diferentes" com `UNION ALL`; o operador jsonb `->>` não é chamado de "conta"; a forma que o EF gera para `!Contains` não vira "impede índice em t.id"; `ILIKE` e `= ANY` sobre coluna array (`unnest`) são apontados como sem índice B-tree.
-- [ ] Subconsulta correlacionada que bate na chave primária da tabela de dentro cai para gravidade baixa.
-- [ ] As duas escalas de gravidade ficam no mesmo sentido: `QuerySeverity` passa a `Low = 0`, `Medium = 1`, `High = 2`, como o `FindingSeverity` (`Info = 0`). A v0.6.0, com a escala antiga, não chegou ao NuGet.
+**Fase 43a, análise de consulta e mapa do banco:** `[x]`
+- [x] "Coluna sem índice" aceita o índice composto cujas colunas iniciais estão todas no filtro com igualdade (`tenant_id = @t AND space_id = @s` com o índice `(tenant_id, space_id)`), e a mensagem deixa de afirmar como fato que o banco lê a tabela inteira.
+- [x] O trecho marcado aponta a coluna no predicado (`WHERE`, `ON`), não a primeira menção dela na lista do `SELECT`.
+- [x] O mapa lê índice com classe de operador e método (`USING gin (title gin_trgm_ops)`) no SQL de `migrationBuilder.Sql`; o achado de `LIKE` com curinga no começo não sugere criar o índice trigrama que já existe.
+- [x] Propriedade de tipo complexo com `HasColumnType("jsonb")` (ou `json`) é coluna: sem a divergência falsa "existe na migration, não no modelo".
+- [x] Regra nova: leitura sem `LIMIT` (`TOP`, `FETCH`) de tabela filtrada só por igualdade de uma coluna que não é chave (o tenant, por exemplo), de gravidade baixa. "ORDER BY sem LIMIT" deixa de disparar quando o filtro já é pela chave estrangeira de uma lista filha.
+- [x] Mensagens: OR na mesma coluna sugere `IN`, não "colunas diferentes" com `UNION ALL`; o operador jsonb `->>` não é chamado de "conta"; a forma que o EF gera para `!Contains` não vira "impede índice em t.id"; `ILIKE` e `= ANY` sobre coluna array (`unnest`) são apontados como sem índice B-tree.
+- [x] Subconsulta correlacionada que bate na chave primária da tabela de dentro cai para gravidade baixa.
+- [x] As duas escalas de gravidade ficam no mesmo sentido: `QuerySeverity` passa a `Low = 0`, `Medium = 1`, `High = 2`, como o `FindingSeverity` (`Info = 0`). A v0.6.0, com a escala antiga, não chegou ao NuGet.
+- [x] Testes `EXT-PGQ-019` a `030`, `EXT-DBQ-016` a `019` e `EXT-PG-040` a `043`, com a loja fictícia de vários inquilinos `Fixtures/LojaMultiTenantPg`, e `WEB-DBQ-005` e `031` no frontend. Decisões: com índice trigrama (GIN ou GiST) na coluna, o `ILIKE '%x%'` não é achado; OR na mesma coluna não é achado; a coluna de lista (`unnest`, `ANY(coluna)`) usa o achado de função na coluna, com texto próprio; a lista filha pela chave estrangeira fica fora da leitura sem limite e do `ORDER BY` sem limite, menos a chave de uma tabela apontada por três ou mais (o tenant, o usuário).
 
 **Fase 43b, banco nos fluxos:** `[x]`
 - [x] Repositório genérico (`EfRepository<T>` com `DbSet<T>`): o `T` é fechado pela chamada (`IRepository<TaskItem>`), a tabela sai pelo tipo e "DbSet" deixa de aparecer como tabela; o `Update` e o `Delete` do repositório genérico contam como alteração.
