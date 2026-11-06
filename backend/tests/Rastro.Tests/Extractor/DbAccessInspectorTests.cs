@@ -110,4 +110,17 @@ public class DbAccessInspectorTests
         Assert.All(graph.Nodes, n => Assert.Null(n.Db));
         Assert.DoesNotContain(graph.Findings!, f => QualityThresholds.CategoryOf(f.Kind) == FindingCategory.Database);
     }
+
+    [Fact] // EXT-DBF-008
+    public async Task SqlCruLiteral_VaiNoPassoComOsMarcadoresComoParametros()
+    {
+        var doAno = Node(await GraphAsync("RelatorioController.DoAno"), "RelatorioController.DoAno").Db!;
+        Assert.Equal("SELECT * FROM pedidos WHERE YEAR(criado_em) = @p0 ORDER BY criado_em DESC", Assert.Single(doAno).Sql);
+        Assert.Equal(DbOperation.Read, doAno[0].Operation);
+
+        var fechar = Node(await GraphAsync("PedidosController.Fechar"), "PedidosController.Fechar").Db!;
+        Assert.Equal("EXEC dbo.sp_baixar_estoque @p0", fechar.Single(a => a.Target == "sp_baixar_estoque").Sql);
+        Assert.Equal("EXEC [vendas].[sp_cliente] @p0", fechar.Single(a => a.Target == "vendas.sp_cliente").Sql);
+        Assert.Null(fechar.Single(a => a.Operation == DbOperation.Insert).Sql);
+    }
 }

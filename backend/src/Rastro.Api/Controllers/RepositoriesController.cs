@@ -84,6 +84,19 @@ public class RepositoriesController(
             ? Ok(schema)
             : Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");
 
+    // Análise de consulta (Fase 40): achados de gargalo pelo leitor de T-SQL, cruzados com o esquema lido do
+    // código. A consulta não é executada e nenhum banco é consultado. POST porque a consulta pode ser longa.
+    [HttpPost("{name}/schema/analyze")]
+    public async Task<ActionResult<QueryAnalysis>> AnalyzeQuery(string name, [FromBody] AnalyzeQueryRequest request,
+        [FromServices] QueryAnalysisService analysis, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(request.Sql) || request.Sql.Length > QueryLimits.MaxSqlLength)
+            return Error(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, "Cole uma consulta de até 100 mil caracteres.");
+        return await analysis.AnalyzeAsync(name, request.Sql, ct) is { } result
+            ? Ok(result)
+            : Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");
+    }
+
     // Quem usa cada tabela (Fase 39): os passos dos levantamentos do repositório que leem ou gravam
     // pelo EF Core, do levantamento mais novo de cada método. Levantamento anterior à Fase 39 não tem
     // essa informação e precisa ser refeito.

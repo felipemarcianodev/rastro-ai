@@ -36,6 +36,37 @@
   line-height: 16px;
 }
 
+// Abas da tela do banco (Fase 40a): "Mapa do banco" e "Analisar consulta".
+.db-tabs {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-4) 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.db-tab {
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: none;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &[aria-selected='true'] {
+    border-bottom-color: var(--trail);
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+}
+
 // Selo de achado sem IA (FK sem índice): o mesmo âmbar escuro do "não resolvido", com texto.
 .db-alert {
   font-family: var(--font-sans);
@@ -77,6 +108,17 @@
   li > :last-child:not(a) {
     flex: none;
     white-space: nowrap;
+  }
+
+  // "Analisar a consulta" (Fase 40a): abaixo do alvo, sem disputar a largura com ele.
+  li {
+    flex-wrap: wrap;
+  }
+
+  a.db-sql-link {
+    flex: 0 0 100%;
+    padding-left: 60px;
+    font-size: var(--text-xs);
   }
 }
 

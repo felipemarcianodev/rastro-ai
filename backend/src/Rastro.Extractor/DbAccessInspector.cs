@@ -36,6 +36,7 @@ internal static class DbAccessInspector
         { "ExecuteSql", "ExecuteSqlRaw", "ExecuteSqlInterpolated", "ExecuteSqlAsync", "ExecuteSqlRawAsync", "ExecuteSqlInterpolatedAsync", "SqlQuery", "SqlQueryRaw" };
     private static readonly HashSet<string> SaveMethods = new(StringComparer.Ordinal) { "SaveChanges", "SaveChangesAsync" };
 
+    private static readonly Regex Placeholder = new(@"\{(\d+)\}", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
     private static readonly Regex Exec = new(@"^\s*EXEC(?:UTE)?\s+(?:@\w+\s*=\s*)?([\[\]\w\.]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
     public static async Task<FlowGraph> InspectAsync(FlowGraph graph, FlowWalker walker, Solution solution, string baseDirectory, DbSchema? repositorySchema, CancellationToken ct)
@@ -60,7 +61,7 @@ internal static class DbAccessInspector
         string TableOf(Hit hit) => hit.Entity is not null && tables.TryGetValue(hit.Entity, out var t) ? t : hit.SetName ?? hit.Entity ?? "?";
 
         var accesses = scans.ToDictionary(p => p.Key, p => p.Value.Hits
-            .Select(h => new DbAccess(h.Procedure ?? TableOf(h), h.Operation, Line(h.At), h.Entity))
+            .Select(h => new DbAccess(h.Procedure ?? TableOf(h), h.Operation, Line(h.At), h.Entity, h.Sql))
             .GroupBy(a => (a.Target, a.Operation))
             .Select(g => g.OrderBy(a => a.Line).First())
             .OrderBy(a => a.Line)
@@ -149,12 +150,12 @@ internal static class DbAccessInspector
         if (onContext && Operation([symbol.Name]) is { } op and not DbOperation.Read && EntityArgument(symbol, call, model, ct) is { } entity)
         {
             scan.Writes = true;
-            scan.Hits.Add(new Hit(entity, null, null, null, op, call, InLoop(call, body), false, null));
+            scan.Hits.Add(new Hit(entity, null, null, null, op, call, InLoop(call, body), false, null, null));
             return;
         }
         if (RawCommands.Contains(symbol.Name) && IsEf(symbol) && ProcedureOf(call) is { } procedure)
         {
-            scan.Hits.Add(new Hit(null, null, procedure, symbol.Name, DbOperation.Execute, call, InLoop(call, body), false, null));
+            scan.Hits.Add(new Hit(null, null, procedure, symbol.Name, DbOperation.Execute, call, InLoop(call, body), false, null, RawSql(call, symbol.Name)));
             return;
         }
         if (InLoop(call, body) && !IsEf(symbol) && symbol.MethodKind == MethodKind.Ordinary)
@@ -186,7 +187,8 @@ internal static class DbAccessInspector
 
         var tracked = op == DbOperation.Read && !names.Any(NoTracking.Contains) && !names.Contains("Select")
             && (iterated || names.Any(EntityTerminals.Contains));
-        return new Hit(entity, setName, procedure, rawMethod, op, expr, InLoop(expr, body), tracked, LateFilter(chain, end, body));
+        var sql = raw.Call is null ? null : RawSql(raw.Call, raw.Name);
+        return new Hit(entity, setName, procedure, rawMethod, op, expr, InLoop(expr, body), tracked, LateFilter(chain, end, body), sql);
     }
 
     // A cadeia de chamadas que sai do DbSet, atravessando await e parênteses: "Where", "ToListAsync", ...
@@ -255,6 +257,23 @@ internal static class DbAccessInspector
             if (current is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax) return false;
         }
         return false;
+    }
+
+    // O texto do SQL cru, quando é literal no código (Fase 40): "{0}" do FromSqlRaw e os buracos da string
+    // interpolada viram @p0, @p1, como o EF manda ao banco, para o leitor de T-SQL entender.
+    private static string? RawSql(InvocationExpressionSyntax call, string method)
+    {
+        var argument = call.ArgumentList.Arguments.FirstOrDefault()?.Expression;
+        switch (argument)
+        {
+            case LiteralExpressionSyntax literal when literal.Token.Value is string text:
+                return method.EndsWith("Raw", StringComparison.Ordinal) ? Placeholder.Replace(text, "@p$1") : text;
+            case InterpolatedStringExpressionSyntax interpolated:
+                var hole = 0;
+                return string.Concat(interpolated.Contents.Select(c => c is InterpolatedStringTextSyntax t ? t.TextToken.ValueText : $"@p{hole++}"));
+            default:
+                return null;
+        }
     }
 
     // "EXEC dbo.sp_baixar_estoque @p0" -> "sp_baixar_estoque"; com outro schema, "vendas.sp_x".
@@ -346,7 +365,8 @@ internal static class DbAccessInspector
         SyntaxNode At,
         bool InLoop,
         bool TrackedRead,
-        (string Materializer, string Filter, SyntaxNode At)? LateFilter);
+        (string Materializer, string Filter, SyntaxNode At)? LateFilter,
+        string? Sql);
 
     private sealed class MethodScan(IMethodSymbol method)
     {

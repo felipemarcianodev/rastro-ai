@@ -129,6 +129,61 @@ public class SchemaEndpointTests(ApiFixture fixture) : IAsyncLifetime
         }
     }
 
+    [Fact] // API-DBQ-001
+    public async Task AnalyzeQuery_LojaFicticia_AchadosComTrechoETabelasDoEsquema()
+    {
+        var client = fixture.Factory.CreateClient();
+        const string sql = "SELECT * FROM pedidos p WHERE YEAR(p.criado_em) = 2026 ORDER BY p.id";
+
+        var response = await client.PostAsJsonAsync($"/api/repositories/{_name}/schema/analyze", new { sql });
+        var analysis = await response.Content.ReadFromJsonAsync<JsonObject>();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var findings = analysis!["findings"]!.AsArray();
+        Assert.Equal([1, 0, 8], findings.Select(f => f!["kind"]!.GetValue<int>()));
+        var first = findings[0]!;
+        Assert.Equal("YEAR(p.criado_em)", sql.Substring(first["start"]!.GetValue<int>(), first["length"]!.GetValue<int>()));
+        Assert.Equal(0, first["severity"]!.GetValue<int>());
+        Assert.Equal("pedidos", first["table"]!.GetValue<string>());
+        Assert.True(analysis["tables"]![0]!["inSchema"]!.GetValue<bool>());
+        Assert.Null(analysis["error"]);
+    }
+
+    [Fact] // API-DBQ-002
+    public async Task AnalyzeQuery_VaziaLongaOuRepositorioDesconhecido_RecusaComCodigo()
+    {
+        var client = fixture.Factory.CreateClient();
+
+        var empty = await client.PostAsJsonAsync($"/api/repositories/{_name}/schema/analyze", new { sql = "  " });
+        var big = await client.PostAsJsonAsync($"/api/repositories/{_name}/schema/analyze", new { sql = new string('x', 100_001) });
+        var unknown = await client.PostAsJsonAsync("/api/repositories/nao-existe/schema/analyze", new { sql = "SELECT 1" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
+        Assert.Equal("QUERY_INVALID", (await empty.Content.ReadFromJsonAsync<JsonObject>())?["code"]?.GetValue<string>());
+        Assert.Equal(HttpStatusCode.BadRequest, big.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, unknown.StatusCode);
+    }
+
+    [Fact] // MCP-DBQ-001
+    public async Task AnalyzeQueryTool_LojaFicticia_TextoComGravidadeTrechoETabelas()
+    {
+        await using var provider = fixture.McpServices(new Dictionary<string, string?>
+        {
+            ["Rastro:Repositories:1:Name"] = _name,
+            ["Rastro:Repositories:1:Path"] = _root
+        });
+        await using var scope = provider.CreateAsyncScope();
+        var tools = scope.ServiceProvider.GetRequiredService<RastroTools>();
+
+        var text = await tools.AnalyzeQuery(_name, "SELECT TOP 5 c.id FROM clientes c WHERE c.email LIKE '%@gmail.com'");
+
+        Assert.Contains("1 instrução lida, 1 achado (regra fixa, sem IA; a consulta não foi executada).", text);
+        Assert.Contains("- [média] curinga no começo do LIKE, linha 1: c.email LIKE '%@gmail.com'.", text);
+        Assert.Contains("- clientes (apelido c)", text);
+        Assert.StartsWith("O leitor de T-SQL não entendeu a consulta", await tools.AnalyzeQuery(_name, "SELECT FROM WHERE"));
+        Assert.Equal("Repositório não cadastrado. Use list_repositories.", await tools.AnalyzeQuery("nao-existe", "SELECT 1"));
+    }
+
     [Fact] // MCP-DB-001
     public async Task GetDbSchema_LojaFicticia_TextoComFonteDivergenciaETabelaPedida()
     {

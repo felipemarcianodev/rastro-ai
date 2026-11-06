@@ -860,12 +860,25 @@ O dono pediu duas funcionalidades novas:
 
 ## Fase 40: análise de consulta sem IA (feature 2, núcleo, API e tela) `[ ]` (depende da Fase 37)
 
-- [ ] Entrada: a consulta colada na tela (ou vinda de um passo do fluxo, Fase 39) e o repositório, para cruzar com o esquema.
-- [ ] Achados determinísticos pelo leitor de T-SQL, cada um com o trecho e o motivo: `SELECT *`, função ou conversão na coluna do filtro (impede o uso de índice), `LIKE '%...'`, `OR` entre colunas diferentes, filtro ou junção em coluna sem índice (cruzando com o esquema), junção sem condição, `DISTINCT` para esconder junção duplicada, subconsulta correlacionada, `ORDER BY` sem limite, `NOT IN` com coluna que aceita nulo, e `UPDATE` ou `DELETE` sem `WHERE`.
+Dividida em dois PRs: 40a (análise pelo código) e 40b (banco vivo).
+
+### Fase 40a: análise pelo código `[x]`
+
+- [x] Entrada: a consulta colada na tela ou vinda de um passo do fluxo (o passo com SQL cru literal, `FromSql`, `FromSqlRaw`, `ExecuteSqlRaw` e `SqlQuery`, guarda o texto em `DbAccess.Sql`, com `{0}` e os buracos da interpolação trocados por `@p0`; o painel do passo ganha "Analisar a consulta") e o repositório, para cruzar com o esquema.
+- [x] Achados determinísticos pelo leitor de T-SQL (`TSqlQueryAnalyzer` no `Rastro.Extractor`, atrás de `ISqlQueryAnalyzer`, um por dialeto; modelo `QueryAnalysis` no `Rastro.Core`), cada um com a gravidade, o trecho (posição e tamanho no texto), a linha e o motivo: `SELECT *` (com as colunas de dado pessoal), função ou conversão na coluna do filtro (com "e a coluna nem tem índice"), `LIKE '%...'` (com o índice que existe e não ajuda), `OR` entre colunas diferentes, filtro ou junção em coluna sem índice que comece por ela (cruzando com o esquema), junção sem condição (`CROSS JOIN`, vírgula sem ligação no `WHERE`, `ON` sem coluna das duas tabelas), `DISTINCT` numa consulta com junção, subconsulta correlacionada (na lista do `SELECT` e na comparação; `EXISTS` não conta), `ORDER BY` sem `TOP` nem `OFFSET`, `NOT IN` de subconsulta com coluna que aceita nulo e `UPDATE` ou `DELETE` sem `WHERE` (com junção no `FROM`, não conta). Tabela fora do esquema aparece marcada, sem os achados de índice e de nulo.
+- [x] `POST api/repositories/{nome}/schema/analyze` (`{ sql }`, até 100 mil caracteres, erro `QUERY_INVALID`) e a ferramenta MCP `analyze_query` (só os achados sem IA; a proposta da IA é da Fase 41), com a instrução no `McpInstructions`. O texto da consulta não vai para o log.
+- [x] Tela: abas "Mapa do banco" e "Analisar consulta" (`?aba=consulta`, com `consulta` e `origem` vindos do passo), a consulta com os trechos marcados (sublinhado na cor da gravidade), os achados por gravidade com o rótulo em texto, clique que destaca o trecho, "Tabelas da consulta" com o link para o mapa e "ver no mapa" no achado. Sem botão de IA.
+- [x] Testes: `EXT-DBQ-001` a `015` (uma consulta da loja fictícia por achado, a do protótipo, a limpa, o erro de leitura e a tabela fora do esquema), `EXT-DBF-008`, `API-DBQ-001` e `002`, `MCP-DBQ-001`, `WEB-DBQ-001` a `004`, `010` a `018`, `020` a `022` e `030`. Backend 482/482 e frontend 312/312.
+- [x] Prints em `docs/telas/fase-40/` (loja fictícia, API local com `RASTRO_HOME` temporário, clique real) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md) (seção da Fase 40a): os achados de risco baixo e médio entraram na fase.
+- [ ] `ExecuteSql` e `SqlQuery` com SQL que não é `EXEC` não viram acesso do passo (não há tabela para ligar sem ler o texto); ler a tabela pelo leitor de T-SQL junto com Dapper e ADO.NET (pendência da Fase 39).
+- [ ] (UX, risco alto) Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05).
+- [ ] Consulta montada em partes no código (concatenação, `StringBuilder`) não vai para o passo: só o literal.
+
+### Fase 40b: banco vivo `[ ]`
+
 - [ ] Conexão viva (ADR-006): cadastro da string de conexão por repositório na tela (cifrada, nunca devolvida), `Microsoft.Data.SqlClient` no pacote, leitura do catálogo como mais uma fonte do esquema, README, README do pacote, `SECURITY.md` (tirar o "em construção") e um padrão novo no hook `ambiente-cliente.mjs` para o código da conexão.
-- [ ] Com banco vivo: plano estimado, sem executar a consulta (`SET SHOWPLAN_XML ON` no SQL Server), com as operações mais caras, varredura de tabela e índice que falta segundo o próprio banco.
-- [ ] Tela "Analisar consulta": achados por gravidade, com o trecho marcado na consulta.
-- [ ] Testes com consultas da loja fictícia, uma por achado, mais uma consulta limpa sem achado.
+- [ ] Com banco vivo: plano estimado, sem executar a consulta (`SET SHOWPLAN_XML ON` no SQL Server), com as operações mais caras, varredura de tabela e índice que falta segundo o próprio banco. Antes de pedir o plano, a consulta passa pelo leitor de SQL: uma instrução só, sem `SET`, `EXEC` nem DDL.
+- [ ] Tela: o plano estimado ao lado dos achados e a recomendação de permissão mínima no cadastro da conexão.
 
 ## Fase 41: a IA sugere a melhora (feature 2, IA plugada) `[ ]` (depende da Fase 40)
 

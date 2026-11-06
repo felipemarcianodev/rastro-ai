@@ -1,0 +1,209 @@
+:host {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  // Linha longa demais cansa a leitura dos motivos: a coluna da consulta para em 960px, com as tabelas ao lado.
+  grid-template-columns: minmax(0, 960px) minmax(240px, 320px);
+  overflow: auto;
+}
+
+:host([hidden]) {
+  display: none;
+}
+
+.qa-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.qa-side {
+  padding: var(--space-4);
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.qa-origin {
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+.qa-label,
+.qa-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.qa-box {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  white-space: pre;
+}
+
+.qa-actions,
+.qa-sql-head,
+.qa-count {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+}
+
+.qa-sql-head {
+  justify-content: space-between;
+}
+
+.qa-hint,
+.qa-count .muted {
+  font-size: var(--text-xs);
+}
+
+.qa-sql {
+  margin: 0;
+  max-height: 340px;
+  overflow: auto;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+// Trecho de achado: sublinhado ondulado na cor da gravidade (o texto da etiqueta diz a gravidade).
+.qa-mark {
+  background: transparent;
+  color: inherit;
+  text-decoration: underline wavy var(--ink-soft);
+  text-underline-offset: 3px;
+
+  &.is-high {
+    text-decoration-color: var(--danger);
+  }
+
+  &.is-medium {
+    text-decoration-color: var(--unresolved);
+  }
+
+  &.is-active {
+    background: var(--trail-wash);
+    outline: 2px solid var(--trail);
+    border-radius: 2px;
+  }
+}
+
+.qa-findings,
+.qa-tables {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.qa-finding {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+
+  &.is-active {
+    border-color: var(--trail);
+    box-shadow: 0 0 0 2px var(--trail);
+  }
+}
+
+.qa-finding-btn {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+  justify-items: start;
+  padding: var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+}
+
+.qa-snippet {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: var(--surface-sunk);
+  font-size: var(--text-xs);
+}
+
+.qa-why {
+  color: var(--ink-soft);
+}
+
+.qa-sev {
+  padding: 0 6px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  line-height: 18px;
+
+  &.is-high {
+    border-color: var(--danger);
+    background: var(--danger-wash);
+    color: var(--danger);
+  }
+
+  &.is-medium {
+    border-color: var(--unresolved);
+    background: var(--unresolved-wash);
+    color: var(--unresolved);
+  }
+}
+
+.qa-map {
+  flex: none;
+  margin: var(--space-3) var(--space-3) 0 0;
+}
+
+.qa-tables {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.qa-tables .source-link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.qa-out {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-xs);
+}
+
+@media (max-width: 900px) {
+  :host {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .qa-side {
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}

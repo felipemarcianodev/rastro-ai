@@ -33,6 +33,7 @@ import {
   SurveySummary,
 } from './models';
 import { DbSchema, DbUsageReport } from './database/db-schema';
+import { QueryAnalysis } from './database/query-analysis';
 
 @Injectable({ providedIn: 'root' })
 export class RastroApi {
@@ -62,6 +63,11 @@ export class RastroApi {
   // Passos dos levantamentos do repositório que leem ou gravam cada tabela (Fase 39).
   schemaUsage(repository: string): Observable<DbUsageReport> {
     return this.http.get<DbUsageReport>(`/api/repositories/${encodeURIComponent(repository)}/schema/usage`);
+  }
+
+  // Análise de uma consulta T-SQL contra o esquema do código, por regras fixas (Fase 40a).
+  analyzeQuery(repository: string, sql: string): Observable<QueryAnalysis> {
+    return this.http.post<QueryAnalysis>(`/api/repositories/${encodeURIComponent(repository)}/schema/analyze`, { sql });
   }
 
   health(): Observable<RastroHealth> {
