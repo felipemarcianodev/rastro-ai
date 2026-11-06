@@ -17,7 +17,8 @@ Ao refatorar um sistema várias vezes, falta a visão do todo de uma funcionalid
 7. **Sugere melhorias:** complexidade ciclomática, SOLID, clean code e dívida técnica, com métricas do Roslyn e sugestões da IA por cima.
 8. **Segue o fluxo entre sistemas:** a chamada HTTP de uma API .NET para outra cadastrada no Rastro entra no mesmo levantamento, com as bifurcações de cada sistema no mesmo desenho; o que não casa fica como não resolvido para a IA ou o agente completar. O levantamento pode começar numa tela Angular: do clique no botão, passando pelo service e pelo `HttpClient`, até o controller .NET e além.
 9. **Resume o fluxo em Mermaid:** a visão consolidada, de leitura de negócio, com o texto editável e as cores escolhidas pelo usuário.
-10. **Exporta diagramas C4** (C1 a C4) em Structurizr DSL, na hora ou depois, com um clique, para abrir no Structurizr (o Structurizr Lite roda local em Docker, então o código não sai da máquina).
+10. **Mostra o banco** (desde 2026-11-06, [ADR-006](../adr/adr-006-visao-do-banco.md)): tabelas, chaves, índices, views e procedures lidos do código (modelo do EF Core, migrations e `.sql`), com o mapa relacional, e aponta o gargalo de uma consulta SQL. SQL Server primeiro, PostgreSQL depois. O banco vivo é opcional e só de leitura: catálogo e plano estimado, nunca os dados.
+11. **Exporta diagramas C4** (C1 a C4) em Structurizr DSL, na hora ou depois, com um clique, para abrir no Structurizr (o Structurizr Lite roda local em Docker, então o código não sai da máquina).
 
 ## Decisões
 
@@ -30,6 +31,7 @@ Ao refatorar um sistema várias vezes, falta a visão do todo de uma funcionalid
 | **IA opcional e plugável** | O núcleo funciona sem IA. Com IA, dois modos: **agente** (o Claude Code ou outro agente usa o Rastro por MCP, sem chave de API) e **provedor** (Claude, OpenAI ou Gemini configurados numa tela, no padrão do `meu-portfolio`). Os dois passam pelo mesmo validador de prova. |
 | **Persistência em SQLite** (até a Fase 13, PostgreSQL + JSONB; trocado na [ADR-002](../adr/adr-002-produto-dotnet-tool.md)) | Um levantamento = metadados (repositório, **hash do commit**, funcionalidade, data) + grafo em JSON. O hash diz se o levantamento ainda vale. Um arquivo na pasta do usuário, sem servidor de banco para instalar. |
 | **.NET e Angular** (desde 2026-10-30, [ADR-005](../adr/adr-005-extrator-angular.md); antes, só .NET) | O fluxo que o usuário quer ver começa no clique da tela. O Angular é lido por um processo Node com o compilador do TypeScript (tipos e injeção resolvidos, como o Roslyn faz no C#), usando o `typescript` do próprio repositório analisado. É opcional: sem Node, só o .NET. Outras linguagens seguem fora de escopo. |
+| **Esquema do banco pelo código, banco vivo opcional e só de leitura** (desde 2026-11-06, [ADR-006](../adr/adr-006-visao-do-banco.md)) | O esquema já está no repositório e se lê sem credencial. O banco vivo acrescenta o plano estimado, mas o Rastro nunca lê dados das tabelas, e a string de conexão fica cifrada no banco local. |
 | **Distribuído como `dotnet tool`** (até 2026-10-16, ferramenta interna; trocado na [ADR-002](../adr/adr-002-produto-dotnet-tool.md)) | O `dotnet tool` instala com um comando e roda na máquina de quem usa: o código analisado não sai dela. |
 | **Código aberto, licença MIT** (desde 2026-10-26, [ADR-004](../adr/adr-004-codigo-aberto.md); antes, licença paga por chave) | O Rastro faz parte do portfólio do dono, como o Mirante: repositório público no GitHub e pacote gratuito no NuGet. |
 

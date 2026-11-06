@@ -799,6 +799,86 @@ No primeiro uso da 0.4.0 num fluxo real (uma tela Angular e duas APIs, 344 passo
 - [ ] Extrator de metadados de CRM (fluxos e gatilhos do Salesforce), para "fora do código" deixar de ser parede. Fase grande, com ADR própria.
 - [ ] Serviço próprio que repassa para o `MatDialog` (ficou fora da issue #32): o desenho começa no modal e perde as condições do botão que o abre.
 
+## Visão do banco e análise de consulta (Fases 36 a 41) (pedido do dono em 2026-11-05)
+
+O dono pediu duas funcionalidades novas:
+- **Feature 1, visão do banco:** tabelas (campos, tipos, nulos, PK, FK, índices), relacionamentos, views e procedures, com um mapa relacional das tabelas.
+- **Feature 2, análise de consulta:** receber uma consulta SQL e apontar onde ela tem gargalo. Já existem ferramentas para isso; a ideia é o Rastro ser mais simples e, com a IA plugada, a IA sugerir a melhora.
+
+**Princípios que valem para as seis fases:**
+- **Núcleo sem IA (ADR-001):** esquema, mapa relacional e achados da consulta são determinísticos. A IA só propõe a reescrita e o índice, e a proposta passa por conferência do núcleo antes de aparecer.
+- **Primeiro pelo código, depois pelo banco:** a fonte padrão é o que já está no repositório (modelo do EF Core, migrations, arquivos `.sql` e projeto de banco). Conectar num banco vivo é opcional, só leitura, e muda o ambiente do cliente (ADR nova).
+- **Ligação com os fluxos:** o diferencial do Rastro não é ser mais um visualizador de banco, é ligar tabela e consulta ao passo do fluxo que as usa.
+
+**Decisões do dono (aprovadas em 2026-11-06, sobre o protótipo navegável da tela):**
+- [x] SQL Server primeiro, com o leitor oficial de T-SQL da Microsoft (`Microsoft.SqlServer.TransactSql.ScriptDom`, licença MIT). PostgreSQL entra neste plano, depois do SQL Server (Fase 42).
+- [x] Conexão com banco vivo entra, opcional e só de leitura (catálogo e plano estimado). Sem ela, tudo sai do código.
+- [x] A visão do banco é uma tela própria por repositório, com duas abas: "Mapa do banco" e "Analisar consulta".
+
+## Fase 36: ADR da visão do banco `[x]`
+
+- [x] [ADR-006](../adr/adr-006-visao-do-banco.md): fontes do esquema (modelo do EF Core e migrations pelo Roslyn sem rodar o código do cliente, `.sql` e projeto de banco pelo leitor de SQL e, opcional, banco vivo), cada item com a fonte e a divergência marcada; SQL Server primeiro e PostgreSQL na Fase 42, com o modelo e o extrator de `.sql` sem amarrar ao dialeto; o que sai da máquina e o que é guardado.
+- [x] Conexão viva: só leitura, nunca os dados das tabelas, comandos fixos ao catálogo, plano estimado sem executar e com a consulta conferida antes pelo leitor de SQL (uma instrução, sem `SET`, `EXEC` nem DDL), timeout, string de conexão cifrada por DataProtection no banco local, nunca na resposta, no log nem na IA. **Implementada na Fase 40**, a primeira que precisa dela.
+- [x] `visao.md`, `SECURITY.md` e `CLAUDE.md` (segurança e lista do ambiente do cliente) atualizados. O README e o README do pacote mudam quando o código entrar (Fase 37 em diante).
+
+## Fase 37: esquema pelo código (feature 1, núcleo e API) `[ ]` (depende da Fase 36)
+
+- [ ] Modelo no `Rastro.Core` (`DbSchema`): tabela, coluna (tipo, nulo, padrão, identidade), chave primária, chave estrangeira (colunas, tabela de destino, ação ao apagar), índice (único, colunas, inclusão), view (colunas e tabelas que ela lê) e procedure (parâmetros e tabelas que ela lê e grava).
+- [ ] Extrator do EF Core pelo Roslyn, sem rodar o código do cliente: `DbContext`, `DbSet`, atributos, `OnModelCreating` e `IEntityTypeConfiguration` (nome de tabela, chave, relacionamento, índice).
+- [ ] Extrator de `.sql` e de projeto de banco pelo leitor de T-SQL: `CREATE TABLE`, `ALTER TABLE ... FOREIGN KEY`, `CREATE INDEX`, `CREATE VIEW` e `CREATE PROCEDURE`.
+- [ ] Quando as fontes divergem (o modelo diz uma coisa e a migration outra), o Rastro mostra as duas e marca a divergência, sem escolher em silêncio.
+- [ ] `GET api/repositories/{nome}/schema` e a ferramenta MCP `get_db_schema`.
+- [ ] Testes com a loja fictícia ganhando um `DbContext` e um `.sql` próprios (pedidos, itens, clientes, pagamentos), incluindo FK composta, tabela sem PK e view.
+
+## Fase 38: mapa relacional e tela do banco (feature 1, tela) `[ ]` (depende da Fase 37)
+
+- [ ] Mapa relacional no desenho do Rastro: tabelas como blocos com PK e FK marcadas, setas pela FK com a cardinalidade (1 para N, N para N pela tabela de ligação).
+- [ ] Lista com busca de tabelas, views e procedures; painel da tabela com campos, índices, quem aponta para ela e para quem ela aponta.
+- [ ] Recorte por tabela: a tabela escolhida e os vizinhos até N saltos, porque um banco grande não cabe numa tela.
+- [ ] Exportar o mapa em Mermaid `erDiagram`, PNG e SVG, como os outros desenhos.
+- [ ] Prints em `docs/telas/fase-38/` e levantamento de UX.
+
+## Fase 39: banco nos fluxos `[ ]` (depende da Fase 37)
+
+- [ ] O passo com etiqueta "banco" diz qual tabela lê ou grava (pelo `DbSet` e pelo método do EF: consulta, inclusão, alteração, exclusão).
+- [ ] No painel da tabela, "Fluxos que usam esta tabela", com os levantamentos e os passos.
+- [ ] Achados sem IA no fluxo: consulta dentro de laço (N+1), `ToList` antes do filtro, consulta só de leitura sem `AsNoTracking` e procedure chamada por `FromSql` ou `ExecuteSql`.
+
+## Fase 40: análise de consulta sem IA (feature 2, núcleo, API e tela) `[ ]` (depende da Fase 37)
+
+- [ ] Entrada: a consulta colada na tela (ou vinda de um passo do fluxo, Fase 39) e o repositório, para cruzar com o esquema.
+- [ ] Achados determinísticos pelo leitor de T-SQL, cada um com o trecho e o motivo: `SELECT *`, função ou conversão na coluna do filtro (impede o uso de índice), `LIKE '%...'`, `OR` entre colunas diferentes, filtro ou junção em coluna sem índice (cruzando com o esquema), junção sem condição, `DISTINCT` para esconder junção duplicada, subconsulta correlacionada, `ORDER BY` sem limite, `NOT IN` com coluna que aceita nulo, e `UPDATE` ou `DELETE` sem `WHERE`.
+- [ ] Conexão viva (ADR-006): cadastro da string de conexão por repositório na tela (cifrada, nunca devolvida), `Microsoft.Data.SqlClient` no pacote, leitura do catálogo como mais uma fonte do esquema, README, README do pacote, `SECURITY.md` (tirar o "em construção") e um padrão novo no hook `ambiente-cliente.mjs` para o código da conexão.
+- [ ] Com banco vivo: plano estimado, sem executar a consulta (`SET SHOWPLAN_XML ON` no SQL Server), com as operações mais caras, varredura de tabela e índice que falta segundo o próprio banco.
+- [ ] Tela "Analisar consulta": achados por gravidade, com o trecho marcado na consulta.
+- [ ] Testes com consultas da loja fictícia, uma por achado, mais uma consulta limpa sem achado.
+
+## Fase 41: a IA sugere a melhora (feature 2, IA plugada) `[ ]` (depende da Fase 40)
+
+- [ ] Provedor e agente (MCP `analyze_query`) recebem a consulta, os achados e só as tabelas que ela usa, marcados como dado; a IA devolve a consulta reescrita e os índices sugeridos, com o motivo de cada mudança.
+- [ ] Conferência do núcleo antes de mostrar: a consulta reescrita precisa ser válida no leitor de T-SQL, citar só tabelas e colunas que existem e devolver as mesmas colunas; o índice sugerido só usa colunas que existem e não repete índice que já existe. O que não passa volta recusado com o motivo, como a prova da aresta (Fase 4).
+- [ ] Com banco vivo: comparar o custo estimado do plano antes e depois, sem executar nada.
+- [ ] Antes e depois lado a lado; a IA nunca aplica nada: quem copia é o usuário. Sem IA ligada, a tela não mostra o botão (ADR-001).
+- [ ] README, README do pacote e `SECURITY.md`: o que vai para o provedor numa análise.
+
+## Fase 42: PostgreSQL `[ ]` (depende das Fases 37 a 41)
+
+- [ ] Extrator de `.sql` do PostgreSQL (`CREATE TABLE`, chaves, índices, views e funções), com um leitor de SQL do PostgreSQL de licença aberta escolhido e registrado na ADR-006.
+- [ ] O extrator do EF Core já cobre o modelo; conferir os tipos e os nomes que o provedor Npgsql gera (`snake_case`, `jsonb`, `uuid`, `serial` e identidade).
+- [ ] Achados da análise de consulta no dialeto do PostgreSQL (as mesmas regras da Fase 40, mais `ILIKE '%...'` e conversão com `::` na coluna do filtro).
+- [ ] Com banco vivo: catálogo por `information_schema` e `pg_catalog`, plano estimado por `EXPLAIN` sem `ANALYZE` (nunca executa a consulta).
+- [ ] A conferência da proposta da IA (Fase 41) no dialeto do PostgreSQL.
+- [ ] Loja fictícia com uma versão PostgreSQL do esquema e testes por achado.
+
+**Melhorias propostas na análise do pedido (para o dono decidir):**
+- [ ] **O diferencial é a ligação com o código:** a ferramenta de banco mostra a tabela; o Rastro mostra quem a usa e por qual fluxo (Fase 39). Vale priorizar a Fase 39 junto com a 38.
+- [ ] **Impacto de mudança no banco:** antes de mudar uma coluna, listar os fluxos, views e procedures que dependem dela, usando o grafo que já existe.
+- [ ] **Validação da mudança (Fase 9) olhando o banco:** o rascunho que mexe em consulta mostra os achados da Fase 40 antes e depois.
+- [ ] **Comparar esquema entre branches**, como a comparação de levantamentos: tabela, coluna e índice novos ou removidos.
+- [ ] **Migration sem índice na FK nova:** achado automático quando uma migration cria FK sem índice.
+- [ ] **Dados sensíveis:** marcar colunas com nome de dado pessoal (CPF, e-mail, telefone) no mapa, útil para LGPD, sem ler nenhum dado.
+- [ ] **Nunca ler dados das tabelas:** só catálogo e plano estimado. Isso precisa estar escrito na ADR e no `SECURITY.md`, porque é a pergunta que todo cliente faz antes de passar uma string de conexão.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Revisão geral de 2026-10-30** (pedido do dono, depois da Fase 28): [`plano-ux-2026-10-30-revisao-geral.md`](../frontend/plano-ux-2026-10-30-revisao-geral.md). O botão desalinhado era o "Mostrar chamadas do .NET" (8px abaixo dos vizinhos); as três alturas de controle viraram dois tokens; o texto do passo, o rótulo da moldura na abertura e o desenho consolidado foram acertados. Os itens de risco alto (fase A) esperam aprovação.
