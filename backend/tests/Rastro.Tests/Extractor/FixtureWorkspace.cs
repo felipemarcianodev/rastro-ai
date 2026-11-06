@@ -37,6 +37,28 @@ internal static class FixtureWorkspace
         return solution;
     }
 
+    // Fixture em camadas: a pasta principal (Domínio) e outras pastas, cada uma um projeto que referencia a
+    // principal (Infra). A principal não enxerga as outras, como numa solution de verdade.
+    public static Solution LoadLayered(string fixture, params string[] dependents)
+    {
+        var references = ((string)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES")!)
+            .Split(Path.PathSeparator)
+            .Where(p => Path.GetFileName(p).StartsWith("System.", StringComparison.Ordinal) || Path.GetFileName(p) is "netstandard.dll" or "mscorlib.dll")
+            .Select(p => (MetadataReference)MetadataReference.CreateFromFile(p))
+            .ToList();
+
+        var solution = new AdhocWorkspace().CurrentSolution;
+        var mainId = ProjectId.CreateNewId();
+        solution = AddProject(solution, mainId, fixture, Path.Combine(FixturesRoot, fixture), references);
+        foreach (var dependent in dependents)
+        {
+            var id = ProjectId.CreateNewId();
+            solution = AddProject(solution, id, dependent, Path.Combine(FixturesRoot, dependent), references)
+                .AddProjectReference(id, new ProjectReference(mainId));
+        }
+        return solution;
+    }
+
     private static Solution AddProject(Solution solution, ProjectId id, string name, string folder, IEnumerable<MetadataReference> references)
     {
         var documents = Directory.GetFiles(folder, "*.cs")

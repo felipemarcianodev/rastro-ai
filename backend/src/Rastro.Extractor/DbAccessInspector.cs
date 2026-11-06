@@ -49,7 +49,7 @@ internal static class DbAccessInspector
             var model = await body.Document.GetSemanticModelAsync(ct);
             if (model is null) continue;
             var scan = Scan(method, body.Node, model, ct);
-            if (scan.Hits.Count > 0 || scan.LoopCalls.Count > 0 || scan.FilteredCalls.Count > 0 || scan.LeadingLikes.Count > 0) scans[nodeId] = scan;
+            if (scan.Hits.Count > 0 || scan.Calls.Count > 0 || scan.FilteredCalls.Count > 0 || scan.LeadingLikes.Count > 0) scans[nodeId] = scan;
         }
         if (!scans.Values.Any(s => s.Hits.Count > 0)) return graph;
 
@@ -58,6 +58,9 @@ internal static class DbAccessInspector
             .GroupBy(t => t.Entity!, StringComparer.Ordinal)
             .ToDictionary(g => g.Key, g => DbNames.Display(g.First().Schema, g.First().Name, schema.Dialect), StringComparer.Ordinal);
         var procedures = schema.Procedures.Select(p => p.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var tableByEntity = schema.Tables.Where(t => t.Entity is not null)
+            .GroupBy(t => t.Entity!, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
         string TableOf(Hit hit) => hit.Entity is not null && tables.TryGetValue(hit.Entity, out var t) ? t : hit.SetName ?? hit.Entity ?? "?";
 
         var accesses = scans.ToDictionary(p => p.Key, p => p.Value.Hits
@@ -79,14 +82,21 @@ internal static class DbAccessInspector
             foreach (var call in scan.LoopCalls)
             {
                 // O método que a chamada alcança é o que o percurso do fluxo resolveu (a implementação da
-                // interface, já com o tipo genérico fechado), não o que o nome da chamada sugere.
-                if (walker.TargetOf(call) is not { } targetId || targetId == nodeId
-                    || !accesses.TryGetValue(targetId, out var reads) || !walker.Methods.TryGetValue(targetId, out var callee)) continue;
-                var read = reads.Where(a => a.Operation == DbOperation.Read).Select(a => a.Target).Distinct().ToList();
-                foreach (var table in read)
-                    findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
-                        $"{name} chama {callee.ContainingType.Name}.{callee.Name} dentro de um laço, e ele consulta {table}: uma ida ao banco a cada volta (N+1). Traga os dados antes do laço.",
-                        walker.LocationOf(call.GetLocation()), table));
+                // interface, já com o tipo genérico fechado), não o que o nome da chamada sugere. Se ele só
+                // repassa a chamada a outro (serviço fino), a cadeia segue até o método que consulta (Fase 43c).
+                if (walker.TargetOf(call) is not { } targetId || targetId == nodeId || !walker.Methods.TryGetValue(targetId, out var callee)) continue;
+                var reached = Reach(targetId, nodeId, walker, scans, s => s.Calls,
+                    id => accesses.TryGetValue(id, out var list) && list.Any(a => a.Operation == DbOperation.Read));
+                var reported = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var path in reached)
+                    foreach (var table in accesses[path[^1]].Where(a => a.Operation == DbOperation.Read).Select(a => a.Target).Distinct())
+                    {
+                        if (!reported.Add(table)) continue;
+                        var leaf = walker.Methods[path[^1]];
+                        findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
+                            $"{name} chama {callee.ContainingType.Name}.{callee.Name} dentro de um laço, e ele{(path.Count == 1 ? string.Empty : $" chega a {leaf.ContainingType.Name}.{leaf.Name}, que")} consulta {table}: uma ida ao banco a cada volta (N+1). Traga os dados antes do laço.",
+                            walker.LocationOf(call.GetLocation()), table));
+                    }
             }
 
             // ToList só para apagar (Fase 43b): o aviso é o do ExecuteDelete, não o do filtro "Count" da lista.
@@ -103,16 +113,29 @@ internal static class DbAccessInspector
             // O repositório devolve a lista já materializada e o chamador filtra na memória (Fase 43b).
             foreach (var (call, filter, at) in scan.FilteredCalls)
             {
-                if (walker.TargetOf(call) is not { } targetId || targetId == nodeId
-                    || !scans.TryGetValue(targetId, out var targetScan) || !walker.Methods.TryGetValue(targetId, out var callee)) continue;
-                foreach (var source in targetScan.Hits.Where(h => h.Operation == DbOperation.Read && h.ReturnsMaterializedBy is not null).DistinctBy(TableOf))
-                    findings.Add(new Finding(FindingKind.MaterializeBeforeFilter, FindingSeverity.Warning, nodeId,
-                        $"{name} recebe {TableOf(source)} de {callee.ContainingType.Name}.{callee.Name}, que já a trouxe com {source.ReturnsMaterializedBy} (a tabela inteira, sem este filtro), e só depois aplica {filter}: o filtro roda na memória. Passe o critério para {callee.ContainingType.Name}.{callee.Name} filtrar antes do {source.ReturnsMaterializedBy}.",
-                        walker.LocationOf(at.GetLocation()), TableOf(source)));
+                // A lista pode vir de um serviço fino que só devolve o que o repositório devolveu (Fase 43c):
+                // a cadeia de retornos diretos segue até o método que materializa.
+                if (walker.TargetOf(call) is not { } targetId || targetId == nodeId || !walker.Methods.TryGetValue(targetId, out var callee)) continue;
+                var reached = Reach(targetId, nodeId, walker, scans, s => s.Returned,
+                    id => scans.TryGetValue(id, out var found) && found.Hits.Any(h => h.Operation == DbOperation.Read && h.ReturnsMaterializedBy is not null));
+                var reported = new HashSet<string>(StringComparer.Ordinal);
+                foreach (var path in reached)
+                {
+                    var leaf = walker.Methods[path[^1]];
+                    foreach (var source in scans[path[^1]].Hits.Where(h => h.Operation == DbOperation.Read && h.ReturnsMaterializedBy is not null).DistinctBy(TableOf))
+                    {
+                        if (!reported.Add(TableOf(source))) continue;
+                        var origin = path.Count == 1 ? "que já a trouxe" : $"que repassa o resultado de {leaf.ContainingType.Name}.{leaf.Name}, e este já a trouxe";
+                        findings.Add(new Finding(FindingKind.MaterializeBeforeFilter, FindingSeverity.Warning, nodeId,
+                            $"{name} recebe {TableOf(source)} de {callee.ContainingType.Name}.{callee.Name}, {origin} com {source.ReturnsMaterializedBy} (a tabela inteira, sem este filtro), e só depois aplica {filter}: o filtro roda na memória. Passe o critério para {leaf.ContainingType.Name}.{leaf.Name} filtrar antes do {source.ReturnsMaterializedBy}.",
+                            walker.LocationOf(at.GetLocation()), TableOf(source)));
+                    }
+                }
             }
 
-            foreach (var (like, pattern) in scan.LeadingLikes)
-                if (LikeTable(like, scan) is { } likeHit)
+            foreach (var (like, pattern, property) in scan.LeadingLikes)
+                if (LikeTable(like, scan) is { } likeHit
+                    && !HasTrigramIndex(likeHit.Entity is not null && tableByEntity.TryGetValue(likeHit.Entity, out var likeTable) ? likeTable : null, property))
                     findings.Add(new Finding(FindingKind.LeadingWildcardLike, FindingSeverity.Info, nodeId,
                         $"{name} busca em {TableOf(likeHit)} com um LIKE que começa por curinga ({pattern}): o banco não usa índice B-tree e lê a tabela inteira. Se a busca é por prefixo, tire o % do começo; no meio do texto, use índice trigram (PostgreSQL) ou busca de texto completo.",
                         walker.LocationOf(like.GetLocation()), TableOf(likeHit)));
@@ -144,10 +167,39 @@ internal static class DbAccessInspector
         };
     }
 
+    // Quantos saltos a cadeia de chamadas segue a partir do método que a chamada alcança (serviço fino).
+    private const int MaxChainHops = 4;
+
+    // Os caminhos (do método alcançado até o que atende a condição) mais curtos que chegam a um método que atende
+    // a condição, seguindo as chamadas de edges. Anda em largura, nunca volta a um método já visto (recursão não
+    // gira sem fim) e para depois de MaxChainHops saltos.
+    private static List<List<string>> Reach(string start, string origin, FlowWalker walker, Dictionary<string, MethodScan> scans,
+        Func<MethodScan, IEnumerable<InvocationExpressionSyntax>> edges, Func<string, bool> found)
+    {
+        var visited = new HashSet<string>(StringComparer.Ordinal) { origin, start };
+        var frontier = new List<List<string>> { new() { start } };
+        for (var hop = 0; hop <= MaxChainHops && frontier.Count > 0; hop++)
+        {
+            var hits = frontier.Where(p => found(p[^1])).ToList();
+            if (hits.Count > 0) return hits;
+            var next = new List<List<string>>();
+            foreach (var path in frontier)
+            {
+                if (!scans.TryGetValue(path[^1], out var scan)) continue;
+                foreach (var call in edges(scan))
+                    if (walker.TargetOf(call) is { } target && visited.Add(target))
+                        next.Add([.. path, target]);
+            }
+            frontier = next;
+        }
+        return [];
+    }
+
     private static MethodScan Scan(IMethodSymbol method, SyntaxNode body, SemanticModel model, CancellationToken ct)
     {
         var scan = new MethodScan(method);
-        foreach (var node in body.DescendantNodes())
+        // Com o próprio corpo: num método de expressão (=> _repo.GetAsync(id)) a chamada é a raiz do corpo.
+        foreach (var node in body.DescendantNodesAndSelf())
         {
             switch (node)
             {
@@ -226,7 +278,7 @@ internal static class DbAccessInspector
         }
         if (LikePattern(call, symbol, body, model, ct) is { } pattern)
         {
-            scan.LeadingLikes.Add((call, pattern));
+            scan.LeadingLikes.Add((call, pattern, LikeProperty(call, symbol)));
             return;
         }
         if (RawCommands.Contains(symbol.Name) && IsEf(symbol) && ProcedureOf(call) is { } procedure)
@@ -236,8 +288,11 @@ internal static class DbAccessInspector
         }
         if (!IsEf(symbol) && symbol.MethodKind == MethodKind.Ordinary)
         {
+            scan.Calls.Add(call);
             if (InLoop(call, body)) scan.LoopCalls.Add(call);
             var (chain, end) = Chain(call);
+            // A chamada cujo resultado o método devolve como está (return, => ou return await): um serviço fino.
+            if (chain.All(c => c.Name == "ConfigureAwait") && end.Parent is ReturnStatementSyntax or ArrowExpressionClauseSyntax) scan.Returned.Add(call);
             if (FilterAfter(chain, 0, end, body, allowLocal: chain.All(c => c.Name == "ConfigureAwait")) is { } late)
                 scan.FilteredCalls.Add((call, late.Filter, late.At));
         }
@@ -275,6 +330,38 @@ internal static class DbAccessInspector
             default:
                 return false;
         }
+    }
+
+    // O membro da entidade que o LIKE compara (t.Titulo em ILike(t.Titulo, ...) ou em t.Titulo.Contains(...)),
+    // sem o ToLower, o Trim e o "!" em volta. Nulo quando não é um membro simples.
+    private static string? LikeProperty(InvocationExpressionSyntax call, IMethodSymbol symbol)
+    {
+        ExpressionSyntax? target = symbol.Name is "Like" or "ILike" && IsEf(symbol)
+            ? call.ArgumentList.Arguments.FirstOrDefault()?.Expression
+            : (call.Expression as MemberAccessExpressionSyntax)?.Expression;
+        while (target is not null)
+        {
+            switch (target)
+            {
+                case ParenthesizedExpressionSyntax p: target = p.Expression; break;
+                case PostfixUnaryExpressionSyntax { Operand: var operand }: target = operand; break;
+                case InvocationExpressionSyntax { Expression: MemberAccessExpressionSyntax m }: target = m.Expression; break;
+                case MemberAccessExpressionSyntax m: return m.Name.Identifier.ValueText;
+                default: return null;
+            }
+        }
+        return null;
+    }
+
+    // O índice de trigrama (GIN ou GiST com pg_trgm) da coluna que o LIKE compara atende o curinga no começo.
+    // A coluna sai do nome do membro sem maiúsculas e sublinhados (Titulo, titulo, titulo_busca não se confundem
+    // com ArquivadaEm, arquivada_em). Sem coluna conhecida, o achado fica: não dá para afirmar o índice.
+    private static bool HasTrigramIndex(DbTable? table, string? property)
+    {
+        if (table is null || property is null) return false;
+        static string Key(string name) => DbNames.Unquote(name).Replace("_", string.Empty, StringComparison.Ordinal).ToLowerInvariant();
+        var column = table.Columns.FirstOrDefault(c => Key(c.Name) == Key(property));
+        return column is not null && table.Indexes.Any(i => i.IsTrigram(column.Name));
     }
 
     // A consulta do banco que contém o LIKE; sem uma que o contenha, a única tabela lida pelo método.
@@ -531,10 +618,14 @@ internal static class DbAccessInspector
     {
         public IMethodSymbol Method { get; } = method;
         public List<Hit> Hits { get; } = [];
+        // Toda chamada a outro método do código (não do EF), para seguir a cadeia até quem consulta.
+        public List<InvocationExpressionSyntax> Calls { get; } = [];
         public List<InvocationExpressionSyntax> LoopCalls { get; } = [];
+        // As chamadas cujo resultado o método devolve sem tocar (serviço fino).
+        public List<InvocationExpressionSyntax> Returned { get; } = [];
         public List<(InvocationExpressionSyntax Call, string Filter, SyntaxNode At)> FilteredCalls { get; } = [];
         public List<(Hit Hit, (string Name, InvocationExpressionSyntax Call) Removal)> LoadToDelete { get; } = [];
-        public List<(InvocationExpressionSyntax Call, string Pattern)> LeadingLikes { get; } = [];
+        public List<(InvocationExpressionSyntax Call, string Pattern, string? Property)> LeadingLikes { get; } = [];
         public bool Writes { get; set; }
     }
 }

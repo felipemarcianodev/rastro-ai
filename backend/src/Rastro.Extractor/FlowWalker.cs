@@ -344,7 +344,10 @@ internal sealed partial class FlowWalker(
                 return;
             }
 
-            var implementations = await FindImplementationsAsync(method, ctx.Ct);
+            var receiver = invocation.Expression is MemberAccessExpressionSyntax access
+                ? ctx.Model.GetTypeInfo(access.Expression, ctx.Ct).Type as INamedTypeSymbol
+                : null;
+            var implementations = await FindImplementationsAsync(method, receiver is null ? null : Substitute(receiver, ctx) as INamedTypeSymbol, ctx.Ct);
             switch (implementations.Count)
             {
                 case 1:
@@ -668,7 +671,7 @@ internal sealed partial class FlowWalker(
         }
     }
 
-    private async Task<IReadOnlyList<IMethodSymbol>> FindImplementationsAsync(IMethodSymbol method, CancellationToken ct)
+    private async Task<IReadOnlyList<IMethodSymbol>> FindImplementationsAsync(IMethodSymbol method, INamedTypeSymbol? receiver, CancellationToken ct)
     {
         var definition = method.OriginalDefinition;
         IEnumerable<IMethodSymbol> found;
@@ -676,7 +679,7 @@ internal sealed partial class FlowWalker(
         {
             // Pelas regras do C#: cada tipo concreto que implementa a interface diz qual membro a implementa
             // (inclusive o herdado de uma base genérica já fechada, e o que esconde o da base com "new").
-            var byType = await ImplementationsByTypeAsync(method, ct);
+            var byType = await ImplementationsByTypeAsync(method, receiver, ct);
             found = byType.Count > 0
                 ? byType
                 : (await SymbolFinder.FindImplementationsAsync(definition, solution, cancellationToken: ct)).OfType<IMethodSymbol>();
@@ -711,7 +714,7 @@ internal sealed partial class FlowWalker(
     // Os membros que implementam a interface chamada, um por tipo concreto da solution que a implementa.
     // O tipo genérico aberto (EfRepository<T>) é fechado pelos argumentos da interface chamada
     // (IRepository<Tarefa> -> EfRepository<Tarefa>); o que não implementa essa interface fechada sai.
-    private async Task<List<IMethodSymbol>> ImplementationsByTypeAsync(IMethodSymbol method, CancellationToken ct)
+    private async Task<List<IMethodSymbol>> ImplementationsByTypeAsync(IMethodSymbol method, INamedTypeSymbol? receiver, CancellationToken ct)
     {
         var iface = method.ContainingType;
         var result = new List<IMethodSymbol>();
@@ -720,6 +723,10 @@ internal sealed partial class FlowWalker(
         {
             var concrete = CloseImplementer(type.OriginalDefinition, iface);
             if (concrete is null || !concrete.AllInterfaces.Contains(iface, SymbolEqualityComparer.Default)) continue;
+            // O membro herdado (IRepository<T>.GetAllAsync) chamado por um receptor mais específico
+            // (ITarefaRepository): só entram os tipos que implementam o tipo do receptor.
+            if (receiver is { TypeKind: TypeKind.Interface } && !SymbolEqualityComparer.Default.Equals(receiver, iface)
+                && !concrete.AllInterfaces.Contains(receiver, SymbolEqualityComparer.Default)) continue;
             if (concrete.FindImplementationForInterfaceMember(method) is IMethodSymbol implementation)
                 result.Add(implementation);
         }
