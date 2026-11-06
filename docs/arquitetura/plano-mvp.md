@@ -1042,6 +1042,13 @@ No segundo reteste, os 7 fluxos deram 21 achados, todos verdadeiros, e a anális
 
 O dono não achou a tela do banco: a entrada era um link de texto na barra do levantamento, e o cabeçalho não tem navegação. Ele pediu para repaginar a usabilidade. O levantamento está em [`plano-ux-2026-11-06-repaginacao.md`](../frontend/plano-ux-2026-11-06-repaginacao.md): a Fase A (entradas e rótulos) e a Fase B (comportamento) seguem o ciclo normal; a Fase C (cabeçalho com as áreas do produto, tela inicial por repositório, barra do levantamento em grupos e textos) espera a aprovação do dono item a item, com um protótipo antes.
 
+## Janela própria ao digitar `rastro` `[ ]` (pedido do dono em 2026-11-06; depois da repaginação)
+
+O dono quer que o `rastro` abra como um app, numa janela própria, sem passar pelo navegador. Proposta: Photino.NET, que abre uma janela nativa a partir do próprio executável .NET, com o WebView do sistema (WebView2 no Windows, WebKit no Mac e no Linux). O pacote cresce poucos MB e continua sendo `dotnet tool`. A API segue em `127.0.0.1:7450`, então a tela continua abrindo no navegador, como hoje.
+- [ ] ADR comparando o Photino, o navegador em modo app (`--app`) e o Electron (recusado: Chromium e Node no pacote, cerca de 150 MB por sistema).
+- [ ] `rastro` abre a janela; `rastro --sem-janela` mantém o comportamento de hoje, para quem usa só o MCP ou o navegador.
+- [ ] Documentação do ambiente do cliente no mesmo PR (README, README do pacote, `visao.md`, `SECURITY.md` se mudar o que roda na máquina).
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).

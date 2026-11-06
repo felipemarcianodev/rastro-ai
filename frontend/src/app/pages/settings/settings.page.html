@@ -35,7 +35,11 @@
                 }
               </span>
             </div>
-            <button type="button" class="btn btn-g btn-small" (click)="askRemove(repo)" [attr.aria-label]="'Remover ' + repo.name">Remover…</button>
+            <div class="repo-actions">
+              <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repo.name, 'banco']" [attr.aria-label]="'Mapa do banco de ' + repo.name">Mapa do banco</a>
+              <a class="btn btn-g btn-small" routerLink="/" [queryParams]="newSurveyParams(repo)" [attr.aria-label]="'Novo levantamento em ' + repo.name">Novo levantamento</a>
+              <button type="button" class="btn btn-g btn-small" (click)="askRemove(repo)" [attr.aria-label]="'Remover ' + repo.name">Remover…</button>
+            </div>
           </li>
         }
       </ul>
@@ -65,7 +69,7 @@
         }
       </div>
       <div class="actions">
-        <button class="btn btn-p" type="submit" [disabled]="adding()">{{ adding() ? 'Cadastrando…' : 'Adicionar repositório' }}</button>
+        <button class="btn btn-g" type="submit" [disabled]="adding()">{{ adding() ? 'Cadastrando…' : 'Adicionar repositório' }}</button>
       </div>
     </form>
   </section>
@@ -76,7 +80,10 @@
   }
 
   @if (loadError(); as error) {
-    <p class="notice is-error" role="alert">{{ error }}</p>
+    <div class="notice is-error" role="alert">
+      <p>{{ error }}</p>
+      <button type="button" class="btn btn-g btn-small" (click)="loadSettings()">Tentar de novo</button>
+    </div>
   } @else if (!loaded()) {
     <p class="muted" aria-live="polite">Carregando a configuração…</p>
   } @else {

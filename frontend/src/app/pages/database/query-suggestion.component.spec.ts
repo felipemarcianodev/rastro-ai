@@ -107,6 +107,20 @@ describe('Sugestão da IA para a consulta (Fase 41)', () => {
     expect(suggestButton(otherUse.el)).toBeUndefined();
   });
 
+  // WEB-DBA-011 (B10)
+  it('sem IA ou sem o uso de sugestões, um texto com link explica como ligar, sem botão', () => {
+    for (const uses of [null, [AiUse.FillHoles]]) {
+      const ctx = render(uses);
+      const hint = ctx.el.querySelector('.qa-ai-off')!;
+      expect(hint.textContent).toContain('Ligue o uso de sugestões');
+      expect(hint.querySelector('a')!.getAttribute('href')).toBe('/configuracoes');
+      expect(hint.querySelector('button')).toBeNull();
+      TestBed.resetTestingModule();
+    }
+    const on = render([AiUse.Suggestions]);
+    expect(on.el.querySelector('.qa-ai-off')).toBeNull();
+  });
+
   // WEB-DBA-002
   it('com IA ligada, mostra o botão e a dica do que vai para o provedor, e manda a consulta', () => {
     const ctx = render([AiUse.Suggestions]);

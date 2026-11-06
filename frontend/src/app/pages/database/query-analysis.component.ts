@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { DbSchema, SQL_DIALECT_LABEL, SQL_READER_LABEL, SqlDialect, findTable, sameName, tableKey } from '../../core/database/db-schema';
 import {
@@ -27,7 +28,7 @@ interface Analyzed {
 // regras fixas. Sem IA e sem banco: a mesma consulta dá sempre o mesmo resultado.
 @Component({
   selector: 'app-query-analysis',
-  imports: [QueryPlanComponent, QuerySuggestionComponent],
+  imports: [RouterLink, QueryPlanComponent,QuerySuggestionComponent],
   templateUrl: './query-analysis.component.html',
   styleUrl: './query-analysis.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,6 +74,11 @@ export class QueryAnalysisComponent {
   protected readonly suggesting = signal(false);
   protected readonly suggestError = signal<string | null>(null);
   protected readonly suggestion = signal<QueryAiSuggestion | null>(null);
+  // Texto da região viva: a espera e a chegada da resposta (o erro tem o próprio role="alert").
+  protected readonly suggestAnnouncement = computed(() => {
+    if (this.suggesting()) return 'Perguntando à IA…';
+    return this.suggestion() ? 'A sugestão da IA chegou.' : '';
+  });
 
   private sub?: Subscription;
   private suggestSub?: Subscription;

@@ -202,10 +202,35 @@ h1 {
   margin: 0 0 var(--space-2);
   color: var(--ok);
   font-size: var(--text-sm);
+}
 
-  &:empty {
-    display: none;
+.skeleton-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.skeleton-row {
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.5;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-row {
+    animation: none;
+  }
+}
+
+.db-link {
+  align-self: flex-start;
 }
 
 // Caixas de seleção da costura entre sistemas (Fase 25).

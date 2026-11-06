@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { SurveyStatus, SurveySummary } from '../../core/models';
 import { SurveysPage, matchesSearch } from './surveys.page';
 
@@ -109,6 +109,67 @@ describe('SurveysPage', () => {
     const link = el.querySelector<HTMLAnchorElement>('.field-help a');
     expect(link?.getAttribute('href')).toBe('/configuracoes#editor');
     expect(el.textContent).not.toContain('recarregue');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H07
+  it('queryParamRepositorio_nomeCadastrado_preSelecionaORepositorio', async () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    await TestBed.inject(Router).navigateByUrl('/?repositorio=pagamentos');
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    const repo = (name: string) => ({ name, path: `C:\\codigo\\${name}`, hasGit: true, hasBuildCommand: false, hasTestCommand: false });
+    http.expectOne('/api/repositories').flush([repo('pedidos'), repo('pagamentos')]);
+    http.expectOne('/api/repositories/pagamentos/solutions').flush(['Pagamentos.slnx']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect((el.querySelector('#repository') as HTMLSelectElement).value).toBe('pagamentos');
+    expect((el.querySelector('#solution') as HTMLSelectElement).value).toBe('Pagamentos.slnx');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H06
+  it('repositorioEscolhido_mostraBotaoSecundarioParaOMapaDoBanco', async () => {
+    const { fixture, http, el } = await openForm(['Loja.slnx'], true);
+    fixture.detectChanges();
+
+    const link = el.querySelector<HTMLAnchorElement>('a.db-link');
+    expect(link?.classList).toContain('btn');
+    expect(link?.classList).toContain('btn-g');
+    expect(link?.classList).toContain('btn-small');
+    expect(link?.getAttribute('href')).toBe('/repositorios/loja-web/banco');
+    expect(link?.textContent).toContain('Ver o mapa do banco de loja-web');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H10
+  it('semRepositorioEscolhido_desabilitaLevantarOFluxo', () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush([]);
+    fixture.detectChanges();
+    const submit = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('button[type=submit]');
+
+    expect(submit?.disabled).toBeTrue();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H12
+  it('carregandoALista_mostraEsqueletoDeTresLinhas', () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+
+    expect((fixture.nativeElement as HTMLElement).querySelectorAll('.skeleton-row').length).toBe(3);
     http.match(() => true).forEach((request) => request.flush([]));
   });
 

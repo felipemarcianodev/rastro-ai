@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   EFMarkerType,
   F_CONNECTION_BUILDERS,
@@ -118,7 +119,7 @@ interface IndexedEdge {
 
 @Component({
   selector: 'app-flow-canvas',
-  imports: [FFlowModule],
+  imports: [FFlowModule, RouterLink],
   templateUrl: './flow-canvas.component.html',
   styleUrl: './flow-canvas.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -189,6 +190,11 @@ export class FlowCanvasComponent {
   protected readonly effectLabel = NODE_EFFECT_LABEL;
   protected readonly effectHint = NODE_EFFECT_HINT;
   protected readonly effectText = effectText;
+  // A etiqueta de banco avisa que o passo leva à tabela (o painel tem o link para o mapa do banco).
+  protected effectTitle(node: FlowNode, effect: NodeEffect): string {
+    const text = effectText(node, effect);
+    return effect === NodeEffect.Database ? `${text}. Clique no passo para ver a tabela no banco` : text;
+  }
   protected readonly effectSlug = NODE_EFFECT_SLUG;
   protected readonly blockSlug = BLOCK_KIND_SLUG;
   private readonly effects = computed(

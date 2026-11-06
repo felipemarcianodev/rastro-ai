@@ -9,7 +9,8 @@
   }
 
   @if (plan(); as p) {
-    <div role="status">
+    <div>
+      <p class="visually-hidden" role="status">{{ summary() }}</p>
       @if (p.operations.length === 0) {
         <p class="muted">O banco não devolveu operações para esta consulta.</p>
       } @else {
