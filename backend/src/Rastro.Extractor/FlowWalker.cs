@@ -58,7 +58,19 @@ internal sealed partial class FlowWalker(
     private const string HttpClientType = "System.Net.Http.HttpClient";
     private const string HttpClientJsonType = "System.Net.Http.Json.HttpClientJsonExtensions";
 
-    private sealed record WalkContext(SemanticModel Model, int Depth, CancellationToken Ct);
+    // Closure: os parâmetros de tipo do tipo genérico do método percorrido e o tipo fechado de cada um
+    // (EfRepository<Tarefa>: T vira Tarefa). Serve para fechar também as chamadas de dentro do método.
+    private sealed record WalkContext(SemanticModel Model, int Depth, CancellationToken Ct, IReadOnlyList<(ITypeParameterSymbol Parameter, ITypeSymbol Argument)> Closure);
+
+    // Chamada (arquivo e posição) -> nó do método que ela atende. A inspeção de banco usa para saber que
+    // método uma chamada dentro de um laço, ou antes de um filtro, alcança.
+    private readonly Dictionary<(string File, int Start), string> _callTargets = [];
+
+    internal string? TargetOf(SyntaxNode call) =>
+        _callTargets.TryGetValue((call.SyntaxTree.FilePath, call.SpanStart), out var id) ? id : null;
+
+    private void RecordTarget(InvocationExpressionSyntax invocation, string target) =>
+        _callTargets[(invocation.SyntaxTree.FilePath, invocation.SpanStart)] = target;
 
     private readonly Dictionary<string, IMethodSymbol> _methods = new(StringComparer.Ordinal);
 
@@ -104,7 +116,7 @@ internal sealed partial class FlowWalker(
         var model = await body.Value.Document.GetSemanticModelAsync(ct);
         if (model is null) return id;
 
-        var ctx = new WalkContext(model, depth, ct);
+        var ctx = new WalkContext(model, depth, ct, ClosureOf(method));
         if (body.Value.Node is BlockSyntax block)
             await WalkStatementAsync(block, id, null, nested: false, ctx);
         else
@@ -298,7 +310,7 @@ internal sealed partial class FlowWalker(
             return;
         }
 
-        var method = Normalize(called);
+        var method = Close(Normalize(called), ctx);
 
         if (IsReflection(method))
         {
@@ -328,6 +340,7 @@ internal sealed partial class FlowWalker(
             {
                 var target = await WalkMethodAsync(method, ctx.Depth + 1, isEntry: false, ctx.Ct);
                 graph.AddEdge(parent, target, label);
+                RecordTarget(invocation, target);
                 return;
             }
 
@@ -337,6 +350,7 @@ internal sealed partial class FlowWalker(
                 case 1:
                     var target = await WalkMethodAsync(implementations[0], ctx.Depth + 1, isEntry: false, ctx.Ct);
                     graph.AddEdge(parent, target, label);
+                    RecordTarget(invocation, target);
                     break;
                 case 0:
                     AddUnresolved(invocation, UnresolvedReason.NoImplementation, callText, method.ToDisplayString(), parent, label);
@@ -657,12 +671,20 @@ internal sealed partial class FlowWalker(
     private async Task<IReadOnlyList<IMethodSymbol>> FindImplementationsAsync(IMethodSymbol method, CancellationToken ct)
     {
         var definition = method.OriginalDefinition;
-        var found = definition.ContainingType.TypeKind == TypeKind.Interface
-            ? await SymbolFinder.FindImplementationsAsync(definition, solution, cancellationToken: ct)
-            : await SymbolFinder.FindOverridesAsync(definition, solution, cancellationToken: ct);
+        IEnumerable<IMethodSymbol> found;
+        if (definition.ContainingType.TypeKind == TypeKind.Interface)
+        {
+            // Pelas regras do C#: cada tipo concreto que implementa a interface diz qual membro a implementa
+            // (inclusive o herdado de uma base genérica já fechada, e o que esconde o da base com "new").
+            var byType = await ImplementationsByTypeAsync(method, ct);
+            found = byType.Count > 0
+                ? byType
+                : (await SymbolFinder.FindImplementationsAsync(definition, solution, cancellationToken: ct)).OfType<IMethodSymbol>();
+        }
+        else
+            found = (await SymbolFinder.FindOverridesAsync(definition, solution, cancellationToken: ct)).OfType<IMethodSymbol>();
 
         var implementations = found
-            .OfType<IMethodSymbol>()
             .Select(Normalize)
             .Where(m => !m.IsAbstract && IsInSolution(m))
             .GroupBy(MethodId)
@@ -684,6 +706,78 @@ internal sealed partial class FlowWalker(
             .ToList();
 
         return narrowed.Count > 0 ? narrowed : implementations;
+    }
+
+    // Os membros que implementam a interface chamada, um por tipo concreto da solution que a implementa.
+    // O tipo genérico aberto (EfRepository<T>) é fechado pelos argumentos da interface chamada
+    // (IRepository<Tarefa> -> EfRepository<Tarefa>); o que não implementa essa interface fechada sai.
+    private async Task<List<IMethodSymbol>> ImplementationsByTypeAsync(IMethodSymbol method, CancellationToken ct)
+    {
+        var iface = method.ContainingType;
+        var result = new List<IMethodSymbol>();
+        var types = await SymbolFinder.FindImplementationsAsync(iface.OriginalDefinition, solution, cancellationToken: ct);
+        foreach (var type in types.OfType<INamedTypeSymbol>().Where(t => t.TypeKind is TypeKind.Class or TypeKind.Struct))
+        {
+            var concrete = CloseImplementer(type.OriginalDefinition, iface);
+            if (concrete is null || !concrete.AllInterfaces.Contains(iface, SymbolEqualityComparer.Default)) continue;
+            if (concrete.FindImplementationForInterfaceMember(method) is IMethodSymbol implementation)
+                result.Add(implementation);
+        }
+        return result;
+    }
+
+    private static INamedTypeSymbol? CloseImplementer(INamedTypeSymbol type, INamedTypeSymbol iface)
+    {
+        if (!type.IsGenericType) return type;
+        var declared = type.AllInterfaces.FirstOrDefault(i => SymbolEqualityComparer.Default.Equals(i.OriginalDefinition, iface.OriginalDefinition));
+        if (declared is null) return null;
+
+        var arguments = new ITypeSymbol?[type.TypeParameters.Length];
+        for (var i = 0; i < declared.TypeArguments.Length; i++)
+            if (declared.TypeArguments[i] is ITypeParameterSymbol parameter && parameter.Ordinal < arguments.Length)
+                arguments[parameter.Ordinal] = iface.TypeArguments[i];
+        return arguments.Any(a => a is null) ? null : type.Construct(arguments!);
+    }
+
+    private static IReadOnlyList<(ITypeParameterSymbol, ITypeSymbol)> ClosureOf(IMethodSymbol method)
+    {
+        var owner = method.ContainingType;
+        if (owner is null || !owner.IsGenericType) return [];
+        var closure = new List<(ITypeParameterSymbol, ITypeSymbol)>();
+        for (var i = 0; i < owner.TypeArguments.Length; i++)
+            if (owner.TypeArguments[i] is not ITypeParameterSymbol)
+                closure.Add((owner.OriginalDefinition.TypeParameters[i], owner.TypeArguments[i]));
+        return closure;
+    }
+
+    // O método chamado dentro de um tipo genérico já fechado: _repo.GetByIdAsync de dentro de
+    // EfRepository<Tarefa> chama EfRepository<Tarefa>.GetByIdAsync, não o da definição aberta.
+    private static IMethodSymbol Close(IMethodSymbol method, WalkContext ctx)
+    {
+        var owner = method.ContainingType;
+        if (ctx.Closure.Count == 0 || owner is null || !owner.IsGenericType) return method;
+        var arguments = owner.TypeArguments.Select(a => Substitute(a, ctx)).ToArray();
+        if (arguments.SequenceEqual(owner.TypeArguments, SymbolEqualityComparer.Default)) return method;
+
+        var closed = owner.OriginalDefinition.Construct(arguments);
+        return closed.GetMembers(method.Name).OfType<IMethodSymbol>()
+            .FirstOrDefault(m => SymbolEqualityComparer.Default.Equals(m.OriginalDefinition, method.OriginalDefinition)) ?? method;
+    }
+
+    private static ITypeSymbol Substitute(ITypeSymbol type, WalkContext ctx)
+    {
+        switch (type)
+        {
+            case ITypeParameterSymbol parameter:
+                foreach (var (p, argument) in ctx.Closure)
+                    if (SymbolEqualityComparer.Default.Equals(p, parameter)) return argument;
+                return type;
+            case INamedTypeSymbol { IsGenericType: true } named:
+                var arguments = named.TypeArguments.Select(a => Substitute(a, ctx)).ToArray();
+                return arguments.SequenceEqual(named.TypeArguments, SymbolEqualityComparer.Default) ? type : named.OriginalDefinition.Construct(arguments);
+            default:
+                return type;
+        }
     }
 
     private readonly Dictionary<ProjectId, bool> _testProjects = [];
@@ -824,10 +918,20 @@ internal sealed partial class FlowWalker(
         return new SourceLocation(relative.Replace('\\', '/'), span.StartLinePosition.Line + 1);
     }
 
-    private static IMethodSymbol Normalize(IMethodSymbol method) => (method.ReducedFrom ?? method).OriginalDefinition;
+    // Tira os argumentos do método genérico, mas guarda os do tipo (EfRepository<Tarefa>.GetByIdAsync).
+    private static IMethodSymbol Normalize(IMethodSymbol method) => (method.ReducedFrom ?? method).ConstructedFrom;
 
+    // O id é o da definição; um tipo genérico fechado leva os argumentos, para cada fechamento
+    // (EfRepository<Tarefa>, EfRepository<Cliente>) ser um passo seu, com a sua tabela.
     private static string MethodId(IMethodSymbol method) =>
-        "m:" + (method.GetDocumentationCommentId() ?? method.ToDisplayString());
+        "m:" + (method.OriginalDefinition.GetDocumentationCommentId() ?? method.OriginalDefinition.ToDisplayString()) + ClosureSuffix(method);
+
+    private static string ClosureSuffix(IMethodSymbol method)
+    {
+        var owner = method.ContainingType;
+        if (owner is null || !owner.IsGenericType || owner.TypeArguments.All(a => a is ITypeParameterSymbol)) return string.Empty;
+        return "<" + string.Join(",", owner.TypeArguments.Select(a => a.ToDisplayString())) + ">";
+    }
 
     private static string MethodLabel(IMethodSymbol method) =>
         method.MethodKind == MethodKind.LocalFunction && method.ContainingSymbol is IMethodSymbol outer

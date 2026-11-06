@@ -85,6 +85,16 @@ public static class RefactorPromptBuilder
             "Confira que a procedure existe com esse nome e esses parâmetros no projeto de banco.",
             "Passe os valores como parâmetros (nunca concatenados no texto) e cubra a chamada com um teste de integração.",
         ],
+        FindingKind.LoadToDelete =>
+        [
+            "Troque o ToList e o RemoveRange por ExecuteDeleteAsync sobre a consulta com o mesmo Where: o banco apaga numa instrução só e devolve quantas linhas apagou.",
+            "Se o chamador usava o tamanho da lista, use o número que o ExecuteDeleteAsync devolve.",
+        ],
+        FindingKind.LeadingWildcardLike =>
+        [
+            "Se a busca é por prefixo, monte o padrão sem o curinga do começo (termo%), que o índice B-tree atende.",
+            "Se a busca no meio do texto é necessária, crie um índice trigram (pg_trgm no PostgreSQL) ou use busca de texto completo.",
+        ],
         _ =>
         [
             "Leve a gravação para o serviço de domínio da entidade, que valida antes de persistir.",
@@ -106,6 +116,8 @@ public static class RefactorPromptBuilder
         FindingKind.MaterializeBeforeFilter => "O filtro roda no banco, antes do ToList.",
         FindingKind.ReadWithoutNoTracking => "A consulta que só lê usa AsNoTracking.",
         FindingKind.ProcedureByRawSql => "A procedure chamada existe no projeto de banco e recebe os valores como parâmetros.",
+        FindingKind.LoadToDelete => "A exclusão roda no banco com ExecuteDeleteAsync, sem carregar as linhas.",
+        FindingKind.LeadingWildcardLike => "A busca usa um índice (padrão sem curinga no começo, índice trigram ou busca de texto completo).",
         _ => "Nenhuma gravação da entidade pelo repositório fora do domínio."
     };
 
