@@ -62,7 +62,7 @@ Cada levantamento tem uma visão resumida em poucos passos, em frase, como um di
 
 O Rastro lê o esquema do banco do próprio código do repositório, sem conectar em banco nenhum: o modelo do EF Core (`DbContext`, `DbSet`, atributos, `OnModelCreating`, `IEntityTypeConfiguration` e o `UseSnakeCaseNamingConvention`), as migrations e os arquivos `.sql` do projeto de banco (SQL Server, pelo leitor oficial de T-SQL da Microsoft, que vai dentro do pacote). Saem tabelas, colunas, chaves, índices, views e procedures, cada item com o arquivo e a linha de onde veio. Quando o modelo e a migration discordam (um tamanho de coluna, por exemplo), as duas versões aparecem e o Rastro não escolhe. Nada do seu código é compilado nem executado, e nenhum dado das tabelas é lido.
 
-Por enquanto, o esquema sai pela API (`GET api/repositories/{nome}/schema`) e pelo MCP (`get_db_schema`); a tela do banco vem numa próxima versão. O PostgreSQL também.
+O esquema aparece na tela **Mapa do banco** de cada repositório (link "Ver o mapa do banco" no levantamento novo): as tabelas com PK e FK, as setas com a cardinalidade, a busca, o recorte numa tabela e nas vizinhas, a exportação em PNG, SVG e Mermaid `erDiagram`, a marca "pessoal" nas colunas com nome de dado pessoal (só pelo nome) e o achado de chave estrangeira criada sem índice pela migration ou pelo `.sql`. Também sai pela API (`GET api/repositories/{nome}/schema`) e pelo MCP (`get_db_schema`). O PostgreSQL vem numa próxima versão.
 
 ## Com o seu agente de IA (MCP)
 

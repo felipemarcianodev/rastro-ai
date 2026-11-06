@@ -49,7 +49,7 @@ public static class DbSchemaText
             .ToList();
         if (table is not null && tables.Count == 0) return $"Tabela {table} não encontrada no esquema. Chame get_db_schema sem table para ver todas.";
 
-        text.AppendLine($"Banco: {DialectLabel[schema.Dialect]}. {schema.Tables.Count} tabelas, {schema.Views.Count} views, {schema.Procedures.Count} procedures, {schema.Divergences.Count} divergências entre fontes.");
+        text.AppendLine($"Banco: {DialectLabel[schema.Dialect]}. {schema.Tables.Count} tabelas, {schema.Views.Count} views, {schema.Procedures.Count} procedures, {schema.Divergences.Count} divergências entre fontes, {schema.Findings.Count} achados.");
 
         foreach (var t in tables)
         {
@@ -60,7 +60,7 @@ public static class DbSchemaText
             var fk = t.ForeignKeys.SelectMany(f => f.Columns).ToHashSet(StringComparer.OrdinalIgnoreCase);
             foreach (var c in t.Columns)
             {
-                var marks = string.Join(" ", new[] { pk.Contains(c.Name) ? "PK" : null, fk.Contains(c.Name) ? "FK" : null, c.Identity ? "identidade" : null }.Where(m => m is not null));
+                var marks = string.Join(" ", new[] { pk.Contains(c.Name) ? "PK" : null, fk.Contains(c.Name) ? "FK" : null, c.Identity ? "identidade" : null, c.Personal ? "dado pessoal pelo nome" : null }.Where(m => m is not null));
                 var type = c.Type ?? "tipo divergente";
                 var nullable = c.Nullable switch { true => "aceita nulo", false => "não aceita nulo", null => "nulo divergente" };
                 var extra = c.Default is null ? string.Empty : $", padrão {c.Default}";
@@ -70,7 +70,9 @@ public static class DbSchemaText
             foreach (var f in t.ForeignKeys)
                 text.AppendLine($"  FK {string.Join(", ", f.Columns)} -> {f.PrincipalTable} ({string.Join(", ", f.PrincipalColumns)}), ao apagar: {DeleteLabel[f.OnDelete]} ({Source(f.Source)})");
             foreach (var i in t.Indexes)
-                text.AppendLine($"  Índice {i.Name ?? "sem nome"}{(i.Unique ? " (único)" : string.Empty)}: {string.Join(", ", i.Columns)}{(i.Included.Count > 0 ? " inclui " + string.Join(", ", i.Included) : string.Empty)} ({Source(i.Source)})");
+                text.AppendLine($"  Índice {i.Name ?? "sem nome"}{(i.Unique ? " (único)" : string.Empty)}: {string.Join(", ", i.Columns)}{(i.Included.Count > 0 ? " inclui " + string.Join(", ", i.Included) : string.Empty)} ({(i.Convention ? "convenção do EF na FK, " : string.Empty)}{Source(i.Source)})");
+            foreach (var f in schema.Findings.Where(f => f.Table.Equals(name, StringComparison.OrdinalIgnoreCase)))
+                text.AppendLine($"  Achado: {FindingText(f)} ({Source(f.Source)})");
             foreach (var d in schema.Divergences.Where(d => d.Table.Equals(name, StringComparison.OrdinalIgnoreCase)))
                 text.AppendLine($"  Divergência de {DivergenceLabel[d.Kind]}{(d.Column.Length > 0 ? " em " + d.Column : string.Empty)}: {string.Join("; ", d.Values.Select(v => $"{SourceLabel[v.Source.Kind]} diz {v.Value} ({Source(v.Source)})"))}. O Rastro não escolhe: confira no código.");
         }
@@ -95,6 +97,12 @@ public static class DbSchemaText
             ? text.ToString()
             : string.Join(Environment.NewLine, lines.Take(MaxLines)) + Environment.NewLine + $"(cortado em {MaxLines} linhas: peça uma tabela com o parâmetro table)";
     }
+
+    public static string FindingText(SchemaFinding finding) => finding.Kind switch
+    {
+        SchemaFindingKind.ForeignKeyWithoutIndex => $"chave estrangeira {string.Join(", ", finding.Columns)} sem índice: a busca pela FK varre a tabela",
+        _ => finding.Kind.ToString()
+    };
 
     private static string Source(SchemaSource source) =>
         source.Kind == SchemaSourceKind.LiveDatabase ? SourceLabel[source.Kind] : $"{SourceLabel[source.Kind]}, {source.File}:{source.Line}";

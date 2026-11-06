@@ -17,6 +17,11 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/diagram/diagram.page').then((m) => m.DiagramPage),
   },
   {
+    path: 'repositorios/:nome/banco',
+    title: 'Banco | Rastro AI',
+    loadComponent: () => import('./pages/database/database.page').then((m) => m.DatabasePage),
+  },
+  {
     path: 'configuracoes',
     title: 'Configurações | Rastro AI',
     loadComponent: () => import('./pages/settings/settings.page').then((m) => m.SettingsPage),

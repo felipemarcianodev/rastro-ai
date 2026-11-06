@@ -14,10 +14,11 @@ public static class DbSchemaMerger
     {
         var list = fragments.ToList();
         var divergences = new List<SchemaDivergence>();
+        var findings = new List<SchemaFinding>();
 
         var tables = list.SelectMany(f => f.Tables)
             .GroupBy(t => DbNames.Key(t.Schema, t.Name, dialect))
-            .Select(g => MergeTable(dialect, g.OrderBy(t => First(t.Sources), SourceOrder.Instance).ToList(), divergences))
+            .Select(g => MergeTable(dialect, g.OrderBy(t => First(t.Sources), SourceOrder.Instance).ToList(), divergences, findings))
             .OrderBy(t => DbNames.Display(t.Schema, t.Name, dialect), StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -46,10 +47,15 @@ public static class DbSchemaMerger
             .ThenBy(n => n.Line)
             .ToList();
 
-        return new DbSchema(dialect, tables, views, procedures, orderedDivergences, notes);
+        var orderedFindings = findings
+            .OrderBy(f => tableOrder.GetValueOrDefault(f.Table, int.MaxValue))
+            .ThenBy(f => string.Join(",", f.Columns), StringComparer.Ordinal)
+            .ToList();
+
+        return new DbSchema(dialect, tables, views, procedures, orderedDivergences, notes, orderedFindings);
     }
 
-    private static DbTable MergeTable(SqlDialect dialect, List<DbTable> group, List<SchemaDivergence> divergences)
+    private static DbTable MergeTable(SqlDialect dialect, List<DbTable> group, List<SchemaDivergence> divergences, List<SchemaFinding> findings)
     {
         var head = group[0];
         var schema = group.Select(t => DbNames.NormalizeSchema(t.Schema, dialect)).FirstOrDefault(s => s is not null);
@@ -71,7 +77,8 @@ public static class DbSchemaMerger
                 nullable is null ? null : bool.Parse(nullable),
                 versions.Select(c => c.Default).FirstOrDefault(d => d is not null),
                 versions.Any(c => c.Identity),
-                versions.SelectMany(c => c.Sources).Distinct().OrderBy(s => s, SourceOrder.Instance).ToList()));
+                versions.SelectMany(c => c.Sources).Distinct().OrderBy(s => s, SourceOrder.Instance).ToList(),
+                PersonalData.IsPersonal(DbNames.Unquote(versions[0].Name))));
         }
 
         MissingColumns(group, display, divergences);
@@ -87,13 +94,38 @@ public static class DbSchemaMerger
             .DistinctBy(fk => string.Join(",", fk.Columns).ToLowerInvariant() + ">" + DbNames.KeyOf(fk.PrincipalTable, dialect) + "(" + string.Join(",", fk.PrincipalColumns).ToLowerInvariant() + ")")
             .ToList();
 
+        // A migration e o .sql dizem o que o banco tem: com eles, o índice deduzido da convenção do EF
+        // sai, e a FK que eles criam sem índice vira achado. Sem eles, vale o modelo, com a convenção.
+        // Um ALTER TABLE solto num .sql traz a FK, mas não diz a tabela inteira: só a migration, o
+        // CREATE TABLE e o banco vivo (versões com colunas) tiram a convenção.
+        var outside = group.Where(t => First(t.Sources).Kind != SchemaSourceKind.EfModel).ToList();
+        var physical = outside.Any(t => t.Columns.Count > 0);
         var indexes = group.SelectMany(t => t.Indexes)
+            .Where(i => !i.Convention || !physical)
+            .OrderBy(i => i.Convention ? 1 : 0)
             .DistinctBy(i => string.Join(",", i.Columns).ToLowerInvariant() + (i.Unique ? "|u" : string.Empty))
             .ToList();
 
-        return new DbTable(schema, name, columns, keys.FirstOrDefault(), foreignKeys, indexes,
+        var primaryKey = keys.FirstOrDefault();
+        // Só o que o banco tem cobre a FK: um HasIndex do modelo que a migration não criou não conta.
+        var realKey = outside.Select(t => t.PrimaryKey).FirstOrDefault(k => k is not null);
+        var realIndexes = outside.SelectMany(t => t.Indexes).ToList();
+        if (physical)
+            foreach (var fk in outside.SelectMany(t => t.ForeignKeys).DistinctBy(fk => string.Join(",", fk.Columns).ToLowerInvariant()))
+            {
+                var covered = (realKey is not null && Leads(realKey.Columns, fk.Columns)) || realIndexes.Any(i => Leads(i.Columns, fk.Columns));
+                if (!covered) findings.Add(new SchemaFinding(SchemaFindingKind.ForeignKeyWithoutIndex, display, fk.Columns.Select(DbNames.Unquote).ToList(), fk.Source));
+            }
+
+        return new DbTable(schema, name, columns, primaryKey, foreignKeys, indexes,
             group.SelectMany(t => t.Sources).Distinct().OrderBy(s => s, SourceOrder.Instance).ToList());
     }
+
+    // O índice serve à FK quando as primeiras colunas dele são as colunas da FK (em qualquer ordem).
+    private static bool Leads(IReadOnlyList<string> indexColumns, IReadOnlyList<string> fkColumns) =>
+        indexColumns.Count >= fkColumns.Count
+        && indexColumns.Take(fkColumns.Count).Select(c => DbNames.Unquote(c).ToLowerInvariant()).ToHashSet()
+            .SetEquals(fkColumns.Select(c => DbNames.Unquote(c).ToLowerInvariant()));
 
     // Devolve a chave do valor em que todas as versões concordam, ou nulo (sem versão ou com divergência registrada).
     private static string? Agree(List<(string Value, string Key, SchemaSource Source)> versions, SchemaDivergenceKind kind, string table, string column, List<SchemaDivergence> divergences)

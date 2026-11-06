@@ -135,6 +135,38 @@ public class DbSchemaExtractorTests
         Assert.Empty(schema.Notes);
     }
 
+    [Fact] // EXT-DB-014
+    public void Extract_FkCriadaSemIndiceNaMigrationENoSql_AchadoSemFalsoPositivoDaConvencao()
+    {
+        Assert.Collection(Loja.Value.Findings,
+            f =>
+            {
+                Assert.Equal((SchemaFindingKind.ForeignKeyWithoutIndex, "itens_pedido"), (f.Kind, f.Table));
+                Assert.Equal(["produto_id"], f.Columns);
+                Assert.Equal(("banco/produtos.sql", SchemaSourceKind.SqlScript), (f.Source.File, f.Source.Kind));
+            },
+            f =>
+            {
+                Assert.Equal("pagamentos", f.Table);
+                Assert.Equal(["pedido_id"], f.Columns);
+                Assert.Equal(("Loja.Api/Migrations/20261020_Pagamentos.cs", SchemaSourceKind.EfMigration), (f.Source.File, f.Source.Kind));
+            });
+        // A convenção do modelo não esconde o que a migration não criou, e não aparece como índice.
+        Assert.DoesNotContain(Loja.Value.Tables.SelectMany(t => t.Indexes), i => i.Convention);
+        // pedidos.cliente_id tem o índice da migration; itens_pedido.pedido_id é o começo da PK.
+        Assert.DoesNotContain(Loja.Value.Findings, f => f.Table == "pedidos" || f.Columns.Contains("pedido_id") && f.Table == "itens_pedido");
+    }
+
+    [Fact] // EXT-DB-015
+    public void Extract_ColunasComNomeDeDadoPessoal_MarcadasSoPeloNome()
+    {
+        Assert.True(Column("clientes", "email").Personal);
+        Assert.True(Column("clientes", "cpf").Personal);
+        Assert.False(Column("clientes", "nome").Personal);
+        Assert.False(Column("produtos", "nome").Personal);
+        Assert.False(Column("pedidos", "status").Personal);
+    }
+
     [Fact] // EXT-DB-009
     public void SnakeCase_NomesDoCSharp_ComoOEfCoreNamingConventions()
     {

@@ -109,6 +109,50 @@ public class DbSchemaMergerTests
         Assert.Equal(SchemaSourceKind.EfModel, fk.Source.Kind);
     }
 
+    [Fact] // CORE-DB-008
+    public void Merge_ConvencaoDoModeloEMigration_IndiceRealCobreEFkSemIndiceViraAchado()
+    {
+        DbForeignKey Fk(string column, SchemaSourceKind kind) => new(null, [column], "clientes", ["id"], DeleteAction.NoAction, Src(kind, 7));
+        DbIndex Ix(string column, SchemaSourceKind kind, bool convention = false) => new("IX_" + column, [column], [], false, Src(kind), convention);
+        DbTable With(string table, SchemaSourceKind kind, DbForeignKey[] fks, DbIndex[] indexes) =>
+            new(null, table, [Col("id", "int", false, kind), Col("cliente_id", "int", false, kind), Col("vendedor_id", "int", false, kind)],
+                new DbPrimaryKey(null, ["id"], Src(kind)), fks, indexes, [Src(kind)]);
+
+        var schema = DbSchemaMerger.Merge(SqlDialect.SqlServer,
+        [
+            // O modelo deduz os dois índices pela convenção e declara um HasIndex que a migration não criou.
+            Frag(With("pedidos", SchemaSourceKind.EfModel, [Fk("cliente_id", SchemaSourceKind.EfModel), Fk("vendedor_id", SchemaSourceKind.EfModel)],
+                [Ix("cliente_id", SchemaSourceKind.EfModel, true), Ix("vendedor_id", SchemaSourceKind.EfModel)])),
+            Frag(With("pedidos", SchemaSourceKind.EfMigration, [Fk("cliente_id", SchemaSourceKind.EfMigration), Fk("vendedor_id", SchemaSourceKind.EfMigration)],
+                [Ix("cliente_id", SchemaSourceKind.EfMigration)]))
+        ]);
+
+        var table = Assert.Single(schema.Tables);
+        Assert.All(table.Indexes, i => Assert.False(i.Convention));
+        Assert.Equal(SchemaSourceKind.EfMigration, Assert.Single(table.Indexes, i => i.Columns[0] == "cliente_id").Source.Kind);
+        var finding = Assert.Single(schema.Findings);
+        Assert.Equal((SchemaFindingKind.ForeignKeyWithoutIndex, "pedidos"), (finding.Kind, finding.Table));
+        Assert.Equal(["vendedor_id"], finding.Columns);
+        Assert.Equal((SchemaSourceKind.EfMigration, 7), (finding.Source.Kind, finding.Source.Line));
+    }
+
+    [Theory] // CORE-DB-009
+    [InlineData("cpf", true)]
+    [InlineData("cpf_cliente", true)]
+    [InlineData("EmailContato", true)]
+    [InlineData("e_mail", true)]
+    [InlineData("data_nascimento", true)]
+    [InlineData("TelefoneCelular", true)]
+    [InlineData("senha_hash", true)]
+    [InlineData("nome", false)]
+    [InlineData("status", false)]
+    [InlineData("descricao", false)]
+    [InlineData("recepcao", false)]
+    public void IsPersonal_NomeDaColuna_SoPelaPalavraInteira(string column, bool personal)
+    {
+        Assert.Equal(personal, PersonalData.IsPersonal(column));
+    }
+
     [Fact] // CORE-DB-007
     public void Merge_PostgreSql_SchemaPublicEOPadrao()
     {

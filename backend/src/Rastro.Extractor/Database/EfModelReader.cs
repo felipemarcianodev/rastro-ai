@@ -11,8 +11,9 @@ namespace Rastro.Extractor.Database;
 // OnModelCreating e IEntityTypeConfiguration. Só a árvore de sintaxe: nada do cliente é compilado nem
 // executado. Segue as convenções do EF Core (chave "Id", chave estrangeira "<Navegação>Id", nome da
 // tabela pelo DbSet) e a do EFCore.NamingConventions (UseSnakeCaseNamingConvention).
-// Limites, que viram nota quando aparecem: tipo próprio (OwnsOne, OwnsMany), configuração montada em
-// tempo de execução e o índice que o EF cria por convenção em cada chave estrangeira (esse vem da migration).
+// O índice que o EF cria por convenção em cada chave estrangeira é deduzido e marcado (Convention).
+// Limites, que viram nota quando aparecem: tipo próprio (OwnsOne, OwnsMany) e configuração montada em
+// tempo de execução.
 internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
 {
     private const SchemaSourceKind Kind = SchemaSourceKind.EfModel;
@@ -385,6 +386,15 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
             })
             .ToList();
 
+        // A convenção do EF Core: cada FK ganha um índice "IX_<tabela>_<colunas>", a menos que as colunas
+        // dela já sejam o começo da chave primária ou de outro índice (Fase 38).
+        foreach (var fk in foreignKeys)
+        {
+            if (primaryKey is not null && Prefix(primaryKey.Columns, fk.Columns)) continue;
+            if (indexes.Any(i => Prefix(i.Columns, fk.Columns))) continue;
+            indexes.Add(new DbIndex($"IX_{tableName}_{string.Join("_", fk.Columns)}", fk.Columns, [], false, fk.Source, Convention: true));
+        }
+
         return new DbTable(entity.Schema, tableName, columns, primaryKey, foreignKeys, indexes, [entity.Source]);
     }
 
@@ -423,6 +433,9 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
         var source = config?.Source ?? Source(Kind, scalar.File, declaration);
         return new DbColumn(entity.ColumnOf(scalar.Name), type, nullable, config?.Default, identity, [source]);
     }
+
+    private static bool Prefix(IReadOnlyList<string> columns, IReadOnlyList<string> start) =>
+        columns.Count >= start.Count && columns.Take(start.Count).SequenceEqual(start, StringComparer.OrdinalIgnoreCase);
 
     // [Index(nameof(Email), IsUnique = true, Name = "...")] na classe da entidade.
     private static IEnumerable<IndexConfig> ClassIndexes(Entity entity)

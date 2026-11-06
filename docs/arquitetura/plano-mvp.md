@@ -830,17 +830,22 @@ O dono pediu duas funcionalidades novas:
 - [x] Divergência entre fontes (`DbSchemaMerger`): tipo, nulo, chave primária e coluna que existe no modelo e não na migration (ou o contrário). A coluna divergente fica sem tipo (ou sem nulo), e a divergência mostra cada versão com a fonte.
 - [x] `GET api/repositories/{nome}/schema` (pela única porta de disco, `RepositoryCatalog.SourceFiles`, sem `bin`, `obj` e `node_modules`) e a ferramenta MCP `get_db_schema` (o esquema inteiro ou uma tabela), com a instrução no `McpInstructions`. README e README do pacote atualizados.
 - [x] Testes com a loja fictícia `Fixtures/LojaBanco` (os dados do protótipo: clientes, pedidos, itens com PK composta, pagamentos com FK sem índice, produtos vindo de `.sql`, tabela sem PK, views, procedure e o `status` com 20 no modelo e 30 na migration): `EXT-DB-001` a `013`, `CORE-DB-001` a `007`, `API-DB-001` e `002` e `MCP-DB-001`.
-- [ ] Índice que o EF cria por convenção em cada chave estrangeira: não é deduzido do modelo (vem da migration). Sem ele, o modelo sozinho mostra a FK sem índice; decidir antes do achado "FK sem índice".
+- [x] Índice que o EF cria por convenção em cada chave estrangeira: deduzido do modelo e marcado (`DbIndex.Convention`) na Fase 38. Só fica quando a tabela não tem migration nem `.sql`; com eles, a FK que eles criam sem índice vira achado.
 - [ ] Argumento posicional nas migrations e configuração em método auxiliar (`ConfigurarPedido(modelBuilder)`) não são lidos; o EF gera argumentos com nome, então só código escrito à mão sofre.
 - [ ] Divergência de chave estrangeira e de índice entre fontes (hoje só a primeira fonte fica, sem marcar).
 
-## Fase 38: mapa relacional e tela do banco (feature 1, tela) `[ ]` (depende da Fase 37)
+## Fase 38: mapa relacional e tela do banco (feature 1, tela) `[x]` (depende da Fase 37)
 
-- [ ] Mapa relacional no desenho do Rastro: tabelas como blocos com PK e FK marcadas, setas pela FK com a cardinalidade (1 para N, N para N pela tabela de ligação).
-- [ ] Lista com busca de tabelas, views e procedures; painel da tabela com campos, índices, quem aponta para ela e para quem ela aponta.
-- [ ] Recorte por tabela: a tabela escolhida e os vizinhos até N saltos, porque um banco grande não cabe numa tela.
-- [ ] Exportar o mapa em Mermaid `erDiagram`, PNG e SVG, como os outros desenhos.
-- [ ] Prints em `docs/telas/fase-38/` e levantamento de UX.
+- [x] Tela própria por repositório, `/repositorios/{nome}/banco` ("Mapa do banco"), com entrada pelo link "Ver o mapa do banco" no levantamento novo e pelo "Banco" na barra do levantamento, troca de repositório na barra e a promessa "Lido do código. Nenhum banco é consultado". A aba "Analisar consulta" do protótipo entra com a Fase 40, para não deixar aba morta.
+- [x] Mapa relacional no desenho do Rastro (`core/database/db-map.ts`): tabelas como blocos com PK e FK marcadas (texto além da cor), em colunas pela FK (quem é apontado à esquerda), com a seta saindo da linha da coluna da FK até a chave de destino e a cardinalidade no meio (1 : N, 1 : 1). A tabela de ligação aparece no painel como N para N. Tipo divergente marcado no bloco. Zoom de 50% a 150%.
+- [x] Lista com busca (por nome e por campo) de tabelas, views e procedures; painel da tabela com fontes, campos (tipo, nulo, chave, identidade, padrão), índices (com o selo "convenção do EF"), relações clicáveis (para onde aponta, quem aponta para ela, ação ao apagar, views e procedures que a usam), divergência entre fontes e achados sem IA. A view e a procedure escolhidas acendem as tabelas que leem e gravam.
+- [x] Recorte por tabela: a tabela escolhida e as vizinhas até 1, 2 ou 3 saltos, com a contagem do que ficou fora.
+- [x] Exportar o que está no mapa (o recorte, se houver) em Mermaid `erDiagram` (copiar e baixar `.mmd`), PNG e SVG.
+- [x] **Melhorias propostas que entraram:** achado "chave estrangeira sem índice" (`SchemaFinding`, só quando a migration ou o `.sql` cria a FK sem um índice que comece pelas colunas dela; o índice da convenção do EF não dá falso positivo) e a marca "pessoal" pelo nome da coluna (`PersonalData`, palavra inteira: CPF, e-mail, telefone, nascimento, endereço, senha; "nome" fica de fora). Os dois também no texto do `get_db_schema`.
+- [x] Testes: `EXT-DB-014` a `016`, `CORE-DB-008` e `009`, `MCP-DB-001` (achados e dado pessoal), `WEB-DB-001` a `008` e `WEB-DBV-001` a `008`. Backend 455/455 e frontend 290/290.
+- [x] Prints em `docs/telas/fase-38/` (loja fictícia, API local com `RASTRO_HOME` temporário) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md): os achados de risco baixo e médio entraram na fase.
+- [ ] (UX, risco alto) Entrada "Banco" no cabeçalho do Rastro, ao lado das configurações, sem depender de escolher o repositório antes.
+- [ ] Banco grande: com centenas de tabelas, o desenho fica largo (colunas de 8 tabelas). Avaliar enquadrar na tela e um minimapa quando aparecer um caso real.
 
 ## Fase 39: banco nos fluxos `[ ]` (depende da Fase 37)
 
@@ -879,8 +884,8 @@ O dono pediu duas funcionalidades novas:
 - [ ] **Impacto de mudança no banco:** antes de mudar uma coluna, listar os fluxos, views e procedures que dependem dela, usando o grafo que já existe.
 - [ ] **Validação da mudança (Fase 9) olhando o banco:** o rascunho que mexe em consulta mostra os achados da Fase 40 antes e depois.
 - [ ] **Comparar esquema entre branches**, como a comparação de levantamentos: tabela, coluna e índice novos ou removidos.
-- [ ] **Migration sem índice na FK nova:** achado automático quando uma migration cria FK sem índice.
-- [ ] **Dados sensíveis:** marcar colunas com nome de dado pessoal (CPF, e-mail, telefone) no mapa, útil para LGPD, sem ler nenhum dado.
+- [x] **Migration sem índice na FK nova:** achado automático quando uma migration cria FK sem índice (Fase 38, vale também para o `.sql`).
+- [x] **Dados sensíveis:** marcar colunas com nome de dado pessoal (CPF, e-mail, telefone) no mapa, útil para LGPD, sem ler nenhum dado (Fase 38).
 - [ ] **Nunca ler dados das tabelas:** só catálogo e plano estimado. Isso precisa estar escrito na ADR e no `SECURITY.md`, porque é a pergunta que todo cliente faz antes de passar uma string de conexão.
 
 ## Levantamento de UX do fim do plano `[x]`

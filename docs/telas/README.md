@@ -25,3 +25,8 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | 35 | Mapa enxuto: o terceiro sistema recolhido num bloco com "+4", abre ao clicar (mapa fictício) | [fase-35/01-sistema-recolhido.jpg](fase-35/01-sistema-recolhido.jpg) |
 | 35 | O mesmo mapa com o sistema aberto: o quarto sistema fica recolhido e o painel oferece recolher | [fase-35/02-sistema-aberto.jpg](fase-35/02-sistema-aberto.jpg) |
 | 35 | Clique no desfecho "Se não": o caminho acende, sem a lista no topo, e a barra oferece limpar | [fase-35/03-destaque-do-desfecho.jpg](fase-35/03-destaque-do-desfecho.jpg) |
+| 38 | Mapa do banco da loja fictícia: `pagamentos` escolhida, com o achado "chave estrangeira sem índice" criado pela migration, a seta acesa até `pedidos` e as colunas de dado pessoal marcadas em `clientes` | [fase-38/01-achado-fk-sem-indice.jpg](fase-38/01-achado-fk-sem-indice.jpg) |
+| 38 | Painel de `pedidos` com a divergência entre fontes (o modelo diz `nvarchar(20)` e a migration `nvarchar(30)`) e o tipo marcado como divergente | [fase-38/02-divergencia-entre-fontes.jpg](fase-38/02-divergencia-entre-fontes.jpg) |
+| 38 | Recorte: `pedidos` e as vizinhas até 1 salto, com a contagem do que ficou fora | [fase-38/03-recorte-por-tabela.jpg](fase-38/03-recorte-por-tabela.jpg) |
+| 38 | A procedure `sp_baixar_estoque` escolhida acende as tabelas que ela lê e grava | [fase-38/04-procedure-acende-tabelas.jpg](fase-38/04-procedure-acende-tabelas.jpg) |
+| 38 | Exportar o que está no mapa: PNG, SVG e Mermaid `erDiagram` | [fase-38/05-exportar.jpg](fase-38/05-exportar.jpg) |

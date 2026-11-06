@@ -1,0 +1,52 @@
+// Tela do banco (Fase 38): marcas que o mapa e o painel da tabela repetem. Chave e dado pessoal
+// levam texto além da cor (PK, FK, pessoal), nunca só a cor.
+.db-key {
+  display: inline-block;
+  min-width: 34px;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-family: var(--font-code);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  color: transparent;
+
+  &.is-pk {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  &.is-fk {
+    border: 1px solid var(--ink-soft);
+    color: var(--ink);
+    line-height: 14px;
+  }
+}
+
+.db-personal {
+  display: inline-block;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--danger-wash);
+  color: var(--danger);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+// Selo de achado sem IA (FK sem índice): o mesmo âmbar escuro do "não resolvido", com texto.
+.db-alert {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--unresolved);
+}
+
+.db-finding {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--unresolved-wash);
+  font-size: var(--text-sm);
+}
