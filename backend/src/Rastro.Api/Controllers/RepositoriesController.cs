@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Rastro.Core.Database;
+using Rastro.Core.Surveys;
+using Rastro.Infrastructure;
 using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Database;
 using Rastro.Infrastructure.Repositories;
@@ -80,6 +83,20 @@ public class RepositoriesController(
         await schemas.ReadAsync(name, ct) is { } schema
             ? Ok(schema)
             : Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");
+
+    // Quem usa cada tabela (Fase 39): os passos dos levantamentos do repositório que leem ou gravam
+    // pelo EF Core, do levantamento mais novo de cada método. Levantamento anterior à Fase 39 não tem
+    // essa informação e precisa ser refeito.
+    [HttpGet("{name}/schema/usage")]
+    public async Task<ActionResult<DbUsageReport>> SchemaUsage(string name, [FromServices] RastroDbContext db, CancellationToken ct)
+    {
+        if (catalog.RootOf(name) is null)
+            return Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");
+        var surveys = await db.Surveys.AsNoTracking()
+            .Where(s => s.Repository == name && s.Status == SurveyStatus.Completed)
+            .ToListAsync(ct);
+        return Ok(DbUsage.From(surveys));
+    }
 
     // O file watcher recarrega o config.json sozinho, mas com atraso. Recarregar aqui, de forma
     // síncrona, faz o GET logo depois do POST ou do DELETE já ver a mudança.

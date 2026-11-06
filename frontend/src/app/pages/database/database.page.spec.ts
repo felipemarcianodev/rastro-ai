@@ -2,23 +2,39 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { DbSchema } from '../../core/database/db-schema';
+import { DbSchema, DbUsageReport } from '../../core/database/db-schema';
+import { DbOperation, FindingKind, FindingSeverity } from '../../core/models';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
 import { DatabasePage } from './database.page';
 
-function render(schema: DbSchema | null = lojaSchema()) {
+const usage: DbUsageReport = {
+  uses: [
+    { target: 'pedidos', operation: DbOperation.Read, surveyId: 's1', entryPoint: 'PedidosController.Listar', nodeId: 'm:listar', nodeLabel: 'PedidoRepositorio.AbertosAsync', location: { file: 'Loja.Api/Pedidos.cs', line: 10 }, surveyCreatedAt: '2026-11-06T10:00:00Z' },
+    { target: 'pedidos', operation: DbOperation.Insert, surveyId: 's2', entryPoint: 'PedidosController.Fechar', nodeId: 'm:fechar', nodeLabel: 'PedidosController.Fechar', surveyCreatedAt: '2026-11-06T10:00:00Z' },
+    { target: 'sp_baixar_estoque', operation: DbOperation.Execute, surveyId: 's2', entryPoint: 'PedidosController.Fechar', nodeId: 'm:fechar', nodeLabel: 'PedidosController.Fechar', surveyCreatedAt: '2026-11-06T10:00:00Z' },
+  ],
+  findings: [
+    { target: 'pedidos', kind: FindingKind.QueryInLoop, severity: FindingSeverity.Warning, message: 'PedidosController.Listar consulta pedidos dentro de um laço.', surveyId: 's1', entryPoint: 'PedidosController.Listar', nodeId: 'm:listar' },
+  ],
+};
+
+function render(schema: DbSchema | null = lojaSchema(), tabela?: string, report: DbUsageReport | null = usage) {
   TestBed.configureTestingModule({
     imports: [DatabasePage],
     providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
   });
   const fixture = TestBed.createComponent(DatabasePage);
   fixture.componentRef.setInput('nome', 'loja');
+  if (tabela) fixture.componentRef.setInput('tabela', tabela);
   const http = TestBed.inject(HttpTestingController);
   fixture.detectChanges();
   http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:/loja' }]);
   const request = http.expectOne('/api/repositories/loja/schema');
   if (schema) request.flush(schema);
   else request.flush({ code: 'REPOSITORY_NOT_FOUND' }, { status: 404, statusText: 'Not Found' });
+  const used = http.expectOne('/api/repositories/loja/schema/usage');
+  if (report) used.flush(report);
+  else used.flush({ code: 'X' }, { status: 500, statusText: 'Erro' });
   fixture.detectChanges();
   return { fixture, http, el: fixture.nativeElement as HTMLElement };
 }
@@ -138,6 +154,50 @@ describe('DatabasePage (Fase 38)', () => {
 
     const status = [...card(el, 'pedidos').querySelectorAll('.db-row-type')].find((t) => t.textContent!.includes('divergente'))!;
     expect(status.classList).toContain('is-divergent');
+  });
+
+  // WEB-DBV-009
+  it('o painel da tabela lista os fluxos que a usam, com o link para o passo, e os achados dos fluxos', () => {
+    const { fixture, el } = render();
+    expect(card(el, 'pedidos').textContent).toContain('1 achado');
+
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+
+    const panel = el.querySelector('.db-panel')!;
+    expect(panel.textContent).toContain('Fluxos que usam esta tabela');
+    const links = [...panel.querySelectorAll<HTMLAnchorElement>('.db-access a')];
+    expect(links.map((a) => a.textContent!.trim())).toEqual(['PedidosController.Listar › PedidoRepositorio.AbertosAsync', 'PedidosController.Fechar › PedidosController.Fechar']);
+    expect(links[0].getAttribute('href')).toBe('/surveys/s1?passo=m:listar');
+    expect([...panel.querySelectorAll('.db-op')].map((o) => o.textContent!.trim())).toEqual(['lê', 'inclui']);
+    expect(panel.textContent).toContain('Consulta dentro de laço (N+1)');
+
+    // Tabela sem uso: diz que levantamento antigo precisa ser refeito.
+    card(el, 'produtos').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.db-panel')!.textContent).toContain('Levantamentos feitos antes desta versão do Rastro não têm essa informação');
+  });
+
+  // WEB-DBV-010
+  it('abre com a tabela de ?tabela= escolhida, e a procedure mostra quem a chama', () => {
+    const { fixture, el } = render(lojaSchema(), 'dbo.pagamentos');
+    expect(card(el, 'pagamentos').classList).toContain('is-selected');
+    expect(document.activeElement).not.toBe(card(el, 'pagamentos'));
+
+    [...el.querySelectorAll<HTMLButtonElement>('.db-item')].find((b) => b.textContent!.includes('sp_baixar_estoque'))!.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.db-panel')!.textContent).toContain('Fluxos que chamam esta procedure');
+    expect(el.querySelector('.db-panel .db-op')!.textContent!.trim()).toBe('executa');
+  });
+
+  // WEB-DBV-011
+  it('sem os usos, o mapa e o painel continuam e o painel avisa', () => {
+    const { fixture, el } = render(lojaSchema(), undefined, null);
+
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.db-panel')!.textContent).toContain('Não deu para buscar os fluxos que usam este item');
+    expect(el.querySelector('.db-panel')!.textContent).toContain('IX_pedidos_cliente_id');
   });
 
   // WEB-DBV-007

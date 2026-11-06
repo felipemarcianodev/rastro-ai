@@ -4,6 +4,8 @@ import { CopyFeedback } from '../../core/copy-feedback';
 import { DB_CARD, DB_CARD_MAX_ROWS, dbMapGeometry, dbMapSvg } from '../../core/database/db-map';
 import {
   DbSchema,
+  DbUsageReport,
+  sameName,
   SCHEMA_FINDING_BADGE,
   SCHEMA_SOURCE_LABEL,
   SQL_DIALECT_LABEL,
@@ -49,8 +51,13 @@ export class DatabasePage {
 
   // Vem da rota (repositorios/:nome/banco).
   readonly nome = input.required<string>();
+  // ?tabela=<nome>: a tabela já escolhida ao abrir (o "No banco" do painel do passo leva para cá).
+  readonly tabela = input<string | undefined>();
 
   protected readonly schema = signal<DbSchema | null>(null);
+  // Sem os usos (falha ou carga), o painel diz isso; o mapa não depende deles.
+  protected readonly usage = signal<DbUsageReport | null>(null);
+  protected readonly usageError = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly repositories = signal<RepositoryItem[]>([]);
   protected readonly query = signal('');
@@ -143,11 +150,18 @@ export class DatabasePage {
   // Busca escurece no mapa o que não casa (a lista mostra só o que casa).
   protected readonly matching = computed<ReadonlySet<string> | null>(() => (this.query().trim() ? new Set(this.list()?.tables ?? []) : null));
 
+  // Selo do bloco: o achado do esquema pelo nome ("FK sem índice", "+1" com os outros) ou a contagem dos achados dos fluxos.
   protected readonly badges = computed(() => {
+    const schema = this.schema();
     const map = new Map<string, string>();
-    for (const f of this.schema()?.findings ?? []) {
-      const table = findTable(this.schema()!, f.table);
-      if (table) map.set(tableKey(table), this.badgeLabel[f.kind]);
+    if (!schema) return map;
+    for (const table of schema.tables) {
+      const key = tableKey(table);
+      const own = schema.findings.filter((f) => findTable(schema, f.table) === table);
+      const flows = (this.usage()?.findings ?? []).filter((f) => sameName(f.target, key));
+      const total = own.length + flows.length;
+      if (total === 0) continue;
+      map.set(key, own.length > 0 ? this.badgeLabel[own[0].kind] + (total > 1 ? ` +${total - 1}` : '') : total === 1 ? '1 achado' : `${total} achados`);
     }
     return map;
   });
@@ -161,12 +175,27 @@ export class DatabasePage {
         this.error.set(null);
         this.selection.set(null);
         this.hops.set(0);
+        this.usage.set(null);
+        this.usageError.set(false);
       });
       const sub = this.api.schema(name).subscribe({
-        next: (schema) => this.schema.set(schema),
+        next: (schema) =>
+          untracked(() => {
+            this.schema.set(schema);
+            const wanted = this.tabela();
+            const table = wanted ? findTable(schema, wanted) : undefined;
+            if (table) this.choose({ kind: DbItemKind.Table, key: tableKey(table) });
+          }),
         error: (error) => this.error.set(apiErrorMessage(error)),
       });
-      onCleanup(() => sub.unsubscribe());
+      const usage = this.api.schemaUsage(name).subscribe({
+        next: (report) => this.usage.set(report),
+        error: () => this.usageError.set(true),
+      });
+      onCleanup(() => {
+        sub.unsubscribe();
+        usage.unsubscribe();
+      });
     });
 
     this.api.repositories().subscribe({

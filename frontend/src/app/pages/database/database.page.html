@@ -179,7 +179,7 @@
 
       @if (selection(); as pick) {
         <aside class="db-panel" aria-label="Item escolhido">
-          <app-db-panel [schema]="schema()!" [relations]="relations()" [selection]="pick" (pick)="choose($event, true)" (closed)="closePanel()" />
+          <app-db-panel [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event, true)" (closed)="closePanel()" />
         </aside>
       }
     </div>

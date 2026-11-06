@@ -32,7 +32,7 @@ import {
   C4Person,
   SurveySummary,
 } from './models';
-import { DbSchema } from './database/db-schema';
+import { DbSchema, DbUsageReport } from './database/db-schema';
 
 @Injectable({ providedIn: 'root' })
 export class RastroApi {
@@ -57,6 +57,11 @@ export class RastroApi {
   // Esquema do banco lido do código do repositório (Fase 37); nenhum banco é consultado.
   schema(repository: string): Observable<DbSchema> {
     return this.http.get<DbSchema>(`/api/repositories/${encodeURIComponent(repository)}/schema`);
+  }
+
+  // Passos dos levantamentos do repositório que leem ou gravam cada tabela (Fase 39).
+  schemaUsage(repository: string): Observable<DbUsageReport> {
+    return this.http.get<DbUsageReport>(`/api/repositories/${encodeURIComponent(repository)}/schema/usage`);
   }
 
   health(): Observable<RastroHealth> {

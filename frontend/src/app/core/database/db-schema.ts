@@ -1,3 +1,5 @@
+import { DbOperation, FindingKind, FindingSeverity, SourceLocation } from '../models';
+
 // Esquema do banco (Fases 37 e 38, ADR-006), como a API devolve em GET api/repositories/{nome}/schema.
 // Tudo lido do código do repositório e sem IA: o mesmo código dá o mesmo esquema e o mesmo mapa.
 
@@ -139,6 +141,39 @@ export interface DbSchema {
   divergences: SchemaDivergence[];
   notes: SchemaNote[];
   findings: SchemaFinding[];
+}
+
+// Quem usa cada tabela (Fase 39), de GET api/repositories/{nome}/schema/usage: os passos dos
+// levantamentos do repositório (o mais novo de cada método) e os achados sem IA desses fluxos.
+export interface DbUse {
+  target: string;
+  operation: DbOperation;
+  surveyId: string;
+  entryPoint: string;
+  nodeId: string;
+  nodeLabel: string;
+  location?: SourceLocation;
+  surveyCreatedAt: string;
+}
+
+export interface DbFlowFinding {
+  target: string;
+  kind: FindingKind;
+  severity: FindingSeverity;
+  message: string;
+  surveyId: string;
+  entryPoint: string;
+  nodeId: string;
+  location?: SourceLocation;
+}
+
+export interface DbUsageReport {
+  uses: DbUse[];
+  findings: DbFlowFinding[];
+}
+
+export function sameName(a: string, b: string): boolean {
+  return a.localeCompare(b, undefined, { sensitivity: 'accent' }) === 0;
 }
 
 export const SQL_DIALECT_LABEL: Record<SqlDialect, string> = {

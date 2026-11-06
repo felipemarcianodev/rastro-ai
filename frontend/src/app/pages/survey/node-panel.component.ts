@@ -6,6 +6,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Trail } from '../../core/graph/trail';
 import {
+  DB_OPERATION_SHORT,
+  DB_OPERATION_SLUG,
   ChangeKind,
   CrossFlowFinding,
   EDGE_CONFIDENCE_LABEL,
@@ -125,6 +127,8 @@ export class NodePanelComponent {
   protected readonly locationCopy = new CopyFeedback();
 
   protected readonly kindLabel = NODE_KIND_LABEL;
+  protected readonly dbShort = DB_OPERATION_SHORT;
+  protected readonly dbSlug = DB_OPERATION_SLUG;
   protected readonly kindSlug = NODE_KIND_SLUG;
   protected readonly glyph = NODE_KIND_GLYPH;
   protected readonly reasonLabel = UNRESOLVED_REASON_LABEL;

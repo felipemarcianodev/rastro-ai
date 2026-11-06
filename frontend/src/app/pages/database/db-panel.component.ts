@@ -1,10 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { DB_OPERATION_SHORT, DB_OPERATION_SLUG, FINDING_KIND_LABEL, FINDING_SEVERITY_LABEL } from '../../core/models';
 import {
   Cardinality,
   DELETE_ACTION_LABEL,
   DIVERGENCE_LABEL,
   DbRelation,
   DbSchema,
+  DbUsageReport,
   SCHEMA_FINDING_TITLE,
   SCHEMA_SOURCE_LABEL,
   columnKeys,
@@ -13,6 +16,7 @@ import {
   keyMark,
   keyText,
   linkTableOf,
+  sameName,
   sourceText,
   tableKey,
 } from '../../core/database/db-schema';
@@ -43,6 +47,7 @@ const CARDINALITY_BACK: Record<Cardinality, string> = {
 // sem IA da tabela; colunas e tabelas lidas da view; parâmetros e tabelas da procedure.
 @Component({
   selector: 'app-db-panel',
+  imports: [RouterLink],
   templateUrl: './db-panel.component.html',
   styleUrl: './db-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,6 +56,8 @@ export class DbPanelComponent {
   readonly schema = input.required<DbSchema>();
   readonly relations = input.required<readonly DbRelation[]>();
   readonly selection = input.required<DbPick>();
+  readonly usage = input<DbUsageReport | null>(null);
+  readonly usageError = input(false);
   readonly pick = output<DbPick>();
   readonly closed = output<void>();
 
@@ -59,6 +66,21 @@ export class DbPanelComponent {
   protected readonly findingTitle = SCHEMA_FINDING_TITLE;
   protected readonly sourceText = sourceText;
   protected readonly findingText = findingText;
+  protected readonly opShort = DB_OPERATION_SHORT;
+  protected readonly opSlug = DB_OPERATION_SLUG;
+  protected readonly kindLabel = FINDING_KIND_LABEL;
+  protected readonly severityLabel = FINDING_SEVERITY_LABEL;
+
+  // Os passos dos fluxos que usam a tabela ou a procedure escolhida, e os achados deles (Fase 39).
+  protected readonly flows = computed(() => {
+    const report = this.usage();
+    const pick = this.selection();
+    if (!report || pick.kind === DbItemKind.View) return null;
+    return {
+      uses: report.uses.filter((u) => sameName(u.target, pick.key)),
+      findings: report.findings.filter((f) => sameName(f.target, pick.key)),
+    };
+  });
 
   protected readonly table = computed(() => {
     const pick = this.selection();

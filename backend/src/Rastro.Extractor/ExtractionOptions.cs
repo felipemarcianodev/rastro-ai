@@ -1,3 +1,5 @@
+using Rastro.Core.Database;
+
 namespace Rastro.Extractor;
 
 public record ExtractionOptions
@@ -13,4 +15,8 @@ public record ExtractionOptions
     // para a costura entre sistemas trocar por uma aresta até o método que atende. Falso: a chamada
     // continua sendo o nó externo de sempre e o grafo sai idêntico ao de antes.
     public bool HttpCalls { get; init; }
+
+    // Fase 39: o esquema do banco do repositório inteiro (o mesmo da tela do banco), para dar o nome da
+    // tabela de cada DbSet e saber quais procedures estão nos .sql. Nulo: lido dos documentos da solution.
+    public DbSchema? Schema { get; init; }
 }

@@ -69,7 +69,8 @@ public record DbForeignKey(string? Name, IReadOnlyList<string> Columns, string P
 // o banco de fato tem.
 public record DbIndex(string? Name, IReadOnlyList<string> Columns, IReadOnlyList<string> Included, bool Unique, SchemaSource Source, bool Convention = false);
 
-// Schema nulo é o padrão do dialeto (dbo no SQL Server, public no PostgreSQL).
+// Schema nulo é o padrão do dialeto (dbo no SQL Server, public no PostgreSQL). Entity (Fase 39): a
+// classe da entidade no modelo do EF, que liga o passo do fluxo (DbSet<Entity>) à tabela.
 public record DbTable(
     string? Schema,
     string Name,
@@ -77,7 +78,8 @@ public record DbTable(
     DbPrimaryKey? PrimaryKey,
     IReadOnlyList<DbForeignKey> ForeignKeys,
     IReadOnlyList<DbIndex> Indexes,
-    IReadOnlyList<SchemaSource> Sources);
+    IReadOnlyList<SchemaSource> Sources,
+    string? Entity = null);
 
 // Columns: o que a view devolve, quando o nome sai do texto (coluna sem alias numa expressão fica de fora).
 public record DbView(string? Schema, string Name, IReadOnlyList<string> Columns, IReadOnlyList<string> Reads, SchemaSource Source);

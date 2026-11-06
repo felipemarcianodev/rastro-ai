@@ -1,7 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Rastro.Core;
+using Rastro.Core.Graph;
+using Rastro.Core.Surveys;
+using Rastro.Infrastructure;
 using Rastro.Mcp;
 using Rastro.Tests.Extractor;
 
@@ -76,6 +81,52 @@ public class SchemaEndpointTests(ApiFixture fixture) : IAsyncLifetime
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
         Assert.Equal("REPOSITORY_NOT_FOUND", (await response.Content.ReadFromJsonAsync<JsonObject>())?["code"]?.GetValue<string>());
+    }
+
+    [Fact] // API-DB-003
+    public async Task SchemaUsage_LevantamentosDoRepositorio_SoOMaisNovoDeCadaMetodoESoOProprioSistema()
+    {
+        FlowGraph Graph(params FlowNode[] nodes) => new(RastroSchema.Version, "PedidosController.Listar", nodes[0].Id, nodes, []);
+        var antigo = Survey.Create(_name, "Loja.slnx", "PedidosController.Listar", 5, null, null, DateTimeOffset.UtcNow.AddHours(-1));
+        antigo.Start(DateTimeOffset.UtcNow);
+        antigo.Complete(Graph(new FlowNode("m:a", NodeKind.Entry, "PedidosController.Listar", Db: [new DbAccess("clientes", DbOperation.Read, 3)])), DateTimeOffset.UtcNow);
+        var novo = Survey.Create(_name, "Loja.slnx", "PedidosController.Listar", 5, null, null, DateTimeOffset.UtcNow);
+        novo.Start(DateTimeOffset.UtcNow);
+        novo.Complete(Graph(
+            new FlowNode("m:b", NodeKind.Entry, "PedidosController.Listar", Location: new SourceLocation("Loja.Api/Pedidos.cs", 20),
+                Db: [new DbAccess("pedidos", DbOperation.Read, 24, "Pedido"), new DbAccess("pagamentos", DbOperation.Insert, 30, "Pagamento")]),
+            new FlowNode("m:c", NodeKind.Method, "Estoque.Baixar", System: "outro", Db: [new DbAccess("estoque", DbOperation.Update, 9)])) with
+            {
+                Findings = [new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, "m:b", "consulta pedidos dentro de um laço", Target: "pedidos"),
+                    new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, "m:c", "de outro sistema", Target: "estoque")]
+            }, DateTimeOffset.UtcNow);
+        await using (var scope = fixture.Factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<RastroDbContext>();
+            db.Surveys.AddRange(antigo, novo);
+            await db.SaveChangesAsync();
+        }
+
+        try
+        {
+            var client = fixture.Factory.CreateClient();
+            var report = await client.GetFromJsonAsync<JsonObject>($"/api/repositories/{_name}/schema/usage");
+            var uses = report!["uses"]!.AsArray();
+
+            Assert.Equal(["pagamentos", "pedidos"], uses.Select(u => u!["target"]!.GetValue<string>()));
+            var pedidos = uses[1]!;
+            Assert.Equal((0, "m:b", novo.Id.ToString()), (pedidos["operation"]!.GetValue<int>(), pedidos["nodeId"]!.GetValue<string>(), pedidos["surveyId"]!.GetValue<string>()));
+            Assert.Equal(24, pedidos["location"]!["line"]!.GetValue<int>());
+            var finding = Assert.Single(report["findings"]!.AsArray())!;
+            Assert.Equal(("pedidos", 9), (finding["target"]!.GetValue<string>(), finding["kind"]!.GetValue<int>()));
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync("/api/repositories/nao-existe/schema/usage")).StatusCode);
+        }
+        finally
+        {
+            await using var scope = fixture.Factory.Services.CreateAsyncScope();
+            var db = scope.ServiceProvider.GetRequiredService<RastroDbContext>();
+            await db.Surveys.Where(s => s.Repository == _name).ExecuteDeleteAsync();
+        }
     }
 
     [Fact] // MCP-DB-001
