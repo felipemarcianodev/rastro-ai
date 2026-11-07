@@ -18,7 +18,11 @@ dotnet tool install -g rastro-ai
 rastro
 ```
 
-A tela abre em http://127.0.0.1:7450 (só nesta máquina; troque a porta com `--porta`). Se o Rastro já estiver aberto nessa porta, o comando só mostra o endereço e termina. Cadastre os repositórios em Configurações (a engrenagem no alto da tela) ou pelo terminal:
+O Rastro abre numa janela própria, como um app, e a tela também fica em http://127.0.0.1:7450 para o navegador (só nesta máquina; troque a porta com `--porta`). Fechar a janela encerra o Rastro; `rastro --sem-janela` sobe só o console e o endereço. Na janela, o campo da pasta do repositório ganha o botão "Procurar…", com a caixa "Escolher pasta" do sistema.
+
+A janela usa o WebView do sistema: no Windows, o WebView2 Runtime (já vem no Windows 11 e nas versões atuais do Windows 10); no Linux, a `libwebkit2gtk-4.1` (`sudo apt install libwebkit2gtk-4.1-0`) e uma sessão com tela; no macOS, nada a instalar. Sem isso, o Rastro avisa no console e segue no navegador. A janela vem do Photino.NET (Apache-2.0).
+
+Se o Rastro já estiver aberto nessa porta, o comando só mostra o endereço e termina. Cadastre os repositórios em Configurações (a engrenagem no alto da tela) ou pelo terminal:
 
 ```
 rastro repo add minha-api C:\codigo\minha-api

@@ -3,6 +3,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { DESKTOP_EXTERNAL } from '../../core/desktop-bridge.service';
+import { FakeDesktopExternal } from '../../core/desktop-bridge.service.spec';
 import { EditorLinks } from '../../core/editor-links';
 import { RepositoryItem } from '../../core/models';
 import { SettingsPage } from './settings.page';
@@ -247,5 +249,57 @@ describe('SettingsPage: aparência', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
     radios[0].click();
     expect(document.documentElement.hasAttribute('data-theme')).toBeFalse();
+  });
+});
+
+describe('SettingsPage: Procurar pasta na janela própria', () => {
+  function renderWith(external: FakeDesktopExternal | null) {
+    const fakeLocation = { back: jasmine.createSpy('back'), getState: () => null };
+    TestBed.configureTestingModule({
+      imports: [SettingsPage],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([]),
+        { provide: Location, useValue: fakeLocation },
+        { provide: DESKTOP_EXTERNAL, useValue: external },
+      ],
+    });
+    const fixture = TestBed.createComponent(SettingsPage);
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    answerInitial(http, []);
+    fixture.detectChanges();
+    return { fixture, http, el: fixture.nativeElement as HTMLElement };
+  }
+
+  // UI-JAN-007
+  it('noNavegador_naoMostraOProcurar', () => {
+    const { el } = renderWith(null);
+
+    expect(el.querySelector('#repo-path')).not.toBeNull();
+    expect(button(el, 'Procurar')).toBeUndefined();
+  });
+
+  // UI-JAN-008
+  it('naJanela_procurar_preencheOCampo_eCancelarNaoMexe', async () => {
+    const external = new FakeDesktopExternal();
+    const { fixture, el } = renderWith(external);
+    await fixture.whenStable();
+
+    button(el, 'Procurar').click();
+    external.pick(null);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect((el.querySelector('#repo-path') as HTMLInputElement).value).toBe('');
+
+    button(el, 'Procurar').click();
+    expect(JSON.parse(external.sent[1]).requestId).toBe('pasta-2');
+    external.pick('C:\codigo\loja');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect((el.querySelector('#repo-path') as HTMLInputElement).value).toBe('C:\codigo\loja');
   });
 });

@@ -2,6 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { DESKTOP_EXTERNAL } from '../../core/desktop-bridge.service';
+import { FakeDesktopExternal } from '../../core/desktop-bridge.service.spec';
 import { LastRepositoryService } from '../../core/last-repository.service';
 import { SurveyStatus, SurveySummary } from '../../core/models';
 import { SurveysPage, matchesSearch } from './surveys.page';
@@ -481,6 +483,53 @@ describe('SurveysPage: tela inicial por repositório', () => {
     expect(links.map((a) => a.textContent?.trim())).toEqual(['Abrir', 'Banco deste fluxo']);
     expect(links[0].getAttribute('href')).toBe('/surveys/abc-1');
     expect(links[1].getAttribute('href')).toBe('/repositorios/loja/banco?levantamento=abc-1');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+});
+
+describe('SurveysPage: Procurar pasta na janela própria', () => {
+  async function openRegister(external: FakeDesktopExternal | null) {
+    TestBed.configureTestingModule({
+      imports: [SurveysPage],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([]), { provide: DESKTOP_EXTERNAL, useValue: external }],
+    });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush([]);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.first-use button')).find((b) => b.textContent?.includes('Cadastrar repositório'))!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    return { fixture, http, el };
+  }
+
+  const browse = (el: HTMLElement) =>
+    Array.from(el.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')).find((b) => b.textContent?.includes('Procurar'));
+
+  // UI-JAN-005
+  it('noNavegador_naoMostraOProcurar', async () => {
+    const { el, http } = await openRegister(null);
+
+    expect(el.querySelector('#register-path')).not.toBeNull();
+    expect(browse(el)).toBeUndefined();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UI-JAN-006
+  it('naJanela_procurar_preencheACaminhoEscolhido', async () => {
+    const external = new FakeDesktopExternal();
+    const { fixture, el, http } = await openRegister(external);
+
+    browse(el)!.click();
+    external.pick('C:\codigo\loja');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect((el.querySelector('#register-path') as HTMLInputElement).value).toBe('C:\codigo\loja');
     http.match(() => true).forEach((request) => request.flush([]));
   });
 });
