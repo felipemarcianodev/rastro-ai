@@ -13,6 +13,9 @@ namespace Rastro.Tests.Api;
 // Cenários CLI-PORT-NNN: abrir o "rastro" com a porta ocupada não despeja erro (pedido do dono em 2026-11-02).
 public class PortProbeTests
 {
+    // O servidor do teste é recém-aberto e a suíte roda em paralelo: sem folga, o primeiro /api/health estoura os 2 segundos do produto.
+    private static readonly TimeSpan Patience = TimeSpan.FromSeconds(30);
+
     private static async Task<(WebApplication App, int Port)> ServeAsync(Func<HttpContext, Task> respond)
     {
         var builder = WebApplication.CreateSlimBuilder();
@@ -43,7 +46,7 @@ public class PortProbeTests
             context.Response.WriteAsJsonAsync(new HealthController.HealthResponse("ok", "9.8.7", 2, true)));
         await using (app)
         {
-            var check = await PortProbe.CheckAsync(port, NullLogger.Instance);
+            var check = await PortProbe.CheckAsync(port, NullLogger.Instance, healthTimeout: Patience);
 
             Assert.Equal(PortState.RastroOpen, check.State);
             Assert.Equal("9.8.7", check.Version);
@@ -59,7 +62,7 @@ public class PortProbeTests
         var (app, port) = await ServeAsync(context => context.Response.WriteAsync(body));
         await using (app)
         {
-            var check = await PortProbe.CheckAsync(port, NullLogger.Instance);
+            var check = await PortProbe.CheckAsync(port, NullLogger.Instance, healthTimeout: Patience);
 
             Assert.Equal(PortState.OtherProgram, check.State);
         }
@@ -75,7 +78,7 @@ public class PortProbeTests
         });
         await using (app)
         {
-            var check = await PortProbe.CheckAsync(port, NullLogger.Instance);
+            var check = await PortProbe.CheckAsync(port, NullLogger.Instance, healthTimeout: Patience);
 
             Assert.Equal(PortState.OtherProgram, check.State);
         }
