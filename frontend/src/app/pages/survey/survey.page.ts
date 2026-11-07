@@ -404,6 +404,14 @@ export class SurveyPage {
     this.mapTabRequest.update((current) => ({ tab: MapTab.Questions, seq: (current?.seq ?? 0) + 1 }));
   }
 
+  // Atalho do painel: liga o mapa do fluxo e abre a aba Perguntas.
+  protected readonly mapTabRequest = signal<{ tab: MapTab; seq: number } | null>(null);
+
+  protected openQuestions(): void {
+    if (!this.mapped()) this.onDirection(LayoutDirection.Map);
+    this.mapTabRequest.update((current) => ({ tab: MapTab.Questions, seq: (current?.seq ?? 0) + 1 }));
+  }
+
   protected toggleFramework(): void {
     const next = !this.showFramework();
     this.showFramework.set(next);
