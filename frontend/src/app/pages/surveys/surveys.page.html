@@ -9,7 +9,7 @@
 
   <span class="visually-hidden" role="status">{{ deletedNotice() ?? '' }}</span>
   @if (deletedNotice(); as notice) {
-    <p class="saved-notice" aria-hidden="true">{{ notice }}</p>
+    <p class="note-ok saved-notice" aria-hidden="true">{{ notice }}</p>
   }
 
   @if (hasRepositories()) {

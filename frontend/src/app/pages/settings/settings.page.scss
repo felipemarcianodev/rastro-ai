@@ -195,21 +195,10 @@ fieldset {
   gap: var(--space-3);
 }
 
-.saved {
-  color: var(--ok);
-  font-size: var(--text-sm);
-}
-
 @media (max-width: 720px) {
   .provider-fields {
     grid-template-columns: 1fr;
   }
-}
-
-.pending {
-  color: var(--unresolved);
-  font-size: var(--text-sm);
-  font-weight: 500;
 }
 
 .ai-off-note {

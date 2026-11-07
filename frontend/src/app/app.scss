@@ -10,7 +10,7 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2) var(--space-5);
-  min-height: 52px;
+  min-height: var(--topbar-h);
   padding: var(--space-2) var(--space-5);
   border-bottom: 1px solid var(--line);
   background: var(--surface);
@@ -25,7 +25,7 @@
 .nav-link {
   display: inline-flex;
   align-items: center;
-  min-height: 36px;
+  min-height: var(--control-h);
   padding: 0 var(--space-3);
   border-radius: var(--radius-md);
   color: var(--ink);
@@ -91,11 +91,11 @@
   margin-left: auto;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 28px;
+  gap: var(--space-1-5);
+  height: var(--control-h-xs);
   padding: 0 var(--space-3);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--text-sm);
   color: var(--ink-soft);
   text-decoration: none;

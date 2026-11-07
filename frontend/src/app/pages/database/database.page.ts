@@ -5,6 +5,7 @@ import { DB_CARD, DB_CARD_MAX_ROWS, dbMapGeometry, dbMapSvg } from '../../core/d
 import {
   DbSchema,
   DbUsageReport,
+  KeyMark,
   sameName,
   SCHEMA_FINDING_BADGE,
   SCHEMA_SOURCE_LABEL,
@@ -97,6 +98,7 @@ export class DatabasePage {
   protected readonly canSwitch = computed(() => this.repositories().length > 1 && this.repositories().some((r) => r.name === this.nome()));
 
   protected readonly DbTab = DbTab;
+  protected readonly KeyMark = KeyMark;
   protected readonly tabs = DB_TABS;
   protected readonly tabLabel = DB_TAB_LABEL;
   protected readonly tabHint = DB_TAB_HINT;

@@ -124,11 +124,6 @@ h1 {
   text-align: right;
 }
 
-.has-holes {
-  color: var(--unresolved);
-  font-weight: 500;
-}
-
 // Até duas linhas; o texto inteiro fica no title.
 .row-error {
   display: -webkit-box;
@@ -187,7 +182,7 @@ h1 {
   height: var(--control-h-sm);
   padding: 0 var(--space-3);
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--ink);
   font: inherit;
@@ -212,8 +207,6 @@ h1 {
 
 .saved-notice {
   margin: 0 0 var(--space-2);
-  color: var(--ok);
-  font-size: var(--text-sm);
 }
 
 .skeleton-list {

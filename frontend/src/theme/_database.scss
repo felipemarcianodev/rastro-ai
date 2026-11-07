@@ -1,12 +1,22 @@
 // Tela do banco (Fase 38): marcas que o mapa e o painel da tabela repetem. Chave e dado pessoal
 // levam texto além da cor (PK, FK, pessoal), nunca só a cor.
+//
+// Medidas do mapa que ficam literais de propósito (exceção documentada no design-system.md): elas
+// moram aqui porque o desenho do bloco as combina (altura da linha 22px, do cabeçalho 34px, da
+// marca de chave 16px) e o db-map.ts conta com elas para ligar as setas à linha certa. Espessuras
+// de borda, anel e sublinhado (1px, 2px, 3px) também ficam literais.
+:root {
+  // Largura do selo da operação ("lê", "inclui"...); o link "Analisar a consulta" recua essa largura.
+  --db-op-w: 52px;
+}
+
 .db-key {
   display: inline-block;
   min-width: 34px;
-  padding: 0 4px;
-  border-radius: 3px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
   font-family: var(--font-code);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 700;
   line-height: 16px;
   text-align: center;
@@ -26,12 +36,12 @@
 
 .db-personal {
   display: inline-block;
-  padding: 0 4px;
-  border-radius: 3px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
   background: var(--danger-wash);
   color: var(--danger);
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: var(--text-2xs);
   font-weight: 600;
   line-height: 16px;
 }
@@ -117,7 +127,7 @@
 
   a.db-sql-link {
     flex: 0 0 100%;
-    padding-left: 60px;
+    padding-left: calc(var(--db-op-w) + var(--space-2));
     font-size: var(--text-xs);
   }
 }
@@ -125,8 +135,8 @@
 .db-op {
   flex: none;
   display: inline-block;
-  min-width: 52px;
-  padding: 0 6px;
+  min-width: var(--db-op-w);
+  padding: 0 var(--space-1-5);
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
   background: var(--surface-sunk);
@@ -147,5 +157,87 @@
   &.is-execute {
     border-style: dashed;
     background: transparent;
+  }
+}
+
+// Bloco de tabela do mapa (cartão, cabeçalho e linhas de coluna).
+.db-card {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  padding: 0 0 var(--space-2);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+
+  &:hover {
+    border-color: var(--ink-soft);
+  }
+
+  &.is-selected {
+    border-color: var(--trail);
+    box-shadow: 0 0 0 3px var(--trail);
+  }
+
+  &.is-lit {
+    border-color: var(--trail);
+    background: var(--trail-wash);
+  }
+
+  &.is-dim {
+    opacity: 0.35;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+}
+
+.db-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  height: 34px;
+  padding: 0 var(--space-3);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-sunk);
+  font-size: var(--text-sm);
+}
+
+.db-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  height: 22px;
+  padding: 0 var(--space-3);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.db-row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.db-row-type {
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-soft);
+
+  &.is-divergent {
+    color: var(--unresolved);
+    font-weight: 600;
   }
 }

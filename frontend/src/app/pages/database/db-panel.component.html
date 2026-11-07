@@ -53,7 +53,7 @@
               <span class="muted db-extra">padrão {{ c.default }}</span>
             }
           </td>
-          <td [class.db-divergent]="c.nullable === 'divergente'">{{ c.nullable }}</td>
+          <td [class.db-divergent]="c.nullableDivergent">{{ c.nullable }}</td>
           <td>{{ c.keyText }}</td>
         </tr>
       }

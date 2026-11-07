@@ -5,7 +5,7 @@
     <span>Proposta de {{ provider() }}, conferida pelo Rastro. Nada foi aplicado: copie o que quiser usar.</span>
   </p>
 
-  <h3 class="qs-title">Reescrita</h3>
+  <h3 class="section-title qs-title">Reescrita</h3>
   @if (rewrite(); as rw) {
     @if (!rw.accepted) {
       <div class="notice is-warning" role="status">
@@ -17,21 +17,21 @@
         </ul>
         <details class="qs-proposed">
           <summary>Ver o texto que a IA propôs (recusado, não use)</summary>
-          <pre class="code qs-pre is-muted" role="region" tabindex="0" aria-label="Consulta proposta e recusada"><code>{{ rw.sql }}</code></pre>
+          <pre class="code code-block qs-pre is-muted" role="region" tabindex="0" aria-label="Consulta proposta e recusada"><code>{{ rw.sql }}</code></pre>
         </details>
       </div>
     } @else {
       <div class="qs-diff">
         <div>
-          <h4 class="qs-sub">Antes</h4>
-          <pre class="code qs-pre" role="region" tabindex="0" aria-label="Consulta original"><code>{{ sql() }}</code></pre>
+          <h4 class="section-title qs-sub">Antes</h4>
+          <pre class="code code-block qs-pre" role="region" tabindex="0" aria-label="Consulta original"><code>{{ sql() }}</code></pre>
         </div>
         <div>
-          <h4 class="qs-sub">Depois</h4>
-          <pre class="code qs-pre" role="region" tabindex="0" aria-label="Consulta reescrita"><code>{{ rw.sql }}</code></pre>
+          <h4 class="section-title qs-sub">Depois</h4>
+          <pre class="code code-block qs-pre" role="region" tabindex="0" aria-label="Consulta reescrita"><code>{{ rw.sql }}</code></pre>
         </div>
       </div>
-      <div class="qs-row">
+      <div class="row-wrap qs-row">
         <button type="button" class="btn btn-g btn-small" (click)="rewriteCopy.copy(rw.sql)">{{ rewriteCopy.label('Copiar a consulta reescrita') }}</button>
         <span class="qs-status">Reescrita aceita pela conferência</span>
         <span class="visually-hidden rewrite-copy-status" role="status">{{ rewriteCopy.status() === 'idle' ? '' : rewriteCopy.label('') }}</span>
@@ -58,7 +58,7 @@
   }
 
   @if (review.changes.length > 0) {
-    <h3 class="qs-title">{{ rewrite() && !rewrite()!.accepted ? 'Mudanças da reescrita recusada' : 'Mudanças' }}</h3>
+    <h3 class="section-title qs-title">{{ rewrite() && !rewrite()!.accepted ? 'Mudanças da reescrita recusada' : 'Mudanças' }}</h3>
     <ul class="qs-changes">
       @for (c of review.changes; track $index) {
         <li><strong>{{ c.what }}</strong><span class="qs-why">{{ c.why }}</span></li>
@@ -67,7 +67,7 @@
   }
 
   @if (review.indexes.length > 0) {
-    <h3 class="qs-title">Índices sugeridos</h3>
+    <h3 class="section-title qs-title">Índices sugeridos</h3>
     <ul class="qs-indexes">
       @for (ix of review.indexes; track $index) {
         <li class="qs-index" [class.is-refused]="!ix.accepted">
@@ -84,8 +84,8 @@
           </p>
           <p class="qs-why">{{ ix.reason }}</p>
           @if (ix.accepted && ix.createSql) {
-            <pre class="code qs-pre" role="region" tabindex="0" aria-label="Comando para criar o índice em {{ ix.table }}"><code>{{ ix.createSql }}</code></pre>
-            <div class="qs-row">
+            <pre class="code code-block qs-pre" role="region" tabindex="0" aria-label="Comando para criar o índice em {{ ix.table }}"><code>{{ ix.createSql }}</code></pre>
+            <div class="row-wrap qs-row">
               <button type="button" class="btn btn-g btn-small" [attr.aria-label]="'Copiar o comando do índice em ' + ix.table" (click)="copyIndex($index, ix.createSql)">{{ indexLabel($index) }}</button>
               <span class="visually-hidden index-copy-status" role="status">{{ indexStatus($index) }}</span>
               <span class="muted">O Rastro não cria o índice: avalie e crie pela migration.</span>

@@ -53,7 +53,7 @@
     }
     <span class="visually-hidden" role="status">{{ repoMessage()?.text }}</span>
     @if (repoMessage(); as message) {
-      <p [class]="message.ok ? 'saved' : 'field-error'" [attr.role]="message.ok ? null : 'alert'">{{ message.text }}</p>
+      <p [class]="message.ok ? 'note-ok' : 'field-error'" [attr.role]="message.ok ? null : 'alert'">{{ message.text }}</p>
     }
 
     <form class="repo-form" (ngSubmit)="addRepository()" novalidate aria-labelledby="add-repo-title">
@@ -140,7 +140,7 @@
           <span>{{ enabled ? 'IA ligada' : 'IA desligada' }}</span>
         </label>
         @if (enabled !== loaded()!.enabled) {
-          <span class="pending" role="status">Alteração pendente, falta salvar</span>
+          <span class="note-pending" role="status">Alteração pendente, falta salvar</span>
         }
       </div>
       <p>O próprio Rastro chama a IA com a sua chave de API. As chaves ficam cifradas no armazenamento local do Rastro e nunca voltam para a tela.</p>
@@ -214,7 +214,7 @@
       <div class="actions">
         <button class="btn btn-p" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar configuração' }}</button>
         @if (saveMessage(); as message) {
-          <span [class]="message.ok ? 'saved' : 'field-error'" role="status">{{ message.text }}</span>
+          <span [class]="message.ok ? 'note-ok' : 'field-error'" role="status">{{ message.text }}</span>
         }
       </div>
       <p class="muted small">Última alteração: {{ shortDate(loaded()!.updatedAt) }}</p>

@@ -56,7 +56,7 @@
         }
         <button type="button" class="btn btn-g btn-small" (click)="savePeople()" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar pessoas' }}</button>
         @if (unsaved()) {
-          <span class="unsaved">Pessoas alteradas e não salvas: o DSL abaixo ainda não as inclui.</span>
+          <span class="note-pending">Pessoas alteradas e não salvas: o DSL abaixo ainda não as inclui.</span>
         } @else if (message(); as m) {
           <span [class]="m.ok ? 'editbar-ok' : 'field-error'" role="status">{{ m.text }}</span>
         }
@@ -82,7 +82,7 @@
 
     <footer class="dialog-foot">
       @if (unsaved()) {
-        <span class="unsaved foot-warning">Salve as pessoas antes de baixar.</span>
+        <span class="note-pending foot-warning">Salve as pessoas antes de baixar.</span>
       }
       <span class="visually-hidden" role="status">{{ dslCopy.status() === 'idle' ? '' : dslCopy.label('') }}</span>
       <button type="button" class="btn btn-g" (click)="copy()" [disabled]="!dsl()">{{ dslCopy.label('Copiar DSL') }}</button>

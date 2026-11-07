@@ -46,6 +46,18 @@ Cada paleta tem variante escura. Regra que vale para todas: a cor forte é só d
 - `.btn-p` (um por tela), `.btn-g` (secundário), `.btn-icon` (só ícone, sempre com `aria-label`).
 - `.field`, `.field-label`, `.field-help`, `.field-error`, `.input` (`.code` para campos de código).
 - `.pill` (estado: `is-running`, `is-completed`, `is-failed`, `is-stale`), `.notice` (`is-error`, `is-warning`).
+- `.row-wrap` (linha flexível que quebra), `.section-title` (título de seção no tamanho do texto), `.code-block` (bloco de código ou de consulta, que rola sozinho) e `.sev-tag` (selo de gravidade, `is-high` e `is-medium`, com o texto da gravidade escrito).
+- Avisos de estado do formulário: `.note-ok` (deu certo, "salvo") e `.note-pending` (falta fazer algo, "alteração pendente"). `.has-holes` é a cor de pendência para uma contagem dentro de uma frase. Telas novas usam essas classes e não repetem o estilo no `.component.scss`.
+- `[hidden]` vale em toda a aplicação (`_base.scss`), mesmo sobre um elemento com `display` próprio.
+
+### Tokens de medida
+
+Além da escala de texto e de espaço, o tema tem: `--text-2xs` (10px, só marca de chave e selo de dado pessoal), `--space-0-5` (2px) e `--space-1-5` (6px), `--radius-xs` (2px) e `--radius-pill` (999px), `--control-h-xs` (28px), `--topbar-h` (altura mínima da barra do alto) e `--reading-w` (960px, largura máxima de uma coluna de leitura).
+
+### Exceção: medidas do mapa do banco
+
+O desenho do bloco de tabela (`_database.scss`) combina medidas que o `db-map.ts` também usa para ligar as setas à linha certa: cabeçalho de 34px, linha de coluna de 22px, marca de chave com altura de linha de 16px (14px na FK com borda), selo de operação de 52px (`--db-op-w`), largura mínima da marca de chave de 34px, e as colunas da tela (lista de 240px, painel de 320 a 400px, mapa com no mínimo 420px em tela estreita). Essas medidas ficam literais de propósito: mudar uma exige mudar a outra no código do mapa. O mesmo vale para espessuras de borda, anel de foco e sublinhado (1px, 2px, 3px).
+
 
 ## Grafo (`_flow.scss`, Foblex Flow)
 
