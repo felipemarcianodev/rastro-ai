@@ -60,7 +60,7 @@ public class OpenAiTextService(IHttpClientFactory http, ILogger<OpenAiTextServic
                 ?? throw new AiProviderException("A OpenAI respondeu vazio.");
             var choice = json["choices"]?[0]?["message"];
             if (choice?["refusal"] is JsonValue refusal && !string.IsNullOrWhiteSpace((string?)refusal))
-                throw new AiProviderException("A OpenAI recusou o pedido. Tente outro nó ou outro provedor.");
+                throw new AiProviderException("A OpenAI recusou o pedido. Tente outro passo ou outro provedor.");
 
             var text = (string?)choice?["content"];
             if (string.IsNullOrWhiteSpace(text)) throw new AiProviderException("A OpenAI respondeu sem conteúdo.");

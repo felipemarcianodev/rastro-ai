@@ -13,14 +13,25 @@
   gap: var(--space-5);
 }
 
+// A barra de cima é a mesma das outras telas (tema); aqui ela só fica fixa no topo da rolagem.
+.page-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+button.page-back {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
 .head {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-
-  h1 {
-    font-size: var(--text-xl);
-  }
 }
 
 .toc {
@@ -45,11 +56,6 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.back {
-  align-self: flex-start;
-  margin-bottom: var(--space-2);
 }
 
 .repos {

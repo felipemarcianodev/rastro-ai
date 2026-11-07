@@ -38,14 +38,15 @@ O problema e a sugestão de cada item estão no plano de origem; aqui fica só o
 
 ## Fase E: risco alto, aprovados pelo dono
 
-- [ ] UX-FIM-Q07: um padrão só para o rótulo dos botões de IA, registrado no `design-system.md`, com "Ver no mapa" em maiúscula.
-- [ ] UX-FIM-Q15: "A análise não consulta o banco." e o passo de origem entre aspas.
-- [ ] UX-DBQ-05: quem chega pelo "Analisar a consulta" do passo já vê a análise, sem clicar em "Analisar".
-- [ ] UX-DBF-05, segunda parte: o nome da tabela no próprio bloco do passo.
-- [ ] UX-DBA-06: o motivo do erro do provedor (o `title` do problema) em todas as telas de IA, e as mensagens dos provedores sem "nó".
-- [ ] UX-PG-05: as mensagens mais comuns dos leitores de T-SQL e de PostgreSQL em português.
-- [ ] UX-PGL-05: a permissão mínima em lista, um comando por linha, com "Copiar".
-- [ ] Revisão geral A3 ("← Voltar" das Configurações vira `page-bar`), A5 (rótulo fixo em "Resumo/Completo" e nas chamadas do .NET, estado só no `aria-pressed`), A6 (× fixo no canto do painel e "Ver somente este fluxo" numa linha própria), A7 (barra da edição da visão consolidada) e A9 ("de 3 para 5").
+- [x] UX-FIM-Q07: um padrão só para o rótulo dos botões de IA, registrado no `design-system.md`, com "Ver no mapa" em maiúscula.
+- [x] UX-FIM-Q15: "A análise não consulta o banco." e o passo de origem entre aspas.
+- [x] UX-DBQ-05: quem chega pelo "Analisar a consulta" do passo já vê a análise, sem clicar em "Analisar".
+- [x] UX-DBF-05, segunda parte: o nome da tabela no próprio bloco do passo.
+- [x] UX-DBA-06: o motivo do erro do provedor (o `title` do problema) em todas as telas de IA, e as mensagens dos provedores sem "nó".
+- [x] UX-PG-05: as mensagens mais comuns dos leitores de T-SQL e de PostgreSQL em português.
+- [x] UX-PGL-05: a permissão mínima em lista, um comando por linha, com "Copiar".
+- [x] Revisão geral A3 ("← Voltar" das Configurações vira `page-bar`), A5 (rótulo fixo em "Resumo/Completo" e nas chamadas do .NET, estado só no `aria-pressed`), A6 (× fixo no canto do painel e "Ver somente este fluxo" numa linha própria), A7 (barra da edição da visão consolidada) e A9 ("de 3 para 5").
+- **Registro (2026-11-07):** feito. Padrão dos botões de IA: verbo no infinitivo, objeto e "com a IA" ("Sugerir refatoração com a IA", "Propor destinos com a IA", "Escrever regra com a IA", "Sugerir pessoas com a IA"; a pergunta livre ficou "Perguntar à IA"), registrado no `design-system.md`. A barra da edição do A7 fica na tela da visão consolidada (`diagram.page`), e o `.bar-group` subiu para o `_page.scss`. As mensagens dos leitores de SQL passam por `SqlMessageTranslator` (por padrão, sem IA; o que não casa fica com o texto original), conferido também pelo leitor de verdade nos dois dialetos. O `AI_PROVIDER_ERROR` já levava o motivo no `title`; a tela passou a mostrá-lo. Backend 699/699, frontend 454/454.
 
 ## Fase F: build e testes pela tela (risco alto, muda a ADR-003)
 

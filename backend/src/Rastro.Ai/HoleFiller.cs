@@ -89,7 +89,7 @@ public partial class HoleFiller(
 
         var hole = graph.Nodes.FirstOrDefault(n => n.Id == nodeId);
         if (hole is null || hole.Kind != NodeKind.Unresolved)
-            return new FillHoleResult(0, 0, ["Só nós não resolvidos recebem proposta de destino."]);
+            return new FillHoleResult(0, 0, ["Só passos não resolvidos recebem proposta de destino."]);
 
         var resolved = catalog.Resolve(survey.Repository, survey.SolutionPath);
         if (resolved.Target is not { } target) return new FillHoleResult(0, 0, ["O repositório ou a solution não estão mais disponíveis."]);

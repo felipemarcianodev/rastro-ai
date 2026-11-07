@@ -367,7 +367,7 @@
             </ol>
             <button type="button" class="btn btn-g btn-small" (click)="appendSuggestion()">Acrescentar ao prompt</button>
           } @else if (canSuggest()) {
-            <button type="button" class="btn btn-g btn-small" (click)="askSuggestion()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Pedir sugestão de refatoração à IA' }}</button>
+            <button type="button" class="btn btn-g btn-small" (click)="askSuggestion()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Sugerir refatoração com a IA' }}</button>
             <app-ai-disclosure goes="o achado, o nome e as métricas do método e o trecho de código dele" />
           } @else {
             <p class="muted">Para a IA sugerir a refatoração, ligue a IA e o uso "Sugestões de melhoria" em <a routerLink="/configuracoes" (click)="closePrompt()">Configurações</a>.</p>

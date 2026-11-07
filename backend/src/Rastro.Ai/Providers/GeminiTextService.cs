@@ -66,7 +66,7 @@ public class GeminiTextService(IHttpClientFactory http, ILogger<GeminiTextServic
                 ?? throw new AiProviderException("O Gemini respondeu vazio.");
             var candidate = json["candidates"]?[0];
             if ((string?)candidate?["finishReason"] is "SAFETY" or "PROHIBITED_CONTENT" or "BLOCKLIST")
-                throw new AiProviderException("O Gemini recusou o pedido. Tente outro nó ou outro provedor.");
+                throw new AiProviderException("O Gemini recusou o pedido. Tente outro passo ou outro provedor.");
 
             var text = (candidate?["content"]?["parts"] as JsonArray)?
                 .Select(part => (string?)part?["text"])

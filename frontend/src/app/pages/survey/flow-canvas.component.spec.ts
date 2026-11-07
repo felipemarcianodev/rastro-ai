@@ -1,5 +1,9 @@
-import { NodeKind } from '../../core/models';
-import { isPanGesture, isSelectionGesture, pickedFromSelection, splitLabel } from './flow-canvas.component';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { FlowGraph, NodeKind } from '../../core/models';
+import { FlowCanvasComponent, isPanGesture, isSelectionGesture, pickedFromSelection, splitLabel } from './flow-canvas.component';
 
 describe('splitLabel', () => {
   it('separa dono e nome do método, para o nome nunca ser cortado', () => {
@@ -63,5 +67,36 @@ describe('seleção múltipla no grafo', () => {
     expect(pickedFromSelection(['a'])).toBe('a');
     expect(pickedFromSelection(['a', 'b'])).toBeNull();
     expect(pickedFromSelection([])).toBeNull();
+  });
+});
+
+describe('FlowCanvasComponent: botões de modo (A5)', () => {
+  const graph: FlowGraph = { schemaVersion: 3, entryPoint: 'A', entryNodeId: 'a', nodes: [{ id: 'a', kind: NodeKind.Entry, label: 'A' }], edges: [] };
+
+  function render(showFramework: boolean) {
+    TestBed.configureTestingModule({ imports: [FlowCanvasComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(FlowCanvasComponent);
+    fixture.componentRef.setInput('graph', graph);
+    fixture.componentRef.setInput('frameworkCount', 3);
+    fixture.componentRef.setInput('showFramework', showFramework);
+    fixture.detectChanges();
+    return fixture.nativeElement as HTMLElement;
+  }
+
+  // A5
+  it('o rótulo não muda com o estado: ele fica só no aria-pressed', () => {
+    const labels = (el: HTMLElement) => ({
+      brief: el.querySelector('.tools-row-button')?.textContent?.trim(),
+      framework: el.querySelector('.framework-button')?.textContent?.trim(),
+    });
+    const off = render(false);
+    const before = labels(off);
+    expect(before.brief).toBe('Resumo do fluxo');
+    expect(before.framework).toBe('Chamadas do .NET (3)');
+    expect(off.querySelector('.framework-button')?.getAttribute('aria-pressed')).toBe('false');
+    TestBed.resetTestingModule();
+    const on = render(true);
+    expect(labels(on)).toEqual(before);
+    expect(on.querySelector('.framework-button')?.getAttribute('aria-pressed')).toBe('true');
   });
 });

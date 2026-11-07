@@ -210,6 +210,8 @@ public class TSqlQueryAnalyzerTests
         Assert.NotNull(analysis.Error);
         Assert.Equal(2, analysis.Error!.Line);
         Assert.Empty(analysis.Findings);
+        // UX-PG-05: a mensagem do leitor chega em português.
+        Assert.DoesNotContain("Incorrect syntax", analysis.Error.Message);
     }
 
     [Fact] // EXT-DBQ-015

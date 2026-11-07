@@ -1,7 +1,7 @@
 <div class="qa-main">
   <p class="muted qa-origin">
     @if (shownOrigin(); as o) {
-      Veio do passo {{ o }}
+      Veio do passo “{{ o }}”
     } @else {
       Cole uma consulta ou abra uma pelo passo do fluxo
     }
@@ -53,7 +53,7 @@
                 <span class="qa-why">{{ f.message }}</span>
               </button>
               @if (tableOf(f); as key) {
-                <button type="button" class="btn btn-g btn-small qa-map" (click)="pickTable.emit(key)" [attr.aria-label]="'Ver ' + key + ' no mapa'">ver no mapa</button>
+                <button type="button" class="btn btn-g btn-small qa-map" (click)="pickTable.emit(key)" [attr.aria-label]="'Ver ' + key + ' no mapa'">Ver no mapa</button>
               }
             </li>
           }

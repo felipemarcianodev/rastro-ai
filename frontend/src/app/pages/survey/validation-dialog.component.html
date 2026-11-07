@@ -25,7 +25,7 @@
             @if (failureSummary(); as why) {
               <span class="score-why">{{ why }}</span>
             }
-            <span class="muted">{{ r.score }}% dos critérios do rascunho cumpridos. Pontos de decisão do fluxo: {{ r.decisionPointsBefore }} → {{ r.decisionPointsAfter }}.</span>
+            <span class="muted">{{ r.score }}% dos critérios do rascunho cumpridos. Pontos de decisão do fluxo: de {{ r.decisionPointsBefore }} para {{ r.decisionPointsAfter }}.</span>
           </span>
         </div>
 
