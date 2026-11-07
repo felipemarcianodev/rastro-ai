@@ -120,6 +120,9 @@ export class NodePanelComponent {
   readonly showAll = output<void>();
   // Atalho para a aba Perguntas do mapa do fluxo.
   readonly openQuestions = output<void>();
+  // Atalhos da Visão geral: a barra do levantamento é quem exporta e abre a edição.
+  readonly exportFlow = output<void>();
+  readonly editFlow = output<void>();
   readonly removeEdge = output<FlowEdge>();
   // Prompt de refatoração de um achado (índice na lista do grafo).
   readonly refactorPrompt = output<number>();

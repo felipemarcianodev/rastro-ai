@@ -2,9 +2,11 @@ import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal } f
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { DialogDirective } from '../../core/dialog.directive';
 import { EditorLinks, isAbsoluteFolder } from '../../core/editor-links';
 import { plural, shortCommit, shortDate } from '../../core/format';
+import { LastRepositoryService } from '../../core/last-repository.service';
 import {
   API_ERROR_MESSAGE,
   CreateSurveyRequest,
@@ -29,6 +31,15 @@ const MAX_DEPTH = 40;
 const SKELETON_ROWS = [0, 1, 2];
 // Parâmetro da URL que pré-seleciona o repositório (usado pelas Configurações).
 export const REPOSITORY_QUERY_PARAM = 'repositorio';
+
+// Nome do parâmetro da rota do banco que escolhe a aba (o valor da aba de consulta é DB_TAB_QUERY_PARAM).
+const DB_TAB_PARAM = 'aba';
+
+interface RepoCard {
+  name: string;
+  count: string;
+  stack: string | null;
+}
 
 type Field = 'repository' | 'solution' | 'entry' | 'depth';
 
@@ -112,6 +123,7 @@ export class SurveysPage implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly editor = inject(EditorLinks);
+  private readonly lastRepository = inject(LastRepositoryService);
   private pollTimer?: ReturnType<typeof setTimeout>;
   // Pedido de um levantamento que falhou (estado da navegação), para preencher o formulário.
   private retry: CreateSurveyRequest | null = null;
@@ -148,6 +160,42 @@ export class SurveysPage implements OnInit {
   protected readonly hasRepositories = computed(() => this.repositories().length > 0);
   // Primeiro uso: a lista de repositórios já chegou e está vazia.
   protected readonly firstUse = computed(() => this.reposState() === 'ready' && !this.hasRepositories());
+
+  // Painel "Novo levantamento": abre pelo botão do topo ou pelo "Levantar fluxo" de um cartão.
+  protected readonly formOpen = signal(false);
+  protected readonly queryTabParams = { [DB_TAB_PARAM]: DB_TAB_QUERY_PARAM };
+
+  // Um cartão por repositório: quantos levantamentos tem e, quando há um, a solution do mais recente.
+  protected readonly repoCards = computed<RepoCard[]>(() => {
+    const surveys = this.surveys() ?? [];
+    return this.repositories().map((repo) => {
+      const own = surveys.filter((s) => s.repository === repo.name);
+      const latest = own.reduce<SurveySummary | null>((a, b) => (a === null || b.createdAt > a.createdAt ? b : a), null);
+      return {
+        name: repo.name,
+        count: own.length === 0 ? 'Nenhum levantamento' : plural(own.length, 'levantamento', 'levantamentos'),
+        stack: latest?.solutionPath ?? null,
+      };
+    });
+  });
+
+  protected dbRoute(repository: string): string[] {
+    return ['/repositorios', repository, 'banco'];
+  }
+
+  protected surveyOriginParams(id: string): Record<string, string> {
+    return { [DB_SURVEY_ORIGIN_PARAM]: id };
+  }
+
+  protected openForm(repository?: string): void {
+    if (repository && repository !== this.repository) this.selectRepository(repository);
+    else if (repository) this.lastRepository.remember(repository);
+    this.formOpen.set(true);
+  }
+
+  protected closeForm(): void {
+    if (!this.submitting() && !this.registerOpen()) this.formOpen.set(false);
+  }
 
   // Diálogo "Cadastrar repositório" (mesma API das Configurações).
   protected readonly registerOpen = signal(false);
@@ -190,6 +238,7 @@ export class SurveysPage implements OnInit {
         this.reposState.set('ready');
         this.registerOpen.set(false);
         this.selectRepository(created.name);
+        this.formOpen.set(true);
       },
       error: (error) => {
         this.registering.set(false);
@@ -274,6 +323,7 @@ export class SurveysPage implements OnInit {
     if (this.retry) {
       this.entryPoint = this.retry.entryPoint;
       this.maxDepth = this.retry.maxDepth ?? this.maxDepth;
+      this.formOpen.set(true);
     }
     this.loadSurveys();
     this.loadRepositories();
@@ -300,10 +350,13 @@ export class SurveysPage implements OnInit {
           const cross = retry.crossRepositories ?? [];
           this.crossChosen.set(new Set(cross.filter((n) => n !== retry.repository)));
           this.crossSelf.set(cross.includes(retry.repository));
+          this.formOpen.set(true);
           // Depois do render: o foco vai ao ponto de entrada, com o texto selecionado para trocar.
           setTimeout(() => this.host.nativeElement.querySelector<HTMLInputElement>('#entry')?.select());
-        } else if (preselected && repos.some((r) => r.name === preselected)) this.selectRepository(preselected);
-        else if (repos.length === 1) this.selectRepository(repos[0].name);
+        } else if (preselected && repos.some((r) => r.name === preselected)) {
+          this.selectRepository(preselected);
+          this.formOpen.set(true);
+        } else if (repos.length === 1) this.selectRepository(repos[0].name);
       },
       error: (error) => {
         this.reposError.set(apiErrorMessage(error));
@@ -327,6 +380,7 @@ export class SurveysPage implements OnInit {
     this.solutionPath = '';
     this.solutions.set([]);
     if (!name) return;
+    this.lastRepository.remember(name);
 
     this.loadingSolutions.set(true);
     this.api.solutions(name).subscribe({

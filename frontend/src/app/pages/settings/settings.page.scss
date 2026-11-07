@@ -216,3 +216,25 @@ fieldset {
   margin: 0;
   font-size: var(--text-sm);
 }
+
+.ai-off-note {
+  ul {
+    margin: 0;
+    padding-left: var(--space-5);
+  }
+
+  p {
+    margin: 0 0 var(--space-2);
+  }
+}
+
+.palette-select {
+  width: fit-content;
+  min-width: 200px;
+}
+
+.theme-options {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}

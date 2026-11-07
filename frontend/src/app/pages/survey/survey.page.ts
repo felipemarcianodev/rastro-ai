@@ -55,6 +55,12 @@ import { DialogDirective } from '../../core/dialog.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 
 const POLL_MS = 2000;
+// As três visões do seletor da barra (F09). Rótulo e dica saem daqui, nunca de comparação com texto.
+const DRAWING_VIEWS: readonly { direction: LayoutDirection; label: string; title: string }[] = [
+  { direction: LayoutDirection.Horizontal, label: 'Grafo', title: 'O grafo do fluxo, passo a passo' },
+  { direction: LayoutDirection.Map, label: 'Mapa por sistemas', title: 'Um mapa por sistema, com os caminhos de ponta a ponta' },
+  { direction: LayoutDirection.Consolidated, label: 'Visão consolidada', title: 'O fluxo todo num desenho só, com as suas cores' },
+];
 const SEARCH_FOCUS_DELAY_MS = 120;
 const EXPORT_MESSAGE_MS = 4000;
 const NOTE_MESSAGE_MS = 3000;
@@ -100,9 +106,8 @@ export class SurveyPage {
   protected readonly confirmDiscard = signal(false);
   protected readonly confirmDelete = signal(false);
   protected readonly deleting = signal(false);
-  // Menus da barra: "Exportar" (leitura) e "Mais" (edição).
+  // Menus da barra: "Comparar" e "Exportar".
   protected readonly exportOpen = signal(false);
-  protected readonly moreOpen = signal(false);
   protected readonly hintOpen = signal(false);
   // Mudanças no rascunho salvo: com elas, dá para validar sem entrar na edição (UX-71).
   protected readonly savedChanges = signal(0);
@@ -378,14 +383,17 @@ export class SurveyPage {
     this.select(id);
   }
 
-  // O botão "Visão consolidada" da barra liga e desliga o desenho consolidado.
-  protected toggleConsolidated(): void {
-    this.onDirection(this.consolidated() ? LayoutDirection.Horizontal : LayoutDirection.Consolidated);
+  protected readonly drawingViews = DRAWING_VIEWS;
+
+  // Seletor da barra: o Grafo é tudo o que não é mapa nem consolidado.
+  protected drawingPressed(direction: LayoutDirection): boolean {
+    if (direction === LayoutDirection.Map) return this.mapped();
+    if (direction === LayoutDirection.Consolidated) return this.consolidated();
+    return !this.mapped() && !this.consolidated();
   }
 
-  // O botão "Mapa do fluxo" da barra liga e desliga o mapa.
-  protected toggleMap(): void {
-    this.onDirection(this.mapped() ? LayoutDirection.Horizontal : LayoutDirection.Map);
+  protected showDrawing(direction: LayoutDirection): void {
+    if (!this.drawingPressed(direction)) this.onDirection(direction);
   }
 
   // Atalho do painel: liga o mapa do fluxo e abre a aba Perguntas.
@@ -425,7 +433,7 @@ export class SurveyPage {
     else if (this.validationOpen()) this.validationOpen.set(false);
     else if (this.prompt()) this.closePrompt();
     else if (this.menu()) this.closeMenu();
-    else if (this.exportOpen() || this.moreOpen() || this.compareOpen()) this.closePopovers();
+    else if (this.exportOpen() || this.compareOpen()) this.closePopovers();
     else if (this.searchOpen()) this.closeSearch();
     else if (this.pathFrom()) this.clearPath();
     else if (this.selectedId()) this.closePanel(this.selectedId()!);
@@ -435,23 +443,21 @@ export class SurveyPage {
   // UX-95: menus suspensos pelo teclado; o foco entra no 1º item e volta ao botão ao fechar.
   private popoverOpener: HTMLElement | null = null;
 
-  protected togglePopover(which: 'export' | 'more' | 'compare'): void {
-    const target = which === 'export' ? this.exportOpen : which === 'more' ? this.moreOpen : this.compareOpen;
+  protected togglePopover(which: 'export' | 'compare'): void {
+    const target = which === 'export' ? this.exportOpen : this.compareOpen;
     const opening = !target();
     this.exportOpen.set(false);
-    this.moreOpen.set(false);
     this.compareOpen.set(false);
     if (!opening) return;
     this.popoverOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     target.set(true);
-    if (which === 'compare' || which === 'export') this.loadSiblings();
+    if (which === 'compare') this.loadSiblings();
     // Mesmo atraso da busca: o Foblex devolve o foco ao item de acessibilidade dele logo depois.
     setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(`#${which}-menu button`)?.focus(), SEARCH_FOCUS_DELAY_MS);
   }
 
   protected closePopovers(): void {
     this.exportOpen.set(false);
-    this.moreOpen.set(false);
     this.compareOpen.set(false);
     this.popoverOpener?.focus();
     this.popoverOpener = null;
@@ -631,11 +637,6 @@ export class SurveyPage {
         this.softError.set(`Não excluiu: ${apiErrorMessage(error)}`);
       },
     });
-  }
-
-  protected discardFromMenu(): void {
-    this.closePopovers();
-    this.requestDiscard();
   }
 
   protected toggleNewStep(): void {

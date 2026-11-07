@@ -224,7 +224,7 @@ describe('DatabasePage: abas (Fase 40a)', () => {
   it('abre o mapa por padrão, com o Exportar, e a aba consulta pela URL, sem o Exportar', () => {
     const map = renderPage();
     const tabs = [...map.el.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
-    expect(tabs.map((t) => t.textContent!.trim())).toEqual(['Mapa do banco', 'Analisar consulta']);
+    expect(tabs.map((t) => t.querySelector('.db-tab-label')!.textContent!.trim())).toEqual(['Mapa do banco', 'Analisar consulta']);
     expect(tabs.map((t) => t.getAttribute('aria-selected'))).toEqual(['true', 'false']);
     expect(map.el.querySelector('.popover')).not.toBeNull();
     expect(map.el.querySelector<HTMLElement>('.db-body')!.hidden).toBeFalse();

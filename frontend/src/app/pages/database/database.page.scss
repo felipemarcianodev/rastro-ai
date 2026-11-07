@@ -7,6 +7,18 @@
   display: none !important;
 }
 
+.db-tab-label,
+.db-tab-hint {
+  display: block;
+  text-align: left;
+}
+
+.db-tab-hint {
+  color: var(--ink-soft);
+  font-size: var(--text-xs);
+  font-weight: 400;
+}
+
 .db-promise {
   font-size: var(--text-xs);
 }

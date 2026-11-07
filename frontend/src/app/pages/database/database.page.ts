@@ -23,6 +23,7 @@ import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
 import { readDiagramColors } from '../../core/mermaid-render';
 import { RepositoryItem } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { LastRepositoryService } from '../../core/last-repository.service';
 import { DbItemKind, DbPick, DbPanelComponent } from './db-panel.component';
 import { LiveConnectionView } from '../../core/database/live-database';
 import { LiveConnectionDialogComponent } from './live-connection-dialog.component';
@@ -45,6 +46,12 @@ export enum DbTab {
 const DB_TAB_LABEL: Record<DbTab, string> = {
   [DbTab.Map]: 'Mapa do banco',
   [DbTab.Query]: 'Analisar consulta',
+};
+
+// A linha que explica cada aba (B05).
+const DB_TAB_HINT: Record<DbTab, string> = {
+  [DbTab.Map]: 'Tabelas, chaves e índices lidos do código',
+  [DbTab.Query]: 'Cole um SQL e veja os gargalos, sem executar',
 };
 
 const DB_TAB_ID: Record<DbTab, string> = {
@@ -92,7 +99,9 @@ export class DatabasePage {
   protected readonly DbTab = DbTab;
   protected readonly tabs = DB_TABS;
   protected readonly tabLabel = DB_TAB_LABEL;
+  protected readonly tabHint = DB_TAB_HINT;
   protected readonly tabId = DB_TAB_ID;
+  private readonly lastRepository = inject(LastRepositoryService);
   protected readonly tab = computed(() => (this.aba() === DB_TAB_QUERY_PARAM ? DbTab.Query : DbTab.Map));
 
   protected readonly schema = signal<DbSchema | null>(null);
@@ -235,6 +244,8 @@ export class DatabasePage {
         next: (schema) =>
           untracked(() => {
             this.schema.set(schema);
+            // O repositório existe e tem esquema: é o último usado, para o "Banco" do cabeçalho.
+            this.lastRepository.remember(name);
             const wanted = this.tabela();
             const table = wanted && !refresh ? findTable(schema, wanted) : undefined;
             if (table) this.choose({ kind: DbItemKind.Table, key: tableKey(table) });

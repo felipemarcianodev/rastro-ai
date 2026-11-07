@@ -13,6 +13,21 @@
   color: var(--ink-soft);
   font-size: var(--text-xs);
   line-height: 1.5;
+
+  h3 {
+    margin-bottom: var(--space-1);
+    font-size: var(--text-sm);
+    color: var(--ink);
+  }
+
+  ul {
+    margin: 0;
+    padding-left: var(--space-4);
+  }
+
+  li + li {
+    margin-top: var(--space-1);
+  }
 }
 
 .live-confirm {

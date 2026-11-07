@@ -1,4 +1,4 @@
-<div class="overlay" appDialog (click)="closed.emit()">
+<div class="overlay" appDialog (click)="dismiss()">
   <section class="dialog is-narrow" role="dialog" aria-modal="true" aria-labelledby="live-title" (click)="$event.stopPropagation()">
     <header class="dialog-head">
       <div>
@@ -15,24 +15,6 @@
         } @else {
           <p class="muted">Nenhuma conexão salva. Sem ela, o Rastro lê só o código.</p>
         }
-      }
-
-      @if (dialect() === SqlDialect.PostgreSql) {
-        <p class="live-grants">
-          Use um usuário só de leitura, com a permissão mínima. No PostgreSQL, <code>{{ pgConnect }}</code> basta para o catálogo.
-          Para o plano estimado, também o SELECT nas tabelas da consulta (<code>{{ pgSelect }}</code>, ou só nas tabelas que você quer analisar):
-          o PostgreSQL confere a permissão da instrução também no EXPLAIN. Deixe o usuário só de leitura também no banco (<code>{{ pgReadOnly }}</code>).
-          O Rastro lê só o catálogo e pede o EXPLAIN sem ANALYZE, numa conexão só de leitura, sem executar a consulta.
-          Os dados das tabelas nunca são lidos. A string de conexão fica cifrada no banco local e nunca volta para a tela.
-        </p>
-      } @else {
-        <p class="live-grants">
-          Use um usuário só de leitura, com a permissão mínima. No SQL Server, <code>{{ grants }}</code> basta para o catálogo.
-          Para o plano estimado, também <code>{{ showplan }}</code> e o SELECT nas tabelas da consulta (<code>{{ select }}</code>, ou só nas tabelas que você quer analisar):
-          o SQL Server só mostra o plano a quem pode rodar a instrução.
-          O Rastro lê só o catálogo (tabelas, colunas, chaves e índices) e pede o plano estimado, sem executar a consulta.
-          Os dados das tabelas nunca são lidos. A string de conexão fica cifrada no banco local e nunca volta para a tela.
-        </p>
       }
 
       <div class="field">
@@ -60,6 +42,32 @@
           </div>
         </div>
       }
+
+      <section class="live-grants" aria-labelledby="live-grants-title">
+        <h3 id="live-grants-title">Permissões do usuário</h3>
+        @if (dialect() === SqlDialect.PostgreSql) {
+          <ul>
+            <li>Use um usuário só de leitura, com a permissão mínima. No PostgreSQL, <code>{{ pgConnect }}</code> basta para o catálogo.</li>
+            <li>
+              Para o plano estimado, também o SELECT nas tabelas da consulta (<code>{{ pgSelect }}</code>, ou só nas tabelas que você quer analisar):
+              o PostgreSQL confere a permissão da instrução também no EXPLAIN.
+            </li>
+            <li>Deixe o usuário só de leitura também no banco (<code>{{ pgReadOnly }}</code>).</li>
+            <li>O Rastro lê só o catálogo e pede o EXPLAIN sem ANALYZE, numa conexão só de leitura, sem executar a consulta.</li>
+            <li>Os dados das tabelas nunca são lidos. A string de conexão fica cifrada no armazenamento local do Rastro e nunca volta para a tela.</li>
+          </ul>
+        } @else {
+          <ul>
+            <li>Use um usuário só de leitura, com a permissão mínima. No SQL Server, <code>{{ grants }}</code> basta para o catálogo.</li>
+            <li>
+              Para o plano estimado, também <code>{{ showplan }}</code> e o SELECT nas tabelas da consulta (<code>{{ select }}</code>, ou só nas tabelas que você quer analisar):
+              o SQL Server só mostra o plano a quem pode rodar a instrução.
+            </li>
+            <li>O Rastro lê só o catálogo (tabelas, colunas, chaves e índices) e pede o plano estimado, sem executar a consulta.</li>
+            <li>Os dados das tabelas nunca são lidos. A string de conexão fica cifrada no armazenamento local do Rastro e nunca volta para a tela.</li>
+          </ul>
+        }
+      </section>
     </div>
 
     <footer class="dialog-foot live-foot">
@@ -67,6 +75,7 @@
         <button type="button" class="btn btn-g live-remove" (click)="confirmingRemove.set(true)" [disabled]="busy()">Remover conexão</button>
         <button type="button" class="btn btn-g" (click)="test()" [disabled]="busy()">{{ busy() ? 'Aguarde…' : 'Testar conexão' }}</button>
       }
+      <button type="button" class="btn btn-g" (click)="closed.emit()">Fechar</button>
       <button type="button" class="btn btn-p" (click)="save()" [disabled]="!key().trim() || busy()">Salvar</button>
     </footer>
   </section>

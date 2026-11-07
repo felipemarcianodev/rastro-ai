@@ -196,7 +196,7 @@ describe('SettingsPage: voltar', () => {
 
 describe('SettingsPage: índice de seções', () => {
   // UX-H16
-  it('mostraOIndiceComAsTresSecoesCadaUmaComId', () => {
+  it('mostraOIndiceComAsQuatroSecoesCadaUmaComId', () => {
     const { fixture, http, el } = render();
     http.match('/api/ai/status').forEach((r) => r.flush({}));
     http.expectOne('/api/repositories').flush([]);
@@ -207,7 +207,45 @@ describe('SettingsPage: índice de seções', () => {
     fixture.detectChanges();
 
     const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('nav.toc a'));
-    expect(links.map((a) => a.textContent?.trim())).toEqual(['Repositórios', 'Modo agente (MCP)', 'Inteligência artificial']);
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Repositórios', 'Modo agente (MCP)', 'Inteligência artificial', 'Aparência']);
     for (const link of links) expect(el.querySelector(link.getAttribute('href')!)).not.toBeNull();
+  });
+});
+
+describe('SettingsPage: aparência', () => {
+  beforeEach(() => {
+    localStorage.removeItem('rastro.theme');
+    localStorage.removeItem('rastro.palette');
+  });
+
+  // UX-H04
+  it('o índice ganha o item Aparência e a seção troca a paleta', () => {
+    const { fixture, http, el } = render();
+    answerInitial(http, []);
+    fixture.detectChanges();
+
+    expect(Array.from(el.querySelectorAll('.toc a')).map((a) => a.textContent?.trim())).toContain('Aparência');
+    const select = el.querySelector('#aparencia select') as HTMLSelectElement;
+    select.value = 'nautica';
+    select.dispatchEvent(new Event('change'));
+    expect(document.documentElement.getAttribute('data-palette')).toBe('nautica');
+    select.value = 'papel';
+    select.dispatchEvent(new Event('change'));
+    expect(document.documentElement.hasAttribute('data-palette')).toBeFalse();
+  });
+
+  it('o tema tem três opções em grupo de rádio e a escolha vale na hora', () => {
+    const { fixture, http, el } = render();
+    answerInitial(http, []);
+    fixture.detectChanges();
+
+    const radios = Array.from(el.querySelectorAll<HTMLInputElement>('#aparencia input[type=radio][name=theme]'));
+    expect(radios.map((r) => r.closest('label')?.textContent?.trim())).toEqual(['Do sistema', 'Claro', 'Escuro']);
+    expect(radios[0].checked).toBeTrue();
+    radios[2].click();
+    fixture.detectChanges();
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    radios[0].click();
+    expect(document.documentElement.hasAttribute('data-theme')).toBeFalse();
   });
 });

@@ -19,6 +19,13 @@
           @if (d.survey.commitHash) {
             <span>commit <span class="code" [title]="d.survey.commitHash">{{ shortCommit(d.survey.commitHash) }}</span></span>
           }
+          <span [class]="'pill is-' + statusSlug[d.survey.status]">{{ statusLabel[d.survey.status] }}</span>
+          @if (d.survey.status === SurveyStatus.Completed) {
+            <span class="muted">
+              {{ plural(d.survey.nodeCount, 'nó', 'nós') }},
+              <span [class.has-holes]="d.survey.unresolvedCount > 0">{{ plural(d.survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</span>
+            </span>
+          }
           @if (d.survey.branch) {
             <details class="meta-details">
               <summary>Detalhes</summary>
@@ -48,61 +55,63 @@
           </button>
         }
         @if (!editing()) {
-          <a class="btn btn-g btn-small" [routerLink]="['/repositorios', d.survey.repository, 'banco']" [queryParams]="dbOriginQuery(d.survey.id)" title="O mapa do banco deste repositório, lido do código">Mapa do banco</a>
-        }
-        @if (d.survey.status === SurveyStatus.Completed && !editing()) {
-          <button type="button" class="btn btn-g btn-small" (click)="toggleConsolidated()" [attr.aria-pressed]="consolidated()"
-            [title]="consolidated() ? 'Voltar ao desenho do grafo' : 'O fluxo todo num desenho só, com as suas cores'">Visão consolidada</button>
-          <button type="button" class="btn btn-g btn-small" (click)="toggleMap()" [attr.aria-pressed]="mapped()"
-            [title]="mapped() ? 'Voltar ao desenho do grafo' : 'Um mapa por sistema, com os caminhos de ponta a ponta'">Mapa do fluxo</button>
-          <span class="popover">
-            <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null">Comparar e exportar</button>
-            @if (exportOpen()) {
-              <div class="menu-backdrop" (click)="closePopovers()"></div>
-              <ul id="export-menu" class="popover-menu" role="menu" aria-label="Comparar e exportar" (keydown)="onMenuKey($event)">
-                <li class="popover-group" role="presentation">Exportar o que está na tela</li>
-                <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">Imagem PNG</button></li>
-                <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">Imagem SVG</button></li>
-                <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">Copiar como Mermaid</button></li>
-                <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">Baixar como Mermaid (.mmd)</button></li>
-                <li role="none"><button type="button" role="menuitem" (click)="openC4()">Diagramas C4 (Structurizr DSL)</button></li>
-                <li class="popover-group" role="presentation">Comparar com outro levantamento deste método</li>
-                @if (siblingsState() === 'loading') {
-                  <li class="popover-empty muted" role="presentation" aria-live="polite">Procurando levantamentos…</li>
-                } @else if (siblingsState() === 'error') {
-                  <li class="popover-empty field-error" role="alert">Não deu para listar os levantamentos.</li>
-                  <li role="none"><button type="button" role="menuitem" (click)="loadSiblings()">Tentar de novo</button></li>
-                } @else {
-                  @for (other of siblings(); track other.id) {
-                    <li role="none"><button type="button" role="menuitem" (click)="compareWith(other.id)">{{ shortDate(other.createdAt) }}, commit {{ shortCommit(other.commitHash) || 'desconhecido' }}, {{ plural(other.nodeCount, 'nó', 'nós') }}</button></li>
-                  } @empty {
-                    <li class="popover-empty muted" role="presentation">Nenhum outro levantamento pronto deste método.</li>
-                  }
+          <div class="bar-group" role="group" aria-label="Ver">
+            @if (d.survey.status === SurveyStatus.Completed) {
+              <div class="segmented" role="group" aria-label="Desenho do fluxo">
+                @for (view of drawingViews; track view.direction) {
+                  <button type="button" class="segmented-item" (click)="showDrawing(view.direction)" [attr.aria-pressed]="drawingPressed(view.direction)" [title]="view.title">{{ view.label }}</button>
                 }
-              </ul>
+              </div>
             }
-          </span>
-          <span class="popover">
-            <button type="button" class="btn btn-g btn-small" (click)="togglePopover('more')" [attr.aria-expanded]="moreOpen()" [attr.aria-controls]="moreOpen() ? 'more-menu' : null" aria-label="Mais ações do levantamento" title="Mais ações">⋯</button>
-            @if (moreOpen()) {
-              <div class="menu-backdrop" (click)="closePopovers()"></div>
-              <ul id="more-menu" class="popover-menu" role="menu" aria-label="Mais ações do levantamento" (keydown)="onMenuKey($event)">
-                <li role="none"><button type="button" role="menuitem" class="is-danger" (click)="requestDelete()">Excluir levantamento…</button></li>
-              </ul>
-            }
-          </span>
-          @if (savedChanges() > 0) {
-            <button type="button" class="btn btn-g btn-small" (click)="validate()" [disabled]="validationBusy()"
-              [title]="'Rascunho salvo com ' + plural(savedChanges(), 'mudança', 'mudanças') + '. Depois de aplicar no código: levanta o fluxo de novo e confere'">Validar mudança</button>
+            <a class="btn btn-g btn-small" [routerLink]="['/repositorios', d.survey.repository, 'banco']" [queryParams]="dbOriginQuery(d.survey.id)" title="O mapa do banco deste repositório, lido do código">Mapa do banco</a>
+          </div>
+          @if (d.survey.status === SurveyStatus.Completed) {
+            <div class="bar-group" role="group" aria-label="Compartilhar">
+              <span class="popover">
+                <button type="button" class="btn btn-g btn-small" (click)="togglePopover('compare')" [attr.aria-expanded]="compareOpen()" [attr.aria-controls]="compareOpen() ? 'compare-menu' : null" title="Comparar com outro levantamento deste método">Comparar</button>
+                @if (compareOpen()) {
+                  <div class="menu-backdrop" (click)="closePopovers()"></div>
+                  <ul id="compare-menu" class="popover-menu" role="menu" aria-label="Comparar com outro levantamento deste método" (keydown)="onMenuKey($event)">
+                    <li class="popover-group" role="presentation">Comparar com outro levantamento deste método</li>
+                    @if (siblingsState() === 'loading') {
+                      <li class="popover-empty muted" role="presentation" aria-live="polite">Procurando levantamentos…</li>
+                    } @else if (siblingsState() === 'error') {
+                      <li class="popover-empty field-error" role="alert">Não deu para listar os levantamentos.</li>
+                      <li role="none"><button type="button" role="menuitem" (click)="loadSiblings()">Tentar de novo</button></li>
+                    } @else {
+                      @for (other of siblings(); track other.id) {
+                        <li role="none"><button type="button" role="menuitem" (click)="compareWith(other.id)">{{ shortDate(other.createdAt) }}, commit {{ shortCommit(other.commitHash) || 'desconhecido' }}, {{ plural(other.nodeCount, 'nó', 'nós') }}</button></li>
+                      } @empty {
+                        <li class="popover-empty muted" role="presentation">Nenhum outro levantamento pronto deste método.</li>
+                      }
+                    }
+                  </ul>
+                }
+              </span>
+              <span class="popover">
+                <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null" title="PNG, SVG, Mermaid e C4">Exportar</button>
+                @if (exportOpen()) {
+                  <div class="menu-backdrop" (click)="closePopovers()"></div>
+                  <ul id="export-menu" class="popover-menu" role="menu" aria-label="Exportar" (keydown)="onMenuKey($event)">
+                    <li class="popover-group" role="presentation">Exportar o que está na tela</li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">Imagem PNG</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">Imagem SVG</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">Copiar como Mermaid</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">Baixar como Mermaid (.mmd)</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="openC4()">Diagramas C4 (Structurizr DSL)</button></li>
+                  </ul>
+                }
+              </span>
+            </div>
+            <div class="bar-group" role="group" aria-label="Alterar">
+              @if (savedChanges() > 0) {
+                <button type="button" class="btn btn-g btn-small" (click)="validate()" [disabled]="validationBusy()"
+                  [title]="'Rascunho salvo com ' + plural(savedChanges(), 'mudança', 'mudanças') + '. Depois de aplicar no código: levanta o fluxo de novo e confere'">Validar mudança</button>
+              }
+              <button type="button" class="btn btn-p btn-small" (click)="startEditing()">Editar fluxo</button>
+            </div>
+            <button type="button" class="link-quiet delete-link" (click)="requestDelete()">Excluir levantamento…</button>
           }
-          <button type="button" class="btn btn-p btn-small" (click)="startEditing()">Editar fluxo</button>
-        }
-        <span [class]="'pill is-' + statusSlug[d.survey.status]">{{ statusLabel[d.survey.status] }}</span>
-        @if (d.survey.status === SurveyStatus.Completed) {
-          <span class="muted">
-            {{ plural(d.survey.nodeCount, 'nó', 'nós') }},
-            <span [class.has-holes]="d.survey.unresolvedCount > 0">{{ plural(d.survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</span>
-          </span>
         }
       </div>
     </header>
@@ -129,15 +138,7 @@
           </span>
           <button type="button" class="btn btn-g btn-small" (click)="saveDraft()" [disabled]="savingDraft() || !dirty()">{{ savingDraft() ? 'Salvando…' : 'Salvar rascunho' }}</button>
           <button type="button" class="btn btn-g btn-small" (click)="exitEditing()">{{ dirty() ? 'Salvar e sair' : 'Sair da edição' }}</button>
-          <span class="popover">
-            <button type="button" class="btn btn-g btn-small" (click)="togglePopover('more')" [attr.aria-expanded]="moreOpen()" [attr.aria-controls]="moreOpen() ? 'more-menu' : null" aria-label="Mais ações da edição">Mais</button>
-            @if (moreOpen()) {
-              <div class="menu-backdrop" (click)="closePopovers()"></div>
-              <ul id="more-menu" class="popover-menu" role="menu" aria-label="Mais ações da edição" (keydown)="onMenuKey($event)">
-                <li role="none"><button type="button" role="menuitem" class="is-danger" (click)="discardFromMenu()">Descartar rascunho…</button></li>
-              </ul>
-            }
-          </span>
+          <button type="button" class="link-quiet delete-link" (click)="requestDiscard()">Descartar rascunho…</button>
         </span>
       </div>
       @if (hintOpen()) {
@@ -288,7 +289,7 @@
           [canDescribe]="canDescribe()" [describing]="describing()" [describeMessage]="describeMessage()"
           [editing]="editing()" [focusId]="focusId()" [aiActive]="aiActive()"
           [notes]="notes()" [crossFlow]="crossFlow()" [savingNote]="savingNote()" [noteMessage]="noteMessage()" [noteUndo]="noteUndo()" (saveNote)="saveNote($event)"
-          (focusFlow)="focusOnNode($event)" (showAll)="showAll()" (openQuestions)="openQuestions()"
+          (focusFlow)="focusOnNode($event)" (showAll)="showAll()" (openQuestions)="openQuestions()" (exportFlow)="togglePopover('export')" (editFlow)="startEditing()"
           (selectNode)="select($event)" (closePanel)="closePanel($event)" (decideEdge)="decide($event)" (fillHole)="fillHole($event)" (describe)="describe($event)"
           (removeEdge)="onRemoveEdge($event)" (removeStep)="onRemoveStep($event)" (restoreStep)="onRestoreStep($event)"
           (setIntent)="onSetIntent($event)" (connectTo)="onConnectTo($event)" (refactorPrompt)="openRefactorPrompt($event)" />

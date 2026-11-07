@@ -12,7 +12,7 @@ export class AiStatusService {
 
   readonly label = computed(() => {
     const status = this.status();
-    if (!status || !status.enabled) return 'IA desligada';
+    if (!status || !status.enabled) return 'IA: configurar';
     if (!status.configured) return 'IA sem chave';
     return `IA: ${AI_PROVIDER_LABEL[status.provider]}`;
   });

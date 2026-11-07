@@ -8,6 +8,7 @@ import { EditorLinks, isAbsoluteFolder } from '../../core/editor-links';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { REPOSITORY_QUERY_PARAM } from '../surveys/surveys.page';
 import { shortDate } from '../../core/format';
+import { PALETTES, PALETTE_LABEL, PaletteChoice, ThemeChoice, ThemeService } from '../../core/theme.service';
 import {
   AI_PROVIDER_LABEL,
   AI_PROVIDER_SLUG,
@@ -23,7 +24,7 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 // Sem caminho de máquina: o usuário troca o marcador pela pasta onde o Rastro está.
 // Seções que o fragmento da URL leva (o selo da IA aponta para #ia).
-const SCROLL_SECTIONS = ['agente', 'ia'];
+const SCROLL_SECTIONS = ['agente', 'ia', 'aparencia'];
 const MCP_COMMAND = 'claude mcp add rastro -- rastro mcp';
 
 interface ProviderForm {
@@ -34,6 +35,12 @@ interface ProviderForm {
   hasKey: boolean;
 }
 
+const THEME_OPTION_LABEL: Record<ThemeChoice, string> = {
+  system: 'Do sistema',
+  light: 'Claro',
+  dark: 'Escuro',
+};
+
 @Component({
   selector: 'app-settings-page',
   imports: [FormsModule, RouterLink, ConfirmDialogComponent],
@@ -43,6 +50,11 @@ interface ProviderForm {
 export class SettingsPage implements OnInit {
   private readonly api = inject(RastroApi);
   protected readonly ai = inject(AiStatusService);
+  protected readonly theme = inject(ThemeService);
+  protected readonly palettes = PALETTES;
+  protected readonly paletteLabel = PALETTE_LABEL;
+  protected readonly themes: ThemeChoice[] = ['system', 'light', 'dark'];
+  protected readonly themeLabel = THEME_OPTION_LABEL;
 
   protected readonly loaded = signal<AiSettingsView | null>(null);
   protected readonly loadError = signal<string | null>(null);
@@ -299,6 +311,10 @@ export class SettingsPage implements OnInit {
 
   protected copyCommand(): void {
     this.commandCopy.copy(this.mcpCommand);
+  }
+
+  protected choosePalette(value: string): void {
+    this.theme.setPalette(value as PaletteChoice);
   }
 
   protected slug(provider: AiProvider): string {
