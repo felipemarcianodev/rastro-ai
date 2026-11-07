@@ -753,7 +753,7 @@ describe('SurveysPage: Fase C do levantamento completo', () => {
     const steps = Array.from(el.querySelectorAll('.first-use ol.steps li')).map((li) => li.textContent?.trim());
     expect(steps).toEqual(['Cadastre a pasta do código que o Rastro vai ler.', 'Escolha o método de entrada e levante o primeiro fluxo.']);
     const note = el.querySelector('.first-use .ai-note') as HTMLElement;
-    expect(note.textContent?.replace(/\s+/g, ' ').trim()).toBe('A IA é opcional: o Rastro funciona sem ela. Para ligar, vá a Configurações.');
+    expect(note.textContent?.replace(/\s+/g, ' ').trim()).toBe('A IA é opcional: o Rastro funciona sem ela. Para ligar, abra as Configurações.');
     expect(note.querySelector('a')?.getAttribute('href')).toBe('/configuracoes#ia');
     http.match(() => true).forEach((request) => request.flush([]));
   });

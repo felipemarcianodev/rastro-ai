@@ -24,7 +24,7 @@
       <div class="first-use-actions">
         <button type="button" class="btn btn-p" (click)="openRegister()">Cadastrar repositório</button>
       </div>
-      <p class="muted ai-note">A IA é opcional: o Rastro funciona sem ela. Para ligar, vá a <a routerLink="/configuracoes" fragment="ia">Configurações</a>.</p>
+      <p class="muted ai-note">A IA é opcional: o Rastro funciona sem ela. Para ligar, abra as <a routerLink="/configuracoes" fragment="ia">Configurações</a>.</p>
     </div>
   } @else if (reposState() === 'loading') {
     <ul class="repo-grid" aria-busy="true" aria-label="Carregando repositórios">
