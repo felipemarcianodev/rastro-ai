@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
+import { DesktopBridge } from '../../core/desktop-bridge.service';
 import { DialogDirective } from '../../core/dialog.directive';
 import { EditorLinks, isAbsoluteFolder } from '../../core/editor-links';
 import { plural, shortCommit, shortDate } from '../../core/format';
@@ -124,6 +125,8 @@ export class SurveysPage implements OnInit {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly editor = inject(EditorLinks);
   private readonly lastRepository = inject(LastRepositoryService);
+  // Janela própria (ADR-007): o "Procurar…" ao lado da pasta só existe nela.
+  protected readonly desktop = inject(DesktopBridge);
   private pollTimer?: ReturnType<typeof setTimeout>;
   // Pedido de um levantamento que falhou (estado da navegação), para preencher o formulário.
   private retry: CreateSurveyRequest | null = null;
@@ -255,6 +258,15 @@ export class SurveysPage implements OnInit {
         }
       },
     });
+  }
+
+  // Caixa "Escolher pasta" do sistema, pela janela própria. Cancelar deixa o campo como estava.
+  protected async browseFolder(): Promise<void> {
+    const path = await this.desktop.pickFolder();
+    if (!path) return;
+    this.newPath = path;
+    this.pathError.set(null);
+    this.focusId('register-path');
   }
 
   private focusId(id: string): void {

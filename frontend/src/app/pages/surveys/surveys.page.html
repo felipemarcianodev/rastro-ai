@@ -290,8 +290,13 @@
         </div>
         <div class="field">
           <label class="field-label" for="register-path">Pasta</label>
-          <input id="register-path" class="input code" name="registerPath" [(ngModel)]="newPath" placeholder="C:\codigo\meu-sistema" autocomplete="off" spellcheck="false"
-            [attr.aria-invalid]="pathError() ? true : null" [attr.aria-describedby]="pathError() ? 'register-path-error' : 'register-path-help'" />
+          <div class="field-row">
+            <input id="register-path" class="input code" name="registerPath" [(ngModel)]="newPath" placeholder="C:\codigo\meu-sistema" autocomplete="off" spellcheck="false"
+              [attr.aria-invalid]="pathError() ? true : null" [attr.aria-describedby]="pathError() ? 'register-path-error' : 'register-path-help'" />
+            @if (desktop.available) {
+              <button type="button" class="btn btn-g" (click)="browseFolder()" [disabled]="registering()">Procurar…</button>
+            }
+          </div>
           <span id="register-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git.</span>
           @if (pathError(); as error) {
             <span id="register-path-error" class="field-error">{{ error }}</span>

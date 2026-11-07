@@ -43,7 +43,8 @@ public static class RastroCommandLine
         writer.WriteLine($"rastro {RastroVersion.Current}: o rastro de cada funcionalidade no seu código .NET.");
         writer.WriteLine();
         writer.WriteLine("Uso:");
-        writer.WriteLine($"  rastro [--porta N]            abre a tela em http://127.0.0.1:{DefaultPort} (só nesta máquina)");
+        writer.WriteLine($"  rastro [--porta N]            abre o Rastro numa janela própria; a tela também fica em http://127.0.0.1:{DefaultPort} (só nesta máquina)");
+        writer.WriteLine("  rastro --sem-janela           só o console e o endereço, para abrir no navegador");
         writer.WriteLine("  rastro repo add <nome> <pasta> [--build \"comando\"] [--testes \"comando\"]");
         writer.WriteLine("  rastro repo remove <nome>");
         writer.WriteLine("  rastro repo list");
