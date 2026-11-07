@@ -1038,7 +1038,7 @@ No segundo reteste, os 7 fluxos deram 21 achados, todos verdadeiros, e a anális
 - [x] Release 0.7.0 (PR #74), com o passo de UX: barras e achados da consulta em 360 px corrigidos (PR #73). Prints em `docs/telas/fase-43/`.
 - [ ] Conferir se algum achado verdadeiro da análise de consulta se perdeu com o achado único por tabela (o teste caiu de 39 para 19 verdadeiros, sem lista item a item para comparar).
 - [ ] A lista pelo espaço (filtro por chave estrangeira de uma tabela grande) fica silenciada pela regra da lista filha, e `IS NOT NULL` não conta como filtro para a leitura sem limite.
-- [ ] Dois testes do backend falharam uma vez no CI e passaram na nova rodada (`PortProbeTests` e `LiveDatabaseEndpointTests`): pelo jeito, testes em paralelo disputam a porta e o cadastro de repositórios.
+- [x] Dois testes do backend falharam uma vez no CI e passaram na nova rodada (`PortProbeTests` e `LiveDatabaseEndpointTests`). Causa: não havia disputa de porta; o `config.json` era gravado sem ser de uma vez e o recarregamento em segundo plano lia o arquivo pela metade, esvaziando a lista de repositórios (agora grava num arquivo ao lado e troca), e o teste do sondador de porta esperava só os 2 segundos do produto por um servidor recém-aberto, na suíte em paralelo (agora o teste dá 30 segundos).
 
 ## Repaginação da usabilidade `[x]` (pedido do dono em 2026-11-06)
 
