@@ -1,6 +1,6 @@
 # Plano de UX: os acréscimos que ficaram abertos (2026-11-07)
 
-**Status:** EM EXECUÇÃO.
+**Status:** EXECUTADO em 2026-11-07 (Fases A a F, PRs #84 a #88 e o da Fase F).
 **Origem:** os itens que continuaram `[ ]` depois da passada de 2026-11-07 nos planos antigos:
 - [`plano-ux-2026-11-06-fim-plano-banco.md`](plano-ux-2026-11-06-fim-plano-banco.md) (UX-FIM);
 - [`plano-ux-2026-11-06-tela-do-banco.md`](plano-ux-2026-11-06-tela-do-banco.md) (UX-DBF, UX-DBQ, UX-DBA, UX-PG, UX-PGL);
@@ -50,9 +50,11 @@ O problema e a sugestão de cada item estão no plano de origem; aqui fica só o
 
 ## Fase F: build e testes pela tela (risco alto, muda a ADR-003)
 
-- [ ] UX-FIM-C01, segunda parte: editar o comando de build e o de testes do repositório nas Configurações. Rota nova de edição, com a mesma proteção das outras rotas que mudam dado (`AllowedHosts` e `Origin`), o comando continua rodando só pelo `ProcessRunner`, sem shell, e a ADR nova registra a mudança da ADR-003.
+- [x] UX-FIM-C01, segunda parte: editar o comando de build e o de testes do repositório nas Configurações. Rota nova de edição, com a mesma proteção das outras rotas que mudam dado (`AllowedHosts` e `Origin`), o comando continua rodando só pelo `ProcessRunner`, sem shell, e a ADR nova registra a mudança da ADR-003.
+- **Registro (2026-11-07):** feito. `PUT api/repositories/{nome}/commands`, com o texto conferido (uma linha, sem caractere de controle, até 500 caracteres) e `REPOSITORY_COMMAND_INVALID`; a lista devolve os dois comandos. Nas Configurações, "Editar build e testes" abre os dois campos em linha, com a ajuda do "sem shell". Conferido no navegador com a API de verdade e um `RASTRO_HOME` temporário: o `config.json` ficou com os dois comandos. A [ADR-008](../adr/adr-008-comandos-pela-tela.md) substitui o item 2 da ADR-003. Também saíram três textos de tela que ainda falavam em "nó" (painel do passo e Configurações). Backend 706/706, frontend 458/458.
 
 ## Fim do plano
 
-- [ ] Documentação: `visao.md`, ADR, `SECURITY.md`, READMEs, `design-system.md`, `plano-mvp.md` e os planos de origem com os itens fechados.
-- [ ] Prints das telas tocadas em `docs/telas/ux-acrescimos/` e o levantamento de UX completo.
+- [x] Documentação: `visao.md`, ADR, `SECURITY.md`, READMEs, `design-system.md`, `plano-mvp.md` e os planos de origem com os itens fechados.
+- [x] Prints das telas tocadas em `docs/telas/ux-acrescimos/` (índice em `docs/telas/README.md`), com clique de verdade no Chrome: "Editar build e testes", "Salvar comandos", "Conectar banco vivo" e o Esc, o passo do grafo e a chegada pela consulta do passo.
+- [ ] Levantamento de UX completo do frontend (pedido pela skill no fim de cada plano): fica para uma passada própria, depois do merge, para olhar a tela inteira com estes acréscimos.

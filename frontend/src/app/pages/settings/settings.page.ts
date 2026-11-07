@@ -79,6 +79,13 @@ export class SettingsPage implements OnInit {
   protected readonly pathError = signal<string | null>(null);
   protected readonly repoMessage = signal<{ ok: boolean; text: string } | null>(null);
 
+  // Edição em linha de build e testes (ADR-008): um repositório por vez.
+  protected readonly editingCommands = signal<RepositoryItem | null>(null);
+  protected readonly savingCommands = signal(false);
+  protected readonly commandsError = signal<string | null>(null);
+  protected buildDraft = '';
+  protected testDraft = '';
+
   // Remoção: o diálogo de confirmação do tema.
   protected readonly pendingRemoval = signal<RepositoryItem | null>(null);
   protected readonly removing = signal(false);
@@ -240,6 +247,42 @@ export class SettingsPage implements OnInit {
     this.newPath = path;
     this.pathError.set(null);
     this.focusField('repo-path');
+  }
+
+  protected editCommands(repo: RepositoryItem): void {
+    this.repoMessage.set(null);
+    this.commandsError.set(null);
+    this.buildDraft = repo.buildCommand ?? '';
+    this.testDraft = repo.testCommand ?? '';
+    this.editingCommands.set(repo);
+    this.focusField('build-' + repo.name);
+  }
+
+  protected cancelCommands(repo: RepositoryItem): void {
+    if (this.savingCommands()) return;
+    this.editingCommands.set(null);
+    this.commandsError.set(null);
+    this.focusField('edit-commands-' + repo.name);
+  }
+
+  protected saveCommands(repo: RepositoryItem): void {
+    this.savingCommands.set(true);
+    this.commandsError.set(null);
+    const build = this.buildDraft.trim() || null;
+    const test = this.testDraft.trim() || null;
+    this.api.setRepositoryCommands(repo.name, build, test).subscribe({
+      next: (updated) => {
+        this.savingCommands.set(false);
+        this.applyList(this.repositories().map((r) => (r.name === updated.name ? updated : r)));
+        this.editingCommands.set(null);
+        this.repoMessage.set({ ok: true, text: 'Comandos salvos' });
+        this.focusField('edit-commands-' + repo.name);
+      },
+      error: (error) => {
+        this.savingCommands.set(false);
+        this.commandsError.set(apiErrorMessage(error));
+      },
+    });
   }
 
   protected askRemove(repo: RepositoryItem): void {

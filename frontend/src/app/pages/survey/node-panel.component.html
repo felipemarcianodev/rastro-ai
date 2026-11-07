@@ -68,7 +68,7 @@
         <p>{{ rule.text }}</p>
         <p class="rule-origin muted"><span [class]="'origin-badge is-' + originSlug[rule.origin]">{{ originBadge[rule.origin] }}</span> Regra escrita por {{ originLabel[rule.origin] }}</p>
       } @else {
-        <p class="muted">Sem regra escrita para este nó. Um agente conectado (MCP) pode escrever{{ canDescribe() ? ', ou peça à IA abaixo' : '' }}.</p>
+        <p class="muted">Sem regra escrita para este passo. Um agente conectado (MCP) pode escrever{{ canDescribe() ? ', ou peça à IA abaixo' : '' }}.</p>
         @if (!aiActive()) {
           <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
         } @else if (!canDescribe()) {
@@ -299,13 +299,13 @@
     } @else if (snippetError(); as error) {
       <p class="muted">{{ error }}</p>
     } @else if (!placeOf(node)) {
-      <p class="muted">{{ node.kind === NodeKind.External ? 'Chamada para fora da solution: o código não está no repositório.' : 'Este nó não tem posição própria no código.' }}</p>
+      <p class="muted">{{ node.kind === NodeKind.External ? 'Chamada para fora da solution: o código não está no repositório.' : 'Este passo não tem posição própria no código.' }}</p>
     }
   </section>
 } @else {
   <section class="panel" aria-labelledby="overview-title">
     <h2 id="overview-title">Visão geral</h2>
-    <p class="muted">Clique num nó para ver o código e o caminho da entrada até ele.</p>
+    <p class="muted">Clique num passo para ver o código e o caminho da entrada até ele.</p>
     @if (unresolved().length > 0 || crossFlow().length > 0 || findingCount() > 0) {
       <nav class="counters" aria-label="Ir para a seção">
         @if (unresolved().length > 0) {

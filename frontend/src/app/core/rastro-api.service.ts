@@ -56,6 +56,10 @@ export class RastroApi {
     return this.http.delete<void>(`/api/repositories/${encodeURIComponent(name)}`);
   }
 
+  setRepositoryCommands(name: string, buildCommand: string | null, testCommand: string | null): Observable<RepositoryItem> {
+    return this.http.put<RepositoryItem>(`/api/repositories/${encodeURIComponent(name)}/commands`, { buildCommand, testCommand });
+  }
+
   solutions(repository: string): Observable<string[]> {
     return this.http.get<string[]>(`/api/repositories/${encodeURIComponent(repository)}/solutions`);
   }
