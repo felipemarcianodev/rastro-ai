@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Cryptography;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using Rastro.Core.Architecture;
@@ -36,7 +38,10 @@ public class RastroTools(
     TimeProvider clock,
     Rastro.Infrastructure.Architecture.DeploymentReader deployments,
     Rastro.Infrastructure.Database.DbSchemaService schemas,
-    Rastro.Infrastructure.Database.QueryProposalService queryProposals)
+    Rastro.Infrastructure.Database.QueryProposalService queryProposals,
+    Rastro.Infrastructure.Database.Live.LiveConnectionStore liveConnections,
+    Rastro.Infrastructure.Database.Live.LiveDatabaseService liveDatabase,
+    ILogger<RastroTools> logger)
 {
     private const int MaxOutlineLines = 400;
 
@@ -460,7 +465,57 @@ public class RastroTools(
         var context = await queryProposals.ContextAsync(repository, sql, ct);
         if (context is null) return "Repositório não cadastrado. Use list_repositories.";
         if (context.Analysis.Error is not null) return QueryAnalysisText.Format(context.Analysis);
-        return QueryProposalText.Format(queryProposals.Review(repository, context, sql, proposal));
+        var review = queryProposals.Review(repository, context, sql, proposal);
+        // Com banco vivo, o custo estimado do plano da original e da reescrita aceita, como a tela mostra.
+        if (review.Rewrite is { Accepted: true } rewrite && (await liveConnections.ViewAsync(repository, ct)).Configured)
+        {
+            try
+            {
+                review = review with { Plan = await liveDatabase.ComparePlansAsync(repository, sql, rewrite.Sql, ct) };
+            }
+            catch (CryptographicException ex)
+            {
+                logger.LogWarning(ex, "A conexão com o banco vivo do repositório {Repository} não pôde ser decifrada pelo servidor MCP.", repository);
+                review = review with { Plan = new Rastro.Core.Database.PlanComparison(null, null, UndecipherableConnection) };
+            }
+        }
+        return QueryProposalText.Format(review);
+    }
+
+    private const string NoLiveDatabase = "Este repositório não tem banco vivo cadastrado. O usuário cadastra a conexão na tela do banco do Rastro (o cadastro e a string de conexão são só pela tela); depois o plano estimado vem por aqui. Sem o banco vivo, use analyze_query, que lê só o código.";
+    private const string UndecipherableConnection = "o servidor MCP não conseguiu abrir a conexão cadastrada (a chave de cifra é da API do Rastro). Peça ao usuário para abrir o Rastro uma vez e cadastrar a conexão de novo na tela do banco.";
+
+    [McpServerTool(Name = "get_query_plan"), Description("Plano estimado de uma consulta SQL no banco vivo que o usuário cadastrou para o repositório (SQL Server ou PostgreSQL), sem executá-la: o custo total estimado, os operadores mais caros (com a tabela, o peso e se é varredura), os índices que o próprio banco aponta como faltando e os avisos. A consulta passa antes pelo leitor de SQL do Rastro, que recusa o que não for uma instrução única de consulta ou de alteração de dados, sem script nem comando. O banco só devolve o plano: nenhum dado das tabelas é lido, e a string de conexão nunca aparece. Sem banco vivo cadastrado, a resposta diz isso: o cadastro é só pela tela do Rastro.")]
+    public async Task<string> GetQueryPlan(
+        [Description("Nome do repositório (list_repositories).")] string repository,
+        [Description("A consulta SQL (no dialeto do banco vivo), como o usuário escreveu.")] string sql,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(sql) || sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
+            return "Informe uma consulta de até 100 mil caracteres.";
+        if (catalog.RootOf(repository) is null) return "Repositório não cadastrado. Use list_repositories.";
+
+        var connection = await liveConnections.ViewAsync(repository, ct);
+        if (!connection.Configured) return NoLiveDatabase;
+
+        Rastro.Infrastructure.Database.Live.LivePlanResult result;
+        try
+        {
+            result = await liveDatabase.PlanAsync(repository, sql, ct);
+        }
+        catch (CryptographicException ex)
+        {
+            logger.LogWarning(ex, "A conexão com o banco vivo do repositório {Repository} não pôde ser decifrada pelo servidor MCP.", repository);
+            return $"Não foi possível pedir o plano: {UndecipherableConnection}";
+        }
+
+        return result.Outcome switch
+        {
+            Rastro.Infrastructure.Database.Live.LivePlanOutcome.Ok when result.Plan is { } plan => QueryPlanText.Format(plan, connection),
+            Rastro.Infrastructure.Database.Live.LivePlanOutcome.NoConnection => NoLiveDatabase,
+            Rastro.Infrastructure.Database.Live.LivePlanOutcome.NotAllowed => $"O Rastro recusou a consulta antes de pedir o plano: {(result.Reason ?? "consulta não permitida").TrimEnd('.')}. Nada foi enviado ao banco.",
+            _ => $"O plano não veio do banco vivo: {(result.Reason ?? "o banco não respondeu").TrimEnd('.')}."
+        };
     }
 
     [McpServerTool(Name = "get_c4"), Description("Diagramas C4 do fluxo em Structurizr DSL (C1 contexto, C2 containers, C3 componentes, C4 visão dinâmica do fluxo). As pessoas do C1 são as que o usuário cadastrou na tela.")]

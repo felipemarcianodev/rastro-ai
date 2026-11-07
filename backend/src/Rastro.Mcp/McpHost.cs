@@ -32,6 +32,8 @@ public static class McpHost
         builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
 
         builder.Services.AddRastroCore(builder.Configuration);
+        // Banco vivo só para o plano estimado (Fase 44): o cadastro da conexão continua pela tela.
+        builder.Services.AddRastroMcpLiveDatabase(builder.Configuration);
         builder.Services
             .AddMcpServer(o =>
             {

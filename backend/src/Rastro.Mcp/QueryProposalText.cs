@@ -42,6 +42,11 @@ public static class QueryProposalText
                 ? $"Índice aceito em {index.Table} ({string.Join(", ", index.Columns)}): {index.CreateSql}"
                 : $"Índice recusado em {index.Table} ({string.Join(", ", index.Columns)}): {index.Refusal}");
 
+        if (review.Plan is { } plan)
+            text.AppendLine(plan.Problem is not null
+                ? $"Custo estimado no banco vivo: não foi possível comparar. {plan.Problem}"
+                : $"Custo estimado no banco vivo (plano estimado, sem executar): {QueryPlanText.Cost(plan.CostBefore ?? 0)} na original, {QueryPlanText.Cost(plan.CostAfter ?? 0)} na reescrita. Custo menor não é garantia de tempo menor; é um indício.");
+
         text.Append("Mostre ao usuário a consulta reescrita aceita e os comandos dos índices aceitos, para ele avaliar e copiar. O que foi recusado: corrija e proponha de novo, sem inventar tabela nem coluna. Aplicar é sempre do usuário.");
         return text.ToString();
     }
