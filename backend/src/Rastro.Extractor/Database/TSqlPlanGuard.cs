@@ -24,7 +24,7 @@ public static partial class TSqlPlanGuard
         if (errors.Count > 0 || tree is not TSqlScript script)
         {
             var first = errors.FirstOrDefault();
-            return Deny($"O leitor de T-SQL não entendeu a consulta (linha {first?.Line ?? 1}): {first?.Message ?? "texto vazio"}.");
+            return Deny($"O leitor de T-SQL não entendeu a consulta (linha {first?.Line ?? 1}): {(first is null ? "texto vazio" : SqlMessageTranslator.Translate(first.Message))}.");
         }
 
         var statements = script.Batches.SelectMany(b => b.Statements).ToList();

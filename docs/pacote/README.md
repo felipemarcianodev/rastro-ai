@@ -22,13 +22,13 @@ O Rastro abre numa janela própria, como um app, e a tela também fica em http:/
 
 A janela usa o WebView do sistema: no Windows, o WebView2 Runtime (já vem no Windows 11 e nas versões atuais do Windows 10); no Linux, a `libwebkit2gtk-4.1` (`sudo apt install libwebkit2gtk-4.1-0`) e uma sessão com tela; no macOS, nada a instalar. Sem isso, o Rastro avisa no console e segue no navegador. A janela vem do Photino.NET (Apache-2.0).
 
-Se o Rastro já estiver aberto nessa porta, o comando só mostra o endereço e termina. Cadastre os repositórios em Configurações (a engrenagem no alto da tela) ou pelo terminal:
+Se o Rastro já estiver aberto nessa porta, o comando só mostra o endereço e termina. Cadastre os repositórios em Configurações (no cabeçalho da tela) ou pelo terminal:
 
 ```
 rastro repo add minha-api C:\codigo\minha-api
 ```
 
-Para o build e os testes entrarem na validação de uma mudança, informe os comandos ao cadastrar pelo terminal:
+Para o build e os testes entrarem na validação de uma mudança, edite os comandos em Configurações ("Editar build e testes") ou informe-os ao cadastrar pelo terminal:
 
 ```
 rastro repo add minha-api C:\codigo\minha-api --build "dotnet build MinhaApi.slnx" --testes "dotnet test MinhaApi.slnx"

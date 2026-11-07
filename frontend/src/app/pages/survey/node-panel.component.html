@@ -5,18 +5,19 @@
         <span class="kind-glyph" aria-hidden="true">{{ glyph[node.kind] }}</span>
         {{ kindLabel[node.kind] }}
       </span>
-      <span class="panel-head-actions">
-        @if (focusId() === node.id) {
-          <button type="button" class="btn btn-g btn-small" (click)="showAll.emit()">Mostrar o grafo inteiro</button>
-        } @else {
-          <button type="button" class="btn btn-g btn-small" (click)="focusFlow.emit(node.id)" aria-describedby="focus-help" title="Esconde os outros caminhos: fica o que leva a este passo e o que roda depois">Ver somente este fluxo</button>
-          <span id="focus-help" class="visually-hidden">Esconde os outros caminhos: fica o que leva a este passo e o que roda depois.</span>
-        }
-        <button type="button" class="btn btn-icon" (click)="closePanel.emit(node.id)" aria-label="Fechar o passo e voltar à visão geral" title="Fechar (Esc)">×</button>
-      </span>
+      <button type="button" class="btn btn-icon panel-close" (click)="closePanel.emit(node.id)" aria-label="Fechar o passo e voltar à visão geral" title="Fechar (Esc)">×</button>
     </header>
 
     <h2 id="node-title" class="node-title code">{{ breakable(node.label) }}</h2>
+
+    <div class="panel-focus">
+      @if (focusId() === node.id) {
+        <button type="button" class="btn btn-g btn-small" (click)="showAll.emit()">Mostrar o grafo inteiro</button>
+      } @else {
+        <button type="button" class="btn btn-g btn-small" (click)="focusFlow.emit(node.id)" aria-describedby="focus-help" title="Esconde os outros caminhos: fica o que leva a este passo e o que roda depois">Ver somente este fluxo</button>
+        <span id="focus-help" class="visually-hidden">Esconde os outros caminhos: fica o que leva a este passo e o que roda depois.</span>
+      }
+    </div>
 
     @if (origin(node); as from) {
       <p class="origin code muted">Sistema {{ from.system }} · {{ from.language }}@if (from.commit) { · commit {{ from.commit }}}</p>
@@ -67,7 +68,7 @@
         <p>{{ rule.text }}</p>
         <p class="rule-origin muted"><span [class]="'origin-badge is-' + originSlug[rule.origin]">{{ originBadge[rule.origin] }}</span> Regra escrita por {{ originLabel[rule.origin] }}</p>
       } @else {
-        <p class="muted">Sem regra escrita para este nó. Um agente conectado (MCP) pode escrever{{ canDescribe() ? ', ou peça à IA abaixo' : '' }}.</p>
+        <p class="muted">Sem regra escrita para este passo. Um agente conectado (MCP) pode escrever{{ canDescribe() ? ', ou peça à IA abaixo' : '' }}.</p>
         @if (!aiActive()) {
           <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
         } @else if (!canDescribe()) {
@@ -76,7 +77,7 @@
       }
       @if (canDescribe()) {
         <button type="button" class="btn btn-g btn-small rule-action" [disabled]="describing()" (click)="describe.emit({ nodeId: node.id, overwrite: !!node.rule })">
-          {{ describing() ? 'Escrevendo…' : node.rule ? 'Reescrever com IA' : 'Escrever regra com IA' }}
+          {{ describing() ? 'Escrevendo…' : node.rule ? 'Reescrever regra com a IA' : 'Escrever regra com a IA' }}
         </button>
         <app-ai-disclosure goes="o código deste passo" never="Código já descrito antes não vai de novo." />
       }
@@ -192,7 +193,7 @@
         }
         @if (canFillHoles()) {
           <button type="button" class="btn btn-g btn-small fill" [disabled]="filling()" (click)="fillHole.emit(node.id)">
-            {{ filling() ? 'Perguntando à IA…' : 'Propor destinos com IA' }}
+            {{ filling() ? 'Perguntando à IA…' : 'Propor destinos com a IA' }}
           </button>
           <app-ai-disclosure goes="a chamada sem destino, o código em volta dela e os candidatos que o compilador achou" />
         }
@@ -298,13 +299,13 @@
     } @else if (snippetError(); as error) {
       <p class="muted">{{ error }}</p>
     } @else if (!placeOf(node)) {
-      <p class="muted">{{ node.kind === NodeKind.External ? 'Chamada para fora da solution: o código não está no repositório.' : 'Este nó não tem posição própria no código.' }}</p>
+      <p class="muted">{{ node.kind === NodeKind.External ? 'Chamada para fora da solution: o código não está no repositório.' : 'Este passo não tem posição própria no código.' }}</p>
     }
   </section>
 } @else {
   <section class="panel" aria-labelledby="overview-title">
     <h2 id="overview-title">Visão geral</h2>
-    <p class="muted">Clique num nó para ver o código e o caminho da entrada até ele.</p>
+    <p class="muted">Clique num passo para ver o código e o caminho da entrada até ele.</p>
     @if (unresolved().length > 0 || crossFlow().length > 0 || findingCount() > 0) {
       <nav class="counters" aria-label="Ir para a seção">
         @if (unresolved().length > 0) {
@@ -414,7 +415,7 @@
       }
       @if (canDescribe()) {
         <button type="button" class="btn btn-g btn-small rule-action" [disabled]="describing()" (click)="describe.emit({ nodeId: null, overwrite: false })">
-          {{ describing() ? 'Escrevendo…' : 'Escrever as regras que faltam com IA' }}
+          {{ describing() ? 'Escrevendo…' : 'Escrever as regras que faltam com a IA' }}
         </button>
       }
       @if (describeMessage(); as message) {

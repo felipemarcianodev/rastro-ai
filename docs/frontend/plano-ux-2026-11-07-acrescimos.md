@@ -1,6 +1,6 @@
 # Plano de UX: os acréscimos que ficaram abertos (2026-11-07)
 
-**Status:** EM EXECUÇÃO.
+**Status:** EXECUTADO em 2026-11-07 (Fases A a F, PRs #84 a #88 e o da Fase F).
 **Origem:** os itens que continuaram `[ ]` depois da passada de 2026-11-07 nos planos antigos:
 - [`plano-ux-2026-11-06-fim-plano-banco.md`](plano-ux-2026-11-06-fim-plano-banco.md) (UX-FIM);
 - [`plano-ux-2026-11-06-tela-do-banco.md`](plano-ux-2026-11-06-tela-do-banco.md) (UX-DBF, UX-DBQ, UX-DBA, UX-PG, UX-PGL);
@@ -38,20 +38,23 @@ O problema e a sugestão de cada item estão no plano de origem; aqui fica só o
 
 ## Fase E: risco alto, aprovados pelo dono
 
-- [ ] UX-FIM-Q07: um padrão só para o rótulo dos botões de IA, registrado no `design-system.md`, com "Ver no mapa" em maiúscula.
-- [ ] UX-FIM-Q15: "A análise não consulta o banco." e o passo de origem entre aspas.
-- [ ] UX-DBQ-05: quem chega pelo "Analisar a consulta" do passo já vê a análise, sem clicar em "Analisar".
-- [ ] UX-DBF-05, segunda parte: o nome da tabela no próprio bloco do passo.
-- [ ] UX-DBA-06: o motivo do erro do provedor (o `title` do problema) em todas as telas de IA, e as mensagens dos provedores sem "nó".
-- [ ] UX-PG-05: as mensagens mais comuns dos leitores de T-SQL e de PostgreSQL em português.
-- [ ] UX-PGL-05: a permissão mínima em lista, um comando por linha, com "Copiar".
-- [ ] Revisão geral A3 ("← Voltar" das Configurações vira `page-bar`), A5 (rótulo fixo em "Resumo/Completo" e nas chamadas do .NET, estado só no `aria-pressed`), A6 (× fixo no canto do painel e "Ver somente este fluxo" numa linha própria), A7 (barra da edição da visão consolidada) e A9 ("de 3 para 5").
+- [x] UX-FIM-Q07: um padrão só para o rótulo dos botões de IA, registrado no `design-system.md`, com "Ver no mapa" em maiúscula.
+- [x] UX-FIM-Q15: "A análise não consulta o banco." e o passo de origem entre aspas.
+- [x] UX-DBQ-05: quem chega pelo "Analisar a consulta" do passo já vê a análise, sem clicar em "Analisar".
+- [x] UX-DBF-05, segunda parte: o nome da tabela no próprio bloco do passo.
+- [x] UX-DBA-06: o motivo do erro do provedor (o `title` do problema) em todas as telas de IA, e as mensagens dos provedores sem "nó".
+- [x] UX-PG-05: as mensagens mais comuns dos leitores de T-SQL e de PostgreSQL em português.
+- [x] UX-PGL-05: a permissão mínima em lista, um comando por linha, com "Copiar".
+- [x] Revisão geral A3 ("← Voltar" das Configurações vira `page-bar`), A5 (rótulo fixo em "Resumo/Completo" e nas chamadas do .NET, estado só no `aria-pressed`), A6 (× fixo no canto do painel e "Ver somente este fluxo" numa linha própria), A7 (barra da edição da visão consolidada) e A9 ("de 3 para 5").
+- **Registro (2026-11-07):** feito. Padrão dos botões de IA: verbo no infinitivo, objeto e "com a IA" ("Sugerir refatoração com a IA", "Propor destinos com a IA", "Escrever regra com a IA", "Sugerir pessoas com a IA"; a pergunta livre ficou "Perguntar à IA"), registrado no `design-system.md`. A barra da edição do A7 fica na tela da visão consolidada (`diagram.page`), e o `.bar-group` subiu para o `_page.scss`. As mensagens dos leitores de SQL passam por `SqlMessageTranslator` (por padrão, sem IA; o que não casa fica com o texto original), conferido também pelo leitor de verdade nos dois dialetos. O `AI_PROVIDER_ERROR` já levava o motivo no `title`; a tela passou a mostrá-lo. Backend 699/699, frontend 454/454.
 
 ## Fase F: build e testes pela tela (risco alto, muda a ADR-003)
 
-- [ ] UX-FIM-C01, segunda parte: editar o comando de build e o de testes do repositório nas Configurações. Rota nova de edição, com a mesma proteção das outras rotas que mudam dado (`AllowedHosts` e `Origin`), o comando continua rodando só pelo `ProcessRunner`, sem shell, e a ADR nova registra a mudança da ADR-003.
+- [x] UX-FIM-C01, segunda parte: editar o comando de build e o de testes do repositório nas Configurações. Rota nova de edição, com a mesma proteção das outras rotas que mudam dado (`AllowedHosts` e `Origin`), o comando continua rodando só pelo `ProcessRunner`, sem shell, e a ADR nova registra a mudança da ADR-003.
+- **Registro (2026-11-07):** feito. `PUT api/repositories/{nome}/commands`, com o texto conferido (uma linha, sem caractere de controle, até 500 caracteres) e `REPOSITORY_COMMAND_INVALID`; a lista devolve os dois comandos. Nas Configurações, "Editar build e testes" abre os dois campos em linha, com a ajuda do "sem shell". Conferido no navegador com a API de verdade e um `RASTRO_HOME` temporário: o `config.json` ficou com os dois comandos. A [ADR-008](../adr/adr-008-comandos-pela-tela.md) substitui o item 2 da ADR-003. Também saíram três textos de tela que ainda falavam em "nó" (painel do passo e Configurações). Backend 706/706, frontend 458/458.
 
 ## Fim do plano
 
-- [ ] Documentação: `visao.md`, ADR, `SECURITY.md`, READMEs, `design-system.md`, `plano-mvp.md` e os planos de origem com os itens fechados.
-- [ ] Prints das telas tocadas em `docs/telas/ux-acrescimos/` e o levantamento de UX completo.
+- [x] Documentação: `visao.md`, ADR, `SECURITY.md`, READMEs, `design-system.md`, `plano-mvp.md` e os planos de origem com os itens fechados.
+- [x] Prints das telas tocadas em `docs/telas/ux-acrescimos/` (índice em `docs/telas/README.md`), com clique de verdade no Chrome: "Editar build e testes", "Salvar comandos", "Conectar banco vivo" e o Esc, o passo do grafo e a chegada pela consulta do passo.
+- [ ] Levantamento de UX completo do frontend (pedido pela skill no fim de cada plano): fica para uma passada própria, depois do merge, para olhar a tela inteira com estes acréscimos.

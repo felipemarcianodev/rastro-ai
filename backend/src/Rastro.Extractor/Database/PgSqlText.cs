@@ -141,7 +141,7 @@ internal sealed class PgSqlText
     private static string Clean(string message)
     {
         var at = message.IndexOf(", Line:", StringComparison.Ordinal);
-        return (at > 0 ? message[..at] : message).Trim();
+        return SqlMessageTranslator.Translate((at > 0 ? message[..at] : message).Trim());
     }
 
     // O trecho de um nó da árvore dentro dos tokens [from, to). avoid: começos já usados por outro achado

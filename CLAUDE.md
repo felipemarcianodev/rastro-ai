@@ -118,9 +118,9 @@ Na dúvida se a mudança afeta o cliente, ela afeta: confira a lista acima e dig
   - A requisição cita o nome do repositório, nunca um caminho.
   - Caminhos relativos são canonicalizados contra a raiz do repositório.
   - Caminho absoluto e `..` são recusados.
-  - Exceção única ([ADR-003](docs/adr/adr-003-repositorios-pela-tela.md)): o cadastro de repositório pela tela recebe a pasta absoluta. Comando de build e de testes continua só pelo terminal.
+  - Exceção única ([ADR-003](docs/adr/adr-003-repositorios-pela-tela.md)): o cadastro de repositório pela tela recebe a pasta absoluta. O comando de build e o de testes se editam nas Configurações ([ADR-008](docs/adr/adr-008-comandos-pela-tela.md)), conferidos (uma linha, até 500 caracteres) e rodados só pelo `ProcessRunner`.
 - **Pedido de outro site:** `AllowedHosts` só com a própria máquina, e POST, PUT, PATCH e DELETE com `Origin` de fora são recusados (ADR-003). Rota nova que muda dado não abre exceção.
-- **Processo externo** (git, dotnet, build e testes da validação) roda pelo `ProcessRunner`: argumentos separados, **sem shell** e com timeout. O comando vem só da configuração, nunca da requisição.
+- **Processo externo** (git, dotnet, build e testes da validação) roda pelo `ProcessRunner`: argumentos separados, **sem shell** e com timeout. O comando vem só da configuração do repositório (gravada pelo terminal ou pela rota de comandos da ADR-008), nunca da requisição que dispara a validação.
 - **Secrets:**
   - Nunca em arquivo versionado. Local, use user-secrets.
   - A chave de API dos provedores e a string de conexão do banco vivo ficam cifradas no banco (DataProtection, um propósito para cada) e nunca voltam na resposta, no log nem para a IA.

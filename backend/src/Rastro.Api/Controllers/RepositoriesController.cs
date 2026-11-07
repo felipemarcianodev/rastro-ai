@@ -10,8 +10,8 @@ using Rastro.Infrastructure.Repositories;
 
 namespace Rastro.Api.Controllers;
 
-// Cadastro de repositórios pela tela (ADR-003). A tela envia nome e pasta; comando de build e de
-// testes nunca entra pela API (só pelo "rastro repo add --build/--testes").
+// Cadastro de repositórios pela tela (ADR-003). A tela envia nome e pasta; o comando de build e o de
+// testes se editam depois, pela rota de comandos (ADR-008), e rodam só pelo ProcessRunner, sem shell.
 [ApiController]
 [Route("api/repositories")]
 public class RepositoriesController(
@@ -31,7 +31,8 @@ public class RepositoriesController(
             {
                 var path = Path.GetFullPath(r.Path);
                 return new RepositoryItem(r.Name, path, HasGit(path),
-                    !string.IsNullOrWhiteSpace(r.BuildCommand), !string.IsNullOrWhiteSpace(r.TestCommand));
+                    !string.IsNullOrWhiteSpace(r.BuildCommand), !string.IsNullOrWhiteSpace(r.TestCommand),
+                    NullIfBlank(r.BuildCommand), NullIfBlank(r.TestCommand));
             })
             .ToList();
 
@@ -70,6 +71,27 @@ public class RepositoriesController(
         ReloadConfiguration();
         logger.LogInformation("Repositório {Repository} removido pela tela.", name);
         return NoContent();
+    }
+
+    // Comando de build e de testes da validação editados nas Configurações (ADR-008). A proteção é a das
+    // outras rotas que mudam dado (AllowedHosts e Origin); o comando não vai para o log.
+    [HttpPut("{name}/commands")]
+    public IActionResult SetCommands(string name, [FromBody] SetRepositoryCommandsRequest request)
+    {
+        if (!RepositoryConfigFile.IsValidCommand(request.BuildCommand) || !RepositoryConfigFile.IsValidCommand(request.TestCommand))
+            return Error(StatusCodes.Status400BadRequest, ErrorCodes.RepositoryCommandInvalid,
+                "O comando precisa caber numa linha, com até 500 caracteres.");
+
+        var result = configFile.SetCommands(name, request.BuildCommand, request.TestCommand);
+        if (result.Outcome == RepositoryConfigOutcome.NotFound)
+            return Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");
+
+        ReloadConfiguration();
+        logger.LogInformation("Comandos de build e de testes do repositório {Repository} alterados pela tela.", name);
+        var path = Path.GetFullPath(result.Path!);
+        var build = NullIfBlank(request.BuildCommand?.Trim());
+        var test = NullIfBlank(request.TestCommand?.Trim());
+        return Ok(new RepositoryItem(name, path, HasGit(path), build is not null, test is not null, build, test));
     }
 
     [HttpGet("{name}/solutions")]
@@ -114,6 +136,8 @@ public class RepositoriesController(
     // O file watcher recarrega o config.json sozinho, mas com atraso. Recarregar aqui, de forma
     // síncrona, faz o GET logo depois do POST ou do DELETE já ver a mudança.
     private void ReloadConfiguration() => (configuration as IConfigurationRoot)?.Reload();
+
+    private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
     private static bool HasGit(string path) =>
         Directory.Exists(Path.Combine(path, ".git")) || System.IO.File.Exists(Path.Combine(path, ".git"));

@@ -1,7 +1,11 @@
+<header class="page-bar">
+  <button type="button" class="page-back" (click)="back()" aria-label="Voltar" title="Voltar">←</button>
+  <div class="page-bar-title">
+    <h1>Configurações</h1>
+  </div>
+</header>
 <div class="page">
   <header class="head">
-    <button type="button" class="btn btn-g btn-small back" (click)="back()">← Voltar</button>
-    <h1>Configurações</h1>
     <p class="muted">O Rastro funciona sem IA. Com IA, ela completa os buracos do grafo e escreve as regras; tudo o que ela propõe passa pelo compilador antes de entrar.</p>
   </header>
 
@@ -34,15 +38,36 @@
               @if (!repo.hasGit) {
                 <span class="muted small">sem .git: o levantamento fica sem o commit</span>
               }
-              <span class="muted small">
-                @if (repo.hasBuildCommand && repo.hasTestCommand) {
-                  Build e testes configurados.
-                } @else {
-                  Sem build e testes na validação. Eles se configuram pelo terminal: remova e cadastre de novo com <code>rastro repo add {{ repo.name }} {{ repo.path }} --build "..." --testes "..."</code>
-                }
-              </span>
+              @if (editingCommands()?.name === repo.name) {
+                <div class="commands-edit">
+                  <div class="field">
+                    <label class="field-label" [for]="'build-' + repo.name">Build</label>
+                    <input [id]="'build-' + repo.name" class="input code" name="buildCommand" [(ngModel)]="buildDraft" placeholder="dotnet build"
+                      autocomplete="off" spellcheck="false" [attr.aria-describedby]="'commands-help-' + repo.name" />
+                  </div>
+                  <div class="field">
+                    <label class="field-label" [for]="'test-' + repo.name">Testes</label>
+                    <input [id]="'test-' + repo.name" class="input code" name="testCommand" [(ngModel)]="testDraft" placeholder="dotnet test"
+                      autocomplete="off" spellcheck="false" [attr.aria-describedby]="'commands-help-' + repo.name" />
+                  </div>
+                  <span [id]="'commands-help-' + repo.name" class="field-help">Roda na pasta do repositório, sem shell: <code>&amp;&amp;</code>, <code>|</code> e redirecionamento não funcionam. Deixe vazio para não rodar.</span>
+                  @if (commandsError(); as error) {
+                    <span class="field-error" role="alert">{{ error }}</span>
+                  }
+                  <div class="actions">
+                    <button type="button" class="btn btn-p btn-small" (click)="saveCommands(repo)" [disabled]="savingCommands()">{{ savingCommands() ? 'Salvando…' : 'Salvar comandos' }}</button>
+                    <button type="button" class="btn btn-g btn-small" (click)="cancelCommands(repo)" [disabled]="savingCommands()">Cancelar</button>
+                  </div>
+                </div>
+              } @else {
+                <span class="muted small">Build: @if (repo.buildCommand) { <code>{{ repo.buildCommand }}</code> } @else { sem comando }</span>
+                <span class="muted small">Testes: @if (repo.testCommand) { <code>{{ repo.testCommand }}</code> } @else { sem comando }</span>
+              }
             </div>
             <div class="repo-actions">
+              @if (editingCommands()?.name !== repo.name) {
+                <button type="button" class="btn btn-g btn-small" [id]="'edit-commands-' + repo.name" (click)="editCommands(repo)" [attr.aria-label]="'Editar build e testes de ' + repo.name">Editar build e testes</button>
+              }
               <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repo.name, 'banco']" [attr.aria-label]="'Mapa do banco de ' + repo.name">Mapa do banco</a>
               <a class="btn btn-g btn-small" routerLink="/" [queryParams]="newSurveyParams(repo)" [attr.aria-label]="'Novo levantamento em ' + repo.name">Novo levantamento</a>
               <button type="button" class="btn btn-g btn-small" (click)="askRemove(repo)" [attr.aria-label]="'Remover ' + repo.name">Remover…</button>
@@ -197,7 +222,7 @@
         <label class="check"><input type="checkbox" name="useFillHoles" [(ngModel)]="useFillHoles" />
           <span><strong>Completar buracos</strong><span class="muted"> Propor o destino de chamadas que o compilador não resolveu.</span></span></label>
         <label class="check"><input type="checkbox" name="useDescribeRules" [(ngModel)]="useDescribeRules" />
-          <span><strong>Escrever regras</strong><span class="muted"> Descrever em português o que cada nó faz.</span></span></label>
+          <span><strong>Escrever regras</strong><span class="muted"> Descrever em português o que cada passo faz.</span></span></label>
         <label class="check"><input type="checkbox" name="useSuggestions" [(ngModel)]="useSuggestions" />
           <span><strong>Sugestões de melhoria</strong><span class="muted"> Refatoração, complexidade, regras de domínio puladas.</span></span></label>
         <label class="check"><input type="checkbox" name="useContextSuggestions" [(ngModel)]="useContextSuggestions" />

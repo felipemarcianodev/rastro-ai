@@ -38,7 +38,7 @@ import { QueryAiSuggestion } from './database/query-suggestion';
 import { LiveConnectionTest, LiveConnectionView, QueryPlan } from './database/live-database';
 
 // Códigos cujo title traz o motivo exato em pt-BR, escrito pelo Rastro (nunca a mensagem crua do driver).
-const TITLE_CODES: ReadonlySet<string> = new Set(['PLAN_NOT_ALLOWED', 'LIVE_DATABASE_ERROR']);
+const TITLE_CODES: ReadonlySet<string> = new Set(['PLAN_NOT_ALLOWED', 'LIVE_DATABASE_ERROR', 'AI_PROVIDER_ERROR']);
 
 @Injectable({ providedIn: 'root' })
 export class RastroApi {
@@ -54,6 +54,10 @@ export class RastroApi {
 
   removeRepository(name: string): Observable<void> {
     return this.http.delete<void>(`/api/repositories/${encodeURIComponent(name)}`);
+  }
+
+  setRepositoryCommands(name: string, buildCommand: string | null, testCommand: string | null): Observable<RepositoryItem> {
+    return this.http.put<RepositoryItem>(`/api/repositories/${encodeURIComponent(name)}/commands`, { buildCommand, testCommand });
   }
 
   solutions(repository: string): Observable<string[]> {

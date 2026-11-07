@@ -254,6 +254,9 @@ export interface RepositoryItem {
   hasGit: boolean;
   hasBuildCommand: boolean;
   hasTestCommand: boolean;
+  // Texto dos comandos (ADR-008); a tela mostra e edita.
+  buildCommand?: string | null;
+  testCommand?: string | null;
 }
 
 // Mesma regra do contrato da API (REPOSITORY_NAME_INVALID).
@@ -387,6 +390,7 @@ export const SURVEY_STATUS_LABEL: Record<SurveyStatus, string> = {
 };
 
 export const API_ERROR_MESSAGE: Record<string, string> = {
+  REPOSITORY_COMMAND_INVALID: 'O comando precisa caber numa linha, com até 500 caracteres.',
   REPOSITORY_NOT_ALLOWED: 'Esse repositório não está cadastrado. Cadastre a pasta em Configurações.',
   SOLUTION_PATH_INVALID: 'Use um .sln, .slnx, .csproj ou tsconfig relativo à raiz do repositório.',
   ANGULAR_UNAVAILABLE: 'O Node não foi encontrado nesta máquina. Instale o Node para levantar fluxos Angular.',

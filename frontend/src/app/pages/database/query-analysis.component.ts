@@ -96,7 +96,7 @@ export class QueryAnalysisComponent {
   });
 
   protected readonly analyzeHelp = computed(() =>
-    this.text().trim() ? 'Ctrl+Enter também analisa. Nada vai a banco nenhum.' : 'Escreva ou cole uma consulta, ou use o exemplo, para poder analisar. Nada vai a banco nenhum.',
+    this.text().trim() ? 'Ctrl+Enter também analisa. A análise não consulta o banco.' : 'Escreva ou cole uma consulta, ou use o exemplo, para poder analisar. A análise não consulta o banco.',
   );
 
   protected readonly countText = computed(() => {
@@ -118,6 +118,8 @@ export class QueryAnalysisComponent {
       untracked(() => {
         this.discard();
         this.text.set(initial ?? '');
+        // UX-DBQ-05: quem chega pelo "Analisar a consulta" do passo (consulta e origem na URL) já vê a análise.
+        if (initial?.trim() && this.origin()) this.analyze();
       });
     });
     inject(DestroyRef).onDestroy(() => {

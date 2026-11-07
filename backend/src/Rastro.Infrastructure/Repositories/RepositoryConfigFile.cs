@@ -11,13 +11,14 @@ public enum RepositoryConfigOutcome
     InvalidName = 2,
     FolderNotFound = 3,
     Exists = 4,
-    NotFound = 5
+    NotFound = 5,
+    Updated = 6
 }
 
 // Path é a pasta canonicalizada (preenchida em Added e FolderNotFound); HasGit só vale em Added.
 public record RepositoryConfigResult(RepositoryConfigOutcome Outcome, string? Path = null, bool HasGit = false)
 {
-    public bool Succeeded => Outcome is RepositoryConfigOutcome.Added or RepositoryConfigOutcome.Removed;
+    public bool Succeeded => Outcome is RepositoryConfigOutcome.Added or RepositoryConfigOutcome.Removed or RepositoryConfigOutcome.Updated;
 }
 
 // Único lugar que lê e grava o config.json do Rastro (ADR-003): a CLI e a API usam o mesmo serviço.
@@ -34,7 +35,7 @@ public sealed partial class RepositoryConfigFile(string configPath)
 
     public static bool IsValidName(string? name) => name is not null && ValidName().IsMatch(name);
 
-    // Cadastro sem comandos: é o que a tela pode fazer (build e testes só pelo terminal).
+    // Cadastro sem comandos; os comandos entram depois, pela edição (ADR-008) ou já no "rastro repo add".
     public RepositoryConfigResult Add(string name, string folder) => AddWithCommands(name, folder, null, null);
 
     public RepositoryConfigResult AddWithCommands(string name, string folder, string? buildCommand, string? testCommand)
@@ -72,6 +73,35 @@ public sealed partial class RepositoryConfigFile(string configPath)
             Save(root);
             return new(RepositoryConfigOutcome.Removed);
         }
+    }
+
+    // Troca o comando de build e o de testes da validação (ADR-008). Nulo ou vazio tira o comando da entrada.
+    // Quem chama confere o texto antes (IsValidCommand): o comando roda sem shell, pelo ProcessRunner.
+    public RepositoryConfigResult SetCommands(string name, string? buildCommand, string? testCommand)
+    {
+        lock (_gate)
+        {
+            var root = Load();
+            var repositories = Repositories(root);
+            if (Find(repositories, name) is not JsonObject entry) return new(RepositoryConfigOutcome.NotFound);
+
+            SetOrRemove(entry, "BuildCommand", buildCommand);
+            SetOrRemove(entry, "TestCommand", testCommand);
+            Save(root);
+            return new(RepositoryConfigOutcome.Updated, (string?)entry["Path"]);
+        }
+    }
+
+    public const int MaxCommandLength = 500;
+
+    // Uma linha só, sem caractere de controle e com até 500 caracteres. Nulo ou vazio vale (tira o comando).
+    public static bool IsValidCommand(string? command) =>
+        string.IsNullOrWhiteSpace(command) || (command.Length <= MaxCommandLength && !command.Any(char.IsControl));
+
+    private static void SetOrRemove(JsonObject entry, string key, string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) entry.Remove(key);
+        else entry[key] = value.Trim();
     }
 
     // Nome e pasta de cada entrada gravada (para a "rastro repo list").

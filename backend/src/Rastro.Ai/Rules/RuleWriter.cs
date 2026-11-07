@@ -85,7 +85,7 @@ public class RuleWriter(
             .Where(n => overwrite || n.Rule is null)
             .Take(MaxNodesPerRequest)
             .ToList();
-        if (targets.Count == 0) return new DescribeResult(0, 0, ["Nenhum nó sem regra para escrever."]);
+        if (targets.Count == 0) return new DescribeResult(0, 0, ["Nenhum passo sem regra para escrever."]);
 
         // Código de cada nó e o hash dele (chave do cache).
         var code = new Dictionary<string, (string Text, string Hash)>();
@@ -120,7 +120,7 @@ public class RuleWriter(
                 var match = handles.FirstOrDefault(h => h.Handle == item.Node);
                 if (match.Node is null)
                 {
-                    messages.Add($"Regra para um nó que não foi pedido ({item.Node}) ignorada.");
+                    messages.Add($"Regra para um passo que não foi pedido ({item.Node}) ignorada.");
                     continue;
                 }
 

@@ -53,9 +53,9 @@ public class ClaudeTextService(IHttpClientFactory http, ILogger<ClaudeTextServic
         var json = await SendAsync(message, ct);
 
         if ((string?)json["stop_reason"] == "refusal")
-            throw new AiProviderException("O Claude recusou o pedido (classificador de segurança). Tente outro nó ou outro provedor.");
+            throw new AiProviderException("O Claude recusou o pedido (classificador de segurança). Tente outro passo ou outro provedor.");
         if ((string?)json["stop_reason"] == "max_tokens")
-            throw new AiProviderException("A resposta do Claude passou do limite de tamanho. Tente um nó com menos contexto.");
+            throw new AiProviderException("A resposta do Claude passou do limite de tamanho. Tente um passo com menos contexto.");
 
         var text = (json["content"] as JsonArray)?
             .OfType<JsonObject>()

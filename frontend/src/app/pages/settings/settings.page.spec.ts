@@ -47,15 +47,15 @@ function answerInitial(http: HttpTestingController, repos: RepositoryItem[]): vo
 describe('SettingsPage: repositórios', () => {
   it('lista os repositórios com pasta e avisos', () => {
     const { fixture, http, el } = render();
-    answerInitial(http, [repo('a-sistema', { hasGit: false }), repo('b-sistema', { hasBuildCommand: true, hasTestCommand: true })]);
+    answerInitial(http, [repo('a-sistema', { hasGit: false }), repo('b-sistema', { hasBuildCommand: true, hasTestCommand: true, buildCommand: 'dotnet build', testCommand: 'dotnet test' })]);
     fixture.detectChanges();
 
     const rows = el.querySelectorAll('.repo');
     expect(rows.length).toBe(2);
     expect(rows[0].textContent).toContain('C:\\codigo\\a-sistema');
     expect(rows[0].textContent).toContain('sem .git: o levantamento fica sem o commit');
-    expect(rows[0].textContent).toContain('rastro repo add');
-    expect(rows[1].textContent).toContain('Build e testes configurados.');
+    expect(rows[0].textContent).toContain('sem comando');
+    expect(rows[1].textContent).toContain('dotnet build');
     expect(rows[1].textContent).not.toContain('sem .git');
   });
 
@@ -176,12 +176,93 @@ describe('SettingsPage: repositórios', () => {
   });
 });
 
+describe('SettingsPage: build e testes', () => {
+  const edit = (el: HTMLElement) => button(el, 'Editar build e testes');
+  const tick = () => new Promise((r) => setTimeout(r));
+
+  // UX-FIM-C01
+  it('abre a edição com o foco no Build, salva pelo PUT e anuncia Comandos salvos', async () => {
+    const { fixture, http, el } = render();
+    answerInitial(http, [repo('loja')]);
+    fixture.detectChanges();
+
+    edit(el).click();
+    fixture.detectChanges();
+    await tick();
+    expect(document.activeElement?.id).toBe('build-loja');
+    expect(el.querySelector('label[for="build-loja"]')?.textContent).toBe('Build');
+    expect(el.querySelector('#build-loja')?.getAttribute('aria-describedby')).toBe('commands-help-loja');
+    expect(el.querySelector('#commands-help-loja')?.textContent).toContain('sem shell');
+
+    type(el, 'build-loja', ' dotnet build ');
+    type(el, 'test-loja', '');
+    fixture.detectChanges();
+    button(el, 'Salvar comandos').click();
+    const req = http.expectOne((r) => r.method === 'PUT' && r.url === '/api/repositories/loja/commands');
+    expect(req.request.body).toEqual({ buildCommand: 'dotnet build', testCommand: null });
+    req.flush(repo('loja', { hasBuildCommand: true, buildCommand: 'dotnet build' }));
+    fixture.detectChanges();
+    await tick();
+
+    expect(el.querySelector('.commands-edit')).toBeNull();
+    expect(el.querySelector('.note-ok')?.textContent).toContain('Comandos salvos');
+    expect(el.querySelector('.repo')?.textContent).toContain('dotnet build');
+    expect(document.activeElement?.id).toBe('edit-commands-loja');
+  });
+
+  // UX-FIM-C01
+  it('erro 400 mantém a edição aberta com a mensagem do código', () => {
+    const { fixture, http, el } = render();
+    answerInitial(http, [repo('loja')]);
+    fixture.detectChanges();
+
+    edit(el).click();
+    fixture.detectChanges();
+    button(el, 'Salvar comandos').click();
+    http.expectOne((r) => r.method === 'PUT').flush({ code: 'REPOSITORY_COMMAND_INVALID' }, { status: 400, statusText: 'Bad Request' });
+    fixture.detectChanges();
+
+    expect(el.querySelector('.commands-edit')).not.toBeNull();
+    const alert = el.querySelector('.commands-edit .field-error');
+    expect(alert?.getAttribute('role')).toBe('alert');
+    expect(alert?.textContent).toContain('O comando precisa caber numa linha');
+  });
+
+  // UX-FIM-C01
+  it('Cancelar fecha sem chamar a API e devolve o foco ao botão do repositório', async () => {
+    const { fixture, http, el } = render();
+    answerInitial(http, [repo('loja')]);
+    fixture.detectChanges();
+
+    edit(el).click();
+    fixture.detectChanges();
+    button(el, 'Cancelar').click();
+    fixture.detectChanges();
+    await tick();
+
+    expect(el.querySelector('.commands-edit')).toBeNull();
+    http.expectNone((r) => r.method === 'PUT');
+    expect(document.activeElement?.id).toBe('edit-commands-loja');
+  });
+});
+
 describe('SettingsPage: voltar', () => {
+  // A3
+  it('o voltar é a seta da barra de página, com o título ao lado', () => {
+    const { fixture, http, el } = render(3);
+    answerInitial(http, []);
+    fixture.detectChanges();
+    const bar = el.querySelector('.page-bar')!;
+    expect(bar.querySelector('.page-back')!.getAttribute('aria-label')).toBe('Voltar');
+    expect(bar.querySelector('h1')!.textContent).toBe('Configurações');
+    expect(el.querySelector('.head h1')).toBeNull();
+  });
+
   it('volta à tela anterior quando a navegação veio de dentro do app', () => {
     const { fixture, http, el, fakeLocation } = render(3);
     answerInitial(http, []);
     fixture.detectChanges();
-    button(el, 'Voltar').click();
+    el.querySelector<HTMLButtonElement>('.page-bar .page-back')!.click();
     expect(fakeLocation.back).toHaveBeenCalled();
   });
 
@@ -190,7 +271,7 @@ describe('SettingsPage: voltar', () => {
     answerInitial(http, []);
     fixture.detectChanges();
     const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-    button(el, 'Voltar').click();
+    el.querySelector<HTMLButtonElement>('.page-bar .page-back')!.click();
     expect(fakeLocation.back).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/');
   });

@@ -368,3 +368,14 @@ describe('DiagramPage (Fase 27)', () => {
     expect(button(el, 'Salvar').disabled).toBeFalse();
   });
 });
+
+// A7 (revisão geral de 2026-10-30)
+describe('DiagramPage: barra da edição', () => {
+  it('agrupa Desfazer e Refazer em Histórico e deixa o Salvar em tamanho normal', async () => {
+    const { el } = await loaded();
+
+    const history = el.querySelector('.bar-group[aria-label="Histórico"]')!;
+    expect([...history.querySelectorAll('button')].map((b) => b.textContent!.trim())).toEqual(['Desfazer', 'Refazer']);
+    expect(button(el, 'Salvar').classList.contains('btn-small')).toBeFalse();
+  });
+});
