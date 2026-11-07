@@ -24,9 +24,10 @@ O problema e a sugestão de cada item estão no plano de origem; aqui fica só o
 
 ## Fase C: foco e estado da tela do banco (risco médio)
 
-- [ ] UX-FIM-B04 (confirmação de remover a conexão pelo diálogo do tema), B08 (escolher na lista sem mover o foco), B09 (foco de volta ao item da lista também para view e procedure), B11 (painel rola para a vista abaixo de 900px) e B12 (Esc do painel só na aba do mapa e foco de volta ao "Exportar").
-- [ ] UX-FIM-Q17 (a sugestão recebida fica na tela se o estado da IA recarregar vazio).
-- [ ] UX-FIM-B10 (banco grande: blocos fora do filtro sem parada de Tab e atraso de 150 ms na busca).
+- [x] UX-FIM-B04 (confirmação de remover a conexão pelo diálogo do tema), B08 (escolher na lista sem mover o foco), B09 (foco de volta ao item da lista também para view e procedure), B11 (painel rola para a vista abaixo de 900px) e B12 (Esc do painel só na aba do mapa e foco de volta ao "Exportar").
+- [x] UX-FIM-Q17 (a sugestão recebida fica na tela se o estado da IA recarregar vazio).
+- [x] UX-FIM-B10 (banco grande: blocos fora do filtro sem parada de Tab e atraso de 150 ms na busca).
+- **Registro (2026-11-07):** feito. No B04, a pergunta de remover a conexão continua dentro do diálogo (seria diálogo sobre diálogo), com o foco em "Manter" ao abrir, de volta em "Remover conexão" ao fechar e o "Salvar" desabilitado enquanto ela está aberta. No B10, o recorte por saltos já tira os blocos do mapa; só a busca precisou do `tabindex="-1"`. No Q17, sem IA a sugestão recebida fica com a linha "A IA está desligada agora" e o link para as Configurações, sem botão. Frontend 431/431.
 
 ## Fase D: coerência do app (risco médio)
 

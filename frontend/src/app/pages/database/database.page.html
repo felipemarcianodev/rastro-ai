@@ -34,11 +34,11 @@
       }
       @if (geometry() && tab() === DbTab.Map) {
         <span class="popover">
-          <button type="button" class="btn btn-g btn-small" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
+          <button type="button" class="btn btn-g btn-small" id="db-export-button" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
             {{ copy.label('Exportar o mapa') }}
           </button>
           @if (exportOpen()) {
-            <div class="menu-backdrop" (click)="exportOpen.set(false)"></div>
+            <div class="menu-backdrop" (click)="closeExport()"></div>
             <ul id="db-export-menu" class="popover-menu">
               <li class="popover-group" role="presentation">Exportar o que está no mapa</li>
               <li><button type="button" (click)="exportImage('png')" [disabled]="pngBusy()">Imagem PNG</button></li>
@@ -96,14 +96,14 @@
       <aside class="db-side" aria-label="Tabelas, views e procedures">
         <label class="visually-hidden" for="db-search">Buscar tabela, view, procedure ou campo</label>
         <input id="db-search" class="input is-small" type="search" placeholder="Buscar tabela ou campo" autocomplete="off"
-          [value]="query()" (input)="query.set($any($event.target).value)" />
+          [value]="query()" (input)="onSearch($any($event.target).value)" />
         @if (list(); as l) {
           <p class="visually-hidden" role="status">{{ l.tables.length + l.views.length + l.procedures.length }} itens encontrados</p>
           <h2 class="db-group">Tabelas <span class="muted">{{ l.tables.length }}</span></h2>
           <ul class="db-items">
             @for (key of l.tables; track key) {
               <li><button type="button" class="db-item code" [class.is-active]="selectedTable() === key" [attr.aria-pressed]="selectedTable() === key"
-                (click)="choose({ kind: DbItemKind.Table, key }, true)">{{ key }}@if (badges().get(key); as b) { <span class="db-alert">{{ b }}</span> }</button></li>
+                [attr.data-item]="itemId(DbItemKind.Table, key)" (click)="choose({ kind: DbItemKind.Table, key })">{{ key }}@if (badges().get(key); as b) { <span class="db-alert">{{ b }}</span> }</button></li>
             } @empty {
               <li class="muted db-none">Nenhuma tabela com esse nome ou campo.</li>
             }
@@ -113,7 +113,7 @@
             <ul class="db-items">
               @for (key of l.views; track key) {
                 <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.View && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.View && selection()?.key === key"
-                  (click)="choose({ kind: DbItemKind.View, key })">{{ key }}</button></li>
+                  [attr.data-item]="itemId(DbItemKind.View, key)" (click)="choose({ kind: DbItemKind.View, key })">{{ key }}</button></li>
               } @empty {
                 <li class="muted db-none">Nenhuma view com esse nome ou campo.</li>
               }
@@ -124,7 +124,7 @@
             <ul class="db-items">
               @for (key of l.procedures; track key) {
                 <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key"
-                  (click)="choose({ kind: DbItemKind.Procedure, key })">{{ key }}</button></li>
+                  [attr.data-item]="itemId(DbItemKind.Procedure, key)" (click)="choose({ kind: DbItemKind.Procedure, key })">{{ key }}</button></li>
               } @empty {
                 <li class="muted db-none">Nenhuma procedure com esse nome.</li>
               }
@@ -185,7 +185,7 @@
                 <button type="button" class="db-card" [attr.data-table]="c.key" [style.left.px]="c.x" [style.top.px]="c.y" [style.width.px]="card.width" [style.height.px]="c.height"
                   [class.is-selected]="selectedTable() === c.key" [class.is-lit]="!selectedTable() && !!lit()?.has(c.key)"
                   [class.is-dim]="(!!matching() && !matching()!.has(c.key)) || (!!lit() && !selectedTable() && !lit()!.has(c.key))"
-                  [attr.aria-pressed]="selectedTable() === c.key" [attr.aria-label]="cardLabel(c.key, c.table.columns.length, badges().get(c.key))" (click)="pickTable(c.key)">
+                  [attr.aria-pressed]="selectedTable() === c.key" [attr.tabindex]="matching() && !matching()!.has(c.key) ? -1 : null" [attr.aria-label]="cardLabel(c.key, c.table.columns.length, badges().get(c.key))" (click)="pickTable(c.key)">
                   <span class="db-card-head">
                     <strong class="code">{{ c.key }}</strong>
                     @if (badges().get(c.key); as b) {

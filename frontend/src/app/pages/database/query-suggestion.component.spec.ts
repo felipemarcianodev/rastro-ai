@@ -121,6 +121,24 @@ describe('Sugestão da IA para a consulta (Fase 41)', () => {
     expect(on.el.querySelector('.qa-ai-off')).toBeNull();
   });
 
+  // UX-FIM-Q17
+  it('a sugestão já recebida fica na tela quando a IA some, sem botão de pedir e com aviso discreto', () => {
+    const ctx = render([AiUse.Suggestions]);
+    ask(ctx, suggestion());
+    expect(ctx.el.textContent).toContain('Proposta de Claude (Anthropic)');
+
+    TestBed.inject(AiStatusService).status.set(null);
+    ctx.fixture.detectChanges();
+
+    expect(ctx.el.querySelector('app-query-suggestion')).not.toBeNull();
+    expect(ctx.el.textContent).toContain('Proposta de Claude (Anthropic)');
+    expect(suggestButton(ctx.el)).toBeUndefined();
+    expect(buttonWith(ctx.el, 'Pedir outra sugestão')).toBeUndefined();
+    expect(ctx.el.querySelector('.qa-ai-gone')!.textContent).toContain('A IA está desligada agora');
+    expect(ctx.el.querySelector('.qa-ai-gone button')).toBeNull();
+    expect(ctx.el.querySelector('.qa-ai-off')).toBeNull();
+  });
+
   // WEB-DBA-002
   it('com IA ligada, mostra o botão e a dica do que vai para o provedor, e manda a consulta', () => {
     const ctx = render([AiUse.Suggestions]);

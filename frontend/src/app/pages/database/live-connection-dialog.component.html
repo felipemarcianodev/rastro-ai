@@ -42,7 +42,7 @@
           <p id="live-remove-title">Remover a conexão? O Rastro volta a ler só o código.</p>
           <div class="live-confirm">
             <button type="button" class="btn btn-danger btn-small" (click)="remove()" [disabled]="busy()">Remover</button>
-            <button type="button" class="btn btn-g btn-small" (click)="confirmingRemove.set(false)">Manter</button>
+            <button type="button" class="btn btn-g btn-small" id="live-keep" (click)="keepConnection()">Manter</button>
           </div>
         </div>
       }
@@ -76,12 +76,12 @@
 
     <footer class="dialog-foot live-foot">
       @if (connection()?.configured && !confirmingRemove()) {
-        <button type="button" class="btn btn-g live-remove" (click)="confirmingRemove.set(true)" [disabled]="busy()">Remover conexão</button>
+        <button type="button" id="live-remove-ask" class="btn btn-g live-remove" (click)="askRemove()" [disabled]="busy()">Remover conexão</button>
         <button type="button" class="btn btn-g" (click)="test()" [disabled]="busy() || !!key().trim()" aria-describedby="live-test-help"
           [title]="key().trim() ? 'Salve a nova string para testá-la' : 'Testa a conexão já salva'">{{ busy() ? 'Aguarde…' : 'Testar conexão' }}</button>
       }
       <button type="button" class="btn btn-g" (click)="closed.emit()">Fechar</button>
-      <button type="button" class="btn btn-p" (click)="save()" [disabled]="!key().trim() || busy()">Salvar</button>
+      <button type="button" class="btn btn-p" (click)="save()" [disabled]="!key().trim() || busy() || confirmingRemove()">Salvar</button>
     </footer>
   </section>
 </div>
