@@ -1,15 +1,40 @@
 <div class="page">
-  <section class="list" aria-labelledby="list-title">
-    <header class="list-head">
-      <h1 id="list-title" tabindex="-1">Levantamentos</h1>
-      <p class="muted">Cada levantamento é o fluxo de um método, do jeito que estava no commit analisado.</p>
-    </header>
+  <header class="page-head">
+    <div>
+      <h1 id="list-title" tabindex="-1">Seus repositórios</h1>
+      <p class="muted">O Rastro lê o código com o compilador: siga um fluxo, veja o banco ou analise uma consulta.</p>
+    </div>
+    <button type="button" class="btn btn-p new-survey" (click)="openForm()">Novo levantamento</button>
+  </header>
 
-    <span class="visually-hidden" role="status">{{ deletedNotice() ?? '' }}</span>
-    @if (deletedNotice(); as notice) {
-      <p class="saved-notice" aria-hidden="true">{{ notice }}</p>
-    }
+  <span class="visually-hidden" role="status">{{ deletedNotice() ?? '' }}</span>
+  @if (deletedNotice(); as notice) {
+    <p class="saved-notice" aria-hidden="true">{{ notice }}</p>
+  }
 
+  @if (hasRepositories()) {
+    <ul class="repo-grid" aria-label="Repositórios">
+      @for (card of repoCards(); track card.name) {
+        <li class="repo-card">
+          <div class="repo-card-head">
+            <h2 class="code">{{ card.name }}</h2>
+            <span class="muted">{{ card.count }}</span>
+          </div>
+          @if (card.stack) {
+            <p class="muted repo-stack code">{{ card.stack }}</p>
+          }
+          <div class="action-grid">
+            <button type="button" class="btn btn-p" (click)="openForm(card.name)">Levantar fluxo</button>
+            <a class="btn btn-g" [routerLink]="dbRoute(card.name)">Mapa do banco</a>
+            <a class="btn btn-g" [routerLink]="dbRoute(card.name)" [queryParams]="queryTabParams">Analisar consulta</a>
+          </div>
+        </li>
+      }
+    </ul>
+  }
+
+  <section class="list" aria-labelledby="recent-title">
+    <h2 id="recent-title" class="section-title">Levantamentos recentes</h2>
     @if (listError(); as error) {
       <div class="notice is-error" role="alert">
         <p>{{ error }}</p>
@@ -37,7 +62,7 @@
     } @else if (surveys()!.length === 0) {
       <div class="empty">
         <p>Nenhum levantamento ainda.</p>
-        <p class="muted">Escolha um repositório e o método de entrada ao lado para seguir o primeiro rastro.</p>
+        <p class="muted">Use "Levantar fluxo" em um dos repositórios acima para seguir o primeiro rastro.</p>
       </div>
     } @else {
       <div class="list-tools">
@@ -61,8 +86,8 @@
       }
       <ul class="rows">
         @for (survey of visible(); track survey.id) {
-          <li>
-            <a class="row" [routerLink]="['/surveys', survey.id]">
+          <li class="row">
+            <a class="row-link" [routerLink]="['/surveys', survey.id]" tabindex="-1" aria-hidden="true">
               <span class="row-main">
                 <span class="row-entry code">{{ survey.entryPoint }}</span>
                 <span class="row-source">
@@ -87,16 +112,29 @@
                 <time class="muted" [attr.datetime]="survey.createdAt">{{ shortDate(survey.createdAt) }}</time>
               </span>
             </a>
+            <span class="row-actions">
+              <a class="btn btn-g btn-small" [routerLink]="['/surveys', survey.id]" [attr.aria-label]="'Abrir o levantamento ' + survey.entryPoint">Abrir</a>
+              <a class="btn btn-g btn-small" [routerLink]="dbRoute(survey.repository)" [queryParams]="surveyOriginParams(survey.id)"
+                [attr.aria-label]="'Banco do fluxo ' + survey.entryPoint">Banco deste fluxo</a>
+            </span>
           </li>
         }
       </ul>
     }
   </section>
+</div>
 
-  <aside class="create" aria-labelledby="create-title">
-    <h2 id="create-title">Novo levantamento</h2>
-    <p class="muted">O Rastro lê a solution com o compilador e segue cada chamada a partir do método escolhido.</p>
-
+@if (formOpen()) {
+  <div class="overlay" appDialog (click)="closeForm()" (keydown.escape)="closeForm()">
+    <section class="dialog is-form" role="dialog" aria-modal="true" aria-labelledby="create-title" (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <div>
+          <h2 id="create-title">Novo levantamento</h2>
+          <p class="muted">O Rastro lê a solution com o compilador e segue cada chamada a partir do método escolhido.</p>
+        </div>
+        <button type="button" class="btn btn-g btn-small" (click)="closeForm()">Fechar</button>
+      </header>
+      <div class="dialog-body">
     <form class="form" (ngSubmit)="submit()" novalidate>
       <div class="field">
         <div class="field-head">
@@ -232,8 +270,10 @@
         {{ submitting() ? 'Enviando…' : 'Levantar o fluxo' }}
       </button>
     </form>
-  </aside>
-</div>
+      </div>
+    </section>
+  </div>
+}
 
 @if (registerOpen()) {
   <div class="overlay" appDialog (click)="closeRegister()" (keydown.escape)="closeRegister()">

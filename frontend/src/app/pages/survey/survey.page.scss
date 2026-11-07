@@ -308,3 +308,48 @@
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-sm);
 }
+
+// Barra em grupos (Ver, Compartilhar, Alterar): um divisor entre eles.
+.bar-group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  & + .bar-group {
+    padding-left: var(--space-3);
+    border-left: 1px solid var(--line);
+  }
+}
+
+// Seletor das visões: um controle só, com a visão atual marcada.
+.segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+.segmented-item {
+  min-height: var(--control-h-sm);
+  padding: 0 var(--space-3);
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+
+  &[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--trail);
+  }
+}
+
+.delete-link {
+  color: var(--danger);
+}

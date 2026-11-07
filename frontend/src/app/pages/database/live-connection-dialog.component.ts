@@ -58,6 +58,11 @@ export class LiveConnectionDialogComponent {
     inject(DestroyRef).onDestroy(() => (this.closing = true));
   }
 
+  // Clique no fundo fecha, menos com a string digitada: um clique sem querer apagaria o que a pessoa colou (B23).
+  protected dismiss(): void {
+    if (!this.key().trim()) this.closed.emit();
+  }
+
   protected save(): void {
     const value = this.key().trim();
     if (!value || this.busy()) return;

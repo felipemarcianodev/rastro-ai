@@ -9,6 +9,7 @@
     <a href="#editor" (click)="goTo($event, 'editor')">Repositórios</a>
     <a href="#agente" (click)="goTo($event, 'agente')">Modo agente (MCP)</a>
     <a href="#ia" (click)="goTo($event, 'ia')">Inteligência artificial</a>
+    <a href="#aparencia" (click)="goTo($event, 'aparencia')">Aparência</a>
   </nav>
 
   <section id="editor" class="card" aria-labelledby="repos-title">
@@ -85,6 +86,28 @@
       (confirm)="confirmRemove()" (cancel)="cancelRemove()" />
   }
 
+  <section id="aparencia" class="card" aria-labelledby="appearance-title">
+    <h2 id="appearance-title">Aparência</h2>
+    <p>A escolha fica neste navegador.</p>
+    <div class="field">
+      <label class="field-label" for="palette-select">Paleta de cores</label>
+      <select id="palette-select" class="input palette-select" [value]="theme.palette()" (change)="choosePalette($any($event.target).value)">
+        @for (p of palettes; track p) {
+          <option [value]="p" [selected]="p === theme.palette()">{{ paletteLabel[p] }}</option>
+        }
+      </select>
+    </div>
+    <fieldset class="theme-options">
+      <legend class="field-label">Tema</legend>
+      @for (t of themes; track t) {
+        <label class="check">
+          <input type="radio" name="theme" [value]="t" [checked]="theme.choice() === t" (change)="theme.set(t)" />
+          <span>{{ themeLabel[t] }}</span>
+        </label>
+      }
+    </fieldset>
+  </section>
+
   @if (loadError(); as error) {
     <div class="notice is-error" role="alert">
       <p>{{ error }}</p>
@@ -115,10 +138,19 @@
           <span class="pending" role="status">Alteração pendente, falta salvar</span>
         }
       </div>
-      <p>O próprio Rastro chama a IA com a sua chave de API. As chaves ficam cifradas no banco e nunca voltam para a tela.</p>
+      <p>O próprio Rastro chama a IA com a sua chave de API. As chaves ficam cifradas no armazenamento local do Rastro e nunca voltam para a tela.</p>
 
       @if (!enabled) {
-        <p class="muted ai-off-note">Ligue a IA para escolher o provedor, a chave e os usos. O que já estava configurado continua guardado.</p>
+        <div class="ai-off-note">
+          <p class="muted">Ligue a IA para escolher o provedor, a chave e os usos. O que já estava configurado continua guardado. Ligada, ela faz:</p>
+          <ul class="muted">
+            <li>completar os buracos do grafo, propondo o destino de chamadas que o compilador não resolveu;</li>
+            <li>escrever as regras de cada passo em português;</li>
+            <li>sugerir melhorias e consultas;</li>
+            <li>responder perguntas sobre o fluxo.</li>
+          </ul>
+          <p class="muted">Tudo o que ela propõe passa pelo compilador e só entra depois que você confirma.</p>
+        </div>
       }
       @if (enabled) {
       <fieldset class="providers">

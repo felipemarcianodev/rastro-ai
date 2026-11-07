@@ -1,6 +1,6 @@
 # Plano de UX: repaginação da navegação e da usabilidade (2026-11-06)
 
-**Status: PROPOSTA.** Pedido do dono depois de não achar a tela do banco ("a funcionalidade banco está escondida, é um link lá em cima") e de pedir que a usabilidade seja repaginada. Feito pela skill `levantamento-ux`, revista no mesmo dia com a passada de navegação e a tabela de cobertura vindas da skill do `meu-portfolio`. O MCP Knowledge não estava disponível; o levantamento seguiu as etapas da própria skill.
+**Status: EXECUTADO em 2026-11-06** (Fases A, B e C; o item 6 da Fase C fica de fora por regra de segurança). Pedido do dono depois de não achar a tela do banco ("a funcionalidade banco está escondida, é um link lá em cima") e de pedir que a usabilidade seja repaginada. Feito pela skill `levantamento-ux`, revista no mesmo dia com a passada de navegação e a tabela de cobertura vindas da skill do `meu-portfolio`. O MCP Knowledge não estava disponível; o levantamento seguiu as etapas da própria skill.
 
 ## Cobertura
 
@@ -171,9 +171,9 @@ Feito em 2026-11-06: os itens acima, com a tela inicial lendo `?repositorio=` pa
 
 Feito em 2026-11-06: os itens acima. O "←" do banco volta ao levantamento pelo parâmetro `?levantamento=`, que todos os links do fluxo para o banco passaram a mandar. O cadastro do repositório abre num diálogo na tela inicial e já escolhe o repositório. H17 já funcionava (entrada direta volta à tela inicial). Frontend 378/378. Prints em `docs/telas/ux-fase-b/`. Ficaram de fora: guardar o texto da consulta se o recarregamento do esquema falhar; o `node-panel.component.scss` passa do orçamento de 6 kB desde antes desta fase (dividir o painel ou subir estilos ao tema).
 
-### Fase C: repaginação da navegação (alto risco, requer aprovação item a item) `[ ]`
+### Fase C: repaginação da navegação (alto risco, requer aprovação item a item) `[x]`
 
-Proposta para o dono decidir. Antes de implementar, um protótipo navegável com as três telas (inicial, fluxo e banco) para aprovar o desenho.
+Proposta para o dono decidir. Antes de implementar, um protótipo navegável com as três telas (inicial, fluxo e banco) para aprovar o desenho. **Aprovada pelo dono em 2026-11-06** ("vamos executar todos até tudo terminar"), com o protótipo como referência e os botões dos cartões em grade de três colunas iguais (pedido dele sobre o protótipo). O item 6 não entra: o comando de build e de testes só se configura pelo terminal (ADR-003 e `CLAUDE.md`, Segurança); mudar isso pede uma ADR nova.
 
 1. **Cabeçalho com as áreas do produto** (H01, H02, H04, B01): "Levantamentos", "Banco" e "Configurações" com rótulo e estado ativo; o selo da IA dentro de Configurações; paleta e tema numa seção Aparência das Configurações. "Banco" abre o último repositório usado (ou o único); com vários, a tela do banco já tem o seletor; sem nenhum, leva a Configurações. *Pergunta ao dono: aprova o cabeçalho com três áreas, e a paleta e o tema saindo do cabeçalho?*
 2. **Tela inicial como ponto de partida** (H08, H21, H22): os repositórios com as ações "Levantar fluxo", "Mapa do banco" e "Analisar consulta", e a lista de levantamentos abaixo; "Novo levantamento" vira botão que abre o formulário quando já há levantamentos. *Pergunta: aprova a tela inicial organizada por repositório?*
@@ -181,6 +181,8 @@ Proposta para o dono decidir. Antes de implementar, um protótipo navegável com
 4. **Menus de uma ação só viram botão de texto** (F06, F20). *Pergunta: aprova "Excluir" e "Descartar rascunho" à vista, com confirmação?*
 5. **Textos** (H23, H25, H26, F10, F13, B05, B08, B09, B17, B23 e os Q07, Q15 do plano anterior): cada texto novo vai no protótipo para o dono ler. *Pergunta: aprova os textos do protótipo?*
 6. **Build e testes pela tela** (H18): campos "Comando de build" e "Comando de testes" no cadastro do repositório. Muda o que o cliente configura (o comando continua só da configuração, nunca da requisição). *Pergunta: quer isso nesta repaginação ou depois?*
+
+Feito em 2026-11-06 (itens 1 a 5): cabeçalho com Levantamentos, Banco e Configurações (o Banco abre o último repositório usado, guardado no navegador), selo "IA: configurar", paleta e tema na seção Aparência das Configurações; tela inicial por repositório, com os três botões em grade de colunas iguais, os levantamentos recentes com "Abrir" e "Banco deste fluxo" e o formulário num diálogo; barra do levantamento em grupos (Ver, Compartilhar, Alterar), seletor Grafo, Mapa por sistemas e Visão consolidada, "Comparar" e "Exportar" separados, "Excluir levantamento…" à vista; atalhos "O que dá para fazer aqui" no painel; tela do banco com a frase única, a linha de cada aba e "Exportar o mapa"; diálogo do banco vivo com o campo antes das permissões. Frontend 398/398. Prints em `docs/telas/ux-fase-c/`. Ficou para depois: `survey.page.scss` e `node-panel.component.scss` passam do orçamento de 6 kB (subir o seletor segmentado e os grupos da barra para o tema); o atalho "Mapa do banco" do painel repete o botão da seção "Banco neste fluxo".
 
 ## Fora do escopo e riscos
 

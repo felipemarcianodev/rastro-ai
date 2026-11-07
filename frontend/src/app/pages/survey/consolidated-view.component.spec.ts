@@ -147,7 +147,7 @@ describe('ConsolidatedViewComponent (Fase 28)', () => {
 
     (el.querySelector('[aria-label^="Desenho consolidado"]') as HTMLButtonElement).click();
     expect(host.directions).toEqual([LayoutDirection.Map]);
-    const link = Array.from(el.querySelectorAll('a')).find((a) => a.textContent?.includes('Editar texto e cores'))!;
+    const link = Array.from(el.querySelectorAll('a')).find((a) => a.textContent?.includes('Editar o Mermaid (texto e cores)'))!;
     expect(link.getAttribute('href')).toBe('/surveys/s1/visao');
   });
 

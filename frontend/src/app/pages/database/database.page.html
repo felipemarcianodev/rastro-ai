@@ -24,7 +24,7 @@
         <span class="pill db-live-pill">Banco vivo: {{ l.server }}/{{ l.database }}, só leitura</span>
         <span class="muted db-promise">Lido do código e do catálogo do banco vivo. Nenhum dado das tabelas é lido.</span>
       } @else {
-        <span class="muted db-promise">Lido do código. Nenhum banco é consultado.</span>
+        <span class="muted db-promise">Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.</span>
       }
       @if (!error()) {
         <button type="button" class="btn btn-g btn-small" (click)="connectionOpen.set(true)" aria-haspopup="dialog">{{ live() ? 'Banco vivo' : 'Conectar banco vivo' }}</button>
@@ -32,7 +32,7 @@
       @if (geometry() && tab() === DbTab.Map) {
         <span class="popover">
           <button type="button" class="btn btn-g btn-small" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
-            {{ copy.label('Exportar') }}
+            {{ copy.label('Exportar o mapa') }}
           </button>
           @if (exportOpen()) {
             <div class="menu-backdrop" (click)="exportOpen.set(false)"></div>
@@ -53,7 +53,10 @@
     <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
       @for (t of tabs; track t) {
         <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="'db-panel-' + t"
-          [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)">{{ tabLabel[t] }}</button>
+          [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)">
+          <span class="db-tab-label">{{ tabLabel[t] }}</span>
+          <span class="db-tab-hint">{{ tabHint[t] }}</span>
+        </button>
       }
     </div>
   }

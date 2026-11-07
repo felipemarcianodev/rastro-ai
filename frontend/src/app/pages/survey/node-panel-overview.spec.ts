@@ -101,4 +101,23 @@ describe('NodePanelComponent: Visão geral (Fase B)', () => {
 
     expect([...el.querySelectorAll('.counters button')].map((b) => b.textContent!.trim())).toEqual(['1 entre fluxos']);
   });
+
+  // WEB-UXC-012 (F13)
+  it('traz "O que dá para fazer aqui" com os atalhos, que pedem exportar e editar', () => {
+    const fixture = render(base);
+    const el = fixture.nativeElement as HTMLElement;
+    let exported = 0;
+    let edited = 0;
+    fixture.componentInstance.exportFlow.subscribe(() => exported++);
+    fixture.componentInstance.editFlow.subscribe(() => edited++);
+
+    const block = el.querySelector('.shortcuts')!;
+    expect(block.querySelector('h3')!.textContent).toBe('O que dá para fazer aqui');
+    const items = [...block.querySelectorAll<HTMLElement>('.btn')];
+    expect(items.map((b) => b.textContent!.trim())).toEqual(['Mapa do banco', 'Exportar o fluxo', 'Editar fluxo', 'Perguntas sobre o fluxo']);
+    expect(items[0].getAttribute('href')).toBe('/repositorios/loja/banco?levantamento=s1');
+    items[1].click();
+    items[2].click();
+    expect([exported, edited]).toEqual([1, 1]);
+  });
 });

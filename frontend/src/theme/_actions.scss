@@ -1,0 +1,61 @@
+// Cartões de repositório com a grade de ações (tela inicial): três botões de largura igual,
+// na mesma linha, encostados no pé do cartão. Em tela estreita empilham, sem cortar texto.
+.repo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.repo-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.repo-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+
+  h2 {
+    font-size: var(--text-lg);
+    overflow-wrap: anywhere;
+  }
+}
+
+.repo-stack {
+  margin: 0;
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin-top: auto;
+
+  .btn {
+    width: 100%;
+    justify-content: center;
+    height: auto;
+    min-height: var(--control-h);
+    padding: var(--space-1) var(--space-2);
+    text-align: center;
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 480px) {
+  .action-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

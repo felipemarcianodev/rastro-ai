@@ -5,20 +5,25 @@
 }
 
 .page {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: var(--space-6);
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: var(--space-6) var(--space-5);
-  align-items: start;
-}
-
-.list-head {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  margin-bottom: var(--space-4);
+  gap: var(--space-6);
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5);
+}
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.section-title {
+  margin-bottom: var(--space-3);
+  font-size: var(--text-lg);
 }
 
 h1 {
@@ -57,15 +62,34 @@ h1 {
 
 .row {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   padding: var(--space-3) var(--space-2);
   border-bottom: 1px solid var(--line);
-  text-decoration: none;
 
   &:hover {
     background: var(--surface);
   }
+}
+
+.row-link {
+  flex: 1 1 320px;
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-width: 0;
+  text-decoration: none;
+}
+
+.row-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.dialog.is-form {
+  width: min(560px, 100%);
 }
 
 .row-main {
@@ -116,23 +140,10 @@ h1 {
   color: var(--danger);
 }
 
-.create {
-  position: sticky;
-  top: var(--space-5);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-5);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-}
-
 .form {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  margin-top: var(--space-3);
 
   .btn {
     align-self: flex-start;
@@ -141,17 +152,6 @@ h1 {
 
 .depth {
   width: 96px;
-}
-
-@media (max-width: 900px) {
-  .page {
-    grid-template-columns: 1fr;
-  }
-
-  .create {
-    position: static;
-    order: -1;
-  }
 }
 
 .repos-error {

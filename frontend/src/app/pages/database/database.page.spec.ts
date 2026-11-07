@@ -6,6 +6,7 @@ import { DbSchema, DbUsageReport } from '../../core/database/db-schema';
 import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { DbOperation, FindingKind, FindingSeverity } from '../../core/models';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
+import { LastRepositoryService } from '../../core/last-repository.service';
 import { DatabasePage } from './database.page';
 
 const usage: DbUsageReport = {
@@ -287,5 +288,30 @@ describe('DatabasePage (Fase 38)', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('#db-repo')).toBeNull();
     expect(el.querySelector('.page-bar-meta')!.textContent).toContain('fantasma');
+  });
+
+  // WEB-UXC-001 (B05)
+  it('cada aba tem uma linha que explica o que ela faz', () => {
+    const { el } = render();
+
+    expect(el.querySelector('#db-tab-map .db-tab-hint')!.textContent).toBe('Tabelas, chaves e índices lidos do código');
+    expect(el.querySelector('#db-tab-query .db-tab-hint')!.textContent).toBe('Cole um SQL e veja os gargalos, sem executar');
+  });
+
+  // WEB-UXC-002 (B09, B17)
+  it('a promessa é uma frase só e o botão diz que exporta o mapa', () => {
+    const { el } = render();
+
+    expect(el.querySelector('.db-promise')!.textContent).toBe('Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.');
+    const exportButton = [...el.querySelectorAll<HTMLButtonElement>('.page-bar-side button')].find((b) => b.textContent!.trim() === 'Exportar o mapa');
+    expect(exportButton).toBeDefined();
+  });
+
+  // WEB-UXC-003
+  it('abrir um repositório que existe o guarda como o último usado', () => {
+    localStorage.removeItem('rastro.lastRepository');
+    render();
+
+    expect(TestBed.inject(LastRepositoryService).name()).toBe('loja');
   });
 });

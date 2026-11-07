@@ -314,7 +314,17 @@
       </nav>
     }
     @if (!editing()) {
-      <button type="button" class="btn btn-g btn-small ask-shortcut" (click)="openQuestions.emit()" title="Abre o mapa do fluxo na aba Perguntas">Perguntas sobre o fluxo</button>
+      <section class="shortcuts" aria-labelledby="shortcuts-title">
+        <h3 id="shortcuts-title">O que dá para fazer aqui</h3>
+        <div class="shortcut-list">
+          @if (repository()) {
+            <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="withOrigin(null)" title="O mapa do banco deste repositório, lido do código">Mapa do banco</a>
+          }
+          <button type="button" class="btn btn-g btn-small" (click)="exportFlow.emit()" title="PNG, SVG, Mermaid e C4">Exportar o fluxo</button>
+          <button type="button" class="btn btn-g btn-small" (click)="editFlow.emit()" title="Desenhar uma mudança no fluxo e gerar o prompt para o agente">Editar fluxo</button>
+          <button type="button" class="btn btn-g btn-small" (click)="openQuestions.emit()" title="Abre o mapa do fluxo na aba Perguntas">Perguntas sobre o fluxo</button>
+        </div>
+      </section>
     }
     @if (summary(); as s) {
       <details class="section" open>

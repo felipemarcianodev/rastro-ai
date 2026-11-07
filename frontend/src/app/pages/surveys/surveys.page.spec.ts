@@ -1,12 +1,20 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
+import { LastRepositoryService } from '../../core/last-repository.service';
 import { SurveyStatus, SurveySummary } from '../../core/models';
 import { SurveysPage, matchesSearch } from './surveys.page';
 
 const survey = (id: string, entryPoint: string, status: SurveyStatus): SurveySummary =>
   ({ id, entryPoint, status, repository: 'loja', solutionPath: 'backend/Loja.slnx', nodeCount: 3, unresolvedCount: 0, createdAt: '2026-10-16T10:00:00Z' }) as SurveySummary;
+
+async function openNew(fixture: ComponentFixture<SurveysPage>): Promise<void> {
+  (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.new-survey')!.click();
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
+}
 
 describe('SurveysPage', () => {
   it('busca sem acento e sem caixa, por todos os termos', () => {
@@ -70,7 +78,7 @@ describe('SurveysPage', () => {
     }
   });
 
-  it('o botão i de cada campo abre e fecha a explicação, também com Esc', () => {
+  it('o botão i de cada campo abre e fecha a explicação, também com Esc', async () => {
     TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     const fixture = TestBed.createComponent(SurveysPage);
     fixture.detectChanges();
@@ -78,6 +86,7 @@ describe('SurveysPage', () => {
     http.expectOne('/api/surveys').flush([]);
     http.expectOne('/api/repositories').flush([]);
     fixture.detectChanges();
+    await openNew(fixture);
     const el = fixture.nativeElement as HTMLElement;
     const toggles = Array.from(el.querySelectorAll<HTMLButtonElement>('.info-toggle'));
     const entry = toggles.find((b) => b.getAttribute('aria-label') === 'O que é Ponto de entrada')!;
@@ -96,7 +105,7 @@ describe('SurveysPage', () => {
     http.match(() => true).forEach((request) => request.flush([]));
   });
 
-  it('sem repositório, leva às Configurações em vez de mandar para o terminal', () => {
+  it('sem repositório, leva às Configurações em vez de mandar para o terminal', async () => {
     TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     const fixture = TestBed.createComponent(SurveysPage);
     fixture.detectChanges();
@@ -104,6 +113,7 @@ describe('SurveysPage', () => {
     http.expectOne('/api/surveys').flush([]);
     http.expectOne('/api/repositories').flush([]);
     fixture.detectChanges();
+    await openNew(fixture);
     const el = fixture.nativeElement as HTMLElement;
 
     const link = el.querySelector<HTMLAnchorElement>('.field-help a');
@@ -148,7 +158,7 @@ describe('SurveysPage', () => {
   });
 
   // UX-H10
-  it('semRepositorioEscolhido_desabilitaLevantarOFluxo', () => {
+  it('semRepositorioEscolhido_desabilitaLevantarOFluxo', async () => {
     TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     const fixture = TestBed.createComponent(SurveysPage);
     fixture.detectChanges();
@@ -156,6 +166,7 @@ describe('SurveysPage', () => {
     http.expectOne('/api/surveys').flush([]);
     http.expectOne('/api/repositories').flush([]);
     fixture.detectChanges();
+    await openNew(fixture);
     const submit = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('button[type=submit]');
 
     expect(submit?.disabled).toBeTrue();
@@ -185,6 +196,7 @@ describe('SurveysPage', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     fixture.detectChanges();
+    await openNew(fixture);
     const el = fixture.nativeElement as HTMLElement;
     const select = el.querySelector('#repository') as HTMLSelectElement;
     select.value = 'pedidos';
@@ -225,6 +237,7 @@ describe('SurveysPage', () => {
     http.expectOne('/api/repositories/pedidos/solutions').flush(['Pedidos.slnx']);
     await fixture.whenStable();
     fixture.detectChanges();
+    await openNew(fixture);
     const el = fixture.nativeElement as HTMLElement;
     const entry = el.querySelector('#entry') as HTMLInputElement;
     entry.value = 'PedidosController.Cancelar';
@@ -248,6 +261,7 @@ describe('SurveysPage', () => {
     http.expectOne('/api/repositories/loja-web/solutions').flush(solutions);
     await fixture.whenStable();
     fixture.detectChanges();
+    await openNew(fixture);
     return { fixture, http, el: fixture.nativeElement as HTMLElement };
   }
 
@@ -360,7 +374,7 @@ describe('SurveysPage: primeiro uso e cadastro de repositório', () => {
     await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(el.querySelector('[role="dialog"]')).toBeNull();
+    expect(el.querySelector('#register-title')).toBeNull();
     expect((el.querySelector('#repository') as HTMLSelectElement).value).toBe('loja');
     http.match(() => true).forEach((request) => request.flush([]));
   });
@@ -399,6 +413,74 @@ describe('SurveysPage: primeiro uso e cadastro de repositório', () => {
 
     expect(el.querySelector('[role="dialog"]')).toBeNull();
     http.expectNone((r) => r.method === 'POST');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+});
+
+describe('SurveysPage: tela inicial por repositório', () => {
+  const repo = (name: string) => ({ name, path: `C:\\codigo\\${name}`, hasGit: true, hasBuildCommand: false, hasTestCommand: false });
+  const survey = (id: string, repository: string, solutionPath: string, createdAt: string) =>
+    ({ id, entryPoint: 'A.Metodo', status: SurveyStatus.Completed, repository, solutionPath, nodeCount: 3, unresolvedCount: 0, createdAt }) as SurveySummary;
+
+  function open(surveys: SurveySummary[]) {
+    localStorage.removeItem('rastro.lastRepository');
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush(surveys);
+    http.expectOne('/api/repositories').flush([repo('loja'), repo('pedidos')]);
+    fixture.detectChanges();
+    return { fixture, http, el: fixture.nativeElement as HTMLElement };
+  }
+
+  // UX-H08
+  it('cartaoDeRepositorio_temOsTresLinksCertosEContagemEStack', () => {
+    const { el, http } = open([
+      survey('1', 'loja', 'old/Loja.slnx', '2026-10-01T10:00:00Z'),
+      survey('2', 'loja', 'src/Loja.slnx', '2026-10-02T10:00:00Z'),
+    ]);
+
+    const cards = Array.from(el.querySelectorAll('.repo-card'));
+    expect(cards.length).toBe(2);
+    expect(cards[0].textContent).toContain('2 levantamentos');
+    expect(cards[0].querySelector('.repo-stack')?.textContent).toContain('src/Loja.slnx');
+    expect(cards[1].textContent).toContain('Nenhum levantamento');
+    expect(cards[1].querySelector('.repo-stack')).toBeNull();
+    const actions = cards[0].querySelectorAll('.action-grid > *');
+    expect(actions.length).toBe(3);
+    expect(actions[0].textContent).toContain('Levantar fluxo');
+    expect(actions[1].getAttribute('href')).toBe('/repositorios/loja/banco');
+    expect(actions[2].getAttribute('href')).toBe('/repositorios/loja/banco?aba=consulta');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H21
+  it('levantarFluxo_abreOFormularioComORepositorioELembraOUltimo', async () => {
+    const { fixture, http, el } = open([]);
+    expect(el.querySelector('#repository')).toBeNull();
+
+    el.querySelectorAll<HTMLButtonElement>('.repo-card .action-grid button')[1].click();
+    http.expectOne('/api/repositories/pedidos/solutions').flush(['Pedidos.slnx']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect((el.querySelector('#repository') as HTMLSelectElement).value).toBe('pedidos');
+    expect(TestBed.inject(LastRepositoryService).name()).toBe('pedidos');
+    expect(localStorage.getItem('rastro.lastRepository')).toBe('pedidos');
+    http.match(() => true).forEach((request) => request.flush([]));
+    localStorage.removeItem('rastro.lastRepository');
+  });
+
+  // UX-H22
+  it('linhaDoLevantamento_temAbrirEBancoDesteFluxoComOId', () => {
+    const { el, http } = open([survey('abc-1', 'loja', 'Loja.slnx', '2026-10-02T10:00:00Z')]);
+
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.row-actions a'));
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Abrir', 'Banco deste fluxo']);
+    expect(links[0].getAttribute('href')).toBe('/surveys/abc-1');
+    expect(links[1].getAttribute('href')).toBe('/repositorios/loja/banco?levantamento=abc-1');
     http.match(() => true).forEach((request) => request.flush([]));
   });
 });

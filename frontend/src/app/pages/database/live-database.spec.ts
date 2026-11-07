@@ -97,7 +97,7 @@ describe('Banco vivo (Fase 40b)', () => {
   it('sem conexão, a promessa é "Lido do código" e o botão convida a conectar, sem selo', () => {
     const { el } = renderPage(NONE);
 
-    expect(el.textContent).toContain('Lido do código. Nenhum banco é consultado.');
+    expect(el.textContent).toContain('Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.');
     expect(el.querySelector('.db-live-pill')).toBeNull();
     expect(button(el, 'Conectar banco vivo')).toBeDefined();
   });
@@ -199,7 +199,7 @@ describe('Banco vivo (Fase 40b)', () => {
 
     expect(ctx.el.querySelector('.dialog')).toBeNull();
     expect(ctx.el.querySelector('.db-live-pill')).toBeNull();
-    expect(ctx.el.textContent).toContain('Lido do código. Nenhum banco é consultado.');
+    expect(ctx.el.textContent).toContain('Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.');
   });
 
   // WEB-DBL-007
@@ -376,5 +376,37 @@ describe('Banco vivo do PostgreSQL (Fase 42b)', () => {
 
     expect(ctx.el.querySelector('.toast')!.textContent).toContain('Conexão removida. O Rastro volta a ler só o código.');
     expect(ctx.el.querySelector('.qa-sql')!.textContent).toBe(SQL);
+  });
+
+  // WEB-DBL-022 (B23)
+  it('o campo da conexão vem antes das permissões, que são uma lista, e Fechar vem antes de Salvar', () => {
+    const ctx = renderPage(NONE);
+    open(ctx, 'Conectar banco vivo');
+
+    const dialog = ctx.el.querySelector('.dialog')!;
+    const field = dialog.querySelector('#live-key')!;
+    const grants = dialog.querySelector('.live-grants')!;
+    expect(field.compareDocumentPosition(grants) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(grants.querySelectorAll('ul > li').length).toBeGreaterThan(2);
+    const labels = [...dialog.querySelectorAll<HTMLButtonElement>('.dialog-foot button')].map((b) => b.textContent!.trim());
+    expect(labels.indexOf('Fechar')).toBeGreaterThanOrEqual(0);
+    expect(labels.indexOf('Fechar')).toBeLessThan(labels.indexOf('Salvar'));
+  });
+
+  // WEB-DBL-023 (B23)
+  it('clicar fora fecha o diálogo vazio, mas não quando há texto digitado', () => {
+    const ctx = renderPage(NONE);
+    open(ctx, 'Conectar banco vivo');
+    typeKey(ctx, SECRET);
+
+    ctx.el.querySelector<HTMLElement>('.overlay')!.click();
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('.dialog')).not.toBeNull();
+    expect((ctx.el.querySelector('#live-key') as HTMLInputElement).value).toBe(SECRET);
+
+    typeKey(ctx, '');
+    ctx.el.querySelector<HTMLElement>('.overlay')!.click();
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('.dialog')).toBeNull();
   });
 });

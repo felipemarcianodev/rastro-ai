@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { CheckStatus, SourceLanguage, SurveyDetail, SurveyStatus, ValidationStatus, ValidationVerdict, ValidationView } from '../../core/models';
 import { SurveyPage } from './survey.page';
@@ -49,10 +49,14 @@ const validation: ValidationView = {
 };
 
 // Responde a carga do levantamento e o que a tela pede depois dele.
+// O último fixture aberto: os testes que clicam precisam rodar a detecção de mudanças dele.
+let lastFixture: ComponentFixture<SurveyPage> | null = null;
+
 function open(status: SurveyStatus, validations: ValidationView[] = []): HTMLElement {
   TestBed.configureTestingModule({ imports: [SurveyPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
   const fixture = TestBed.createComponent(SurveyPage);
   fixture.componentRef.setInput('id', SURVEY_ID);
+  lastFixture = fixture;
   fixture.detectChanges();
   const http = TestBed.inject(HttpTestingController);
   const answer = (request: TestRequest) => {
@@ -100,4 +104,42 @@ describe('SurveyPage', () => {
     expect(meta.textContent).toContain('abcdef1');
     expect(meta.querySelector('.meta-details-body')?.textContent).toContain('main');
   });
+
+  // WEB-UXC-010 (F09)
+  it('o seletor tem as três visões, com a atual marcada e a troca pelo clique', () => {
+    TestBed.resetTestingModule();
+    const el = open(SurveyStatus.Completed);
+
+    const group = el.querySelector('.segmented')!;
+    expect(group.getAttribute('role')).toBe('group');
+    const items = [...group.querySelectorAll<HTMLButtonElement>('button')];
+    expect(items.map((b) => b.textContent!.trim())).toEqual(['Grafo', 'Mapa por sistemas', 'Visão consolidada']);
+    expect(items.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
+
+    items[2].click();
+    lastFixture!.detectChanges();
+    const after = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
+    expect(after.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-UXC-011 (F08, F07, F06)
+  it('a barra tem os grupos Ver, Compartilhar e Alterar, com Comparar e Exportar separados e o Excluir à vista', () => {
+    TestBed.resetTestingModule();
+    const el = open(SurveyStatus.Completed);
+
+    const groups = [...el.querySelectorAll('.page-bar-side .bar-group')].map((g) => g.getAttribute('aria-label'));
+    expect(groups).toEqual(['Ver', 'Compartilhar', 'Alterar']);
+    const share = [...el.querySelectorAll<HTMLButtonElement>('.bar-group[aria-label="Compartilhar"] button')];
+    expect(share.map((b) => b.textContent!.trim())).toEqual(['Comparar', 'Exportar']);
+    expect(share[1].title).toBe('PNG, SVG, Mermaid e C4');
+    expect(el.querySelector('.bar-group[aria-label="Alterar"] .btn-p')!.textContent!.trim()).toBe('Editar fluxo');
+    const remove = [...el.querySelectorAll<HTMLButtonElement>('.page-bar-side button')].find((b) => b.textContent!.trim() === 'Excluir levantamento…');
+    expect(remove).toBeDefined();
+    expect(el.querySelector('[aria-label="Mais ações do levantamento"]')).toBeNull();
+    // O status e a contagem de nós foram para a linha de metadados.
+    expect(el.querySelector('.page-bar-meta .pill')!.textContent).toContain('Pronto');
+    expect(el.querySelector('.page-bar-meta')!.textContent).toContain('3 nós');
+  });
+
 });
