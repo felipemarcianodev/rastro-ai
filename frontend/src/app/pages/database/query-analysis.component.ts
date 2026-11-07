@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -18,6 +19,11 @@ import { AiStatusService } from '../../core/ai-status.service';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { QueryPlanComponent } from './query-plan.component';
 import { QuerySuggestionComponent } from './query-suggestion.component';
+
+// Códigos de erro da API (ErrorCodes) que só as Configurações resolvem.
+const AI_NOT_CONFIGURED_CODE = 'AI_NOT_CONFIGURED';
+const AI_BUDGET_EXCEEDED_CODE = 'AI_BUDGET_EXCEEDED';
+const SETTINGS_FIX_ERROR_CODES: ReadonlySet<string> = new Set([AI_NOT_CONFIGURED_CODE, AI_BUDGET_EXCEEDED_CODE]);
 
 interface Analyzed {
   sql: string;
@@ -81,6 +87,9 @@ export class QueryAnalysisComponent {
     return this.suggestion() ? 'A sugestão da IA chegou.' : '';
   });
 
+  // Chave ausente ou orçamento esgotado: repetir não adianta, o conserto está nas Configurações (UX-FIM-Q08).
+  protected readonly suggestErrorNeedsSettings = signal(false);
+
   private sub?: Subscription;
   private suggestSub?: Subscription;
 
@@ -139,6 +148,7 @@ export class QueryAnalysisComponent {
     this.suggesting.set(false);
     this.suggestion.set(null);
     this.suggestError.set(null);
+    this.suggestErrorNeedsSettings.set(false);
   }
 
   // A resposta da IA chega abaixo dos achados, fora da vista: rola só até o começo da seção (UX-DBA-01).
@@ -151,6 +161,7 @@ export class QueryAnalysisComponent {
     if (!sql || this.suggesting()) return;
     this.suggesting.set(true);
     this.suggestError.set(null);
+    this.suggestErrorNeedsSettings.set(false);
     this.suggestSub?.unsubscribe();
     this.suggestSub = this.api.suggestQuery(this.repository(), sql).subscribe({
       next: (suggestion) => {
@@ -161,6 +172,8 @@ export class QueryAnalysisComponent {
       error: (error) => {
         this.suggesting.set(false);
         this.suggestError.set(apiErrorMessage(error));
+        const code = error instanceof HttpErrorResponse ? (error.error?.code as string | undefined) : undefined;
+        this.suggestErrorNeedsSettings.set(!!code && SETTINGS_FIX_ERROR_CODES.has(code));
         this.revealSuggestion();
       },
     });

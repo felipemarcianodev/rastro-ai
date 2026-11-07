@@ -18,7 +18,7 @@ export const routes: Routes = [
   },
   {
     path: 'repositorios/:nome/banco',
-    title: 'Banco | Rastro AI',
+    title: 'Banco de :nome | Rastro AI',
     loadComponent: () => import('./pages/database/database.page').then((m) => m.DatabasePage),
   },
   {

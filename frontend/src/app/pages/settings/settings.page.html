@@ -75,7 +75,7 @@
             <button type="button" class="btn btn-g" (click)="browseFolder()" [disabled]="adding()">Procurar…</button>
           }
         </div>
-        <span id="repo-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git.</span>
+        <span id="repo-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git. Windows: C:\codigo\meu-sistema. Linux ou macOS: /home/voce/meu-sistema.</span>
         @if (pathError(); as error) {
           <span id="repo-path-error" class="field-error">{{ error }}</span>
         }

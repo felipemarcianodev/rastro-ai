@@ -411,7 +411,7 @@ export const API_ERROR_MESSAGE: Record<string, string> = {
   AI_PROVIDER_ERROR: 'O provedor de IA não respondeu. Tente de novo em instantes.',
   AI_QUESTION_INVALID: 'Escreva uma pergunta de até alguns parágrafos sobre este fluxo.',
   REPOSITORY_NAME_INVALID: 'Nome inválido: use letras, números, ponto, hífen ou sublinhado, começando por letra ou número.',
-  REPOSITORY_PATH_INVALID: 'Use o caminho completo da pasta, como C:\\codigo\\meu-sistema.',
+  REPOSITORY_PATH_INVALID: 'Use o caminho completo da pasta, como C:\\codigo\\meu-sistema (Windows) ou /home/voce/meu-sistema (Linux e macOS).',
   REPOSITORY_FOLDER_NOT_FOUND: 'Essa pasta não existe neste computador.',
   REPOSITORY_EXISTS: 'Já existe um repositório com esse nome.',
   REPOSITORY_NOT_FOUND: 'Esse repositório não está mais cadastrado.',

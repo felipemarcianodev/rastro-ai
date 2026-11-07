@@ -1,3 +1,5 @@
+<a class="skip-link" href="#conteudo" (click)="skipToContent($event, content)">Ir para o conteúdo</a>
+
 <header class="topbar">
   <a class="brand" routerLink="/" aria-label="Rastro AI, ir para os levantamentos">
     <svg class="brand-mark" viewBox="0 0 28 20" aria-hidden="true">
@@ -19,6 +21,6 @@
   </a>
 </header>
 
-<main class="main">
+<main #content id="conteudo" class="main" tabindex="-1">
   <router-outlet />
 </main>

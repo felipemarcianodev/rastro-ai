@@ -24,6 +24,18 @@
 }
 
 .db-live-pill {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  line-height: 22px;
+  text-overflow: ellipsis;
+
+  &::before {
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
   background: var(--trail-wash);
   color: var(--trail-ink);
 }

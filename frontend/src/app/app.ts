@@ -74,6 +74,12 @@ export class App {
     });
   }
 
+  // UX-FIM-C03: o link de pular foca o main sem trocar a rota.
+  protected skipToContent(event: Event, target: HTMLElement): void {
+    event.preventDefault();
+    target.focus({ preventScroll: true });
+  }
+
   private loadRepositories(): void {
     this.api.repositories().subscribe({
       next: (repos) => this.repositories.set(repos),

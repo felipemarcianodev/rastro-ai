@@ -410,3 +410,130 @@ describe('Banco vivo do PostgreSQL (Fase 42b)', () => {
     expect(ctx.el.querySelector('.dialog')).toBeNull();
   });
 });
+
+describe('Acréscimos do banco vivo (UX-FIM, Fase A)', () => {
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+
+  // UX-FIM-B05
+  it('o "Testar conexão" explica que usa a conexão salva e fica desabilitado com texto novo', () => {
+    const ctx = renderPage(LIVE);
+    open(ctx, 'Banco vivo');
+
+    expect(ctx.el.querySelector('#live-test-help')!.textContent).toContain('já salva');
+    expect(button(ctx.el, 'Testar conexão').disabled).toBe(false);
+
+    typeKey(ctx, SECRET);
+    expect(button(ctx.el, 'Testar conexão').disabled).toBe(true);
+    expect(ctx.el.querySelector('#live-test-help')!.textContent).toContain('Salve a nova string');
+  });
+
+  // UX-FIM-B06
+  it('a permissão mínima e a promessa do diálogo usam --text-sm e --ink', () => {
+    const ctx = renderPage(LIVE);
+    open(ctx, 'Banco vivo');
+
+    const grants = ctx.el.querySelector<HTMLElement>('.live-grants')!;
+    const probe = document.createElement('span');
+    probe.style.fontSize = 'var(--text-sm)';
+    probe.style.color = 'var(--ink)';
+    grants.appendChild(probe);
+    const expected = getComputedStyle(probe);
+    const actual = getComputedStyle(grants);
+    expect(actual.fontSize).toBe(expected.fontSize);
+    expect(actual.color).toBe(expected.color);
+    probe.remove();
+  });
+
+  // UX-FIM-B07
+  it('se a leitura da conexão falha, a barra não promete e oferece "Tentar de novo"', () => {
+    TestBed.configureTestingModule({
+      imports: [DatabasePage],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(DatabasePage);
+    fixture.componentRef.setInput('nome', 'loja');
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:/loja' }]);
+    http.expectOne(CONNECTION_URL).flush({ code: 'X' }, { status: 500, statusText: 'Erro' });
+    http.expectOne('/api/repositories/loja/schema').flush(lojaSchema());
+    http.expectOne('/api/repositories/loja/schema/usage').flush({ uses: [], findings: [] });
+    fixture.detectChanges();
+
+    expect(el.textContent).not.toContain('Nenhum banco é consultado');
+    expect(el.textContent).toContain('Não deu para ler a conexão do banco vivo.');
+
+    button(el, 'Tentar de novo').click();
+    fixture.detectChanges();
+    flushLoad(http, NONE);
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Nenhum banco é consultado');
+    expect(el.textContent).not.toContain('Não deu para ler a conexão');
+  });
+
+  // UX-FIM-B13, B14, B15, B19, B20
+  it('abas com aria-controls só com painel, zoom nomeado, listas vazias, selo com title e painel nomeado', () => {
+    const ctx = renderPage({ ...LIVE, server: 'servidor-com-nome-muito-comprido.dominio.interno' });
+    const { el } = ctx;
+
+    expect(el.querySelector('#db-tab-map')!.getAttribute('aria-controls')).toBe('db-panel-0');
+    expect(el.querySelector('#db-panel-0')).not.toBeNull();
+
+    const reset = [...el.querySelectorAll<HTMLButtonElement>('.db-zoom-tools button')].find((b) => b.textContent!.trim() === '100%')!;
+    expect(reset.getAttribute('aria-label')).toBe('Voltar o mapa a 100%');
+    expect(el.querySelector('.db-zoom-tools [aria-live]')!.textContent).toContain('100%');
+
+    const pill = el.querySelector<HTMLElement>('.db-live-pill')!;
+    expect(pill.getAttribute('title')).toContain('servidor-com-nome-muito-comprido.dominio.interno');
+    expect(getComputedStyle(pill).textOverflow).toBe('ellipsis');
+
+    const search = el.querySelector<HTMLInputElement>('#db-search')!;
+    search.value = 'zzzz-nada';
+    search.dispatchEvent(new Event('input'));
+    ctx.fixture.detectChanges();
+    expect(el.querySelectorAll('.db-side .db-none').length).toBe(3);
+    expect(el.querySelector('.db-side')!.textContent).toContain('Nenhuma view com esse nome');
+    expect(el.querySelector('.db-side')!.textContent).toContain('Nenhuma procedure com esse nome');
+
+    search.value = '';
+    search.dispatchEvent(new Event('input'));
+    ctx.fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.db-card[data-table="pedidos"]')!.click();
+    ctx.fixture.detectChanges();
+    expect(el.querySelector('.db-panel')!.getAttribute('aria-label')).toBe('Painel de pedidos');
+    expect(el.querySelector('.db-fields')!.getAttribute('aria-label')).toBe('Campos de pedidos');
+    expect(el.querySelector('app-db-panel button[aria-label]')!.getAttribute('aria-label')).toBe('Fechar o painel de pedidos');
+  });
+
+  it('com erro ao carregar, as abas não apontam para painéis que não existem (UX-FIM-B13)', () => {
+    TestBed.configureTestingModule({
+      imports: [DatabasePage],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(DatabasePage);
+    fixture.componentRef.setInput('nome', 'loja');
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    http.expectOne('/api/repositories').flush([]);
+    http.expectOne(CONNECTION_URL).flush(NONE);
+    // Esquema ainda a caminho: aba na tela, painel não.
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('#db-tab-map')!.hasAttribute('aria-controls')).toBe(false);
+    http.expectOne('/api/repositories/loja/schema').flush(lojaSchema());
+    http.expectOne('/api/repositories/loja/schema/usage').flush({ uses: [], findings: [] });
+  });
+
+  // UX-FIM-B18
+  it('os avisos do plano têm o título "Avisos do banco"', () => {
+    const ctx = renderPage(LIVE, 'consulta');
+    analyze(ctx);
+    button(ctx.el.querySelector('app-query-plan') as HTMLElement, 'Pedir o plano estimado').click();
+    ctx.http.expectOne(PLAN_URL).flush(PLAN);
+    ctx.fixture.detectChanges();
+
+    const title = ctx.el.querySelector('#plan-warnings-title')!;
+    expect(title.textContent).toBe('Avisos do banco');
+    expect(ctx.el.querySelector('.plan-warnings')!.getAttribute('aria-labelledby')).toBe('plan-warnings-title');
+  });
+});

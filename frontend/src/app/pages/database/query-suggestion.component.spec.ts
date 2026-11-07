@@ -253,4 +253,71 @@ describe('Sugestão da IA para a consulta (Fase 41)', () => {
     expect(ctx.el.querySelector('app-query-suggestion')).toBeNull();
     expect(suggestButton(ctx.el)!.disabled).toBeFalse();
   });
+
+  // UX-FIM-Q03
+  it('os trechos de código têm papel de região e o trecho marcado diz a gravidade em texto escondido', () => {
+    const ctx = render([AiUse.Suggestions]);
+    ask(ctx, suggestion());
+
+    expect(ctx.el.querySelector('pre.qa-sql')!.getAttribute('role')).toBe('region');
+    for (const pre of Array.from(ctx.el.querySelectorAll('app-query-suggestion pre'))) expect(pre.getAttribute('role')).toBe('region');
+    const hidden = ctx.el.querySelector('pre.qa-sql mark .visually-hidden')!;
+    expect(hidden.textContent).toContain('achado, gravidade: Baixa');
+  });
+
+  // UX-FIM-Q04
+  it('copiar a reescrita e o índice anuncia "Copiado" numa região viva escondida', async () => {
+    const index = { table: 'pedidos', columns: ['criado_em'], include: [], unique: false, reason: 'Filtro por data.', accepted: true, refusal: null, createSql: 'CREATE INDEX ix ON pedidos (criado_em)' };
+    const ctx = render([AiUse.Suggestions]);
+    ask(ctx, suggestion({ indexes: [index] }));
+    const writeText = jasmine.createSpy('writeText').and.resolveTo();
+    spyOnProperty(navigator, 'clipboard', 'get').and.returnValue({ writeText } as unknown as Clipboard);
+    expect(ctx.el.querySelector('.rewrite-copy-status')!.textContent!.trim()).toBe('');
+
+    buttonWith(ctx.el, 'Copiar a consulta reescrita')!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    ctx.fixture.detectChanges();
+    const rewriteStatus = ctx.el.querySelector('.rewrite-copy-status')!;
+    expect(rewriteStatus.getAttribute('role')).toBe('status');
+    expect(rewriteStatus.classList).toContain('visually-hidden');
+    expect(rewriteStatus.textContent!.trim()).toBe('Copiado');
+
+    ctx.el.querySelector<HTMLButtonElement>('button[aria-label^="Copiar o comando do índice"]')!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('.index-copy-status')!.textContent!.trim()).toBe('Copiado');
+  });
+
+  // UX-FIM-Q08
+  it('chave ausente ou orçamento esgotado oferecem "Tentar de novo" e o link para as Configurações; erro do provedor, só o botão', () => {
+    for (const [code, status, link] of [['AI_BUDGET_EXCEEDED', 429, true], ['AI_NOT_CONFIGURED', 409, true], ['AI_PROVIDER_ERROR', 502, false]] as const) {
+      const ctx = render([AiUse.Suggestions]);
+      suggestButton(ctx.el)!.click();
+      ctx.http.expectOne(URL_SUGGEST).flush({ code }, { status, statusText: 'Erro' });
+      ctx.fixture.detectChanges();
+
+      const notice = ctx.el.querySelector('.qa-ai [role="alert"]')!;
+      expect(buttonWith(notice as HTMLElement, 'Tentar de novo')).toBeDefined();
+      const settings = notice.querySelector<HTMLAnchorElement>('a[href="/configuracoes"]');
+      expect(!!settings).toBe(link);
+      if (code !== 'AI_PROVIDER_ERROR') TestBed.resetTestingModule();
+    }
+  });
+
+  // UX-FIM-Q16
+  it('resposta sem reescrita, mudança nem índice diz que a IA não achou o que melhorar, em região de status', () => {
+    const ctx = render([AiUse.Suggestions]);
+    ask(ctx, suggestion({ rewrite: null, changes: [], indexes: [] }));
+    const empty = ctx.el.querySelector('.empty-suggestion')!;
+    expect(empty.textContent).toContain('A IA não achou o que melhorar nesta consulta.');
+    expect(empty.getAttribute('role')).toBe('status');
+    TestBed.resetTestingModule();
+
+    const refused = render([AiUse.Suggestions]);
+    ask(refused, suggestion({ rewrite: { sql: REWRITE, accepted: false, refusals: ['Mudou o resultado.'], after: null } }));
+    expect(refused.el.querySelector('.notice.is-warning')!.getAttribute('role')).toBe('status');
+    expect(refused.el.querySelector('.empty-suggestion')).toBeNull();
+  });
 });

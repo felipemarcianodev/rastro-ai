@@ -8,7 +8,7 @@
   <h3 class="qs-title">Reescrita</h3>
   @if (rewrite(); as rw) {
     @if (!rw.accepted) {
-      <div class="notice is-warning">
+      <div class="notice is-warning" role="status">
         <p><strong>Reescrita recusada pela conferência</strong></p>
         <ul class="qs-list">
           @for (r of rw.refusals; track $index) {
@@ -17,23 +17,24 @@
         </ul>
         <details class="qs-proposed">
           <summary>Ver o texto que a IA propôs (recusado, não use)</summary>
-          <pre class="code qs-pre is-muted" tabindex="0" aria-label="Consulta proposta e recusada"><code>{{ rw.sql }}</code></pre>
+          <pre class="code qs-pre is-muted" role="region" tabindex="0" aria-label="Consulta proposta e recusada"><code>{{ rw.sql }}</code></pre>
         </details>
       </div>
     } @else {
       <div class="qs-diff">
         <div>
           <h4 class="qs-sub">Antes</h4>
-          <pre class="code qs-pre" tabindex="0" aria-label="Consulta original"><code>{{ sql() }}</code></pre>
+          <pre class="code qs-pre" role="region" tabindex="0" aria-label="Consulta original"><code>{{ sql() }}</code></pre>
         </div>
         <div>
           <h4 class="qs-sub">Depois</h4>
-          <pre class="code qs-pre" tabindex="0" aria-label="Consulta reescrita"><code>{{ rw.sql }}</code></pre>
+          <pre class="code qs-pre" role="region" tabindex="0" aria-label="Consulta reescrita"><code>{{ rw.sql }}</code></pre>
         </div>
       </div>
       <div class="qs-row">
         <button type="button" class="btn btn-g btn-small" (click)="rewriteCopy.copy(rw.sql)">{{ rewriteCopy.label('Copiar a consulta reescrita') }}</button>
         <span class="qs-status">Reescrita aceita pela conferência</span>
+        <span class="visually-hidden rewrite-copy-status" role="status">{{ rewriteCopy.status() === 'idle' ? '' : rewriteCopy.label('') }}</span>
       </div>
       <p class="qs-summary"><strong>{{ summary() }}</strong></p>
       @if (rw.after && rw.after.findings.length > 0) {
@@ -83,9 +84,10 @@
           </p>
           <p class="qs-why">{{ ix.reason }}</p>
           @if (ix.accepted && ix.createSql) {
-            <pre class="code qs-pre" tabindex="0" aria-label="Comando para criar o índice em {{ ix.table }}"><code>{{ ix.createSql }}</code></pre>
+            <pre class="code qs-pre" role="region" tabindex="0" aria-label="Comando para criar o índice em {{ ix.table }}"><code>{{ ix.createSql }}</code></pre>
             <div class="qs-row">
               <button type="button" class="btn btn-g btn-small" [attr.aria-label]="'Copiar o comando do índice em ' + ix.table" (click)="copyIndex($index, ix.createSql)">{{ indexLabel($index) }}</button>
+              <span class="visually-hidden index-copy-status" role="status">{{ indexStatus($index) }}</span>
               <span class="muted">O Rastro não cria o índice: avalie e crie pela migration.</span>
             </div>
           } @else if (!ix.accepted) {
@@ -94,5 +96,9 @@
         </li>
       }
     </ul>
+  }
+
+  @if (isEmpty()) {
+    <p class="notice empty-suggestion" role="status">A IA não achou o que melhorar nesta consulta.</p>
   }
 </section>

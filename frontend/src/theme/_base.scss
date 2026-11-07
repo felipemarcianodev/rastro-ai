@@ -88,3 +88,21 @@ code,
     animation-duration: 0.01ms !important;
   }
 }
+
+// UX-FIM-C03: link de pular para o conteúdo, visível só com foco.
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  z-index: 1000;
+  padding: 8px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0 0 6px 6px;
+  transform: translateY(-120%);
+
+  &:focus {
+    transform: translateY(0);
+  }
+}

@@ -29,6 +29,11 @@ function analysis(overrides: Partial<QueryAnalysis> = {}): QueryAnalysis {
   };
 }
 
+// Texto visível do trecho marcado, sem o complemento escondido de leitor de tela (UX-FIM-Q03).
+function markText(m: Element): string {
+  return (m.firstChild?.textContent ?? '');
+}
+
 function render(initial?: string, origin?: string) {
   TestBed.configureTestingModule({
     imports: [QueryAnalysisComponent],
@@ -86,9 +91,11 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     const ctx = render();
     analyze(ctx, analysis());
 
-    const marks = [...ctx.el.querySelectorAll('mark')].map((m) => m.textContent);
+    const marks = [...ctx.el.querySelectorAll('mark')].map(markText);
     expect(marks).toEqual(['*', 'UPPER(p.status)']);
-    expect(ctx.el.querySelector('.qa-sql')!.textContent).toBe(SQL);
+    const sqlPre = ctx.el.querySelector('.qa-sql')!.cloneNode(true) as HTMLElement;
+    sqlPre.querySelectorAll('.visually-hidden').forEach((h) => h.remove());
+    expect(sqlPre.textContent).toBe(SQL);
     expect(ctx.el.textContent).toContain('2 achados');
     expect(ctx.el.textContent).toContain('Regra fixa, sem IA');
     const items = [...ctx.el.querySelectorAll('.qa-finding')];
@@ -113,11 +120,11 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     buttons[0].click();
     ctx.fixture.detectChanges();
     expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
-    expect([...ctx.el.querySelectorAll('mark.is-active')].map((m) => m.textContent)).toEqual(['UPPER(p.status)']);
+    expect([...ctx.el.querySelectorAll('mark.is-active')].map(markText)).toEqual(['UPPER(p.status)']);
 
     buttons[1].click();
     ctx.fixture.detectChanges();
-    expect([...ctx.el.querySelectorAll('mark.is-active')].map((m) => m.textContent)).toEqual(['*']);
+    expect([...ctx.el.querySelectorAll('mark.is-active')].map(markText)).toEqual(['*']);
     expect(buttons[0].getAttribute('aria-pressed')).toBe('false');
 
     buttons[1].click();

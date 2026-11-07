@@ -149,6 +149,9 @@
                 <span class="code">{{ a.target }}</span>
               }
               <span class="muted">linha {{ a.line }}</span>
+              @if (!a.sql && repository()) {
+                <span class="muted db-no-sql">sem consulta no código</span>
+              }
               @if (a.sql && repository()) {
                 <a class="db-sql-link" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="withOrigin({ aba: queryTab, consulta: a.sql, origem: node.label })" title="Abrir a consulta deste passo na análise de consulta" [attr.aria-label]="'Analisar a consulta de ' + a.target + ', linha ' + a.line">Analisar a consulta</a>
               }
