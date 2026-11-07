@@ -1,6 +1,6 @@
 # Plano de UX: repaginação da navegação e da usabilidade (2026-11-06)
 
-**Status: EXECUTADO em 2026-11-06** (Fases A, B e C; o item 6 da Fase C fica de fora por regra de segurança). Pedido do dono depois de não achar a tela do banco ("a funcionalidade banco está escondida, é um link lá em cima") e de pedir que a usabilidade seja repaginada. Feito pela skill `levantamento-ux`, revista no mesmo dia com a passada de navegação e a tabela de cobertura vindas da skill do `meu-portfolio`. O MCP Knowledge não estava disponível; o levantamento seguiu as etapas da própria skill.
+**Status: EXECUTADO em 2026-11-06** (Fases A, B e C; o item 6 da Fase C fica de fora por regra de segurança). Pedido do dono depois de não achar a tela do banco ("a funcionalidade banco está escondida, é um link lá em cima") e de pedir que a usabilidade seja repaginada. Feito pela skill `levantamento-ux`, revista no mesmo dia com a passada de navegação e a tabela de cobertura vindas da skill de um projeto irmão. O MCP Knowledge não estava disponível; o levantamento seguiu as etapas da própria skill.
 
 ## Cobertura
 
