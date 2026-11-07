@@ -1,6 +1,6 @@
 # Levantamento de UX: fim do plano do banco (Fases 36 a 42)
 
-**Status:** PROPOSTA. Nada deste plano foi implementado; as fases esperam a aprovação do dono, e a Fase E (risco alto) é aprovada item a item.
+**Status:** PROPOSTA, com 16 dos 54 achados já feitos pela repaginação de UX (conferido em 2026-11-07; veja os `[x]` nas fases); as fases esperam a aprovação do dono, e a Fase E (risco alto) é aprovada item a item.
 **Escopo:** o frontend inteiro, com foco no que as Fases 36 a 42 tocaram: tela do banco (mapa, painel, recorte, exportar), aba "Analisar consulta", banco vivo (diálogo, selo, plano estimado), sugestão da IA, PostgreSQL e a seção "No banco" do painel do passo. Também a coerência dessas telas com o resto do app (cabeçalho, lista de levantamentos, levantamento, configurações, visão consolidada, diálogos e avisos).
 **Data:** 2026-11-06.
 **Como:** três agentes de leitura (análise estática, uma fatia cada: tela do banco e banco vivo; consulta, IA e painel do passo; coerência com o app) e a verificação no navegador (Chrome, paleta Papel no claro, janela de 1920 por 911) com a loja fictícia (`LojaBanco` e `LojaBancoPg`), a API local e um `RASTRO_HOME` temporário. Clique real no item da lista, na aba "Analisar consulta", na caixa da consulta, em "Analisar" e em "Conectar banco vivo"; Esc no diálogo.
@@ -105,32 +105,38 @@ Cada fase é commitável sozinha. Nenhuma foi executada.
 
 ### Fase A: estados, avisos e acessibilidade (risco baixo)
 
-- [ ] UX-FIM-B02, B05, B06, B07, B13, B14, B15, B18, B19 e B20 (tela do banco e banco vivo).
-- [ ] UX-FIM-Q01, Q03, Q04, Q05, Q08, Q09, Q10, Q11 e Q16 (consulta, IA e painel do passo).
-- [ ] UX-FIM-C02, C03, C09, C11, C13 e C18 e UX-FIM-N02 (app).
+- [x] UX-FIM-B02 (feito na repaginação, Fase C: a tela avisa "Conexão removida").
+- [ ] UX-FIM-B05, B06, B07, B13, B14, B15, B18, B19 e B20 (tela do banco e banco vivo). Conferidos no código de 2026-11-07: ainda valem. Do B18, o `role="status"` já é só do resumo; falta o título "Avisos do banco".
+- [x] UX-FIM-Q01 (feito na repaginação, Fase A), Q05 (Fase A), Q09 (Fase A) e Q11 (Fase B).
+- [ ] UX-FIM-Q03, Q04, Q08, Q10 e Q16 (consulta, IA e painel do passo). Ainda valem. Do Q08, o "Tentar de novo" já existe; falta o link para as configurações quando o erro é de chave ou de orçamento.
+- [x] UX-FIM-C02 (feito na repaginação, Fase A), C09 (Fase A), C18 (Fase A) e N02 (Fase A).
+- [ ] UX-FIM-C03, C11 e C13 (app). Ainda valem: sem "Ir para o conteúdo", título da aba fixo por rota e exemplo de pasta só do Windows.
 - **Arquivos:** `pages/database/*`, `pages/survey/node-panel.component.html`, `pages/settings/settings.page.html`, `pages/surveys/surveys.page.html`, `app.html`, `app.routes.ts`.
 - **Aceite:** sem IA, a aba de consulta diz como ligar a sugestão; remover a conexão dá aviso; toda ação de copiar e de pedir à IA é anunciada; o "Ir para o conteúdo" aparece no primeiro Tab; nenhum estado de erro sem "Tentar de novo".
 - **Métricas-alvo:** 0 erro de console; 0 região de resultado sem `role="status"` ou `aria-live`.
 
 ### Fase B: tema e tokens (risco baixo, sem efeito visível)
 
-- [ ] UX-FIM-B16, B17, Q13, Q14, C14, C15 e C16.
+- [ ] UX-FIM-B16, B17, Q13, Q14, C14, C15 e C16. Conferidos em 2026-11-07: ainda valem (`'FK'` no template, `[hidden]` só na tela do banco, `.has-holes` duplicado, altura da barra sem token).
 - **Arquivos:** `theme/_tokens.scss`, `_controls.scss`, `_base.scss`, `_database.scss`, os SCSS dos componentes citados e `docs/frontend/design-system.md`.
 - **Aceite:** sem pixel solto nos componentes do banco fora das medidas do mapa documentadas; sem string mágica no template do mapa; prints antes e depois iguais.
 - **Métricas-alvo:** `database.page.scss` abaixo de 4,5 kB (hoje 4,7 kB).
 
 ### Fase C: banco vivo, foco e estado da tela do banco (risco médio)
 
-- [ ] UX-FIM-B01, B03, B04, B08, B09, B11 e B12.
-- [ ] UX-FIM-Q02, Q12 e Q17.
-- [ ] UX-FIM-N01.
+- [x] UX-FIM-B01 (feito na repaginação, Fase B, B24) e B03 (Fase C, B23).
+- [ ] UX-FIM-B04, B08, B09, B11 e B12. Ainda valem. No B12, o "←" já volta ao fluxo de origem (Fase B, B04) e as Configurações já voltam pelo histórico; falta o Esc do painel só na aba do mapa e o foco de volta ao "Exportar". O B09 só funciona para tabela: view e procedure deixam o foco no `body`.
+- [x] UX-FIM-Q02 (feito na repaginação, Fase B, B12) e Q12 (`showInMap` foca o bloco da tabela).
+- [ ] UX-FIM-Q17. Ainda vale.
+- [x] UX-FIM-N01 (feito na repaginação, Fase B, B26: tipo curto no bloco, nome inteiro no `title` e no painel).
 - **Arquivos:** `pages/database/*`, `core/database/db-map.ts` e um serviço de volta em `core/`.
 - **Aceite:** salvar a conexão não apaga a consulta digitada; clique no fundo com texto no campo não fecha o diálogo; depois de "Analisar", o foco está no título do resultado; o "←" volta ao levantamento de origem; no PostgreSQL, nenhum tipo cortado na loja fictícia. Clique real no navegador para cada um.
 - **Métricas-alvo:** 0 caso de foco no `body` depois de ação na tela do banco.
 
 ### Fase D: coerência do app (risco médio)
 
-- [ ] UX-FIM-C04, C10, C12 e C17.
+- [x] UX-FIM-C10 (feito na repaginação, Fase B, H09 e H10).
+- [ ] UX-FIM-C04, C12 e C17. Ainda valem: o `appDialog` não trata Esc, só a lista de levantamentos leva o foco ao título e o "Refazer" ainda anuncia Ctrl+Y numa tela e Ctrl+Shift+Z na outra.
 - [ ] UX-FIM-Q06 (componente único de aviso do que vai para o provedor).
 - [ ] UX-FIM-B10 (banco grande: tabulação e atraso da busca).
 - [ ] UX-FIM-C01, só o "Copiar" do comando; os campos de build e testes na tela pedem decisão do dono, porque a ADR-003 deixa o comando só no terminal.
@@ -142,7 +148,7 @@ Não é executada sem aprovação do dono, item a item.
 
 - [ ] **UX-FIM-Q07:** um padrão só para o rótulo dos botões de IA, com "Ver no mapa" em maiúscula.
 - [ ] **UX-FIM-Q15:** "A análise não consulta o banco." no lugar de "Nada vai a banco nenhum", e o passo de origem entre aspas.
-- [ ] **UX-FIM-A01:** no diálogo "Banco vivo", o campo antes do texto de permissões.
+- [x] **UX-FIM-A01:** no diálogo "Banco vivo", o campo antes do texto de permissões (feito na repaginação, Fase C, B23).
 
 ## Fora do escopo
 

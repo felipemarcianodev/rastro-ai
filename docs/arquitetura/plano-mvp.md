@@ -848,7 +848,7 @@ O dono pediu duas funcionalidades novas:
 - [x] **Melhorias propostas que entraram:** achado "chave estrangeira sem índice" (`SchemaFinding`, só quando a migration ou o `.sql` cria a FK sem um índice que comece pelas colunas dela; o índice da convenção do EF não dá falso positivo) e a marca "pessoal" pelo nome da coluna (`PersonalData`, palavra inteira: CPF, e-mail, telefone, nascimento, endereço, senha; "nome" fica de fora). Os dois também no texto do `get_db_schema`.
 - [x] Testes: `EXT-DB-014` a `016`, `CORE-DB-008` e `009`, `MCP-DB-001` (achados e dado pessoal), `WEB-DB-001` a `008` e `WEB-DBV-001` a `008`. Backend 455/455 e frontend 290/290.
 - [x] Prints em `docs/telas/fase-38/` (loja fictícia, API local com `RASTRO_HOME` temporário) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md): os achados de risco baixo e médio entraram na fase.
-- [ ] (UX, risco alto) Entrada "Banco" no cabeçalho do Rastro, ao lado das configurações, sem depender de escolher o repositório antes.
+- [x] (UX, risco alto) Entrada "Banco" no cabeçalho do Rastro, ao lado das configurações, sem depender de escolher o repositório antes. Feito na repaginação de UX, Fase C (2026-11-06).
 - [ ] Banco grande: com centenas de tabelas, o desenho fica largo (colunas de 8 tabelas). Avaliar enquadrar na tela e um minimapa quando aparecer um caso real.
 
 ## Fase 39: banco nos fluxos `[x]` (depende da Fase 37)
@@ -947,15 +947,15 @@ Dividida em dois PRs: 42a (código: extrator, achados e conferência) e 42b (ban
 
 ## Fim do plano do banco: pendências consolidadas
 
-Levantamento de UX completo do fim do plano em [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md): 54 achados (33 de risco baixo, 18 de risco médio e 3 de risco alto), em cinco fases. Nada foi implementado; tudo espera a aprovação do dono. Os itens abaixo são os `[ ]` das Fases 36 a 42, agrupados, e continuam registrados na própria fase.
+Levantamento de UX completo do fim do plano em [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md): 54 achados (33 de risco baixo, 18 de risco médio e 3 de risco alto), em cinco fases. A repaginação de UX (2026-11-06) já fez 16 dos 54 (entre eles o UX-DB-09, a entrada "Banco" no cabeçalho, e o campo antes das permissões no diálogo do banco vivo); o resto espera a aprovação do dono. Os itens abaixo são os `[ ]` das Fases 36 a 42, agrupados, e continuam registrados na própria fase.
 
 **Esperam a aprovação do dono (UX):**
-- [ ] Entrada "Banco" no cabeçalho, sem escolher o repositório antes (UX-DB-09, Fase 38, risco alto).
+- [x] Entrada "Banco" no cabeçalho, sem escolher o repositório antes (UX-DB-09, Fase 38, risco alto). Feito na repaginação de UX, Fase C (2026-11-06).
 - [ ] Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05, Fase 40a, risco alto).
 - [ ] O motivo do erro do provedor em todas as telas de IA, sem "nó" nas mensagens (UX-DBA-06, Fase 41).
 - [ ] As mensagens mais comuns dos leitores de SQL em pt-BR, nos dois dialetos (UX-PG-05, Fase 42a).
 - [ ] A permissão mínima do diálogo "Banco vivo" em lista, um comando por linha, com "Copiar" (UX-PGL-05, Fase 42b).
-- [ ] As Fases A a E do levantamento do fim do plano (a Fase E, item a item).
+- [ ] As Fases A a E do levantamento do fim do plano (a Fase E, item a item). Em 2026-11-07, 16 dos 54 achados já estavam feitos pela repaginação de UX (Fases A, B e C); restam 38, listados em [`plano-ux-2026-11-06-repaginacao.md`](../frontend/plano-ux-2026-11-06-repaginacao.md), seção "Planos de UX anteriores depois da repaginação".
 
 **Leitura do código:**
 - [ ] Argumento posicional nas migrations e configuração em método auxiliar (Fase 37).

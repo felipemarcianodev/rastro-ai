@@ -190,3 +190,30 @@ Feito em 2026-11-06 (itens 1 a 5): cabeçalho com Levantamentos, Banco e Configu
 - Mudar o cabeçalho e a barra quebra prints e testes de tela existentes e muda os vídeos já publicados da série; os prints de `docs/telas/` são refeitos na Fase C.
 - O link "Banco" do cabeçalho precisa de um repositório "atual"; guardar o último usado no navegador é preferência local, sem efeito no servidor.
 - Os itens de risco alto que o dono não aprovar continuam como proposta neste plano.
+
+## Planos de UX anteriores depois da repaginação
+
+Passada de 2026-11-07 nos itens abertos dos planos antigos, conferida no código de `frontend/src`. Cada item aberto virou `[x]` (a repaginação já fez), `[-]` (ficou sem sentido com a tela nova) ou continua `[ ]`.
+
+| Plano | Itens fechados | Itens que ainda valem |
+|---|---|---|
+| [`plano-ux-2026-10-15.md`](plano-ux-2026-10-15.md) | nenhum item aberto (o `[ ]` do texto é só a legenda) | nenhum |
+| [`plano-ux-2026-10-30-revisao-geral.md`](plano-ux-2026-10-30-revisao-geral.md) | 3 feitos (A1, A2, A8) e 1 sem sentido (A4) | 5, todos de risco alto: A3, A5, A6, A7, A9 |
+| [`plano-ux-2026-10-30-visao-consolidada.md`](plano-ux-2026-10-30-visao-consolidada.md) | 1 sem sentido (D15) | nenhum |
+| [`plano-ux-2026-11-06-tela-do-banco.md`](plano-ux-2026-11-06-tela-do-banco.md) | 1 feito (UX-DB-09, Fase C) | 5: UX-DBF-05, UX-DBQ-05, UX-DBA-06, UX-PG-05, UX-PGL-05 |
+| [`plano-ux-2026-11-06-fim-plano-banco.md`](plano-ux-2026-11-06-fim-plano-banco.md) | 16 feitos de 54 | 38 (lista abaixo) |
+
+**Ainda valem, risco baixo ou médio (podem seguir sem aprovação):**
+- Tela do banco e banco vivo: UX-FIM-B04 (confirmação de remover sem foco), B05 ("Testar conexão" testa a salva), B06 (permissão em 12px), B07 (erro da conexão promete "nenhum banco é consultado"), B08 e B09 (foco da lista e do painel de view e procedure), B10 (Tab em banco grande), B11 (painel abaixo de 900px), B12 (Esc só na aba do mapa e foco de volta ao "Exportar"), B13, B14, B15, B18 (falta o título "Avisos do banco"), B19 (selo com nome longo) e B20 (rótulos do painel).
+- Consulta e IA: UX-FIM-Q03, Q04, Q08 (falta o link para as configurações), Q10, Q16, Q17 e Q06 (aviso único do que vai ao provedor).
+- App: UX-FIM-C03 (pular para o conteúdo), C04 (Esc no `appDialog`), C11 (título da aba por repositório), C12 (foco no título a cada rota), C13 (exemplo de pasta nos dois formatos) e C17 (atalho de refazer igual nas duas telas).
+- Tema e tokens: UX-FIM-B16, B17, Q13, Q14, C14, C15 e C16.
+- Tela do banco vivo e do fluxo: UX-DBF-05 (o nome da tabela no próprio bloco do fluxo), UX-DBA-06 (motivo do erro do provedor), UX-PG-05 (mensagens dos leitores de SQL em pt-BR) e UX-PGL-05 (permissão mínima em lista, com "Copiar").
+- UX-FIM-C01, só o "Copiar" do comando de build e de testes.
+
+**Ainda valem, risco alto (esperam o dono):**
+- UX-FIM-Q07: um padrão só para o rótulo dos botões de IA, com "Ver no mapa" em maiúscula.
+- UX-FIM-Q15: "A análise não consulta o banco." no lugar de "Nada vai a banco nenhum", e o passo de origem entre aspas.
+- UX-DBQ-05: analisar sozinho quem chega pelo "Analisar a consulta" do passo (mudaria o fluxo aprovado no protótipo).
+- Revisão geral de 2026-10-30, Fase A: A3 (só falta o "← Voltar" das Configurações virar `page-bar`; o botão primário único já saiu na Fase A desta repaginação), A5 (rótulo fixo em "Resumo/Completo" e no botão das chamadas do .NET), A6 (cabeçalho do painel: × no canto e "Ver somente este fluxo" em linha própria), A7 (barra da edição da visão consolidada) e A9 ("de 3 para 5" no diálogo de validação).
+- UX-FIM-C01, campos de build e testes na tela: pede decisão do dono e uma ADR nova (a ADR-003 deixa o comando só no terminal), o item 6 da Fase C.
