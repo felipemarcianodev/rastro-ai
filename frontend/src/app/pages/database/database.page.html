@@ -34,12 +34,12 @@
       }
       @if (geometry() && tab() === DbTab.Map) {
         <span class="popover">
-          <button type="button" class="btn btn-g btn-small" id="db-export-button" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
+          <button type="button" class="btn btn-g btn-small" id="db-export-button" (click)="toggleExport()" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
             {{ copy.label('Exportar o mapa') }}
           </button>
           @if (exportOpen()) {
             <div class="menu-backdrop" (click)="closeExport()"></div>
-            <ul id="db-export-menu" class="popover-menu">
+            <ul id="db-export-menu" class="popover-menu" (keydown.arrowdown)="onExportKey($event, 1)" (keydown.arrowup)="onExportKey($event, -1)" (focusout)="onExportFocusOut($event)">
               <li class="popover-group" role="presentation">Exportar o que está no mapa</li>
               <li><button type="button" (click)="exportImage('png')" [disabled]="pngBusy()">Imagem PNG</button></li>
               <li><button type="button" (click)="exportImage('svg')">Imagem SVG</button></li>
@@ -52,27 +52,33 @@
     </div>
   </header>
 
-  @if (!error()) {
-    <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
-      @for (t of tabs; track t) {
-        <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="schema() ? 'db-panel-' + t : null"
-          [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)" (keydown.home)="onTabEdge($event, false)" (keydown.end)="onTabEdge($event, true)">
-          <span class="db-tab-label">{{ tabLabel[t] }}</span>
-          <span class="db-tab-hint">{{ tabHint[t] }}</span>
-        </button>
-      }
-    </div>
-  }
+  <!-- As abas ficam mesmo com erro no esquema: a análise de consulta funciona sem ele (UX-G-B03). -->
+  <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
+    @for (t of tabs; track t) {
+      <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="(schema() || (error() && t === DbTab.Query)) ? 'db-panel-' + t : null"
+        [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)" (keydown.home)="onTabEdge($event, false)" (keydown.end)="onTabEdge($event, true)">
+        <span class="db-tab-label">{{ tabLabel[t] }}</span>
+        <span class="db-tab-hint">{{ tabHint[t] }}</span>
+      </button>
+    }
+  </div>
 
   @if (error(); as message) {
-    <div class="page-state">
-      <p class="notice is-error" role="alert">{{ message }}</p>
-      <div class="page-state-actions">
-        <button type="button" class="btn btn-g" (click)="retry()">Tentar de novo</button>
-        <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
-        <a class="btn btn-g" routerLink="/configuracoes">Abrir as configurações</a>
+    @if (tab() === DbTab.Map) {
+      <div class="page-state">
+        <p class="notice is-error" role="alert">{{ message }}</p>
+        <p class="muted">A análise de consulta funciona mesmo assim, só sem os achados de índice e de nulo.</p>
+        <div class="page-state-actions">
+          <button type="button" class="btn btn-g" (click)="retry()">Tentar de novo</button>
+          <button type="button" class="btn btn-g" (click)="selectTab(DbTab.Query)">Analisar uma consulta mesmo assim</button>
+          <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
+          <a class="btn btn-g" routerLink="/configuracoes">Abrir as configurações</a>
+        </div>
       </div>
-    </div>
+    } @else {
+      <p class="notice is-warning db-schema-off" role="status">O esquema do banco não foi lido, então a análise segue sem os achados de índice e de nulo.
+        <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button></p>
+    }
   } @else if (!schema()) {
     <div class="page-state" role="status">
       <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
@@ -166,6 +172,7 @@
           <span class="db-zoom-tools" role="group" aria-label="Zoom do mapa">
             <button type="button" class="btn btn-icon" (click)="zoomBy(-1)" [disabled]="zoom() <= zoomMin" aria-label="Diminuir o mapa" title="Diminuir">−</button>
             <button type="button" class="btn btn-g btn-small" (click)="zoom.set(1)" [disabled]="zoom() === 1" aria-label="Voltar o mapa a 100%" title="Voltar ao tamanho normal">{{ zoomPercent() }}</button>
+            <button type="button" class="btn btn-g btn-small" (click)="fitZoom()" title="Ajusta o mapa à largura da área">Ajustar</button>
             <span class="visually-hidden" role="status" aria-live="polite">Zoom do mapa em {{ zoomPercent() }}</span>
             <button type="button" class="btn btn-icon" (click)="zoomBy(1)" [disabled]="zoom() >= zoomMax" aria-label="Aumentar o mapa" title="Aumentar">+</button>
           </span>
@@ -224,15 +231,15 @@
 
       @if (selection(); as pick) {
         <aside class="db-panel" [attr.aria-label]="'Painel de ' + pick.key">
-          <app-db-panel [repository]="nome()" [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event)" (closed)="closePanel()" />
+          <app-db-panel [repository]="nome()" [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event)" [fromAnalysis]="fromAnalysis()" (closed)="closePanel()" (backToAnalysis)="backToAnalysis()" />
         </aside>
       }
     </div>
   }
 
-  @if (!error() && schema()) {
+  @if (error() || schema()) {
     <app-query-analysis role="tabpanel" id="db-panel-1" aria-labelledby="db-tab-query" [hidden]="tab() !== DbTab.Query" [repository]="nome()" [schema]="schema()" [live]="!!live()" [liveDialect]="live()?.dialect ?? null"
-      [initial]="consulta()" [origin]="origem()" (pickTable)="showInMap($event)" />
+      [initial]="consulta()" [origin]="origem()" (pickTable)="showInMap($event)" (connect)="connectionOpen.set(true)" />
   }
 
   @if (connectionOpen()) {

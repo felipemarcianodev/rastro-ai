@@ -369,4 +369,42 @@ describe('Sugestão da IA para a consulta (Fase 41)', () => {
     expect(refused.el.querySelector('.notice.is-warning')!.getAttribute('role')).toBe('status');
     expect(refused.el.querySelector('.empty-suggestion')).toBeNull();
   });
+
+  // UX-G-B05
+  it('editar a consulta não apaga a sugestão para sempre: o mesmo texto de volta a mostra sem pedir de novo', () => {
+    const ctx = render([AiUse.Suggestions]);
+    ask(ctx, suggestion());
+    expect(ctx.el.querySelector('app-query-suggestion')).not.toBeNull();
+
+    buttonWith(ctx.el, 'Editar a consulta')!.click();
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('app-query-suggestion')).toBeNull();
+
+    ctx.el.querySelector<HTMLButtonElement>('.qa-actions .btn')!.click();
+    ctx.http.expectOne(URL_ANALYZE).flush(analysis());
+    ctx.fixture.detectChanges();
+
+    expect(ctx.el.querySelector('app-query-suggestion')).not.toBeNull();
+    expect(buttonWith(ctx.el, 'Pedir outra sugestão')).toBeDefined();
+    ctx.http.expectNone(URL_SUGGEST);
+  });
+
+  // UX-G-B05
+  it('com o texto da consulta mudado, a sugestão guardada não aparece', () => {
+    const ctx = render([AiUse.Suggestions]);
+    ask(ctx, suggestion());
+    buttonWith(ctx.el, 'Editar a consulta')!.click();
+    ctx.fixture.detectChanges();
+
+    const box = ctx.el.querySelector<HTMLTextAreaElement>('#qa-sql')!;
+    box.value = SQL + ' ORDER BY 1';
+    box.dispatchEvent(new Event('input'));
+    ctx.fixture.detectChanges();
+    ctx.el.querySelector<HTMLButtonElement>('.qa-actions .btn')!.click();
+    ctx.http.expectOne(URL_ANALYZE).flush(analysis());
+    ctx.fixture.detectChanges();
+
+    expect(ctx.el.querySelector('app-query-suggestion')).toBeNull();
+    expect(suggestButton(ctx.el)).toBeDefined();
+  });
 });

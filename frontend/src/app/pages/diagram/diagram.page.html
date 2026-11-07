@@ -148,6 +148,16 @@
       (cancel)="confirmRegenerate.set(null)"
     />
   }
+  @if (leaveAsk(); as answer) {
+    <app-confirm-dialog
+      title="Sair sem salvar?"
+      text="A edição deste diagrama ainda não foi salva e será perdida se você sair."
+      confirmLabel="Sair sem salvar"
+      cancelLabel="Ficar"
+      (confirm)="answer(true)"
+      (cancel)="answer(false)"
+    />
+  }
   @if (confirmDiscard()) {
     <app-confirm-dialog
       title="Descartar a edição?"

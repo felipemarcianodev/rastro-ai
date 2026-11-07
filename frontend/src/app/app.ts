@@ -17,8 +17,9 @@ const SETTINGS_PATH = '/configuracoes';
 const DATABASE_PREFIX = '/repositorios/';
 const SURVEY_PREFIX = '/surveys/';
 const MAIN_ID = 'conteudo';
-const FRAGMENT_EDITOR = 'editor';
+const HOME_PATH = '/';
 export const FRAGMENT_AI = 'ia';
+const BANCO_FAILED_LABEL = 'Banco (não foi possível ler os repositórios)';
 
 interface BancoTarget {
   commands: string[];
@@ -53,10 +54,14 @@ export class App {
 
   protected readonly area = computed(() => areaOf(this.url()));
 
-  // Último repositório usado se ainda existe; senão o único; senão o primeiro. Sem nenhum, Configurações.
+  // UX-G-L12: a leitura dos repositórios falhou (a rota segue segura e o link avisa; a próxima navegação tenta de novo).
+  protected readonly repositoriesFailed = signal(false);
+  protected readonly bancoLabel = computed(() => (this.repositoriesFailed() ? BANCO_FAILED_LABEL : null));
+
+  // Último repositório usado se ainda existe; senão o único; senão o primeiro. Sem nenhum, a tela inicial (primeiro uso).
   protected readonly bancoTarget = computed<BancoTarget>(() => {
     const repos = this.repositories();
-    if (repos.length === 0) return { commands: [SETTINGS_PATH], fragment: FRAGMENT_EDITOR };
+    if (repos.length === 0) return { commands: [HOME_PATH], fragment: undefined };
     const last = this.last.name();
     const chosen = repos.find((r) => r.name === last) ?? repos[0];
     return { commands: ['/repositorios', chosen.name, 'banco'], fragment: undefined };
@@ -73,6 +78,7 @@ export class App {
       const path = e.urlAfterRedirects.split(/[?#]/)[0];
       if (previousPath !== null && path !== previousPath) this.focusHeading();
       previousPath = path;
+      if (this.repositoriesFailed()) this.loadRepositories();
       // Saiu das Configurações: a lista de repositórios pode ter mudado.
       const current = areaOf(e.urlAfterRedirects);
       if (previous === NavArea.Settings && current !== NavArea.Settings) this.loadRepositories();
@@ -103,9 +109,15 @@ export class App {
 
   private loadRepositories(): void {
     this.api.repositories().subscribe({
-      next: (repos) => this.repositories.set(repos),
-      // Sem a lista, o "Banco" cai nas Configurações.
-      error: () => this.repositories.set([]),
+      next: (repos) => {
+        this.repositories.set(repos);
+        this.repositoriesFailed.set(false);
+      },
+      // Sem a lista, o "Banco" cai na tela inicial e o link avisa que a leitura falhou (UX-G-L12).
+      error: () => {
+        this.repositories.set([]);
+        this.repositoriesFailed.set(true);
+      },
     });
   }
 }

@@ -1,3 +1,6 @@
+@if (fromAnalysis()) {
+  <button type="button" class="btn btn-g btn-small db-back" (click)="backToAnalysis.emit()">Voltar à análise</button>
+}
 @if (table(); as t) {
   <header class="db-panel-head">
     <h2 class="code" tabindex="-1">{{ t.key }}</h2>
@@ -152,7 +155,7 @@
   <h3 class="db-h">{{ selection().kind === DbItemKind.Procedure ? 'Fluxos que chamam esta procedure' : 'Fluxos que usam esta tabela' }}</h3>
   @if (fl.uses.length === 0) {
     <p class="muted db-small">Nenhum levantamento deste repositório {{ selection().kind === DbItemKind.Procedure ? 'chama esta procedure' : 'lê ou grava esta tabela' }} pelo EF Core. Levantamentos feitos antes desta versão do Rastro não têm essa informação: levante o fluxo de novo.</p>
-    <a class="db-small" routerLink="/" [queryParams]="{ repositorio: repository() }">Levantar o fluxo deste repositório</a>
+    <a class="db-small" routerLink="/" [queryParams]="surveyParams()">Levantar o fluxo deste repositório</a>
   } @else {
     <ul class="db-access">
       @for (u of fl.uses; track $index) {

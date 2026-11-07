@@ -99,3 +99,46 @@ describe('DialogDirective', () => {
     fixture.nativeElement.remove();
   });
 });
+
+@Component({
+  imports: [DialogDirective],
+  template: `
+    <div class="overlay" appDialog>
+      <section role="dialog" aria-modal="true">
+        <button id="fechar" type="button" data-dialog-close>Fechar</button>
+        @if (withField) {
+          <input id="campo" type="text" />
+        }
+        <button id="acao" type="button">Ação</button>
+      </section>
+    </div>
+  `,
+})
+class FocusHostComponent {
+  withField = false;
+}
+
+describe('DialogDirective: foco inicial', () => {
+  function open(withField: boolean) {
+    TestBed.configureTestingModule({ imports: [FocusHostComponent] });
+    const fixture = TestBed.createComponent(FocusHostComponent);
+    fixture.componentInstance.withField = withField;
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  // UX-G-L03
+  it('vai ao primeiro campo, antes do botao de fechar', () => {
+    const fixture = open(true);
+    expect(document.activeElement?.id).toBe('campo');
+    fixture.nativeElement.remove();
+  });
+
+  // UX-G-L03
+  it('sem campo, vai ao primeiro botao que nao fecha', () => {
+    const fixture = open(false);
+    expect(document.activeElement?.id).toBe('acao');
+    fixture.nativeElement.remove();
+  });
+});

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { leaveGuard } from './core/leave-guard';
 
 export const routes: Routes = [
   {
@@ -14,6 +15,7 @@ export const routes: Routes = [
   {
     path: 'surveys/:id/visao',
     title: 'Visão consolidada | Rastro AI',
+    canDeactivate: [leaveGuard],
     loadComponent: () => import('./pages/diagram/diagram.page').then((m) => m.DiagramPage),
   },
   {

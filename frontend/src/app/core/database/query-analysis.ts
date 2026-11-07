@@ -62,6 +62,11 @@ export const DB_TAB_QUERY_PARAM = 'consulta';
 // volta a ele; sem o parâmetro, volta à tela inicial. (?origem= é outra coisa: o rótulo do passo da consulta.)
 export const DB_SURVEY_ORIGIN_PARAM = 'levantamento';
 
+// ?origem=banco na tela inicial: quem chegou pelo "Levantar o fluxo deste repositório" do painel do banco (UX-G-B25).
+// A tela inicial ainda não lê este parâmetro; quando ler, é dele que sai o "Voltar ao banco".
+export const HOME_FROM_DB_PARAM = 'origem';
+export const HOME_FROM_DB_VALUE = 'banco';
+
 const EXAMPLE_COLUMNS = 3;
 const EXAMPLE_LIMIT = 10;
 

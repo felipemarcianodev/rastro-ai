@@ -5,7 +5,7 @@
         <h2 id="live-title">Banco vivo</h2>
         <p class="muted">Conexão só de leitura com o banco de {{ repository() }}.</p>
       </div>
-      <button type="button" class="btn btn-icon" (click)="closed.emit()" aria-label="Fechar">×</button>
+      <button type="button" class="btn btn-icon" data-dialog-close (click)="closed.emit()" aria-label="Fechar">×</button>
     </header>
 
     <div class="dialog-body live-body">
@@ -19,9 +19,12 @@
 
       <div class="field">
         <label class="field-label" for="live-key">{{ connection()?.configured ? 'Trocar a string de conexão' : 'String de conexão' }}</label>
-        <input id="live-key" class="input code" type="password" name="live-key" autocomplete="off" spellcheck="false"
-          [value]="key()" (input)="key.set($any($event.target).value)" (keydown.enter)="save()"
-          [placeholder]="connection()?.configured ? 'Deixe vazio para manter a atual' : placeholder[dialect()]" />
+        <div class="field-row">
+          <input id="live-key" class="input code" [type]="reveal() ? 'text' : 'password'" name="live-key" autocomplete="off" spellcheck="false"
+            [value]="key()" (input)="key.set($any($event.target).value)" (keydown.enter)="save()"
+            [placeholder]="connection()?.configured ? 'Deixe vazio para manter a atual' : placeholder[dialect()]" />
+          <button type="button" class="btn btn-g" (click)="reveal.set(!reveal())" [attr.aria-pressed]="reveal()" aria-controls="live-key">Mostrar</button>
+        </div>
       </div>
 
       @if (connection()?.configured) {
@@ -82,7 +85,7 @@
         <button type="button" id="live-test" class="btn btn-g" (click)="test()" [disabled]="busy() || !!key().trim()" aria-describedby="live-test-help"
           [title]="key().trim() ? 'Salve a nova string para testá-la' : 'Testa a conexão já salva'">{{ busy() ? 'Aguarde…' : 'Testar conexão' }}</button>
       }
-      <button type="button" class="btn btn-g" (click)="closed.emit()">Fechar</button>
+      <button type="button" class="btn btn-g" data-dialog-close (click)="closed.emit()">Fechar</button>
       <button type="button" class="btn btn-p" (click)="save()" [disabled]="!key().trim() || busy() || confirmingRemove()">Salvar</button>
     </footer>
   </section>

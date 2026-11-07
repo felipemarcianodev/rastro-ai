@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { DB_OPERATION_SHORT, DB_OPERATION_SLUG, FINDING_KIND_LABEL, FINDING_SEVERITY_LABEL } from '../../core/models';
 import {
   Cardinality,
@@ -29,6 +30,9 @@ export enum DbItemKind {
   View = 1,
   Procedure = 2,
 }
+
+// O título do painel: é nele que o foco cai ao escolher uma tabela (UX-G-B01).
+export const DB_PANEL_TITLE_SELECTOR = '.db-panel-head h2';
 
 export interface DbPick {
   kind: DbItemKind;
@@ -61,8 +65,11 @@ export class DbPanelComponent {
   readonly selection = input.required<DbPick>();
   readonly usage = input<DbUsageReport | null>(null);
   readonly usageError = input(false);
+  // Chegou pelo "Ver no mapa" de um achado da análise (UX-G-B23): o painel oferece voltar a ela.
+  readonly fromAnalysis = input(false);
   readonly pick = output<DbPick>();
   readonly closed = output<void>();
+  readonly backToAnalysis = output<void>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   // Escolheu algo dentro do painel (UX-G-B02): o botão clicado some com o painel antigo, então o foco vai ao título do novo.
@@ -74,11 +81,13 @@ export class DbPanelComponent {
       untracked(() => {
         if (!this.focusTitleNext) return;
         this.focusTitleNext = false;
-        setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('.db-panel-head h2')?.focus({ preventScroll: true }));
+        setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(DB_PANEL_TITLE_SELECTOR)?.focus({ preventScroll: true }));
       });
     });
   }
 
+  // O levantamento leva o repositório e a origem; a volta ao banco sai da origem (UX-G-B25).
+  protected readonly surveyParams = computed(() => ({ repositorio: this.repository(), [HOME_FROM_DB_PARAM]: HOME_FROM_DB_VALUE }));
   protected readonly DbItemKind = DbItemKind;
   protected readonly sourceLabel = SCHEMA_SOURCE_LABEL;
   protected readonly findingTitle = SCHEMA_FINDING_TITLE;

@@ -361,9 +361,26 @@
   }
 }
 
+// Origem da ligação (UX-G-F02): selo curto ao lado da marca de confiança. Contorno, não cor, é o
+// que diz quem propôs: IA e MCP em caixa, a mão do usuário em lápis.
+.edge-origin {
+  display: inline-block;
+  margin-right: 2px;
+  padding: 0 4px;
+  border: 1px solid var(--ink-soft);
+  border-radius: 3px;
+  color: var(--ink-soft);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  vertical-align: middle;
+}
+
 // Afastado demais para ler (escala < 0,45): rótulos somem e o nó fica só com o glifo grande
 // e as marcas, que ainda se distinguem. O nome continua no title e no leitor de tela.
 .flow-host.is-far {
+  .edge-origin,
   .edge-label-text,
   .flow-node-label,
   .flow-node-meta {
@@ -455,14 +472,50 @@
     fill: var(--line-strong);
   }
 
+  // Não resolvido: cor e contorno forte (a cor sozinha some para quem não distingue tons).
   .f-minimap-node.f-component.is-unresolved {
     fill: var(--unresolved);
+    stroke: var(--ink);
+    stroke-width: 2px;
+    vector-effect: non-scaling-stroke;
   }
 
   .f-minimap-view.f-component {
     fill: var(--trail-wash);
     stroke: var(--trail);
   }
+}
+
+// Telas largas: o minimapa cresce junto (UX-G-F07).
+@media (min-width: 1600px) {
+  .flow-host .f-minimap {
+    width: 240px;
+    height: 160px;
+  }
+}
+
+// Primeira visita: a linha de atalhos no rodapé do canvas (UX-G-F14).
+.shortcuts-hint {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--space-4) + 52px);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: calc(100% - 2 * var(--space-4));
+  padding: var(--space-2) var(--space-3);
+  transform: translateX(-50%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: var(--text-sm);
+}
+
+// Desenho lento (UX-G-F08): o aviso cobre o canvas até o cálculo terminar.
+.canvas-status.is-busy {
+  z-index: 6;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
 }
 
 // Edição (Fase 7) ---------------------------------------------------------------

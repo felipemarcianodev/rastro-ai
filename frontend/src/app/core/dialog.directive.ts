@@ -2,6 +2,10 @@ import { AfterViewInit, Directive, ElementRef, OnDestroy, inject, output } from 
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+const FIELD_TAGS = new Set(['INPUT', 'SELECT', 'TEXTAREA']);
+// Marca os botões que só fecham o diálogo: o foco inicial não cai neles.
+const DIALOG_CLOSE_ATTR = 'data-dialog-close';
+
 // Diálogo modal acessível (prompt, validação, C4, confirmações). Vai no .overlay:
 // - o foco entra no diálogo ao abrir e volta a quem abriu ao fechar;
 // - Tab e Shift+Tab ficam presos dentro;
@@ -28,8 +32,7 @@ export class DialogDirective implements AfterViewInit, OnDestroy {
         }
       }
     }
-    const first = this.focusables().find((el) => !el.classList.contains('btn-icon')) ?? this.focusables()[0];
-    (first ?? this.dialog())?.focus();
+    (this.initialFocus() ?? this.dialog())?.focus();
   }
 
   ngOnDestroy(): void {
@@ -58,6 +61,19 @@ export class DialogDirective implements AfterViewInit, OnDestroy {
       keyboard.preventDefault();
       first.focus();
     }
+  }
+
+  // UX-G-L03: o foco inicial vai ao [autofocus], senão ao primeiro campo, senão ao primeiro botão
+  // que não seja o de fechar (marcado com data-dialog-close).
+  private initialFocus(): HTMLElement | null {
+    const items = this.focusables();
+    return (
+      items.find((el) => el.hasAttribute('autofocus')) ??
+      items.find((el) => FIELD_TAGS.has(el.tagName) && !(el instanceof HTMLInputElement && el.type === 'hidden')) ??
+      items.find((el) => !el.hasAttribute(DIALOG_CLOSE_ATTR) && !el.classList.contains('btn-icon')) ??
+      items[0] ??
+      null
+    );
   }
 
   private dialog(): HTMLElement | null {

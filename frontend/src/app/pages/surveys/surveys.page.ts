@@ -1,7 +1,7 @@
 import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
+import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM, HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { DialogDirective } from '../../core/dialog.directive';
 import { EditorLinks } from '../../core/editor-links';
 import { plural, shortCommit, shortDate } from '../../core/format';
@@ -38,6 +38,8 @@ interface RepoCard {
   count: string;
   stack: string | null;
 }
+
+const DEFAULT_MAX_DEPTH = 15;
 
 type Field = 'repository' | 'solution' | 'entry' | 'depth';
 
@@ -139,7 +141,7 @@ export class SurveysPage implements OnInit {
   protected repository = '';
   protected solutionPath = '';
   protected entryPoint = '';
-  protected maxDepth = 15;
+  protected maxDepth = DEFAULT_MAX_DEPTH;
   protected readonly submitting = signal(false);
   protected readonly formError = signal<string | null>(null);
   protected readonly fieldErrors = signal<Partial<Record<Field, string>>>({});
@@ -189,6 +191,13 @@ export class SurveysPage implements OnInit {
     if (repository && repository !== this.repository) this.selectRepository(repository);
     else if (repository) this.lastRepository.remember(repository);
     this.formOpen.set(true);
+  }
+
+  // UX-G-L04: clique no fundo não descarta o que foi digitado (ponto de entrada ou profundidade alterada).
+  // Esc e "Fechar" continuam fechando.
+  protected dismissForm(): void {
+    if (this.entryPoint.trim() || Number(this.maxDepth) !== DEFAULT_MAX_DEPTH) return;
+    this.closeForm();
   }
 
   protected closeForm(): void {
@@ -290,6 +299,9 @@ export class SurveysPage implements OnInit {
   }
 
   // Estados do campo: carregando, erro com "Tentar de novo" junto dele, vazio (falta configurar).
+  // Repositório cujo mapa do banco abriu o formulário ("Levantar o fluxo deste repositório"), para o "Voltar ao banco".
+  protected readonly backToDb = signal<string | null>(null);
+
   protected loadRepositories(): void {
     this.reposState.set('loading');
     this.reposError.set(null);
@@ -311,6 +323,8 @@ export class SurveysPage implements OnInit {
         } else if (preselected && repos.some((r) => r.name === preselected)) {
           this.selectRepository(preselected);
           this.formOpen.set(true);
+          // Veio do painel do banco (UX-G-B25): o formulário oferece a volta ao mapa.
+          if (this.route.snapshot.queryParamMap.get(HOME_FROM_DB_PARAM) === HOME_FROM_DB_VALUE) this.backToDb.set(preselected);
         } else if (repos.length === 1) this.selectRepository(repos[0].name);
       },
       error: (error) => {

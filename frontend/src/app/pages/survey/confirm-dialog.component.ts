@@ -22,7 +22,7 @@ export const CONFIRM_TONE_BUTTON: Record<ConfirmTone, string> = {
         <h2 id="confirm-title">{{ title() }}</h2>
         <p id="confirm-text">{{ text() }}</p>
         <footer class="dialog-foot">
-          <button #cancelButton type="button" class="btn btn-g" (click)="cancel.emit()" [disabled]="busy()">Cancelar</button>
+          <button #cancelButton type="button" class="btn btn-g" (click)="cancel.emit()" [disabled]="busy()">{{ cancelLabel() }}</button>
           <button type="button" [class]="'btn ' + toneClass()" (click)="confirm.emit()" [disabled]="busy()">{{ confirmLabel() }}</button>
         </footer>
       </section>
@@ -34,6 +34,8 @@ export class ConfirmDialogComponent implements AfterViewInit {
   readonly title = input.required<string>();
   readonly text = input.required<string>();
   readonly confirmLabel = input.required<string>();
+  // Rótulo do caminho seguro; "Cancelar" salvo quando a pergunta pede outro (ex.: "Ficar").
+  readonly cancelLabel = input('Cancelar');
   // Ação em andamento: os botões ficam parados até a resposta.
   readonly busy = input(false);
   readonly tone = input<ConfirmTone>(ConfirmTone.Danger);

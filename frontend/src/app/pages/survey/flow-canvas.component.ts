@@ -49,6 +49,7 @@ import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effe
 import { FlowSummary, flowSummary, readingLabel } from '../../core/graph/summary';
 import { TREE_CONNECTION, TreeConnectionBuilder } from '../../core/graph/tree-connection';
 import { Trail } from '../../core/graph/trail';
+import { EDGE_ORIGIN_MARK, EDGE_ORIGIN_MARK_LABEL, EDGE_ORIGIN_MARK_SLUG, EDGE_ORIGIN_ORDER } from '../../core/graph/origin';
 import {
   FINDING_SEVERITY_LABEL,
   FINDING_SEVERITY_SLUG,
@@ -64,6 +65,7 @@ import {
   NODE_KIND_LABEL,
   NODE_KIND_SLUG,
   NodeKind,
+  ProposalOrigin,
 } from '../../core/models';
 
 const MIN_READABLE_SCALE = 0.6;
@@ -77,6 +79,13 @@ const FAR_SCALE = 0.45;
 // Passo do teclado (Alt+setas) ao mover um nó.
 const KEY_STEP = 24;
 const UNDO_RESET_MS = 8000;
+// Aviso "Passo movido. Desfazer" (UX-G-F06) e a pilha de posições que ele desfaz.
+const UNDO_MOVE_MS = 6000;
+const MOVE_HISTORY_LIMIT = 50;
+// Layout que passou disto deixa o "Desenhando o grafo…" visível nas próximas vezes (UX-G-F08).
+export const SLOW_LAYOUT_MS = 500;
+const SLOW_LAYOUT_PAINT_MS = 40;
+const SHORTCUTS_KEY = 'rastro.shortcutsHintSeen';
 
 const WALK_END: Record<StepMove, string> = {
   [StepMove.Forward]: 'Fim do caminho: este passo não chama nenhum outro.',
@@ -128,7 +137,7 @@ interface IndexedEdge {
   styleUrl: './flow-canvas.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [{ provide: F_CONNECTION_BUILDERS, useValue: { [TREE_CONNECTION]: new TreeConnectionBuilder() } }],
-  host: { '(document:keydown.space)': 'onSpace($event, true)', '(document:keyup.space)': 'onSpace($event, false)', '(window:blur)': 'panning.set(false)' },
+  host: { '(document:keydown.space)': 'onSpace($event, true)', '(document:keyup.space)': 'onSpace($event, false)', '(window:blur)': 'panning.set(false)', '(keydown)': 'onUndoKey($event)' },
 })
 export class FlowCanvasComponent {
   readonly graph = input.required<FlowGraph>();
@@ -179,6 +188,17 @@ export class FlowCanvasComponent {
   // "Reorganizar" pode ser desfeito por alguns segundos.
   protected readonly undoReset = signal<Record<string, Point> | null>(null);
   private undoTimer?: ReturnType<typeof setTimeout>;
+  // Desfazer o arraste (UX-G-F06): posições antes de cada movimento, e as desfeitas para refazer.
+  private moveHistory: Record<string, Point>[] = [];
+  private moveRedo: Record<string, Point>[] = [];
+  private snapshotTaken = false;
+  protected readonly moveToast = signal(false);
+  private moveToastTimer?: ReturnType<typeof setTimeout>;
+  // Primeira visita: uma linha com os atalhos no rodapé (UX-G-F14).
+  protected readonly shortcutsHint = signal(!readShortcutsSeen());
+  // Layout lento (UX-G-F08): duração do último desenho e o aviso enquanto o próximo é calculado.
+  readonly lastLayoutMs = signal(0);
+  protected readonly drawingBusy = signal(false);
   protected readonly scale = signal(1);
   // Aviso ao leitor de tela quando a seta não tem para onde ir.
   protected readonly walkMessage = signal('');
@@ -264,6 +284,7 @@ export class FlowCanvasComponent {
   protected readonly placed = signal<PlacedNode[]>([]);
   protected readonly laidOut = signal(false);
   protected readonly markerEnd = EFMarkerType.END_ALL_STATES;
+  protected readonly Port = Port;
   protected readonly glyph = NODE_KIND_GLYPH;
   protected readonly kindLabel = NODE_KIND_LABEL;
   protected readonly changeLabel = CHANGE_KIND_LABEL;
@@ -342,6 +363,31 @@ export class FlowCanvasComponent {
   // O rótulo do ramo vira cabeçalho do galho ou da seção do bloco: nenhuma etiqueta na ligação.
   protected readonly quietLabels = computed(() => new Set(this.graph().edges.flatMap((edge, index) => (edge.label ? [index] : []))));
 
+  // Portas realmente usadas pelas ligações: fora da edição só elas são desenhadas (UX-G-F08).
+  private readonly usedPorts = computed(() => {
+    const ports = new Set<string>();
+    for (const item of this.edges()) {
+      ports.add(this.sourceId(item));
+      ports.add(this.targetId(item));
+    }
+    return ports;
+  });
+
+  protected hasPort(port: string, nodeId: string): boolean {
+    return this.editing() || this.usedPorts().has(port + nodeId);
+  }
+
+  // Origem da ligação (UX-G-F02): só nas inferidas e confirmadas, que são as que vieram de alguém.
+  protected readonly originMark = EDGE_ORIGIN_MARK;
+  protected readonly originSlug = EDGE_ORIGIN_MARK_SLUG;
+  protected readonly originLabel = EDGE_ORIGIN_MARK_LABEL;
+  protected readonly originOrder = EDGE_ORIGIN_ORDER;
+  protected readonly originsPresent = computed(() => {
+    const found = new Set<ProposalOrigin>();
+    for (const edge of this.graph().edges) if (edge.origin !== undefined && edge.confidence !== EdgeConfidence.Extracted) found.add(edge.origin);
+    return found;
+  });
+
   protected readonly holes = computed(() => this.graph().nodes.filter((n) => n.kind === NodeKind.Unresolved));
 
   constructor() {
@@ -360,8 +406,21 @@ export class FlowCanvasComponent {
       const key = this.positionsKey();
       const direction = this.direction();
       const brief = this.brief();
-      const drawing = flowDrawing(graph, this.axis(), (node) => (effects.has(node.id) ? (node.db?.length ? DB_EFFECT_PX : EFFECT_PX) : 0), this.systems());
-      this.layouts.run(Promise.resolve(drawing.boxes), (boxes) => {
+      const axis = this.axis();
+      const systems = this.systems();
+      const compute = () => {
+        const started = performance.now();
+        const result = flowDrawing(graph, axis, (node) => (effects.has(node.id) ? (node.db?.length ? DB_EFFECT_PX : EFFECT_PX) : 0), systems);
+        this.lastLayoutMs.set(Math.round(performance.now() - started));
+        return result;
+      };
+      // Se o último desenho passou de SLOW_LAYOUT_MS, o aviso aparece antes e só sai quando este termina.
+      const slow = untracked(() => this.lastLayoutMs()) > SLOW_LAYOUT_MS && untracked(() => this.placed().length) > 0;
+      if (slow) this.drawingBusy.set(true);
+      const work = slow ? new Promise<ReturnType<typeof compute>>((resolve) => setTimeout(() => resolve(compute()), SLOW_LAYOUT_PAINT_MS)) : Promise.resolve(compute());
+      this.layouts.run(work, (drawing) => {
+        const boxes = drawing.boxes;
+        this.drawingBusy.set(false);
         this.autoBoxes = boxes;
         this.blocks.set(drawing.blocks);
         this.heads.set(drawing.heads);
@@ -371,6 +430,9 @@ export class FlowCanvasComponent {
         this.summaryChange.emit(flowSummary(drawing.outline, graph, originals, effects));
         const moved = readPositions(key);
         this.moved.set(moved);
+        this.moveHistory = [];
+        this.moveRedo = [];
+        this.moveToast.set(false);
         this.placed.set(
           graph.nodes
             .filter((n) => boxes.has(n.id))
@@ -708,10 +770,58 @@ export class FlowCanvasComponent {
 
   // O usuário arrasta o passo: as ligações acompanham (o Foblex redesenha) e a posição fica guardada.
   protected onNodeMoved(id: string, point: Point): void {
+    this.rememberPositions();
     const moved = { ...this.moved(), [id]: { x: Math.round(point.x), y: Math.round(point.y) } };
     this.moved.set(moved);
     this.placed.update((items) => items.map((item) => (item.node.id === id ? { ...item, box: withPosition(item.box, moved[id]) } : item)));
     writePositions(this.positionsKey(), moved);
+  }
+
+  // Guarda as posições de antes do movimento. Vários passos movidos juntos (grupo) caem na mesma
+  // tarefa e valem um desfazer só.
+  private rememberPositions(): void {
+    if (this.snapshotTaken) return;
+    this.snapshotTaken = true;
+    setTimeout(() => (this.snapshotTaken = false));
+    this.moveHistory.push(this.moved());
+    if (this.moveHistory.length > MOVE_HISTORY_LIMIT) this.moveHistory.shift();
+    this.moveRedo = [];
+    this.moveToast.set(true);
+    clearTimeout(this.moveToastTimer);
+    this.moveToastTimer = setTimeout(() => this.moveToast.set(false), UNDO_MOVE_MS);
+  }
+
+  protected undoMove(): void {
+    const previous = this.moveHistory.pop();
+    if (!previous) return;
+    this.moveRedo.push(this.moved());
+    this.applyPositions(previous);
+    this.moveToast.set(false);
+  }
+
+  protected redoMove(): void {
+    const next = this.moveRedo.pop();
+    if (!next) return;
+    this.moveHistory.push(this.moved());
+    this.applyPositions(next);
+  }
+
+  // Ctrl+Z e Ctrl+Shift+Z com o foco no grafo. Na edição o Ctrl+Z é do rascunho (a página trata).
+  protected onUndoKey(event: KeyboardEvent): void {
+    if (this.editing() || !(event.ctrlKey || event.metaKey) || event.altKey || event.key.toLowerCase() !== 'z') return;
+    if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable]')) return;
+    event.preventDefault();
+    if (event.shiftKey) this.redoMove();
+    else this.undoMove();
+  }
+
+  protected closeShortcutsHint(): void {
+    this.shortcutsHint.set(false);
+    try {
+      localStorage.setItem(SHORTCUTS_KEY, 'true');
+    } catch {
+      // Armazenamento bloqueado: a linha volta na próxima visita.
+    }
   }
 
   protected resetLayout(): void {
@@ -894,6 +1004,14 @@ function readLegendOpen(): boolean {
     return localStorage.getItem(LEGEND_KEY) !== 'false';
   } catch {
     return true;
+  }
+}
+
+function readShortcutsSeen(): boolean {
+  try {
+    return localStorage.getItem(SHORTCUTS_KEY) === 'true';
+  } catch {
+    return false;
   }
 }
 

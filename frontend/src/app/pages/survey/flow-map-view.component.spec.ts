@@ -328,3 +328,53 @@ describe('FlowMapViewComponent (Fase 31)', () => {
     expect(block('b7').classList).toContain('is-selected');
   });
 });
+
+describe('FlowMapViewComponent: zoom e rótulos', () => {
+  const canvas = (el: HTMLElement) => el.querySelector<HTMLElement>('.map-canvas')!;
+  const zoomButton = (el: HTMLElement, label: string) => el.querySelector<HTMLButtonElement>(`.map-zoom [aria-label^="${label}"]`)!;
+
+  // UX-G-F18
+  it('zoom_aproximaAfastaEnquadraEVoltaA100', async () => {
+    const { fixture, el } = await setup();
+    const percent = () => el.querySelector('.map-zoom-actual')!.textContent!.trim();
+    expect(percent()).toBe('100%');
+
+    zoomButton(el, 'Afastar').click();
+    fixture.detectChanges();
+    expect(percent()).toBe('83%');
+    expect(parseFloat(canvas(el).style.zoom)).toBeCloseTo(1 / 1.2, 2);
+
+    zoomButton(el, 'Aproximar').click();
+    zoomButton(el, 'Aproximar').click();
+    fixture.detectChanges();
+    expect(percent()).toBe('120%');
+
+    zoomButton(el, 'Enquadrar').click();
+    fixture.detectChanges();
+    expect(parseFloat(canvas(el).style.zoom)).toBeLessThanOrEqual(1);
+
+    zoomButton(el, 'Zoom em').click();
+    fixture.detectChanges();
+    expect(percent()).toBe('100%');
+  });
+
+  // UX-G-F18
+  it('zoom_respeitaOsLimites', async () => {
+    const { fixture, el } = await setup();
+    for (let i = 0; i < 20; i++) zoomButton(el, 'Aproximar').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.map-zoom-actual')!.textContent!.trim()).toBe('200%');
+    for (let i = 0; i < 40; i++) zoomButton(el, 'Afastar').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.map-zoom-actual')!.textContent!.trim()).toBe('25%');
+  });
+
+  // UX-G-F18
+  it('rotulosDeChamada_temAriaLabelQuandoNaoSaoBotao', async () => {
+    const { el } = await setup();
+    const labels = Array.from(el.querySelectorAll<HTMLElement>('span.map-label'));
+
+    expect(labels.length).toBeGreaterThan(0);
+    for (const label of labels) expect(label.getAttribute('aria-label')).toContain('Chamada:');
+  });
+});

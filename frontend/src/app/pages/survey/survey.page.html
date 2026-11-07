@@ -23,7 +23,11 @@
           @if (d.survey.status === SurveyStatus.Completed) {
             <span class="muted">
               {{ plural(d.survey.nodeCount, 'nó', 'nós') }},
-              <span [class.has-holes]="d.survey.unresolvedCount > 0">{{ plural(d.survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</span>
+              @if (d.survey.unresolvedCount > 0) {
+                <button type="button" class="btn btn-g btn-small has-holes" (click)="nextHole()" title="Ir para o próximo não resolvido no grafo">{{ plural(d.survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</button>
+              } @else {
+                <span>{{ plural(d.survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</span>
+              }
             </span>
           }
           @if (d.survey.branch) {
@@ -241,6 +245,7 @@
         <input id="graph-search" class="input is-small code" type="search" placeholder="Buscar passo (nome do método, condição…)" autocomplete="off" spellcheck="false"
           [value]="searchQuery()" (input)="onSearchInput($any($event.target).value)"
           (keydown.enter)="$event.preventDefault(); stepSearch(1)" (keydown.shift.enter)="$event.preventDefault(); stepSearch(-1)" />
+        <span class="muted search-hint">Esc fecha</span>
         <span class="muted search-count" role="status">
           @if (searchQuery().trim()) {
             {{ matches().length === 0 ? 'Nenhum passo na tela' : (searchIndex() + 1) + ' de ' + matches().length }}
@@ -255,6 +260,20 @@
         <button type="button" class="btn btn-g btn-small" (click)="stepSearch(-1)" [disabled]="matches().length < 2" aria-label="Passo anterior">↑</button>
         <button type="button" class="btn btn-g btn-small" (click)="stepSearch(1)" [disabled]="matches().length < 2" aria-label="Próximo passo">↓</button>
         <button type="button" class="btn btn-g btn-small" (click)="closeSearch()">Fechar busca</button>
+        @if (searchList().length > 0) {
+          <ul class="search-results" aria-label="Ocorrências da busca">
+            @for (hit of searchList(); track hit.id) {
+              <li>
+                <button type="button" class="search-hit" [class.is-current]="hit.index === searchIndex()" (click)="pickSearchResult(hit.id, hit.index)">
+                  <span class="code">{{ hit.name }}</span>
+                  @if (hit.owner) {
+                    <span class="muted">{{ hit.owner }}</span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+        }
       </div>
     }
 
@@ -338,7 +357,7 @@
             <p class="muted">{{ plural(p.changes, 'mudança', 'mudanças') }}. Cole no seu agente de código; ele também pega este texto pelo MCP (get_change_prompt).</p>
           }
         </div>
-        <button type="button" class="btn btn-icon" (click)="closePrompt()" aria-label="Fechar">×</button>
+        <button type="button" class="btn btn-icon" data-dialog-close (click)="closePrompt()" aria-label="Fechar">×</button>
       </header>
       @if (p.prompt) {
         <pre class="prompt-text" tabindex="0">{{ p.prompt }}</pre>

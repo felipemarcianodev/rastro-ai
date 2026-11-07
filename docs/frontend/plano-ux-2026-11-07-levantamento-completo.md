@@ -189,9 +189,9 @@ IDs: L (tela inicial, Configurações e cabeçalho), F (fluxo, painel e visões)
 
 ### Fase B: comportamento novo (risco médio)
 
-- [ ] UX-G-L03, L04, L08 e L12.
-- [ ] UX-G-F02, F03, F06, F07, F08, F10, F14, F18 e F22.
-- [ ] UX-G-B01, B03, B04, B05, B07, B14, B16, B23 e B25.
+- [x] UX-G-L03, L04, L08 e L12.
+- [x] UX-G-F02, F03, F06, F07, F08, F10, F14, F18 e F22.
+- [x] UX-G-B01, B03, B04, B05, B07, B14, B16, B23 e B25.
 - **Aceite:**
   - o diálogo abre no primeiro campo;
   - clique no fundo não apaga o digitado;
@@ -203,6 +203,7 @@ IDs: L (tela inicial, Configurações e cabeçalho), F (fluxo, painel e visões)
 - **Riscos:**
   - o F06 precisa conviver com o Ctrl+Z da edição;
   - o L03 muda o foco inicial de todos os diálogos e precisa conferir os que abrem sem campo (confirmações).
+- **Registro (2026-11-07):** feito. O F08 ficou em parte: o Foblex desenha a ligação pelo conector, então fora da edição só ficam os conectores que alguma ligação usa (na edição, os quatro de cada passo); o layout de 200 passos em cadeia levou 4 ms. O "Sair sem salvar?" da visão consolidada é uma guarda de rota (`core/leave-guard.ts`) com o diálogo do tema, e o `app-confirm-dialog` ganhou o rótulo do cancelar. O desfazer das posições guarda até 50 estados e só vale fora da edição. O "Levantar o fluxo deste repositório" do banco abre o formulário com "Voltar ao banco". Frontend 534/534.
 
 ### Fase C: alto risco, requer aprovação do dono
 

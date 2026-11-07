@@ -629,3 +629,87 @@ describe('SurveysPage: Procurar pasta na janela própria', () => {
     http.match(() => true).forEach((request) => request.flush([]));
   });
 });
+
+describe('SurveysPage: diálogo Novo levantamento', () => {
+  async function openWithRepo() {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:\codigo\loja', hasGit: true, hasBuildCommand: false, hasTestCommand: false }]);
+    http.expectOne('/api/repositories/loja/solutions').flush(['Loja.slnx']);
+    fixture.detectChanges();
+    await openNew(fixture);
+    return { fixture, http, el: fixture.nativeElement as HTMLElement };
+  }
+
+  // UX-G-L03
+  it('foco inicial vai ao primeiro campo e nao ao Fechar', async () => {
+    const { fixture, http, el } = await openWithRepo();
+
+    expect(document.activeElement).toBe(el.querySelector('#repository'));
+    expect((document.activeElement as HTMLElement).hasAttribute('data-dialog-close')).toBeFalse();
+    http.match(() => true).forEach((request) => request.flush([]));
+    fixture.nativeElement.remove();
+  });
+
+  // UX-G-L04
+  it('clique no fundo com dado digitado nao fecha; Esc e Fechar fecham', async () => {
+    const { fixture, http, el } = await openWithRepo();
+    const overlay = () => el.querySelector<HTMLElement>('.overlay')!;
+
+    overlay().click();
+    fixture.detectChanges();
+    expect(el.querySelector('[role="dialog"]')).toBeNull();
+
+    await openNew(fixture);
+    const entry = el.querySelector<HTMLInputElement>('#entry')!;
+    entry.value = 'PedidosController.Criar';
+    entry.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    overlay().click();
+    fixture.detectChanges();
+    expect(el.querySelector('[role="dialog"]')).not.toBeNull();
+
+    overlay().dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+    expect(el.querySelector('[role="dialog"]')).toBeNull();
+
+    await openNew(fixture);
+    const depth = el.querySelector<HTMLInputElement>('#depth')!;
+    depth.value = '8';
+    depth.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    overlay().click();
+    fixture.detectChanges();
+    expect(el.querySelector('[role="dialog"]')).not.toBeNull();
+    el.querySelector<HTMLButtonElement>('[data-dialog-close]')!.click();
+    fixture.detectChanges();
+    expect(el.querySelector('[role="dialog"]')).toBeNull();
+    http.match(() => true).forEach((request) => request.flush([]));
+    fixture.nativeElement.remove();
+  });
+});
+
+// UX-G-B25
+describe('SurveysPage: chegada pelo mapa do banco', () => {
+  it('com origem=banco, o formulário oferece "Voltar ao banco" do repositório', async () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    await TestBed.inject(Router).navigateByUrl('/?repositorio=pagamentos&origem=banco');
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    const repo = (name: string) => ({ name, path: `C:\codigo\${name}`, hasGit: true, hasBuildCommand: false, hasTestCommand: false });
+    http.expectOne('/api/repositories').flush([repo('pagamentos')]);
+    http.match(() => true).forEach((request) => request.flush([]));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const back = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('.dialog a')).find((a) => a.textContent?.trim() === 'Voltar ao banco');
+    expect(back?.getAttribute('href')).toBe('/repositorios/pagamentos/banco');
+  });
+});

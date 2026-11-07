@@ -25,7 +25,7 @@ import { readDiagramColors } from '../../core/mermaid-render';
 import { RepositoryItem } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { LastRepositoryService } from '../../core/last-repository.service';
-import { DbItemKind, DbPick, DbPanelComponent } from './db-panel.component';
+import { DB_PANEL_TITLE_SELECTOR, DbItemKind, DbPick, DbPanelComponent } from './db-panel.component';
 import { LiveConnectionView } from '../../core/database/live-database';
 import { LiveConnectionDialogComponent } from './live-connection-dialog.component';
 import { QueryAnalysisComponent } from './query-analysis.component';
@@ -42,10 +42,11 @@ const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const EXPORT_BUTTON_ID = 'db-export-button';
 // Recorte por tabela: 0 é o banco inteiro; 1 a 3, os vizinhos até tantos saltos.
 const HOP_CHOICES = [1, 2, 3];
-// Zoom do mapa: de metade a uma vez e meia, de quarto em quarto.
-const ZOOM_MIN = 0.5;
+// Zoom do mapa: de um quarto a uma vez e meia, de quarto em quarto (UX-G-B07); "Ajustar" cabe na largura.
+const ZOOM_MIN = 0.25;
 const ZOOM_MAX = 1.5;
 const ZOOM_STEP = 0.25;
+const MENU_ITEMS = '#db-export-menu button:not([disabled])';
 
 export enum DbTab {
   Map = 0,
@@ -134,6 +135,8 @@ export class DatabasePage {
   protected readonly zoomMax = ZOOM_MAX;
   protected readonly zoomPercent = computed(() => `${Math.round(this.zoom() * 100)}%`);
   protected readonly exportOpen = signal(false);
+  // Chegou ao mapa pelo "Ver no mapa" da análise: o painel oferece voltar a ela (UX-G-B23).
+  protected readonly fromAnalysis = signal(false);
   protected readonly pngBusy = signal(false);
   protected readonly message = signal<{ ok: boolean; text: string } | null>(null);
   protected readonly copy = new CopyFeedback();
@@ -376,6 +379,7 @@ export class DatabasePage {
   }
 
   protected selectTab(tab: DbTab, focus = false): void {
+    if (tab === DbTab.Query) this.fromAnalysis.set(false);
     if (tab !== this.tab()) {
       this.router.navigate([], { queryParams: { aba: tab === DbTab.Query ? DB_TAB_QUERY_PARAM : null }, queryParamsHandling: 'merge' });
     }
@@ -399,7 +403,14 @@ export class DatabasePage {
     const schema = this.schema();
     const table = schema ? findTable(schema, name) : undefined;
     this.router.navigate([], { queryParams: { aba: null, tabela: table ? tableKey(table) : null }, queryParamsHandling: 'merge' });
+    this.fromAnalysis.set(!!table);
     if (table) this.choose({ kind: DbItemKind.Table, key: tableKey(table) }, true);
+  }
+
+  // Do painel de volta à análise: a aba de consulta segue montada, então o resultado está como ficou (UX-G-B23).
+  protected backToAnalysis(): void {
+    this.fromAnalysis.set(false);
+    this.selectTab(DbTab.Query, true);
   }
 
   protected onSearch(value: string): void {
@@ -422,11 +433,22 @@ export class DatabasePage {
 
   protected pickTable(key: string): void {
     const current = this.selection();
-    this.selection.set(current?.kind === DbItemKind.Table && current.key === key ? null : { kind: DbItemKind.Table, key });
+    const closing = current?.kind === DbItemKind.Table && current.key === key;
+    this.selection.set(closing ? null : { kind: DbItemKind.Table, key });
+    // Escolher pelo mapa leva o foco ao título do painel, como escolher dentro do painel (UX-G-B01).
+    if (!closing) setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(DB_PANEL_TITLE_SELECTOR)?.focus({ preventScroll: true }));
   }
 
   protected zoomBy(step: number): void {
     this.zoom.update((z) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z + step * ZOOM_STEP)));
+  }
+
+  // "Ajustar": o mapa inteiro cabe na largura do contêiner, sem passar de 100% (UX-G-B07).
+  protected fitZoom(): void {
+    const width = this.scroller()?.nativeElement.clientWidth ?? 0;
+    const mapWidth = this.geometry()?.width ?? 0;
+    if (width <= 0 || mapWidth <= 0) return;
+    this.zoom.set(Math.min(1, Math.max(ZOOM_MIN, Math.floor((width / mapWidth) * 100) / 100)));
   }
 
   protected setHops(value: string): void {
@@ -443,6 +465,7 @@ export class DatabasePage {
     const pick = this.selection();
     this.selection.set(null);
     this.hops.set(0);
+    this.fromAnalysis.set(false);
     if (key) this.focusCard(key);
     // View ou procedure: o foco volta ao item da lista que abriu o painel (UX-FIM-B09).
     else if (pick) this.focusItem(pick);
@@ -462,6 +485,33 @@ export class DatabasePage {
     else if (this.exportOpen()) this.closeExport();
     // Na aba de consulta o Esc não fecha o painel do mapa, que nem está à vista (UX-FIM-B12).
     else if (this.selection() && this.tab() === DbTab.Map) this.closePanel();
+  }
+
+  // Abre o menu com o foco no primeiro item (UX-G-B14).
+  protected toggleExport(): void {
+    if (this.exportOpen()) {
+      this.closeExport();
+      return;
+    }
+    this.exportOpen.set(true);
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(MENU_ITEMS)?.focus());
+  }
+
+  // Setas para cima e para baixo andam pelos itens do menu, dando a volta (UX-G-B14).
+  protected onExportKey(event: Event, step: number): void {
+    event.preventDefault();
+    const items = [...this.host.nativeElement.querySelectorAll<HTMLElement>(MENU_ITEMS)];
+    if (items.length === 0) return;
+    const at = items.indexOf(document.activeElement as HTMLElement);
+    items[(at + step + items.length) % items.length].focus();
+  }
+
+  // Sair do menu com Tab fecha. Foco que vai a lugar nenhum (clique sem foco) ou ao botão "Exportar" não conta.
+  protected onExportFocusOut(event: FocusEvent): void {
+    const next = event.relatedTarget as Node | null;
+    if (!next || (event.currentTarget as HTMLElement).contains(next)) return;
+    if ((next as HTMLElement).id === EXPORT_BUTTON_ID) return;
+    this.exportOpen.set(false);
   }
 
   // Fecha o menu e devolve o foco ao botão "Exportar" (UX-FIM-B12).

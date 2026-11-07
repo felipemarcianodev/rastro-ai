@@ -85,9 +85,23 @@ describe('App', () => {
     expect(link('Banco').getAttribute('href')).toBe('/repositorios/a/banco');
   });
 
-  it('Banco sem repositório leva às configurações, no editor', () => {
+  // UX-G-L12
+  it('Banco sem repositório leva à tela inicial (primeiro uso)', () => {
     const { link } = render([]);
-    expect(link('Banco').getAttribute('href')).toBe('/configuracoes#editor');
+    expect(link('Banco').getAttribute('href')).toBe('/');
+    expect(link('Banco').hasAttribute('aria-label')).toBeFalse();
+  });
+
+  // UX-G-L12
+  it('erro ao ler os repositórios mantém a rota segura e avisa no link', () => {
+    const fixture = TestBed.createComponent(App);
+    const http = TestBed.inject(HttpTestingController);
+    http.match('/api/ai/status').forEach((r) => r.flush({}));
+    http.expectOne('/api/repositories').flush('falha', { status: 500, statusText: 'Erro' });
+    fixture.detectChanges();
+    const banco = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('nav a')).find((a) => a.textContent?.trim() === 'Banco')!;
+    expect(banco.getAttribute('href')).toBe('/');
+    expect(banco.getAttribute('aria-label')).toContain('não foi possível ler os repositórios');
   });
 
   // UX-H26
