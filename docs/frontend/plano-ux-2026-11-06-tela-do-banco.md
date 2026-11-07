@@ -27,7 +27,7 @@
 | UX-DB-06 | painel, achados | Quebra de linha sobrando entre o título e o texto do achado | Título em bloco, sem `<br>` | Baixo | P | Feito |
 | UX-DB-07 | mapa | Sem zoom: num banco maior, o desenho não cabe e só rola | Zoom de 50% a 150% na barra do mapa, com a volta a 100% | Médio | M | Feito |
 | UX-DB-08 | bloco do mapa | O nome "email" ficava cortado ao lado do selo "pessoal" | Bloco de 272px | Baixo | P | Feito |
-| UX-DB-09 | cabeçalho do Rastro | A tela só se alcança escolhendo o repositório antes (levantamento novo ou barra de um levantamento) | Entrada "Banco" no cabeçalho | Alto (mexe no menu) | M | `[ ]` no plano, espera aprovação |
+| UX-DB-09 | cabeçalho do Rastro | A tela só se alcança escolhendo o repositório antes (levantamento novo ou barra de um levantamento) | Entrada "Banco" no cabeçalho | Alto (mexe no menu) | M | `[x]` feito na repaginação, Fase C (o cabeçalho tem Levantamentos, Banco e Configurações) |
 
 ## Fora do escopo
 
