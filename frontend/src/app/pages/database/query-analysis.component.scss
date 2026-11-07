@@ -2,8 +2,8 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  // Linha longa demais cansa a leitura dos motivos: a coluna da consulta para em 960px, com as tabelas ao lado.
-  grid-template-columns: minmax(0, 960px) minmax(280px, 520px);
+  // Linha longa demais cansa a leitura dos motivos: a coluna da consulta para na largura de leitura, com as tabelas ao lado.
+  grid-template-columns: minmax(0, var(--reading-w)) minmax(280px, 520px);
   overflow: auto;
 }
 
@@ -38,13 +38,6 @@
   font-size: var(--text-sm);
 }
 
-.qa-label,
-.qa-title {
-  margin: 0;
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
 .qa-box {
   width: 100%;
   min-height: 220px;
@@ -52,15 +45,6 @@
   font-size: var(--text-sm);
   line-height: 1.5;
   white-space: pre;
-}
-
-.qa-actions,
-.qa-sql-head,
-.qa-count {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
 }
 
 .qa-sql-head {
@@ -73,14 +57,7 @@
 }
 
 .qa-sql {
-  margin: 0;
   max-height: 340px;
-  overflow: auto;
-  padding: var(--space-3);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface-sunk);
-  font-size: var(--text-sm);
   line-height: 1.6;
 }
 
@@ -102,7 +79,7 @@
   &.is-active {
     background: var(--trail-wash);
     outline: 2px solid var(--trail);
-    border-radius: 2px;
+    border-radius: var(--radius-xs);
   }
 }
 
@@ -153,35 +130,14 @@
 .qa-snippet {
   max-width: 100%;
   overflow-wrap: anywhere;
-  padding: 1px 4px;
-  border-radius: 3px;
+  padding: 1px var(--space-1);
+  border-radius: var(--radius-sm);
   background: var(--surface-sunk);
   font-size: var(--text-xs);
 }
 
 .qa-why {
   color: var(--ink-soft);
-}
-
-.qa-sev {
-  padding: 0 6px;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  line-height: 18px;
-
-  &.is-high {
-    border-color: var(--danger);
-    background: var(--danger-wash);
-    color: var(--danger);
-  }
-
-  &.is-medium {
-    border-color: var(--unresolved);
-    background: var(--unresolved-wash);
-    color: var(--unresolved);
-  }
 }
 
 .qa-map {

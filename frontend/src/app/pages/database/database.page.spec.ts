@@ -314,4 +314,24 @@ describe('DatabasePage (Fase 38)', () => {
 
     expect(TestBed.inject(LastRepositoryService).name()).toBe('loja');
   });
+
+  // UX-FIM-B17
+  it('a marca de chave do bloco sai do enum (PK cheia, FK com borda) e o nulo divergente do painel é marcado por booleano', () => {
+    const schema = lojaSchema();
+    const status = schema.tables.find((t) => t.name === 'pedidos')!.columns.find((c) => c.name === 'status')!;
+    status.nullable = null;
+    const { fixture, el } = render(schema);
+
+    const keys = [...card(el, 'pedidos').querySelectorAll('.db-key')];
+    expect(keys.map((k) => k.textContent!.trim())).toEqual(['PK', 'FK', '·']);
+    expect(keys[0].classList).toContain('is-pk');
+    expect(keys[1].classList).toContain('is-fk');
+    expect(keys[1].classList).not.toContain('is-pk');
+    expect(card(el, 'itens_pedido').querySelector('.db-key')!.classList).toContain('is-pk');
+
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+    const cells = [...el.querySelectorAll('.db-fields td.db-divergent')].map((td) => td.textContent!.trim());
+    expect(cells).toContain('divergente');
+  });
 });

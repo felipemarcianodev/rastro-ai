@@ -67,6 +67,11 @@ code,
   color: var(--ink-soft);
 }
 
+// O atributo hidden vale em qualquer tela, mesmo sobre um elemento com display próprio (flex, grid).
+[hidden] {
+  display: none !important;
+}
+
 // Preso ao topo: sem top e left, o elemento fica na posição que teria no fluxo e, dentro
 // de uma página que rola por conta própria, estica o documento e cria uma segunda rolagem.
 .visually-hidden {

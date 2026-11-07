@@ -19,7 +19,8 @@ O problema e a sugestão de cada item estão no plano de origem; aqui fica só o
 
 ## Fase B: tema e tokens (risco baixo, sem efeito visível)
 
-- [ ] UX-FIM-B16, B17, Q13, Q14, C14, C15 e C16: tokens no lugar dos valores soltos, `KeyMark` no lugar de `'FK'`, divergência como booleano, `.row-wrap`, `.section-title` e `.code-block` no tema, avisos de "salvo" num estilo só, `[hidden]` no `_base.scss` e `--topbar-h` e `--radius-pill`.
+- [x] UX-FIM-B16, B17, Q13, Q14, C14, C15 e C16: tokens no lugar dos valores soltos, `KeyMark` no lugar de `'FK'`, divergência como booleano, `.row-wrap`, `.section-title` e `.code-block` no tema, avisos de "salvo" num estilo só, `[hidden]` no `_base.scss` e `--topbar-h` e `--radius-pill`.
+- **Registro (2026-11-07):** feito. Tokens novos com o mesmo valor em px (`--text-2xs`, `--space-0-5`, `--space-1-5`, `--radius-xs`, `--radius-pill`, `--control-h-xs`, `--topbar-h`, `--reading-w` e `--db-op-w`); a única diferença é o raio de 3px, que virou `--radius-sm` (4px) na chave, no selo "pessoal" e no trecho da consulta. `KeyMark` é enum numérico com `KEY_MARK_LABEL`, e a divergência de nulo virou booleano. `database.page.scss` caiu de 5,1 kB para 3,6 kB. Frontend 422/422.
 
 ## Fase C: foco e estado da tela do banco (risco médio)
 

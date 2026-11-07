@@ -330,9 +330,31 @@ export function columnKeys(table: DbTable, column: string): ColumnKeys {
   };
 }
 
-// "PK", "FK", "PK FK" ou vazio.
-export function keyMark(keys: ColumnKeys): string {
-  return [keys.pk ? 'PK' : '', keys.fk ? 'FK' : ''].filter(Boolean).join(' ');
+// Marca de chave de uma coluna. Valor explícito: o rótulo sai só de KEY_MARK_LABEL.
+export enum KeyMark {
+  None = 0,
+  Pk = 1,
+  Fk = 2,
+  PkFk = 3,
+}
+
+export const KEY_MARK_LABEL: Record<KeyMark, string> = {
+  [KeyMark.None]: '',
+  [KeyMark.Pk]: 'PK',
+  [KeyMark.Fk]: 'FK',
+  [KeyMark.PkFk]: 'PK FK',
+};
+
+// Texto do tipo e do nulo quando as fontes divergem e o Rastro não escolhe.
+export const DIVERGENT_TEXT = 'divergente';
+
+export function keyMark(keys: ColumnKeys): KeyMark {
+  if (keys.pk && keys.fk) return KeyMark.PkFk;
+  return keys.pk ? KeyMark.Pk : keys.fk ? KeyMark.Fk : KeyMark.None;
+}
+
+export function hasPrimaryKey(mark: KeyMark): boolean {
+  return mark === KeyMark.Pk || mark === KeyMark.PkFk;
 }
 
 export function keyText(keys: ColumnKeys): string {
@@ -347,8 +369,8 @@ export function toErMermaid(schema: DbSchema, keys: ReadonlySet<string>): string
   for (const table of schema.tables.filter((t) => keys.has(tableKey(t)))) {
     lines.push(`  ${id(tableKey(table))} {`);
     for (const column of table.columns) {
-      const mark = keyMark(columnKeys(table, column.name)).replace(' ', ', ');
-      const type = (column.type ?? 'divergente').replace(/,/g, '_').replace(/[^A-Za-z0-9_()[\]-]/g, '_');
+      const mark = KEY_MARK_LABEL[keyMark(columnKeys(table, column.name))].replace(' ', ', ');
+      const type = (column.type ?? DIVERGENT_TEXT).replace(/,/g, '_').replace(/[^A-Za-z0-9_()[\]-]/g, '_');
       const comment = column.personal ? ' "dado pessoal"' : '';
       lines.push(`    ${type} ${id(column.name)}${mark ? ' ' + mark : ''}${comment}`);
     }

@@ -1,5 +1,5 @@
 import { dbMapGeometry, dbMapSvg, shortType } from './db-map';
-import { Cardinality, findingText, linkTableOf, matches, neighborhood, relationsOf, toErMermaid } from './db-schema';
+import { Cardinality, KEY_MARK_LABEL, KeyMark, columnKeys, findingText, keyMark, linkTableOf, matches, neighborhood, relationsOf, toErMermaid } from './db-schema';
 import { lojaSchema } from './loja-schema.spec';
 
 const colors = { paper: '#f2f4f1', surface: '#ffffff', surfaceSunk: '#e8ece9', ink: '#1d2a2e', inkSoft: '#5c6a6e', lineStrong: '#b7c1bc', edge: '#6b787c' };
@@ -104,5 +104,23 @@ describe('esquema do banco (Fase 38)', () => {
 
     expect(new Set(geometry.cards.map((c) => c.x)).size).toBe(3);
     expect(geometry.cards.length).toBe(6);
+  });
+
+  // UX-FIM-B17
+  it('a marca de chave é um enum numérico com o rótulo vindo do Record, e o bloco do mapa traz o booleano da chave primária', () => {
+    const schema = lojaSchema();
+    const pedidos = schema.tables.find((t) => t.name === 'pedidos')!;
+    const itens = schema.tables.find((t) => t.name === 'itens_pedido')!;
+
+    expect(keyMark(columnKeys(pedidos, 'id'))).toBe(KeyMark.Pk);
+    expect(keyMark(columnKeys(pedidos, 'cliente_id'))).toBe(KeyMark.Fk);
+    expect(keyMark(columnKeys(pedidos, 'status'))).toBe(KeyMark.None);
+    expect(keyMark(columnKeys(itens, 'pedido_id'))).toBe(KeyMark.PkFk);
+    expect(Object.values(KeyMark).filter((v) => typeof v === 'number').map((v) => KEY_MARK_LABEL[v as KeyMark])).toEqual(['', 'PK', 'FK', 'PK FK']);
+
+    const card = dbMapGeometry(schema.tables, relationsOf(schema))!.cards.find((c) => c.key === 'pedidos')!;
+    const byName = new Map(card.rows.map((r) => [r.name, r]));
+    expect(byName.get('id')).toEqual(jasmine.objectContaining({ mark: KeyMark.Pk, markLabel: 'PK', isPrimaryKey: true }));
+    expect(byName.get('cliente_id')).toEqual(jasmine.objectContaining({ mark: KeyMark.Fk, markLabel: 'FK', isPrimaryKey: false }));
   });
 });

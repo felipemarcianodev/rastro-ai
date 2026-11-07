@@ -176,7 +176,7 @@
   margin-left: auto;
   padding: 0 var(--space-1);
   border: 1px solid var(--line-strong);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: var(--text-xs, 0.75rem);
   font-weight: 600;
 }

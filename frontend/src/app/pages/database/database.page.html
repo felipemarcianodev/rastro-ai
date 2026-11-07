@@ -194,7 +194,7 @@
                   </span>
                   @for (r of c.rows; track r.name) {
                     <span class="db-row">
-                      <span class="db-key" [class.is-pk]="r.mark.includes('PK')" [class.is-fk]="r.mark === 'FK'">{{ r.mark || '·' }}</span>
+                      <span class="db-key" [class.is-pk]="r.isPrimaryKey" [class.is-fk]="r.mark === KeyMark.Fk">{{ r.markLabel || '·' }}</span>
                       <span class="db-row-name">{{ r.name }}</span>
                       @if (r.personal) {
                         <span class="db-personal">pessoal</span>
