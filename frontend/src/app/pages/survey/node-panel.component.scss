@@ -418,3 +418,13 @@
     display: none;
   }
 }
+
+.counters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.ask-shortcut {
+  align-self: flex-start;
+}

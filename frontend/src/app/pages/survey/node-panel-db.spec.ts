@@ -44,7 +44,7 @@ describe('NodePanelComponent: o passo no banco (Fase 39)', () => {
 
     const items = [...el.querySelectorAll('.db-access li')].map((li) => [...li.children].map((c) => c.textContent!.trim()).join(' '));
     expect(items).toEqual(['inclui pedidos linha 12', 'executa sp_baixar_estoque linha 14']);
-    expect(el.querySelector<HTMLAnchorElement>('.db-access a')!.getAttribute('href')).toBe('/repositorios/loja/banco?tabela=pedidos');
+    expect(el.querySelector<HTMLAnchorElement>('.db-access a')!.getAttribute('href')).toBe('/repositorios/loja/banco?tabela=pedidos&levantamento=s1');
   });
 
   // WEB-DBQ-030

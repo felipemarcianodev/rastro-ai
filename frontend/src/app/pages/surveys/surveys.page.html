@@ -22,6 +22,18 @@
           <div class="skeleton-row" aria-hidden="true"></div>
         }
       </div>
+    } @else if (surveys()!.length === 0 && firstUse()) {
+      <div class="empty first-use">
+        <p>Boas-vindas ao Rastro. Três passos até o primeiro fluxo:</p>
+        <ol class="steps">
+          <li>Cadastre a pasta do código que o Rastro vai ler.</li>
+          <li>A IA é opcional: o Rastro funciona sem ela. Se quiser, ligue em <a routerLink="/configuracoes" fragment="ia">Configurações</a>.</li>
+          <li>Escolha o método de entrada e levante o primeiro fluxo.</li>
+        </ol>
+        <div class="first-use-actions">
+          <button type="button" class="btn btn-p" (click)="openRegister()">Cadastrar repositório</button>
+        </div>
+      </div>
     } @else if (surveys()!.length === 0) {
       <div class="empty">
         <p>Nenhum levantamento ainda.</p>
@@ -113,7 +125,8 @@
             <button type="button" class="btn btn-g btn-small" (click)="loadRepositories()">Tentar de novo</button>
           </span>
         } @else if (reposState() === 'ready' && !hasRepositories()) {
-          <span class="field-help">Nenhum repositório cadastrado. Cadastre a pasta do seu código em <a routerLink="/configuracoes" fragment="editor">Configurações</a>.</span>
+          <span class="field-help">Nenhum repositório cadastrado. Cadastre a pasta do seu código aqui ou em <a routerLink="/configuracoes" fragment="editor">Configurações</a>.</span>
+          <button type="button" class="btn btn-g btn-small db-link" (click)="openRegister()">Cadastrar repositório</button>
         }
         <span id="repository-error" class="field-error" [hidden]="!fieldErrors().repository">{{ fieldErrors().repository }}</span>
         @if (repository) {
@@ -221,3 +234,37 @@
     </form>
   </aside>
 </div>
+
+@if (registerOpen()) {
+  <div class="overlay" appDialog (click)="closeRegister()" (keydown.escape)="closeRegister()">
+    <section class="dialog is-narrow" role="dialog" aria-modal="true" aria-labelledby="register-title" (click)="$event.stopPropagation()">
+      <h2 id="register-title">Cadastrar repositório</h2>
+      <form class="form" (ngSubmit)="register()" novalidate>
+        <div class="field">
+          <label class="field-label" for="register-name">Nome</label>
+          <input id="register-name" class="input code" name="registerName" [(ngModel)]="newName" placeholder="meu-sistema" autocomplete="off" spellcheck="false"
+            [attr.aria-invalid]="nameError() ? true : null" [attr.aria-describedby]="nameError() ? 'register-name-error' : null" />
+          @if (nameError(); as error) {
+            <span id="register-name-error" class="field-error">{{ error }}</span>
+          }
+        </div>
+        <div class="field">
+          <label class="field-label" for="register-path">Pasta</label>
+          <input id="register-path" class="input code" name="registerPath" [(ngModel)]="newPath" placeholder="C:\codigo\meu-sistema" autocomplete="off" spellcheck="false"
+            [attr.aria-invalid]="pathError() ? true : null" [attr.aria-describedby]="pathError() ? 'register-path-error' : 'register-path-help'" />
+          <span id="register-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git.</span>
+          @if (pathError(); as error) {
+            <span id="register-path-error" class="field-error">{{ error }}</span>
+          }
+        </div>
+        @if (registerError(); as error) {
+          <p class="field-error" role="alert">{{ error }}</p>
+        }
+        <footer class="dialog-foot">
+          <button type="button" class="btn btn-g" (click)="closeRegister()" [disabled]="registering()">Cancelar</button>
+          <button type="submit" class="btn btn-p" [disabled]="registering()">{{ registering() ? 'Cadastrando…' : 'Cadastrar' }}</button>
+        </footer>
+      </form>
+    </section>
+  </div>
+}

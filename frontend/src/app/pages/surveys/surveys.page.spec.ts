@@ -297,3 +297,108 @@ describe('SurveysPage', () => {
     http.match(() => true).forEach((request) => request.flush([]));
   });
 });
+
+describe('SurveysPage: primeiro uso e cadastro de repositório', () => {
+  const repo = (name: string) => ({ name, path: `C:\codigo\${name}`, hasGit: true, hasBuildCommand: false, hasTestCommand: false });
+
+  function open(repos: ReturnType<typeof repo>[]) {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush(repos);
+    fixture.detectChanges();
+    return { fixture, http, el: fixture.nativeElement as HTMLElement };
+  }
+
+  const text = (el: HTMLElement, selector: string, label: string) =>
+    Array.from(el.querySelectorAll<HTMLButtonElement>(selector)).find((b) => b.textContent?.includes(label));
+
+  // UX-H09
+  it('semRepositorio_mostraPassosNumeradosComBotaoELinkDaIa', () => {
+    const { el, http } = open([]);
+
+    expect(el.querySelectorAll('.first-use ol.steps li').length).toBe(3);
+    expect(text(el, '.first-use button', 'Cadastrar repositório')).toBeDefined();
+    expect(el.querySelector('.first-use a')?.getAttribute('href')).toBe('/configuracoes#ia');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H09
+  it('comRepositorioSemLevantamento_mantemOTextoDeHoje', () => {
+    const { el, http } = open([repo('loja')]);
+
+    expect(el.querySelector('.first-use')).toBeNull();
+    expect(el.querySelector('.empty')?.textContent).toContain('Nenhum levantamento ainda.');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H10
+  it('dialogoCadastrar_salva_escolheORepositorioNoFormulario', async () => {
+    const { fixture, http, el } = open([]);
+    text(el, '.first-use button', 'Cadastrar repositório')!.click();
+    fixture.detectChanges();
+    // O ngModel escreve o valor inicial depois do primeiro ciclo: digitar antes disso perde o texto.
+    await fixture.whenStable();
+
+    expect(el.querySelector('[role="dialog"]')).not.toBeNull();
+    const name = el.querySelector('#register-name') as HTMLInputElement;
+    const path = el.querySelector('#register-path') as HTMLInputElement;
+    name.value = 'loja';
+    name.dispatchEvent(new Event('input'));
+    path.value = 'C:\\codigo\\loja';
+    path.dispatchEvent(new Event('input'));
+    (el.querySelector('[role="dialog"] form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+
+    const post = http.expectOne('/api/repositories');
+    expect(post.request.method).toBe('POST');
+    expect(post.request.body).toEqual({ name: 'loja', path: 'C:\\codigo\\loja' });
+    post.flush(repo('loja'));
+    http.expectOne('/api/repositories/loja/solutions').flush(['Loja.slnx']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('[role="dialog"]')).toBeNull();
+    expect((el.querySelector('#repository') as HTMLSelectElement).value).toBe('loja');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H10
+  it('dialogoCadastrar_erroDaApi_apareceNoCampoPeloCodigo', async () => {
+    const { fixture, http, el } = open([]);
+    text(el, '.first-use button', 'Cadastrar repositório')!.click();
+    fixture.detectChanges();
+    // O ngModel escreve o valor inicial depois do primeiro ciclo: digitar antes disso perde o texto.
+    await fixture.whenStable();
+    const name = el.querySelector('#register-name') as HTMLInputElement;
+    const path = el.querySelector('#register-path') as HTMLInputElement;
+    name.value = 'loja';
+    name.dispatchEvent(new Event('input'));
+    path.value = 'C:\\codigo\\loja';
+    path.dispatchEvent(new Event('input'));
+    (el.querySelector('[role="dialog"] form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+
+    http.expectOne('/api/repositories').flush({ code: 'REPOSITORY_EXISTS', message: 'x' }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+
+    expect(el.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(el.querySelector('#register-name-error')).not.toBeNull();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-H10
+  it('dialogoCadastrar_esc_fechaSemCadastrar', () => {
+    const { fixture, http, el } = open([]);
+    text(el, '.first-use button', 'Cadastrar repositório')!.click();
+    fixture.detectChanges();
+
+    el.querySelector('.overlay')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+
+    expect(el.querySelector('[role="dialog"]')).toBeNull();
+    http.expectNone((r) => r.method === 'POST');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+});

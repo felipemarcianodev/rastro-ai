@@ -1,6 +1,7 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { DB_SURVEY_ORIGIN_PARAM } from '../../core/database/query-analysis';
 import { plural, shortCommit, shortDate } from '../../core/format';
 import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
@@ -43,7 +44,7 @@ import {
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { FlowCanvasComponent } from './flow-canvas.component';
 import { ConsolidatedViewComponent } from './consolidated-view.component';
-import { FlowMapViewComponent } from './flow-map-view.component';
+import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
 import { NodePanelComponent } from './node-panel.component';
@@ -72,6 +73,11 @@ const POLL_TOLERATED_FAILURES = 2;
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
 })
 export class SurveyPage {
+  // O "←" da tela do banco volta ao levantamento de onde se saiu.
+  protected dbOriginQuery(surveyId: string): Record<string, string> {
+    return { [DB_SURVEY_ORIGIN_PARAM]: surveyId };
+  }
+
   private readonly api = inject(RastroApi);
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -380,6 +386,14 @@ export class SurveyPage {
   // O botão "Mapa do fluxo" da barra liga e desliga o mapa.
   protected toggleMap(): void {
     this.onDirection(this.mapped() ? LayoutDirection.Horizontal : LayoutDirection.Map);
+  }
+
+  // Atalho do painel: liga o mapa do fluxo e abre a aba Perguntas.
+  protected readonly mapTabRequest = signal<{ tab: MapTab; seq: number } | null>(null);
+
+  protected openQuestions(): void {
+    if (!this.mapped()) this.onDirection(LayoutDirection.Map);
+    this.mapTabRequest.update((current) => ({ tab: MapTab.Questions, seq: (current?.seq ?? 0) + 1 }));
   }
 
   protected toggleFramework(): void {

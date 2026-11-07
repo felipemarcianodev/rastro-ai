@@ -342,4 +342,39 @@ describe('Banco vivo do PostgreSQL (Fase 42b)', () => {
     expect(operatorLabel('Seq Scan')).toBe('Varredura da tabela');
     expect(operatorLabel('Hash Join')).toBe('Junção por hash');
   });
+
+  // WEB-DBL-020 (B24)
+  it('salvar a conexão mantém a consulta e o resultado, e o esquema atual fica até o novo chegar', () => {
+    const ctx = renderPage(NONE, 'consulta');
+    analyze(ctx);
+    open(ctx, 'Conectar banco vivo');
+    typeKey(ctx, SECRET);
+    button(ctx.el, 'Salvar').click();
+    ctx.http.expectOne(CONNECTION_URL).flush(null, { status: 204, statusText: 'No Content' });
+    ctx.fixture.detectChanges();
+
+    // Antes de o esquema novo chegar, a análise continua na tela.
+    expect(ctx.el.querySelector('.qa-sql')!.textContent).toBe(SQL);
+    flushLoad(ctx.http, LIVE);
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('.qa-sql')!.textContent).toBe(SQL);
+    expect(ctx.el.querySelector('.db-live-pill')).not.toBeNull();
+  });
+
+  // WEB-DBL-021 (B24)
+  it('remover a conexão avisa que o Rastro volta a ler só o código, sem apagar a consulta', () => {
+    const ctx = renderPage(LIVE, 'consulta');
+    analyze(ctx);
+    open(ctx, 'Banco vivo');
+    realClick(button(ctx.el, 'Remover conexão'));
+    ctx.fixture.detectChanges();
+    realClick(button(ctx.el, 'Remover'));
+    ctx.http.expectOne(CONNECTION_URL).flush(null, { status: 204, statusText: 'No Content' });
+    ctx.fixture.detectChanges();
+    flushLoad(ctx.http, NONE);
+    ctx.fixture.detectChanges();
+
+    expect(ctx.el.querySelector('.toast')!.textContent).toContain('Conexão removida. O Rastro volta a ler só o código.');
+    expect(ctx.el.querySelector('.qa-sql')!.textContent).toBe(SQL);
+  });
 });

@@ -1,9 +1,14 @@
 import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { DialogDirective } from '../../core/dialog.directive';
+import { EditorLinks, isAbsoluteFolder } from '../../core/editor-links';
 import { plural, shortCommit, shortDate } from '../../core/format';
 import {
+  API_ERROR_MESSAGE,
   CreateSurveyRequest,
+  REPOSITORY_NAME_PATTERN,
   RepositoryItem,
   SURVEY_STATUS_LABEL,
   SURVEY_STATUS_SLUG,
@@ -97,7 +102,7 @@ export function matchesSearch(survey: SurveySummary, query: string): boolean {
 
 @Component({
   selector: 'app-surveys-page',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, DialogDirective],
   templateUrl: './surveys.page.html',
   styleUrl: './surveys.page.scss',
 })
@@ -106,6 +111,7 @@ export class SurveysPage implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly editor = inject(EditorLinks);
   private pollTimer?: ReturnType<typeof setTimeout>;
   // Pedido de um levantamento que falhou (estado da navegação), para preencher o formulário.
   private retry: CreateSurveyRequest | null = null;
@@ -140,6 +146,71 @@ export class SurveysPage implements OnInit {
   protected readonly skeletonRows = SKELETON_ROWS;
 
   protected readonly hasRepositories = computed(() => this.repositories().length > 0);
+  // Primeiro uso: a lista de repositórios já chegou e está vazia.
+  protected readonly firstUse = computed(() => this.reposState() === 'ready' && !this.hasRepositories());
+
+  // Diálogo "Cadastrar repositório" (mesma API das Configurações).
+  protected readonly registerOpen = signal(false);
+  protected readonly registering = signal(false);
+  protected newName = '';
+  protected newPath = '';
+  protected readonly nameError = signal<string | null>(null);
+  protected readonly pathError = signal<string | null>(null);
+  protected readonly registerError = signal<string | null>(null);
+
+  protected openRegister(): void {
+    this.newName = '';
+    this.newPath = '';
+    this.nameError.set(null);
+    this.pathError.set(null);
+    this.registerError.set(null);
+    this.registerOpen.set(true);
+  }
+
+  protected closeRegister(): void {
+    if (!this.registering()) this.registerOpen.set(false);
+  }
+
+  protected register(): void {
+    const name = this.newName.trim();
+    const path = this.newPath.trim();
+    this.registerError.set(null);
+    this.nameError.set(REPOSITORY_NAME_PATTERN.test(name) ? null : API_ERROR_MESSAGE['REPOSITORY_NAME_INVALID']);
+    this.pathError.set(isAbsoluteFolder(path) ? null : API_ERROR_MESSAGE['REPOSITORY_PATH_INVALID']);
+    if (this.nameError()) return this.focusId('register-name');
+    if (this.pathError()) return this.focusId('register-path');
+
+    this.registering.set(true);
+    this.api.addRepository(name, path).subscribe({
+      next: (created) => {
+        this.registering.set(false);
+        const list = [...this.repositories(), created].sort((a, b) => a.name.localeCompare(b.name));
+        this.repositories.set(list);
+        this.editor.set(list);
+        this.reposState.set('ready');
+        this.registerOpen.set(false);
+        this.selectRepository(created.name);
+      },
+      error: (error) => {
+        this.registering.set(false);
+        const code = error instanceof HttpErrorResponse ? (error.error?.code as string | undefined) : undefined;
+        const text = apiErrorMessage(error);
+        if (code === 'REPOSITORY_NAME_INVALID' || code === 'REPOSITORY_EXISTS') {
+          this.nameError.set(text);
+          this.focusId('register-name');
+        } else if (code === 'REPOSITORY_PATH_INVALID' || code === 'REPOSITORY_FOLDER_NOT_FOUND') {
+          this.pathError.set(text);
+          this.focusId('register-path');
+        } else {
+          this.registerError.set(text);
+        }
+      },
+    });
+  }
+
+  private focusId(id: string): void {
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(`#${id}`)?.focus());
+  }
 
   // Fluxo Angular (Fase 26): o caminho escolhido é um tsconfig, e o ponto de entrada vira Componente.metodo.
   protected isTsconfig(): boolean {

@@ -1,4 +1,4 @@
-import { SqlDialect } from './db-schema';
+import { DbSchema, SqlDialect, tableKey } from './db-schema';
 
 // Análise de consulta pelo código (Fase 40a): regras fixas, sem IA e sem banco. O backend devolve
 // os achados com a posição do trecho no texto enviado; a tela marca esses trechos na consulta.
@@ -57,6 +57,28 @@ export interface QueryAnalysis {
 
 // O valor de ?aba= que abre a análise de consulta na tela do banco; sem ele, abre o mapa.
 export const DB_TAB_QUERY_PARAM = 'consulta';
+
+// ?levantamento=<id> na rota do banco: o levantamento de onde o usuário veio. O "←" da tela do banco
+// volta a ele; sem o parâmetro, volta à tela inicial. (?origem= é outra coisa: o rótulo do passo da consulta.)
+export const DB_SURVEY_ORIGIN_PARAM = 'levantamento';
+
+const EXAMPLE_COLUMNS = 3;
+const EXAMPLE_LIMIT = 10;
+
+// Consulta de exemplo no dialeto: usa a primeira tabela do esquema (com até 3 colunas dela) ou, sem
+// esquema, nomes genéricos. Já traz o limite, para a análise não começar apontando falta dele.
+export function exampleQuery(dialect: SqlDialect, schema: DbSchema | null): string {
+  const table = schema?.tables.find((t) => t.columns.length > 0);
+  const source = table ? tableKey(table) : 'clientes';
+  const columns = table ? table.columns.slice(0, EXAMPLE_COLUMNS).map((c) => c.name) : ['id', 'nome'];
+  const list = columns.join(', ');
+  return dialect === SqlDialect.PostgreSql
+    ? `SELECT ${list}
+FROM ${source}
+LIMIT ${EXAMPLE_LIMIT};`
+    : `SELECT TOP ${EXAMPLE_LIMIT} ${list}
+FROM ${source};`;
+}
 
 export const QUERY_FINDING_TITLE: Record<QueryFindingKind, string> = {
   [QueryFindingKind.SelectStar]: 'SELECT *',

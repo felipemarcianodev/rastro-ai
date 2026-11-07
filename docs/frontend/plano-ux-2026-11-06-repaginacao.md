@@ -161,13 +161,15 @@ Aceite: da tela inicial, o mapa do banco a 2 cliques por um botão com rótulo; 
 
 Feito em 2026-11-06: os itens acima, com a tela inicial lendo `?repositorio=` para pré-selecionar o repositório (as Configurações e o painel da tabela usam esse link). O botão "Mapa do banco" some durante a edição do fluxo, para não sair da tela com o rascunho aberto. Frontend 352/352. Prints em `docs/telas/ux-fase-a/`. Ficou para a Fase B: na tela do banco com repositório inexistente, o seletor mostra outro repositório.
 
-### Fase B: comportamento (médio risco) `[ ]`
+### Fase B: comportamento (médio risco) `[x]`
 
 - F04: seção "Banco neste fluxo (N tabelas)" na Visão geral do painel.
 - F11, F12: atalho para Perguntas no painel; faixa de contadores (buracos, entre fluxos, melhorias) no topo.
 - B04: o "←" do banco volta ao fluxo de origem.
 - B11, B12, B24, B26, B27: exemplo na consulta, foco depois de analisar, conexão sem perder a consulta, tipos curtos e grade sem setas.
 - H09, H10, H16, H17: primeiro uso guiado na tela inicial, índice nas Configurações e "Voltar" seguro.
+
+Feito em 2026-11-06: os itens acima. O "←" do banco volta ao levantamento pelo parâmetro `?levantamento=`, que todos os links do fluxo para o banco passaram a mandar. O cadastro do repositório abre num diálogo na tela inicial e já escolhe o repositório. H17 já funcionava (entrada direta volta à tela inicial). Frontend 378/378. Prints em `docs/telas/ux-fase-b/`. Ficaram de fora: guardar o texto da consulta se o recarregamento do esquema falhar; o `node-panel.component.scss` passa do orçamento de 6 kB desde antes desta fase (dividir o painel ou subir estilos ao tema).
 
 ### Fase C: repaginação da navegação (alto risco, requer aprovação item a item) `[ ]`
 

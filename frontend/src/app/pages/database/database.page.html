@@ -1,10 +1,10 @@
 <div class="page-layout">
   <header class="page-bar">
-    <a class="page-back" routerLink="/" aria-label="Voltar aos levantamentos">←</a>
+    <a class="page-back" [routerLink]="backLink()" [attr.aria-label]="backLabel()" [title]="backLabel()">←</a>
     <div class="page-bar-title">
       <h1>Banco</h1>
       <div class="page-bar-meta">
-        @if (repositories().length > 1) {
+        @if (canSwitch()) {
           <label class="visually-hidden" for="db-repo">Repositório</label>
           <select id="db-repo" class="input is-small" [value]="nome()" (change)="switchRepository($any($event.target).value)">
             @for (repo of repositories(); track repo.name) {
@@ -188,7 +188,7 @@
                       @if (r.personal) {
                         <span class="db-personal">pessoal</span>
                       }
-                      <span class="db-row-type" [class.is-divergent]="r.divergent" [title]="r.divergent ? 'As fontes divergem: veja no painel' : r.type">{{ r.type }}</span>
+                      <span class="db-row-type" [class.is-divergent]="r.divergent" [title]="r.divergent ? 'As fontes divergem: veja no painel' : r.fullType">{{ r.type }}</span>
                     </span>
                   }
                   @if (c.more > 0) {
@@ -218,7 +218,7 @@
   }
 
   @if (connectionOpen()) {
-    <app-live-connection-dialog [repository]="nome()" [connection]="connection()" [dialect]="liveDialect()" (closed)="connectionOpen.set(false)" (changed)="connectionChanged()" />
+    <app-live-connection-dialog [repository]="nome()" [connection]="connection()" [dialect]="liveDialect()" (closed)="connectionOpen.set(false)" (changed)="connectionChanged()" (removed)="connectionRemoved()" />
   }
 
   @if (message(); as m) {

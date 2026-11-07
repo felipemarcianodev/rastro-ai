@@ -1,7 +1,7 @@
 import { FindingsListComponent } from './findings-list.component';
 import { FlowSummaryComponent } from './flow-summary.component';
 import { FlowSummary } from '../../core/graph/summary';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Trail } from '../../core/graph/trail';
@@ -34,13 +34,19 @@ import {
   UNRESOLVED_REASON_LABEL,
 } from '../../core/models';
 import { breakable, shortCommit } from '../../core/format';
-import { DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
+import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { EditorLinks } from '../../core/editor-links';
 import { FOREIGN_EDIT_MESSAGE } from '../../core/graph/draft-editor';
 import { rulesTimeline } from '../../core/graph/rules-timeline';
 import { collapsedOwner } from '../../core/graph/collapse';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { DB_EFFECT_LABEL, DB_EFFECT_SLUG, dbMapQuery, flowDbTables } from './flow-db-tables';
+
+// Seções da visão geral que a faixa de contadores rola até.
+export const SECTION_HOLES = 'section-holes';
+export const SECTION_CROSS_FLOW = 'section-cross-flow';
+export const SECTION_FINDINGS = 'section-findings';
 
 // Espera a seleção parar (setas) antes de pedir o trecho de código.
 const SNIPPET_DELAY_MS = 150;
@@ -54,8 +60,14 @@ const SNIPPET_DELAY_MS = 150;
 })
 export class NodePanelComponent {
   private readonly api = inject(RastroApi);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly surveyId = input.required<string>();
+
+  // Os links para o banco levam o levantamento de origem: o "←" da tela do banco volta a ele.
+  protected withOrigin(query: Record<string, string> | null): Record<string, string> {
+    return { ...(query ?? {}), [DB_SURVEY_ORIGIN_PARAM]: this.surveyId() };
+  }
   readonly repository = input('');
   // Commit do primeiro trecho e trechos de outros sistemas (Fase 25), para dizer de onde o passo vem.
   readonly commitHash = input<string | undefined>(undefined);
@@ -106,6 +118,8 @@ export class NodePanelComponent {
   protected readonly applied = signal(false);
   private appliedTimer?: ReturnType<typeof setTimeout>;
   readonly showAll = output<void>();
+  // Atalho para a aba Perguntas do mapa do fluxo.
+  readonly openQuestions = output<void>();
   readonly removeEdge = output<FlowEdge>();
   // Prompt de refatoração de um achado (índice na lista do grafo).
   readonly refactorPrompt = output<number>();
@@ -160,6 +174,23 @@ export class NodePanelComponent {
   protected readonly originSlug = PROPOSAL_ORIGIN_SLUG;
   protected readonly findingCount = computed(() => (this.graph().findings ?? []).length);
   protected readonly EdgeConfidence = EdgeConfidence;
+  protected readonly sectionHoles = SECTION_HOLES;
+  protected readonly sectionCrossFlow = SECTION_CROSS_FLOW;
+  protected readonly sectionFindings = SECTION_FINDINGS;
+  protected readonly effectLabel = DB_EFFECT_LABEL;
+  protected readonly effectSlug = DB_EFFECT_SLUG;
+
+  // Banco neste fluxo: as tabelas dos nós, sem repetição. Com uma só, o mapa já abre nela.
+  protected readonly dbTables = computed(() => flowDbTables(this.graph()));
+  protected readonly dbQuery = computed(() => dbMapQuery(this.dbTables()));
+
+  // Abre a seção e rola o painel até ela (a faixa de contadores do topo).
+  protected jumpTo(id: string): void {
+    const section = this.host.nativeElement.querySelector<HTMLDetailsElement>('#' + id);
+    if (!section) return;
+    section.open = true;
+    section.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
 
   protected readonly kindCounts = computed(() => {
     const counts = new Map<NodeKind, number>();

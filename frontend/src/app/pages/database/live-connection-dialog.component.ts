@@ -34,6 +34,8 @@ export class LiveConnectionDialogComponent {
   readonly closed = output<void>();
   // Salvou ou removeu: a tela recarrega o esquema e a conexão.
   readonly changed = output<void>();
+  // Só a remoção: a tela avisa que voltou a ler só o código.
+  readonly removed = output<void>();
 
   protected readonly key = signal('');
   protected readonly busy = signal(false);
@@ -90,6 +92,7 @@ export class LiveConnectionDialogComponent {
     this.api.removeConnection(this.repository()).subscribe({
       next: () => {
         this.busy.set(false);
+        this.removed.emit();
         this.changed.emit();
         this.closed.emit();
       },

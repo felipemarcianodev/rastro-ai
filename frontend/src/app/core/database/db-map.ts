@@ -16,7 +16,9 @@ const MAX_PER_COLUMN = 8;
 
 export interface DbCardRow {
   name: string;
+  // Tipo curto para o bloco (varchar(120), timestamptz); o completo fica em fullType, no title e no painel.
   type: string;
+  fullType: string;
   mark: string;
   personal: boolean;
   // As fontes divergem no tipo ou no nulo: o Rastro não escolhe.
@@ -47,6 +49,29 @@ export interface DbMapGeometry {
   height: number;
   cards: DbCard[];
   links: DbLink[];
+}
+
+// Apelidos curtos dos tipos que o PostgreSQL escreve por extenso. O resto passa como está,
+// só sem o espaço depois da vírgula (numeric(10, 2) vira numeric(10,2)).
+const TYPE_SHORT: readonly (readonly [RegExp, string])[] = [
+  [/^character varying/i, 'varchar'],
+  [/^character(?!\s*varying)/i, 'char'],
+  [/^timestamp with time zone/i, 'timestamptz'],
+  [/^timestamp without time zone/i, 'timestamp'],
+  [/^time with time zone/i, 'timetz'],
+  [/^time without time zone/i, 'time'],
+  [/^double precision/i, 'float8'],
+];
+
+export function shortType(type: string): string {
+  let out = type.trim();
+  for (const [pattern, short] of TYPE_SHORT) {
+    if (pattern.test(out)) {
+      out = out.replace(pattern, short);
+      break;
+    }
+  }
+  return out.replace(/,\s+/g, ',');
 }
 
 function cardHeight(table: DbTable): number {
@@ -89,7 +114,12 @@ export function dbMapGeometry(tables: readonly DbTable[], relations: readonly Db
   const position = new Map<string, number>();
   const columns: DbTable[][] = [];
   const maxLevel = Math.max(...level.values());
-  for (let l = 0; l <= maxLevel; l++) {
+  if (shown.length === 0) {
+    // Sem nenhuma FK entre as tabelas, não há nível a respeitar: grade, em ordem alfabética.
+    const sorted = [...tables].sort((a, b) => tableKey(a).localeCompare(tableKey(b)));
+    const perColumn = Math.ceil(sorted.length / Math.ceil(Math.sqrt(sorted.length)));
+    for (let i = 0; i < sorted.length; i += perColumn) columns.push(sorted.slice(i, i + perColumn));
+  } else for (let l = 0; l <= maxLevel; l++) {
     const here = tables.filter((t) => level.get(tableKey(t)) === l);
     const weight = (t: DbTable) => {
       const targets = shown.filter((r) => r.from === tableKey(t) && position.has(r.to)).map((r) => position.get(r.to)!);
@@ -108,7 +138,8 @@ export function dbMapGeometry(tables: readonly DbTable[], relations: readonly Db
       const h = cardHeight(table);
       const rows = table.columns.slice(0, DB_CARD_MAX_ROWS).map((col) => ({
         name: col.name,
-        type: col.type ?? 'divergente',
+        type: col.type == null ? 'divergente' : shortType(col.type),
+        fullType: col.type ?? 'divergente',
         mark: keyMark(columnKeys(table, col.name)),
         personal: col.personal,
         divergent: col.type == null || col.nullable == null,

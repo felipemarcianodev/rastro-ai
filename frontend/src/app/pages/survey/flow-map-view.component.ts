@@ -70,6 +70,8 @@ export class FlowMapViewComponent {
   readonly detail = input.required<SurveyDetail>();
   readonly selectedId = input<string | null>(null);
   readonly selectNode = output<string | null>();
+  // Pedido de fora para abrir uma aba do painel (o atalho "Perguntas" do painel do fluxo). O contador faz o mesmo pedido valer duas vezes.
+  readonly tabRequest = input<{ tab: MapTab; seq: number } | null>(null);
   readonly directionChange = output<LayoutDirection>();
   // Resumo do fluxo para a visão geral do painel: sem o canvas, é o desenho que o monta.
   readonly summaryChange = output<FlowSummary>();
@@ -205,6 +207,11 @@ export class FlowMapViewComponent {
     effect(() => {
       const graph = this.detail().graph;
       if (graph) this.summaryChange.emit(flowSummaryOf(graph));
+    });
+
+    effect(() => {
+      const request = this.tabRequest();
+      if (request) untracked(() => this.setTab(request.tab));
     });
 
     // Seleção de fora (painel do passo, busca, setas): o bloco que recolhe o passo acende.

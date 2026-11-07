@@ -9,6 +9,7 @@ import {
   QueryAnalysis,
   QueryFinding,
   QueryTableUse,
+  exampleQuery,
   querySegments,
 } from '../../core/database/query-analysis';
 import { QueryAiSuggestion } from '../../core/database/query-suggestion';
@@ -87,6 +88,10 @@ export class QueryAnalysisComponent {
     const r = this.result();
     return r ? querySegments(r.sql, r.analysis.findings).map((s) => ({ ...s, key: s.findings.length ? '|' + s.findings.join('|') + '|' : '' })) : [];
   });
+
+  protected readonly analyzeHelp = computed(() =>
+    this.text().trim() ? 'Ctrl+Enter também analisa. Nada vai a banco nenhum.' : 'Escreva ou cole uma consulta, ou use o exemplo, para poder analisar. Nada vai a banco nenhum.',
+  );
 
   protected readonly countText = computed(() => {
     const n = this.result()?.analysis.findings.length ?? 0;
@@ -173,12 +178,23 @@ export class QueryAnalysisComponent {
       next: (analysis) => {
         this.busy.set(false);
         this.result.set({ sql, analysis });
+        this.focusTitle();
       },
       error: (error) => {
         this.busy.set(false);
         this.error.set(apiErrorMessage(error));
       },
     });
+  }
+
+  // Depois de analisar, o foco vai ao título do resultado, sem rolar a página.
+  private focusTitle(): void {
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('#qa-result-title')?.focus({ preventScroll: true }));
+  }
+
+  protected useExample(): void {
+    this.edit(exampleQuery(this.dialect(), this.schema()));
+    setTimeout(() => this.box()?.nativeElement.focus({ preventScroll: true }));
   }
 
   protected backToEditing(): void {

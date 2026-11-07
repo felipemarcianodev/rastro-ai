@@ -79,6 +79,15 @@ export class DatabasePage {
   readonly aba = input<string | undefined>();
   readonly consulta = input<string | undefined>();
   readonly origem = input<string | undefined>();
+  // ?levantamento=<id>: de onde o usuário veio; o "←" volta a ele (DB_SURVEY_ORIGIN_PARAM).
+  readonly levantamento = input<string | undefined>();
+  protected readonly backLink = computed(() => {
+    const id = this.levantamento();
+    return id ? ['/surveys', id] : ['/'];
+  });
+  protected readonly backLabel = computed(() => (this.levantamento() ? 'Voltar ao levantamento de origem' : 'Voltar aos levantamentos'));
+  // O seletor só aparece quando o repositório da URL está na lista: com um nome que não existe, ele mostraria outro.
+  protected readonly canSwitch = computed(() => this.repositories().length > 1 && this.repositories().some((r) => r.name === this.nome()));
 
   protected readonly DbTab = DbTab;
   protected readonly tabs = DB_TABS;
@@ -110,6 +119,8 @@ export class DatabasePage {
   protected readonly live = computed(() => (this.connection()?.configured ? this.connection() : null));
   // O dialeto da conexão salva ou, sem ela, o do código do repositório (Fase 42b).
   protected readonly liveDialect = computed(() => this.live()?.dialect ?? this.schema()?.dialect ?? SqlDialect.SqlServer);
+  // O repositório cujo esquema está na tela: recarregar o mesmo (conexão salva ou removida) mantém a tela como está.
+  private loadedName: string | null = null;
   private messageTimer?: ReturnType<typeof setTimeout>;
 
   protected readonly DbItemKind = DbItemKind;
@@ -208,20 +219,24 @@ export class DatabasePage {
     effect((onCleanup) => {
       const name = this.nome();
       this.reload();
+      const refresh = untracked(() => this.loadedName === name && !!this.schema());
       untracked(() => {
-        this.schema.set(null);
         this.error.set(null);
+        this.usageError.set(false);
+        // Mesmo repositório: o esquema, a seleção e a consulta digitada ficam até o novo esquema chegar.
+        if (refresh) return;
+        this.loadedName = name;
+        this.schema.set(null);
         this.selection.set(null);
         this.hops.set(0);
         this.usage.set(null);
-        this.usageError.set(false);
       });
       const sub = this.api.schema(name).subscribe({
         next: (schema) =>
           untracked(() => {
             this.schema.set(schema);
             const wanted = this.tabela();
-            const table = wanted ? findTable(schema, wanted) : undefined;
+            const table = wanted && !refresh ? findTable(schema, wanted) : undefined;
             if (table) this.choose({ kind: DbItemKind.Table, key: tableKey(table) });
           }),
         error: (error) => this.error.set(apiErrorMessage(error)),
@@ -334,6 +349,10 @@ export class DatabasePage {
   // Salvou ou removeu a conexão: o esquema (a fonte "banco vivo" entra ou sai) e a conexão são lidos de novo.
   protected connectionChanged(): void {
     this.reload.update((n) => n + 1);
+  }
+
+  protected connectionRemoved(): void {
+    this.show({ ok: true, text: 'Conexão removida. O Rastro volta a ler só o código.' });
   }
 
   protected onEscape(): void {
