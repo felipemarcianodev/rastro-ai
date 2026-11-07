@@ -3,7 +3,8 @@
   min-height: 0;
   display: grid;
   // Linha longa demais cansa a leitura dos motivos: a coluna da consulta para na largura de leitura, com as tabelas ao lado.
-  grid-template-columns: minmax(0, var(--reading-w)) minmax(280px, 520px);
+  // A coluna lateral (plano e tabelas) cresce até a borda: em tela larga não sobra faixa vazia à direita.
+  grid-template-columns: minmax(0, var(--reading-w)) minmax(280px, 1fr);
   overflow: auto;
 }
 
