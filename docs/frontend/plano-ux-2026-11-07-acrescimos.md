@@ -31,9 +31,10 @@ O problema e a sugestão de cada item estão no plano de origem; aqui fica só o
 
 ## Fase D: coerência do app (risco médio)
 
-- [ ] UX-FIM-C04 (Esc no `appDialog`, sem tirar o Esc que limpa a seleção quando não há diálogo), C12 (foco no `h1` a cada troca de rota, num lugar só, sem perder `?passo=` e `?tabela=`) e C17 (os dois atalhos de refazer nas duas telas).
-- [ ] UX-FIM-Q06 (`app-ai-disclosure`: um aviso só do que vai para o provedor, com os tokens de hoje, no C4, na refatoração, nas perguntas e na sugestão de consulta).
-- [ ] UX-FIM-C01, primeira parte: "Copiar" ao lado do comando de build e de testes.
+- [x] UX-FIM-C04 (Esc no `appDialog`, sem tirar o Esc que limpa a seleção quando não há diálogo), C12 (foco no `h1` a cada troca de rota, num lugar só, sem perder `?passo=` e `?tabela=`) e C17 (os dois atalhos de refazer nas duas telas).
+- [x] UX-FIM-Q06 (`app-ai-disclosure`: um aviso só do que vai para o provedor, com os tokens de hoje, no C4, na refatoração, nas perguntas e na sugestão de consulta).
+- [-] UX-FIM-C01, primeira parte: "Copiar" ao lado do comando de build e de testes. Sem sentido com a Fase F, que põe o comando editável na tela.
+- **Registro (2026-11-07):** feito. O `appDialog` trata o Esc, emite `dialogClose` e não deixa o toque subir para o documento: só o diálogo de cima fecha, e as telas que limpam a seleção com o Esc não agem no mesmo toque. O foco vai ao `h1` a cada página nova, pelo `app.ts`, menos na primeira carga, na troca só de query ou fragmento e quando a página já pôs o foco num item do conteúdo. O `app-ai-disclosure` (`core/ai-disclosure.component.ts`) diz o provedor, o que vai, o que nunca vai e os tokens de hoje, na sugestão de consulta, no C4, nas perguntas sobre o fluxo, na refatoração e nos dois botões de IA do painel do passo. Os dois atalhos de refazer já funcionavam nas duas telas; faltava só o mesmo `title`. Frontend 442/442.
 
 ## Fase E: risco alto, aprovados pelo dono
 

@@ -1,5 +1,5 @@
 @let v = validation();
-<div class="overlay" appDialog (click)="closed.emit()">
+<div class="overlay" appDialog (click)="closed.emit()" (dialogClose)="closed.emit()">
   <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="validation-title" (click)="$event.stopPropagation()">
     <header class="dialog-head">
       <div>

@@ -1,4 +1,4 @@
-<div class="overlay" appDialog (click)="dismiss()">
+<div class="overlay" appDialog (click)="dismiss()" (dialogClose)="dismiss()">
   <section class="dialog is-narrow" role="dialog" aria-modal="true" aria-labelledby="live-title" (click)="$event.stopPropagation()">
     <header class="dialog-head">
       <div>

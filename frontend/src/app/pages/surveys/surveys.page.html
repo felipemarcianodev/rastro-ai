@@ -125,7 +125,7 @@
 </div>
 
 @if (formOpen()) {
-  <div class="overlay" appDialog (click)="closeForm()" (keydown.escape)="closeForm()">
+  <div class="overlay" appDialog (click)="closeForm()" (dialogClose)="closeForm()">
     <section class="dialog is-form" role="dialog" aria-modal="true" aria-labelledby="create-title" (click)="$event.stopPropagation()">
       <header class="dialog-head">
         <div>
@@ -139,12 +139,12 @@
       <div class="field">
         <div class="field-head">
           <label class="field-label" for="repository">Repositório</label>
-          <button type="button" class="info-toggle" (click)="toggleInfo('repository')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.repository.summary"
+          <button type="button" class="info-toggle" (click)="toggleInfo('repository')" (keydown.escape)="closeInfo($event)" [title]="fieldInfo.repository.summary"
             [attr.aria-expanded]="openInfo() === 'repository'" [attr.aria-controls]="openInfo() === 'repository' ? 'repository-info' : null" aria-label="O que é Repositório">i</button>
         </div>
         <span id="repository-help" class="field-help">{{ fieldInfo.repository.summary }}</span>
         @if (openInfo() === 'repository') {
-          <div id="repository-info" class="info-text" (keydown.escape)="openInfo.set(null)">
+          <div id="repository-info" class="info-text" (keydown.escape)="closeInfo($event)">
             @for (line of fieldInfo.repository.text; track $index) {
               <p>{{ line }}</p>
             }
@@ -175,12 +175,12 @@
       <div class="field">
         <div class="field-head">
           <label class="field-label" for="solution">Solution</label>
-          <button type="button" class="info-toggle" (click)="toggleInfo('solution')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.solution.summary"
+          <button type="button" class="info-toggle" (click)="toggleInfo('solution')" (keydown.escape)="closeInfo($event)" [title]="fieldInfo.solution.summary"
             [attr.aria-expanded]="openInfo() === 'solution'" [attr.aria-controls]="openInfo() === 'solution' ? 'solution-info' : null" aria-label="O que é Solution">i</button>
         </div>
         <span id="solution-help" class="field-help">{{ fieldInfo.solution.summary }}</span>
         @if (openInfo() === 'solution') {
-          <div id="solution-info" class="info-text" (keydown.escape)="openInfo.set(null)">
+          <div id="solution-info" class="info-text" (keydown.escape)="closeInfo($event)">
             @for (line of fieldInfo.solution.text; track $index) {
               <p>{{ line }}</p>
             }
@@ -203,11 +203,11 @@
       <div class="field">
         <div class="field-head">
           <label class="field-label" for="entry">Ponto de entrada</label>
-          <button type="button" class="info-toggle" (click)="toggleInfo('entry')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.entry.summary"
+          <button type="button" class="info-toggle" (click)="toggleInfo('entry')" (keydown.escape)="closeInfo($event)" [title]="fieldInfo.entry.summary"
             [attr.aria-expanded]="openInfo() === 'entry'" [attr.aria-controls]="openInfo() === 'entry' ? 'entry-info' : null" aria-label="O que é Ponto de entrada">i</button>
         </div>
         @if (openInfo() === 'entry') {
-          <div id="entry-info" class="info-text" (keydown.escape)="openInfo.set(null)">
+          <div id="entry-info" class="info-text" (keydown.escape)="closeInfo($event)">
             @for (line of fieldInfo.entry.text; track $index) {
               <p>{{ line }}</p>
             }
@@ -229,11 +229,11 @@
       <div class="field">
         <div class="field-head">
           <label class="field-label" for="depth">Profundidade</label>
-          <button type="button" class="info-toggle" (click)="toggleInfo('depth')" (keydown.escape)="openInfo.set(null)" [title]="fieldInfo.depth.summary"
+          <button type="button" class="info-toggle" (click)="toggleInfo('depth')" (keydown.escape)="closeInfo($event)" [title]="fieldInfo.depth.summary"
             [attr.aria-expanded]="openInfo() === 'depth'" [attr.aria-controls]="openInfo() === 'depth' ? 'depth-info' : null" aria-label="O que é Profundidade">i</button>
         </div>
         @if (openInfo() === 'depth') {
-          <div id="depth-info" class="info-text" (keydown.escape)="openInfo.set(null)">
+          <div id="depth-info" class="info-text" (keydown.escape)="closeInfo($event)">
             @for (line of fieldInfo.depth.text; track $index) {
               <p>{{ line }}</p>
             }
@@ -276,7 +276,7 @@
 }
 
 @if (registerOpen()) {
-  <div class="overlay" appDialog (click)="closeRegister()" (keydown.escape)="closeRegister()">
+  <div class="overlay" appDialog (click)="closeRegister()" (dialogClose)="closeRegister()">
     <section class="dialog is-narrow" role="dialog" aria-modal="true" aria-labelledby="register-title" (click)="$event.stopPropagation()">
       <h2 id="register-title">Cadastrar repositório</h2>
       <form class="form" (ngSubmit)="register()" novalidate>

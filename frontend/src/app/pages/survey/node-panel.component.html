@@ -78,6 +78,7 @@
         <button type="button" class="btn btn-g btn-small rule-action" [disabled]="describing()" (click)="describe.emit({ nodeId: node.id, overwrite: !!node.rule })">
           {{ describing() ? 'Escrevendo…' : node.rule ? 'Reescrever com IA' : 'Escrever regra com IA' }}
         </button>
+        <app-ai-disclosure goes="o código deste passo" never="Código já descrito antes não vai de novo." />
       }
       @if (describeMessage(); as message) {
         <p class="rule-origin muted" aria-live="polite">{{ message }}</p>
@@ -193,6 +194,7 @@
           <button type="button" class="btn btn-g btn-small fill" [disabled]="filling()" (click)="fillHole.emit(node.id)">
             {{ filling() ? 'Perguntando à IA…' : 'Propor destinos com IA' }}
           </button>
+          <app-ai-disclosure goes="a chamada sem destino, o código em volta dela e os candidatos que o compilador achou" />
         }
         @if (!canFillHoles() && !aiActive()) {
           <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>

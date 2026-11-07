@@ -1,4 +1,4 @@
-<div class="overlay" appDialog (click)="closed.emit()">
+<div class="overlay" appDialog (click)="closed.emit()" (dialogClose)="closed.emit()">
   <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="c4-title" (click)="$event.stopPropagation()">
     <header class="dialog-head">
       <div>
@@ -61,6 +61,7 @@
           <span [class]="m.ok ? 'editbar-ok' : 'field-error'" role="status">{{ m.text }}</span>
         }
       </div>
+      <p class="c4-disclosure"><app-ai-disclosure goes="o nome do repositório, o ponto de entrada, as classes do fluxo, os sistemas externos e as pessoas já cadastradas" never="O código das classes não vai." /></p>
 
       <h3>workspace.dsl</h3>
       @if (loadError(); as error) {

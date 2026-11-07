@@ -8,11 +8,18 @@ import { DialogDirective } from './dialog.directive';
     <button id="opener" type="button" (click)="open.set(true)">Abrir</button>
     <p id="fundo">Fundo</p>
     @if (open()) {
-      <div class="overlay" appDialog>
+      <div class="overlay" appDialog (dialogClose)="closes = closes + 1">
         <section role="dialog" aria-modal="true">
           <button type="button" class="btn-icon" (click)="open.set(false)">×</button>
           <button id="primeiro" type="button">Primeiro</button>
           <button id="ultimo" type="button">Último</button>
+          @if (nested()) {
+            <div class="overlay" appDialog (dialogClose)="innerCloses = innerCloses + 1">
+              <section role="dialog" aria-modal="true">
+                <button id="interno" type="button">Interno</button>
+              </section>
+            </div>
+          }
         </section>
       </div>
     }
@@ -20,6 +27,9 @@ import { DialogDirective } from './dialog.directive';
 })
 class HostComponent {
   readonly open = signal(false);
+  readonly nested = signal(false);
+  closes = 0;
+  innerCloses = 0;
 }
 
 describe('DialogDirective', () => {
@@ -61,6 +71,31 @@ describe('DialogDirective', () => {
 
     overlay.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }));
     expect(document.activeElement).toBe(last);
+    fixture.nativeElement.remove();
+  });
+
+  // UX-FIM-C04
+  it('Esc emite dialogClose e não sobe para o documento', () => {
+    const { el, fixture } = setup();
+    const documentEsc = jasmine.createSpy('documentEsc');
+    document.addEventListener('keydown', documentEsc);
+    el.querySelector('#primeiro')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    document.removeEventListener('keydown', documentEsc);
+
+    expect(fixture.componentInstance.closes).toBe(1);
+    expect(documentEsc).not.toHaveBeenCalled();
+    fixture.nativeElement.remove();
+  });
+
+  // UX-FIM-C04
+  it('com um diálogo dentro do outro, o Esc fecha só o de cima', () => {
+    const { el, fixture } = setup();
+    fixture.componentInstance.nested.set(true);
+    fixture.detectChanges();
+    el.querySelector('#interno')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+
+    expect(fixture.componentInstance.innerCloses).toBe(1);
+    expect(fixture.componentInstance.closes).toBe(0);
     fixture.nativeElement.remove();
   });
 });

@@ -14,7 +14,8 @@ import {
   querySegments,
 } from '../../core/database/query-analysis';
 import { QueryAiSuggestion } from '../../core/database/query-suggestion';
-import { AI_PROVIDER_LABEL, AiUse, aiCan } from '../../core/models';
+import { AiUse, aiCan } from '../../core/models';
+import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { AiStatusService } from '../../core/ai-status.service';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { QueryPlanComponent } from './query-plan.component';
@@ -35,7 +36,7 @@ interface Analyzed {
 // regras fixas. Sem IA e sem banco: a mesma consulta dá sempre o mesmo resultado.
 @Component({
   selector: 'app-query-analysis',
-  imports: [RouterLink, QueryPlanComponent,QuerySuggestionComponent],
+  imports: [RouterLink, QueryPlanComponent, QuerySuggestionComponent, AiDisclosureComponent],
   templateUrl: './query-analysis.component.html',
   styleUrl: './query-analysis.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,10 +75,6 @@ export class QueryAnalysisComponent {
   private readonly ai = inject(AiStatusService);
   // Sugestão da IA (Fase 41): só com a IA ligada e o uso "Sugestões"; sem isso, nada aparece.
   protected readonly canSuggest = computed(() => aiCan(this.ai.status(), AiUse.Suggestions));
-  protected readonly providerName = computed(() => {
-    const status = this.ai.status();
-    return status ? AI_PROVIDER_LABEL[status.provider] : '';
-  });
   protected readonly suggesting = signal(false);
   protected readonly suggestError = signal<string | null>(null);
   protected readonly suggestion = signal<QueryAiSuggestion | null>(null);

@@ -328,7 +328,6 @@ export class SurveysPage implements OnInit {
     const deleted = (history.state as { deleted?: string } | null)?.deleted;
     if (deleted) {
       this.deletedNotice.set(`Levantamento de ${deleted} excluído.`);
-      setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('#list-title')?.focus());
       setTimeout(() => this.deletedNotice.set(null), 5000);
     }
     this.retry = (history.state as { retry?: CreateSurveyRequest } | null)?.retry ?? null;
@@ -410,6 +409,13 @@ export class SurveysPage implements OnInit {
 
   protected toggleInfo(field: Field): void {
     this.openInfo.set(this.openInfo() === field ? null : field);
+  }
+
+  // Esc no "i" ou no texto de ajuda fecha só a ajuda; sem ajuda aberta, o Esc segue para o diálogo.
+  protected closeInfo(event: Event): void {
+    if (!this.openInfo()) return;
+    event.stopPropagation();
+    this.openInfo.set(null);
   }
 
   protected retryList(): void {

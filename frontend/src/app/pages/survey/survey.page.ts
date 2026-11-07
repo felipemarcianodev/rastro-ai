@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { DB_SURVEY_ORIGIN_PARAM } from '../../core/database/query-analysis';
 import { plural, shortCommit, shortDate } from '../../core/format';
+import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { EditorLinks } from '../../core/editor-links';
@@ -73,7 +74,7 @@ const POLL_TOLERATED_FAILURES = 2;
 
 @Component({
   selector: 'app-survey-page',
-  imports: [RouterLink, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective],
+  imports: [RouterLink, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective, AiDisclosureComponent],
   templateUrl: './survey.page.html',
   styleUrl: './survey.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },

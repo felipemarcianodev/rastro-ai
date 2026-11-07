@@ -36,6 +36,7 @@ import {
 import { breakable, shortCommit } from '../../core/format';
 import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { CopyFeedback } from '../../core/copy-feedback';
+import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { EditorLinks } from '../../core/editor-links';
 import { FOREIGN_EDIT_MESSAGE } from '../../core/graph/draft-editor';
 import { rulesTimeline } from '../../core/graph/rules-timeline';
@@ -53,7 +54,7 @@ const SNIPPET_DELAY_MS = 150;
 
 @Component({
   selector: 'app-node-panel',
-  imports: [FormsModule, RouterLink, FindingsListComponent, FlowSummaryComponent],
+  imports: [FormsModule, RouterLink, FindingsListComponent, FlowSummaryComponent, AiDisclosureComponent],
   templateUrl: './node-panel.component.html',
   styleUrl: './node-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

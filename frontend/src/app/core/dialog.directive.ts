@@ -1,16 +1,19 @@
-import { AfterViewInit, Directive, ElementRef, OnDestroy, inject } from '@angular/core';
+import { AfterViewInit, Directive, ElementRef, OnDestroy, inject, output } from '@angular/core';
 
 const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 // Diálogo modal acessível (prompt, validação, C4, confirmações). Vai no .overlay:
 // - o foco entra no diálogo ao abrir e volta a quem abriu ao fechar;
 // - Tab e Shift+Tab ficam presos dentro;
-// - o resto da página fica inert enquanto ele está aberto (leitor de tela e clique).
+// - o resto da página fica inert enquanto ele está aberto (leitor de tela e clique);
+// - o Esc emite dialogClose e não sobe para o documento: só o diálogo de cima fecha, e as
+//   telas que usam o Esc no documento (limpar seleção) não agem no mesmo toque (UX-FIM-C04).
 @Directive({
   selector: '[appDialog]',
-  host: { '(keydown.tab)': 'trap($event)', '(keydown.shift.tab)': 'trap($event)' },
+  host: { '(keydown.tab)': 'trap($event)', '(keydown.shift.tab)': 'trap($event)', '(keydown.escape)': 'escape($event)' },
 })
 export class DialogDirective implements AfterViewInit, OnDestroy {
+  readonly dialogClose = output<void>();
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   private readonly inerted: HTMLElement[] = [];
@@ -33,6 +36,12 @@ export class DialogDirective implements AfterViewInit, OnDestroy {
     for (const el of this.inerted) el.inert = false;
     // O botão que abriu pode ter sumido (o diálogo trocou a tela): aí o foco fica onde estiver.
     if (this.opener?.isConnected) this.opener.focus();
+  }
+
+  protected escape(event: Event): void {
+    if (event.defaultPrevented) return;
+    event.stopPropagation();
+    this.dialogClose.emit();
   }
 
   protected trap(event: Event): void {
