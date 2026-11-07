@@ -104,4 +104,17 @@ describe('App', () => {
     expect(el.querySelector('select')).toBeNull();
     expect(el.querySelector('header button')).toBeNull();
   });
+
+  // UX-FIM-C03
+  it('tem o link "Ir para o conteúdo" que foca o main', () => {
+    const { el } = render([]);
+    const skip = el.querySelector<HTMLAnchorElement>('a.skip-link')!;
+    const main = el.querySelector<HTMLElement>('main#conteudo')!;
+    expect(skip.textContent?.trim()).toBe('Ir para o conteúdo');
+    expect(main.getAttribute('tabindex')).toBe('-1');
+    document.body.appendChild(el);
+    skip.click();
+    expect(document.activeElement).toBe(main);
+    el.remove();
+  });
 });

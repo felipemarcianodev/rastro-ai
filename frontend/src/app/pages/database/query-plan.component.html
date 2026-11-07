@@ -48,7 +48,8 @@
       }
 
       @if (p.warnings.length > 0) {
-        <ul class="plan-warnings">
+        <h3 id="plan-warnings-title" class="plan-warnings-title">Avisos do banco</h3>
+        <ul class="plan-warnings" aria-labelledby="plan-warnings-title">
           @for (w of p.warnings; track $index) {
             <li>{{ w }}</li>
           }

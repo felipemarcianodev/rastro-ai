@@ -43,7 +43,7 @@ describe('NodePanelComponent: o passo no banco (Fase 39)', () => {
     const el = render('loja');
 
     const items = [...el.querySelectorAll('.db-access li')].map((li) => [...li.children].map((c) => c.textContent!.trim()).join(' '));
-    expect(items).toEqual(['inclui pedidos linha 12', 'executa sp_baixar_estoque linha 14']);
+    expect(items).toEqual(['inclui pedidos linha 12 sem consulta no código', 'executa sp_baixar_estoque linha 14 sem consulta no código']);
     expect(el.querySelector<HTMLAnchorElement>('.db-access a')!.getAttribute('href')).toBe('/repositorios/loja/banco?tabela=pedidos&levantamento=s1');
   });
 
@@ -69,6 +69,25 @@ describe('NodePanelComponent: o passo no banco (Fase 39)', () => {
     expect(url.searchParams.get('aba')).toBe('consulta');
     expect(url.searchParams.get('consulta')).toBe('SELECT * FROM pedidos WHERE ano = @p0');
     expect(url.searchParams.get('origem')).toBe('Loja.Gravar');
+  });
+
+  // UX-FIM-Q10
+  it('o acesso sem consulta extraída diz "sem consulta no código"; o que tem consulta não diz', () => {
+    const withSql: FlowGraph = {
+      ...graph,
+      nodes: [graph.nodes[0], { ...graph.nodes[1], db: [{ target: 'pedidos', operation: DbOperation.Read, line: 9, sql: 'SELECT 1' }, graph.nodes[1].db![1]] }],
+    };
+    TestBed.configureTestingModule({ imports: [NodePanelComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(NodePanelComponent);
+    fixture.componentRef.setInput('surveyId', 's1');
+    fixture.componentRef.setInput('repository', 'loja');
+    fixture.componentRef.setInput('graph', withSql);
+    fixture.componentRef.setInput('selectedId', 'b');
+    fixture.detectChanges();
+
+    const items = [...(fixture.nativeElement as HTMLElement).querySelectorAll('.db-access li')];
+    expect(items[0].querySelector('.db-no-sql')).toBeNull();
+    expect(items[1].querySelector('.db-no-sql')!.textContent).toBe('sem consulta no código');
   });
 
   // WEB-DBF-002

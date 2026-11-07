@@ -21,8 +21,11 @@
     </div>
     <div class="page-bar-side">
       @if (live(); as l) {
-        <span class="pill db-live-pill">Banco vivo: {{ l.server }}/{{ l.database }}, só leitura</span>
+        <span class="pill db-live-pill" [title]="'Banco vivo: ' + l.server + '/' + l.database + ', só leitura'">Banco vivo: {{ l.server }}/{{ l.database }}, só leitura</span>
         <span class="muted db-promise">Lido do código e do catálogo do banco vivo. Nenhum dado das tabelas é lido.</span>
+      } @else if (connectionError()) {
+        <span class="muted db-promise" role="alert">Não deu para ler a conexão do banco vivo.</span>
+        <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button>
       } @else {
         <span class="muted db-promise">Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.</span>
       }
@@ -52,7 +55,7 @@
   @if (!error()) {
     <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
       @for (t of tabs; track t) {
-        <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="'db-panel-' + t"
+        <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="schema() ? 'db-panel-' + t : null"
           [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)">
           <span class="db-tab-label">{{ tabLabel[t] }}</span>
           <span class="db-tab-hint">{{ tabHint[t] }}</span>
@@ -111,6 +114,8 @@
               @for (key of l.views; track key) {
                 <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.View && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.View && selection()?.key === key"
                   (click)="choose({ kind: DbItemKind.View, key })">{{ key }}</button></li>
+              } @empty {
+                <li class="muted db-none">Nenhuma view com esse nome ou campo.</li>
               }
             </ul>
           }
@@ -120,6 +125,8 @@
               @for (key of l.procedures; track key) {
                 <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key"
                   (click)="choose({ kind: DbItemKind.Procedure, key })">{{ key }}</button></li>
+              } @empty {
+                <li class="muted db-none">Nenhuma procedure com esse nome.</li>
               }
             </ul>
           }
@@ -151,7 +158,8 @@
           }
           <span class="db-zoom-tools" role="group" aria-label="Zoom do mapa">
             <button type="button" class="btn btn-icon" (click)="zoomBy(-1)" [disabled]="zoom() <= zoomMin" aria-label="Diminuir o mapa" title="Diminuir">−</button>
-            <button type="button" class="btn btn-g btn-small" (click)="zoom.set(1)" [disabled]="zoom() === 1" title="Voltar ao tamanho normal">{{ zoomPercent() }}</button>
+            <button type="button" class="btn btn-g btn-small" (click)="zoom.set(1)" [disabled]="zoom() === 1" aria-label="Voltar o mapa a 100%" title="Voltar ao tamanho normal">{{ zoomPercent() }}</button>
+            <span class="visually-hidden" role="status" aria-live="polite">Zoom do mapa em {{ zoomPercent() }}</span>
             <button type="button" class="btn btn-icon" (click)="zoomBy(1)" [disabled]="zoom() >= zoomMax" aria-label="Aumentar o mapa" title="Aumentar">+</button>
           </span>
           <span class="muted db-legend">Setas pela chave estrangeira, com a cardinalidade. <span class="db-key is-pk">PK</span> <span class="db-key is-fk">FK</span> <span class="db-personal">pessoal</span> pelo nome da coluna.</span>
@@ -208,7 +216,7 @@
       </section>
 
       @if (selection(); as pick) {
-        <aside class="db-panel" aria-label="Item escolhido">
+        <aside class="db-panel" [attr.aria-label]="'Painel de ' + pick.key">
           <app-db-panel [repository]="nome()" [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event, true)" (closed)="closePanel()" />
         </aside>
       }

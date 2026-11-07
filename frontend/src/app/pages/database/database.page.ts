@@ -124,6 +124,8 @@ export class DatabasePage {
   private readonly reload = signal(0);
   protected readonly connection = signal<LiveConnectionView | null>(null);
   protected readonly connectionOpen = signal(false);
+  // A leitura da conexão falhou (UX-FIM-B07): a barra não promete "nenhum banco é consultado" sem saber.
+  protected readonly connectionError = signal(false);
   // Com conexão salva, o selo e a promessa mudam; sem ela, o banco nunca é consultado.
   protected readonly live = computed(() => (this.connection()?.configured ? this.connection() : null));
   // O dialeto da conexão salva ou, sem ela, o do código do repositório (Fase 42b).
@@ -267,8 +269,14 @@ export class DatabasePage {
       const name = this.nome();
       this.reload();
       const sub = this.api.connection(name).subscribe({
-        next: (connection) => this.connection.set(connection),
-        error: () => this.connection.set(null),
+        next: (connection) => {
+          this.connectionError.set(false);
+          this.connection.set(connection);
+        },
+        error: () => {
+          this.connection.set(null);
+          this.connectionError.set(true);
+        },
       });
       onCleanup(() => sub.unsubscribe());
     });

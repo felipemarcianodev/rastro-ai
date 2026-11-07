@@ -24,6 +24,10 @@
           [placeholder]="connection()?.configured ? 'Deixe vazio para manter a atual' : placeholder[dialect()]" />
       </div>
 
+      @if (connection()?.configured) {
+        <p id="live-test-help" class="muted live-test-help">{{ key().trim() ? 'O teste usa a conexão já salva. Salve a nova string para testá-la.' : 'O teste usa a conexão já salva, não o que está digitado.' }}</p>
+      }
+
       @if (error(); as message) {
         <p class="notice is-error" role="alert">{{ message }}</p>
       }
@@ -73,7 +77,8 @@
     <footer class="dialog-foot live-foot">
       @if (connection()?.configured && !confirmingRemove()) {
         <button type="button" class="btn btn-g live-remove" (click)="confirmingRemove.set(true)" [disabled]="busy()">Remover conexão</button>
-        <button type="button" class="btn btn-g" (click)="test()" [disabled]="busy()">{{ busy() ? 'Aguarde…' : 'Testar conexão' }}</button>
+        <button type="button" class="btn btn-g" (click)="test()" [disabled]="busy() || !!key().trim()" aria-describedby="live-test-help"
+          [title]="key().trim() ? 'Salve a nova string para testá-la' : 'Testa a conexão já salva'">{{ busy() ? 'Aguarde…' : 'Testar conexão' }}</button>
       }
       <button type="button" class="btn btn-g" (click)="closed.emit()">Fechar</button>
       <button type="button" class="btn btn-p" (click)="save()" [disabled]="!key().trim() || busy()">Salvar</button>
