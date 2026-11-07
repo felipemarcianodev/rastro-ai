@@ -7,7 +7,8 @@ using Rastro.Infrastructure.Storage;
 namespace Rastro.Tests.Api;
 
 // Cenários API-REP-NNN e API-REPO-NNN: lista, cadastro e remoção de repositórios pela tela (ADR-003),
-// com a proteção por Origin e por Host. Comando de build e de testes nunca entra pela API.
+// com a proteção por Origin e por Host. O cadastro não leva comando; o build e os testes se editam pela
+// rota de comandos (ADR-008).
 [Collection(ApiCollection.Name)]
 public class RepositoriesEndpointTests(ApiFixture fixture)
 {
@@ -251,5 +252,101 @@ public class RepositoriesEndpointTests(ApiFixture fixture)
         var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact] // API-REPO-014
+    public async Task Comandos_Gravados_VoltamNaListaENoConfig()
+    {
+        var client = fixture.Factory.CreateClient();
+        var name = UniqueName();
+        await client.PostAsJsonAsync("/api/repositories", new { name, path = NewFolder(name) });
+
+        var response = await client.PutAsJsonAsync($"/api/repositories/{name}/commands",
+            new { buildCommand = "  dotnet build Loja.slnx ", testCommand = "dotnet test" });
+        var listed = await client.GetFromJsonAsync<List<RepositoryItem>>("/api/repositories");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var item = await response.Content.ReadFromJsonAsync<RepositoryItem>();
+        Assert.Equal("dotnet build Loja.slnx", item!.BuildCommand);
+        Assert.True(item.HasTestCommand);
+        var fromList = Assert.Single(listed!, i => i.Name == name);
+        Assert.Equal("dotnet build Loja.slnx", fromList.BuildCommand);
+        Assert.Equal("dotnet test", fromList.TestCommand);
+
+        var config = JsonNode.Parse(await File.ReadAllTextAsync(RastroHome.ConfigPath))!;
+        var entry = config["Rastro"]!["Repositories"]!.AsArray().Single(e => (string?)e!["Name"] == name)!.AsObject();
+        Assert.Equal("dotnet test", (string?)entry["TestCommand"]);
+
+        await client.DeleteAsync($"/api/repositories/{name}");
+    }
+
+    [Fact] // API-REPO-015
+    public async Task Comandos_Vazios_TiramOComandoDaEntrada()
+    {
+        var client = fixture.Factory.CreateClient();
+        var name = UniqueName();
+        await client.PostAsJsonAsync("/api/repositories", new { name, path = NewFolder(name) });
+        await client.PutAsJsonAsync($"/api/repositories/{name}/commands", new { buildCommand = "dotnet build", testCommand = "dotnet test" });
+
+        var response = await client.PutAsJsonAsync($"/api/repositories/{name}/commands", new { buildCommand = "", testCommand = (string?)null });
+
+        var item = await response.Content.ReadFromJsonAsync<RepositoryItem>();
+        Assert.False(item!.HasBuildCommand);
+        Assert.Null(item.TestCommand);
+        var config = JsonNode.Parse(await File.ReadAllTextAsync(RastroHome.ConfigPath))!;
+        var entry = config["Rastro"]!["Repositories"]!.AsArray().Single(e => (string?)e!["Name"] == name)!.AsObject();
+        Assert.False(entry.ContainsKey("BuildCommand"));
+        Assert.False(entry.ContainsKey("TestCommand"));
+
+        await client.DeleteAsync($"/api/repositories/{name}");
+    }
+
+    [Theory] // API-REPO-016
+    [InlineData("dotnet build\ndel arquivo")]
+    [InlineData("dotnet build\r")]
+    [InlineData("comprido")]
+    public async Task Comandos_Invalidos_Retorna400SemGravar(string command)
+    {
+        var client = fixture.Factory.CreateClient();
+        var name = UniqueName();
+        await client.PostAsJsonAsync("/api/repositories", new { name, path = NewFolder(name) });
+        var text = command == "comprido" ? new string('a', 501) : command;
+
+        var response = await client.PutAsJsonAsync($"/api/repositories/{name}/commands", new { buildCommand = text, testCommand = "dotnet test" });
+        var listed = await client.GetFromJsonAsync<List<RepositoryItem>>("/api/repositories");
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(ErrorCodes.RepositoryCommandInvalid, await CodeOf(response));
+        Assert.False(Assert.Single(listed!, i => i.Name == name).HasTestCommand);
+
+        await client.DeleteAsync($"/api/repositories/{name}");
+    }
+
+    [Fact] // API-REPO-017
+    public async Task Comandos_RepositorioInexistente_Retorna404()
+    {
+        var client = fixture.Factory.CreateClient();
+
+        var response = await client.PutAsJsonAsync($"/api/repositories/{UniqueName()}/commands", new { buildCommand = "dotnet build" });
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Equal(ErrorCodes.RepositoryNotFound, await CodeOf(response));
+    }
+
+    [Fact] // API-REPO-018
+    public async Task Comandos_OriginDeFora_Retorna403SemGravar()
+    {
+        var client = fixture.Factory.CreateClient();
+        var name = UniqueName();
+        await client.PostAsJsonAsync("/api/repositories", new { name, path = NewFolder(name) });
+
+        var response = await client.SendAsync(Request(HttpMethod.Put, $"/api/repositories/{name}/commands",
+            new { buildCommand = "calc" }, "http://evil.example"));
+        var listed = await client.GetFromJsonAsync<List<RepositoryItem>>("/api/repositories");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.Null(Assert.Single(listed!, i => i.Name == name).BuildCommand);
+
+        await client.DeleteAsync($"/api/repositories/{name}");
     }
 }

@@ -1,7 +1,7 @@
 # ADR-003: repositórios cadastrados pela tela, com a API protegida contra pedido de outro site
 
 **Data:** 2026-10-17
-**Status:** Accepted
+**Status:** Accepted (o item 2 foi substituído pela [ADR-008](adr-008-comandos-pela-tela.md) em 2026-11-07)
 **Contexto:** Complementa a [ADR-002](adr-002-produto-dotnet-tool.md). Muda a regra "a requisição cita o nome do repositório, nunca um caminho" só para o cadastro de repositórios.
 
 ---
@@ -18,7 +18,7 @@ Para um cliente, cadastrar pela tela é o esperado. Só que, para isso, a requis
 ## Decisão
 
 1. **Cadastro pela tela.** A API ganha `POST api/repositories` (nome e pasta) e `DELETE api/repositories/{nome}`, e a lista passa a devolver a pasta de cada repositório. Valem as regras do `rastro repo add`: nome com letras, números, ponto, hífen e sublinhado; pasta absoluta e existente; nome sem repetir.
-2. **Comando só pelo terminal.** O comando de build e o de testes da validação não entram pela tela: a regra "o comando vem só da configuração, nunca da requisição" continua. Remover pela tela tira a entrada inteira, comandos inclusive.
+2. **Comando só pelo terminal** (substituído pela ADR-008: o comando passou a se editar nas Configurações). O comando de build e o de testes da validação não entram pela tela: a regra "o comando vem só da configuração, nunca da requisição" continua. Remover pela tela tira a entrada inteira, comandos inclusive.
 3. **Um lugar só grava o `config.json`:** um serviço da infraestrutura, usado pela CLI e pela API.
 4. **A pasta volta para a tela.** O "Abrir no VS Code" usa a pasta cadastrada. A API só escuta na máquina do usuário e a pasta é dele; a regra que protege é a da entrada (caminho de solution e de arquivo continuam relativos e canonicalizados pelo `RepositoryCatalog`).
 5. **Proteção da API, em todas as rotas:**

@@ -49,7 +49,7 @@ dotnet tool update -g rastro-ai
 dotnet tool uninstall -g rastro-ai
 ```
 
-Cadastre os repositórios em Configurações (a engrenagem no alto da tela) ou pelo terminal. Os comandos de build e de testes, usados na validação de uma mudança, só se informam pelo terminal:
+Cadastre os repositórios em Configurações (no cabeçalho da tela) ou pelo terminal. Os comandos de build e de testes, usados na validação de uma mudança, se editam em Configurações, em "Editar build e testes" de cada repositório, ou se informam ao cadastrar pelo terminal:
 
 ```bash
 rastro repo add minha-api C:\codigo\minha-api --build "dotnet build MinhaApi.slnx" --testes "dotnet test MinhaApi.slnx --no-build"
@@ -177,6 +177,7 @@ Limites: configuração montada em tempo de execução não é lida. No PostgreS
 - **Grafo como visão:** o código é a fonte da verdade. Cada levantamento guarda o hash do commit, e o grafo é refeito a cada análise.
 - **Desenho próprio:** a linha do tempo é calculada pelo Rastro (sem ELK), na ordem do código, e desenhada com o Foblex Flow.
 - **Janela própria:** o Photino.NET abre uma janela nativa com o WebView do sistema, apontando para a API local. A tela fala com a janela só para escolher pasta, por mensagens de formato fixo ([ADR-007](docs/adr/adr-007-janela-propria.md)).
+- **Build e testes pela tela:** o comando de build e o de testes de cada repositório se editam nas Configurações, conferidos (uma linha, até 500 caracteres) e rodados sem shell ([ADR-008](docs/adr/adr-008-comandos-pela-tela.md)).
 - **Segurança:** a API só escuta em `127.0.0.1`, recusa pedido de outro site e só lê pastas cadastradas. Build e testes da validação rodam sem shell, com o comando da configuração.
 
 Visão e decisões em [`docs/arquitetura/visao.md`](docs/arquitetura/visao.md) e nas [ADRs](docs/adr/).
