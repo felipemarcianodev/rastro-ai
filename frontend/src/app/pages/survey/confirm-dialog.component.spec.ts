@@ -22,6 +22,20 @@ describe('ConfirmDialogComponent', () => {
     expect(events).toEqual(['cancel', 'confirm']);
   });
 
+  // UX-FIM-C04
+  it('Esc_noDialogo_emiteCancel', () => {
+    TestBed.configureTestingModule({ imports: [ConfirmDialogComponent] });
+    const fixture = TestBed.createComponent(ConfirmDialogComponent);
+    fixture.componentRef.setInput('title', 'Remover o repositório?');
+    fixture.componentRef.setInput('text', 'x');
+    fixture.componentRef.setInput('confirmLabel', 'Remover');
+    const events: string[] = [];
+    fixture.componentInstance.cancel.subscribe(() => events.push('cancel'));
+    fixture.detectChanges();
+    (fixture.nativeElement as HTMLElement).querySelector('.overlay')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(events).toEqual(['cancel']);
+  });
+
   // WEB-CONF-002
   it('tom_padraoEPerigo_primarioUsaOBotaoPrimario', () => {
     TestBed.configureTestingModule({ imports: [ConfirmDialogComponent] });

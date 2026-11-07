@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { ANSWER_SEAL_GLYPH, ANSWER_SEAL_LABEL, ANSWER_SEAL_SLUG, QUESTION_ROLE_LABEL, filterBy } from '../../core/graph/flow-insight';
 import { readingLabel } from '../../core/graph/summary';
 import { AI_PROVIDER_LABEL, AiProvider, FlowAnswer, FlowNode, FlowQuestion, QuestionRole } from '../../core/models';
@@ -16,7 +17,7 @@ interface Shown {
 // e a pergunta livre, que só existe com a IA ligada e o uso Sugestões habilitado (ADR-001).
 @Component({
   selector: 'app-flow-map-questions',
-  imports: [FormsModule],
+  imports: [FormsModule, AiDisclosureComponent],
   templateUrl: './flow-map-questions.component.html',
   styleUrl: './flow-map-questions.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

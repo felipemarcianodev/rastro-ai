@@ -16,6 +16,7 @@ export enum NavArea {
 const SETTINGS_PATH = '/configuracoes';
 const DATABASE_PREFIX = '/repositorios/';
 const SURVEY_PREFIX = '/surveys/';
+const MAIN_ID = 'conteudo';
 const FRAGMENT_EDITOR = 'editor';
 export const FRAGMENT_AI = 'ia';
 
@@ -65,8 +66,13 @@ export class App {
     this.ai.refresh();
     this.loadRepositories();
     let previous = areaOf(this.router.url);
+    let previousPath: string | null = null;
     this.router.events.pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd)).subscribe((e) => {
       this.url.set(e.urlAfterRedirects);
+      // UX-FIM-C12: página nova leva o foco ao h1. Não na primeira carga; troca só de query ou fragmento não conta.
+      const path = e.urlAfterRedirects.split(/[?#]/)[0];
+      if (previousPath !== null && path !== previousPath) this.focusHeading();
+      previousPath = path;
       // Saiu das Configurações: a lista de repositórios pode ter mudado.
       const current = areaOf(e.urlAfterRedirects);
       if (previous === NavArea.Settings && current !== NavArea.Settings) this.loadRepositories();
@@ -78,6 +84,21 @@ export class App {
   protected skipToContent(event: Event, target: HTMLElement): void {
     event.preventDefault();
     target.focus({ preventScroll: true });
+  }
+
+  // Depois de a página desenhar, foca o h1, a menos que a página já tenha posto o foco num item
+  // dentro do conteúdo (a seleção de ?passo= e ?tabela=).
+  private focusHeading(): void {
+    setTimeout(() => {
+      const main = document.getElementById(MAIN_ID);
+      const active = document.activeElement;
+      const onItem = !!main && active instanceof HTMLElement && active !== main && active !== document.body && main.contains(active);
+      if (onItem) return;
+      const heading = main?.querySelector<HTMLElement>('h1');
+      if (!heading) return;
+      if (!heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+      heading.focus({ preventScroll: true });
+    });
   }
 
   private loadRepositories(): void {

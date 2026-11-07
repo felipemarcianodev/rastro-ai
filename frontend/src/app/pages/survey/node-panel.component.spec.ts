@@ -2,7 +2,8 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { FlowGraph, NodeKind, SourceLanguage } from '../../core/models';
+import { AiProvider, AiUse, FlowGraph, NodeKind, SourceLanguage } from '../../core/models';
+import { AiStatusService } from '../../core/ai-status.service';
 import { NodePanelComponent } from './node-panel.component';
 
 const graph: FlowGraph = {
@@ -174,5 +175,26 @@ describe('NodePanelComponent: linguagem do sistema (Fase 26)', () => {
   // UI-ANG-007
   it('painel_trechoDotNet_mostraDotNetNoRotulo', () => {
     expect(open('p::b').querySelector('.origin')?.textContent).toContain('Sistema pedidos-api · .NET');
+  });
+});
+
+// UX-FIM-Q06
+describe('NodePanelComponent: aviso do que vai para a IA', () => {
+  it('ao lado do "Escrever regra com IA", diz que vai o código deste passo', () => {
+    TestBed.configureTestingModule({ imports: [NodePanelComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    TestBed.inject(AiStatusService).status.set({
+      enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses: [AiUse.DescribeRules], tokensToday: 0, dailyTokenBudget: 0,
+    });
+    const fixture = TestBed.createComponent(NodePanelComponent);
+    fixture.componentRef.setInput('surveyId', 's1');
+    fixture.componentRef.setInput('graph', graph);
+    fixture.componentRef.setInput('selectedId', 'b');
+    fixture.componentRef.setInput('notes', new Map());
+    fixture.componentRef.setInput('aiActive', true);
+    fixture.componentRef.setInput('canDescribe', true);
+    fixture.detectChanges();
+
+    const disclosure = (fixture.nativeElement as HTMLElement).querySelector('app-ai-disclosure');
+    expect(disclosure?.textContent).toContain('o código deste passo');
   });
 });
