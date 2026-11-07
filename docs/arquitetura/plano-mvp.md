@@ -1054,7 +1054,7 @@ As três pendências que ficaram depois da Fase 43 e da Fase 40b.
   - **Tamanho da tabela:** a estimativa sai de `pg_class.reltuples` e de `sys.partitions` (sem permissão nova), com os limites de 1.000 e 100.000 linhas (`TableSize`), e aparece no painel da tabela.
   - **Comparação item a item no sistema real:** 52 consultas, na versão de antes do achado único por tabela e na de agora. O agrupamento não perdeu nada; o que se perdeu foi a lista do espaço, calada pela chave estrangeira implícita. Daí a regra da entidade principal: sem estimativa, a tabela apontada por duas ou mais outras não tem a exceção da lista filha.
   - **`lower()` sem achado:** a comparação mostrou que o `lower()` dentro de `SELECT EXISTS (...)` nunca era analisado; agora é, nos dois dialetos.
-  - **Reteste com o código novo:** voltaram a lista do espaço, a de arquivadas (`IS NOT NULL`), os dois `lower()` e um `OR` que ficava escondido no mesmo `EXISTS`; os épicos e as features do espaço passaram a ter achado de gravidade baixa (épicos é apontada por 11 tabelas). Subtarefas, comentários e status do espaço continuam sem achado.
+  - **Reteste com o código novo:** voltaram a lista do espaço, a de arquivadas (`IS NOT NULL`), os dois `lower()` e um `OR` que ficava escondido no mesmo `EXISTS`; os épicos e as features do espaço passaram a ter achado de gravidade baixa (a tabela de épicos é apontada por 11 tabelas). Subtarefas, comentários e status do espaço continuam sem achado.
   - **Testes:** backend 730/730, frontend 561/561.
 
 
