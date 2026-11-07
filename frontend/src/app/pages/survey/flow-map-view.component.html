@@ -2,6 +2,12 @@
   <button type="button" class="btn btn-icon" (click)="toggleDirection()"
     [attr.aria-label]="'Desenho ' + directionLabel[LayoutDirection.Map] + '. Trocar para ' + directionLabel[next]"
     [title]="'Desenhar ' + directionLabel[next]">{{ directionGlyph[next] }}</button>
+  <span class="map-zoom" role="group" aria-label="Zoom do mapa">
+    <button type="button" class="btn btn-icon" (click)="zoomOut()" aria-label="Afastar" title="Afastar">−</button>
+    <button type="button" class="btn btn-icon map-zoom-actual" (click)="actualSize()" [attr.aria-label]="'Zoom em ' + percent() + '%. Voltar para 100%'" title="Voltar para 100%">{{ percent() }}%</button>
+    <button type="button" class="btn btn-icon" (click)="zoomIn()" aria-label="Aproximar" title="Aproximar">+</button>
+    <button type="button" class="btn btn-icon" (click)="fitZoom()" aria-label="Enquadrar o mapa na tela" title="Enquadrar o mapa na tela">⤢</button>
+  </span>
   @if (collapsed().size > 0) {
     <span class="muted map-bar-label">{{ collapsed().size === 1 ? 'Um sistema recolhido' : collapsed().size + ' sistemas recolhidos' }}: clique no bloco com + para abrir.</span>
   }
@@ -26,7 +32,7 @@
   <p class="muted map-status" role="status">O mapa deste fluxo está vazio: o levantamento não tem passos para desenhar.</p>
 } @else if (geometry(); as g) {
   <div class="map-scroll" #scroller>
-    <div class="map-canvas" [style.width.px]="g.width" [style.height.px]="g.height">
+    <div class="map-canvas" [style.zoom]="zoom()" [style.width.px]="g.width" [style.height.px]="g.height">
       @for (placed of g.lanes; track placed.lane.id) {
         <div class="map-lane" [class.is-outside]="placed.lane.kind === MapLaneKind.Outside" [style.left.px]="placed.x - 8" [style.width.px]="box.width + 16">
           <span class="map-lane-title">{{ laneTitles().get(placed.lane.id) }}</span>
@@ -67,7 +73,7 @@
             <button type="button" class="map-label is-outcome" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)"
               [attr.aria-label]="'Acender o caminho do desfecho: ' + l.text" (click)="pickLinkOutcome(l.index)">{{ l.text }}</button>
           } @else {
-            <span class="map-label" [attr.title]="callTitle(l.link)" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)">{{ l.text }}</span>
+            <span class="map-label" role="note" [attr.aria-label]="'Chamada: ' + (callTitle(l.link) ?? l.text)" [attr.title]="callTitle(l.link)" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)">{{ l.text }}</span>
           }
         }
       }

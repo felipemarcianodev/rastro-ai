@@ -44,6 +44,9 @@
               } @else if (item.edge.confidence === EdgeConfidence.Inferred) {
                 <span class="edge-mark is-inferred" role="img" aria-label="Inferida, a conferir" title="Inferida, a conferir">?</span>
               }
+              @if (item.edge.origin !== undefined && item.edge.confidence !== EdgeConfidence.Extracted) {
+                <span [class]="'edge-origin is-' + originSlug[item.edge.origin]" role="img" [attr.aria-label]="originLabel[item.edge.origin]" [title]="originLabel[item.edge.origin]">{{ originMark[item.edge.origin] }}</span>
+              }
               <span class="edge-label-text">
                 @if (item.edge.http) {
                   {{ httpLabel(item.edge) }}
@@ -81,7 +84,9 @@
           (keydown.arrowup)="walk($event, item.node.id, 'up')" (keydown.arrowdown)="walk($event, item.node.id, 'down')"
           (keydown.alt.arrowleft)="moveByKey($event, item, -1, 0)" (keydown.alt.arrowright)="moveByKey($event, item, 1, 0)"
           (keydown.alt.arrowup)="moveByKey($event, item, 0, -1)" (keydown.alt.arrowdown)="moveByKey($event, item, 0, 1)">
-          <div fConnector fConnectorType="target" [fConnectorConnectableSide]="horizontal() ? 'top' : 'left'" [fConnectorDisabled]="!editing()" [fConnectorId]="'in:' + item.node.id" class="flow-port is-in"></div>
+          @if (hasPort(Port.In, item.node.id)) {
+            <div fConnector fConnectorType="target" [fConnectorConnectableSide]="horizontal() ? 'top' : 'left'" [fConnectorDisabled]="!editing()" [fConnectorId]="'in:' + item.node.id" class="flow-port is-in"></div>
+          }
           @if (item.number) {
             <span class="flow-node-step" aria-hidden="true">{{ item.number }}</span>
           }
@@ -120,9 +125,15 @@
           @if (item.box.height > 44) {
             <span class="flow-node-meta">{{ meta(item.node) }}</span>
           }
-          <div fConnector fConnectorType="source" [fConnectorConnectableSide]="horizontal() ? 'right' : 'bottom'" fConnectorMultiple [fConnectorDisabled]="!editing()" [fConnectorId]="'out:' + item.node.id" class="flow-port is-out"></div>
-          <div fConnector fConnectorType="target" [fConnectorConnectableSide]="horizontal() ? 'left' : 'top'" [fConnectorDisabled]="!editing()" [fConnectorId]="'top:' + item.node.id" class="flow-port is-top"></div>
-          <div fConnector fConnectorType="source" [fConnectorConnectableSide]="horizontal() ? 'bottom' : 'right'" fConnectorMultiple [fConnectorDisabled]="!editing()" [fConnectorId]="'side:' + item.node.id" class="flow-port is-side"></div>
+          @if (hasPort(Port.Out, item.node.id)) {
+            <div fConnector fConnectorType="source" [fConnectorConnectableSide]="horizontal() ? 'right' : 'bottom'" fConnectorMultiple [fConnectorDisabled]="!editing()" [fConnectorId]="'out:' + item.node.id" class="flow-port is-out"></div>
+          }
+          @if (hasPort(Port.Top, item.node.id)) {
+            <div fConnector fConnectorType="target" [fConnectorConnectableSide]="horizontal() ? 'left' : 'top'" [fConnectorDisabled]="!editing()" [fConnectorId]="'top:' + item.node.id" class="flow-port is-top"></div>
+          }
+          @if (hasPort(Port.Side, item.node.id)) {
+            <div fConnector fConnectorType="source" [fConnectorConnectableSide]="horizontal() ? 'bottom' : 'right'" fConnectorMultiple [fConnectorDisabled]="!editing()" [fConnectorId]="'side:' + item.node.id" class="flow-port is-side"></div>
+          }
         </div>
       }
     </ng-container>
@@ -130,6 +141,11 @@
   <f-selection-area [fTrigger]="selectionTrigger" />
   <f-minimap [fMinSize]="1000" />
 </f-flow>
+  @if (drawingBusy()) {
+    <div class="canvas-status is-busy" aria-live="polite">
+      <p class="muted">Desenhando o grafo…</p>
+    </div>
+  }
 } @else {
   <div class="canvas-status" aria-live="polite">
     <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
@@ -174,10 +190,24 @@
   }
 </div>
 
+@if (moveToast() && !undoReset()) {
+  <div class="toast" role="status">
+    <span>Passo movido.</span>
+    <button type="button" class="btn btn-g btn-small" (click)="undoMove()">Desfazer</button>
+  </div>
+}
+
 @if (undoReset()) {
   <div class="toast" role="status">
     <span>Posições redefinidas.</span>
     <button type="button" class="btn btn-g btn-small" (click)="undoResetLayout()">Desfazer</button>
+  </div>
+}
+
+@if (shortcutsHint() && laidOut()) {
+  <div class="shortcuts-hint" role="note">
+    <span>Setas: andar · Alt+setas: mover · Ctrl+F: buscar · Esc: limpar</span>
+    <button type="button" class="btn btn-g btn-small" (click)="closeShortcutsHint()" aria-label="Fechar a dica de atalhos">Fechar</button>
   </div>
 }
 
@@ -191,6 +221,11 @@
   <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-extracted" /></svg></dt><dd>Extraída do código</dd></div>
   <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-inferred" /></svg><span class="edge-mark is-inferred" aria-hidden="true">?</span></dt><dd>Inferida, a conferir</dd></div>
   <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-confirmed" /></svg><span class="edge-mark is-confirmed" aria-hidden="true">✓</span></dt><dd>Confirmada por você</dd></div>
+  @for (origin of originOrder; track origin) {
+    @if (originsPresent().has(origin)) {
+      <div><dt><span [class]="'edge-origin is-' + originSlug[origin]" aria-hidden="true">{{ originMark[origin] }}</span></dt><dd>{{ originLabel[origin] }}</dd></div>
+    }
+  }
   <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-trail" /></svg></dt><dd>Caminho até o nó escolhido</dd></div>
   @if (horizontal()) {
     <div><dt><span class="legend-glyph" aria-hidden="true">→</span></dt><dd>Linha para a direita: o passo seguinte, na ordem do código</dd></div>

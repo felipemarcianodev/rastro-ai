@@ -5,7 +5,7 @@
 }
 
 .page {
-  max-width: 820px;
+  max-width: var(--reading-w);
   margin: 0 auto;
   padding: var(--space-6) var(--space-5);
   display: flex;
@@ -69,6 +69,7 @@ button.page-back {
 
 .repo {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
@@ -77,15 +78,30 @@ button.page-back {
   border-radius: var(--radius-md);
 }
 
+// UX-G-L08: em tela larga o cartão vira duas colunas, dados à esquerda e ações à direita,
+// e o caminho não fica espremido numa coluna estreita.
+@media (min-width: 1280px) {
+  .repo {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 340px);
+    align-items: start;
+  }
+
+  .repo-actions {
+    align-self: start;
+  }
+}
+
 .repo-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-2);
-  flex: none;
+  flex: 0 1 auto;
 }
 
 .repo-main {
+  flex: 1 1 320px;
   display: flex;
   flex-direction: column;
   gap: var(--space-1);

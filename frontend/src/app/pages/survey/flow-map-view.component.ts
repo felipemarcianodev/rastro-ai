@@ -35,6 +35,11 @@ const NARROW_QUERY = '(max-width: 640px)';
 // Setas do teclado andam pelo caminho: para a frente (+1) e para trás (-1).
 const WALK_KEY: Record<string, number> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 const REVEAL_MARGIN = 16;
+// Zoom do mapa (UX-G-F18): mesmos limites e passo do zoom do diagrama, num intervalo menor porque os blocos são texto.
+const ZOOM_MIN = 0.25;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 1.2;
+const FIT_PAD = 16;
 
 // Abas do painel do mapa (Fases 31 a 33).
 export enum MapTab {
@@ -66,6 +71,9 @@ export class FlowMapViewComponent {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly ai = inject(AiStatusService);
   private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
+
+  protected readonly zoom = signal(1);
+  protected readonly percent = computed(() => Math.round(this.zoom() * 100));
 
   readonly detail = input.required<SurveyDetail>();
   readonly selectedId = input<string | null>(null);
@@ -242,14 +250,39 @@ export class FlowMapViewComponent {
         const placed = geometry.blocks.find((p) => p.block.id === id);
         if (!placed) return;
         const { width, height } = MAP_BOX;
-        const top = placed.y - REVEAL_MARGIN;
-        const left = placed.x - REVEAL_MARGIN;
+        const z = this.zoom();
+        const top = placed.y * z - REVEAL_MARGIN;
+        const left = placed.x * z - REVEAL_MARGIN;
+        const bottom = (placed.y + height) * z + REVEAL_MARGIN;
+        const right = (placed.x + width) * z + REVEAL_MARGIN;
         if (top < scroller.scrollTop) scroller.scrollTop = top;
-        else if (placed.y + height + REVEAL_MARGIN > scroller.scrollTop + scroller.clientHeight) scroller.scrollTop = placed.y + height + REVEAL_MARGIN - scroller.clientHeight;
+        else if (bottom > scroller.scrollTop + scroller.clientHeight) scroller.scrollTop = bottom - scroller.clientHeight;
         if (left < scroller.scrollLeft) scroller.scrollLeft = left;
-        else if (placed.x + width + REVEAL_MARGIN > scroller.scrollLeft + scroller.clientWidth) scroller.scrollLeft = placed.x + width + REVEAL_MARGIN - scroller.clientWidth;
+        else if (right > scroller.scrollLeft + scroller.clientWidth) scroller.scrollLeft = right - scroller.clientWidth;
       });
     });
+  }
+
+  protected zoomIn(): void {
+    this.zoom.update((z) => Math.min(ZOOM_MAX, z * ZOOM_STEP));
+  }
+
+  protected zoomOut(): void {
+    this.zoom.update((z) => Math.max(ZOOM_MIN, z / ZOOM_STEP));
+  }
+
+  protected actualSize(): void {
+    this.zoom.set(1);
+  }
+
+  // Cabe o mapa inteiro no contêiner, sem passar de 100%.
+  protected fitZoom(): void {
+    const g = this.geometry();
+    const scroller = this.scroller()?.nativeElement;
+    if (!g || !scroller || g.width === 0 || g.height === 0) return;
+    const across = (scroller.clientWidth - 2 * FIT_PAD) / g.width;
+    const down = (scroller.clientHeight - 2 * FIT_PAD) / g.height;
+    this.zoom.set(Math.min(1, Math.max(ZOOM_MIN, Math.min(across, down))));
   }
 
   protected retry(): void {

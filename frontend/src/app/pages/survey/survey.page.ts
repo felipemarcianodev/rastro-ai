@@ -13,6 +13,7 @@ import { trailTo } from '../../core/graph/trail';
 import { surveySystems } from '../../core/graph/timeline-layout';
 import { focusOn } from '../../core/graph/focus';
 import { searchNodes } from '../../core/graph/search';
+import { splitLabel } from '../../core/graph/reading';
 import { collapseAfter, collapsedOwner } from '../../core/graph/collapse';
 import { pathsBetween } from '../../core/graph/between';
 import { compareGraphs } from '../../core/graph/compare';
@@ -64,6 +65,9 @@ const DRAWING_VIEWS: readonly { direction: LayoutDirection; label: string; title
   { direction: LayoutDirection.Consolidated, label: 'Visão consolidada', title: 'O fluxo todo num desenho só, com as suas cores' },
 ];
 const SEARCH_FOCUS_DELAY_MS = 120;
+// Lista de ocorrências da busca (UX-G-F22) e espera até o canvas voltar (UX-G-F03).
+const SEARCH_LIST_LIMIT = 8;
+const CANVAS_BACK_DELAY_MS = 150;
 const EXPORT_MESSAGE_MS = 4000;
 const NOTE_MESSAGE_MS = 3000;
 const NOTE_UNDO_MS = 8000;
@@ -222,6 +226,26 @@ export class SurveyPage {
     const graph = this.graph();
     return graph ? searchNodes(graph, this.searchQuery()) : [];
   });
+  // Até SEARCH_LIST_LIMIT ocorrências, com o nome do passo e o dono (UX-G-F22).
+  protected readonly searchList = computed(() => {
+    const graph = this.graph();
+    if (!graph || !this.searchOpen()) return [];
+    const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+    return this.matches()
+      .slice(0, SEARCH_LIST_LIMIT)
+      .flatMap((id, index) => {
+        const node = byId.get(id);
+        if (!node) return [];
+        const { owner, name } = splitLabel(node);
+        return [{ id, index, owner: owner.replace(/\.$/, ''), name }];
+      });
+  });
+
+  protected pickSearchResult(id: string, index: number): void {
+    this.searchIndex.set(index);
+    this.select(id, false);
+  }
+
   protected readonly matchIds = computed(() => (this.searchOpen() && this.matches().length > 0 ? new Set(this.matches()) : null));
   protected readonly currentMatch = computed(() => {
     const matches = this.matches();
@@ -544,8 +568,15 @@ export class SurveyPage {
   }
 
   // Contagem da barra: leva ao próximo não resolvido, como o botão do canvas.
+  // Fora do grafo (consolidado, mapa), volta ao grafo antes (UX-G-F03).
   protected nextHole(): void {
-    this.canvas()?.nextHole();
+    const canvas = this.canvas();
+    if (canvas) {
+      canvas.nextHole();
+      return;
+    }
+    this.onDirection(LayoutDirection.Horizontal);
+    setTimeout(() => this.canvas()?.nextHole(), CANVAS_BACK_DELAY_MS);
   }
 
   // Exportar o recorte: imagem e Mermaid do que está na tela (inteiro, recortado ou recolhido).

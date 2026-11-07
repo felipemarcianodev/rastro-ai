@@ -1,6 +1,7 @@
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { forkJoin, map, of, switchMap } from 'rxjs';
+import { LeaveGuarded } from '../../core/leave-guard';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
 import { resolveDiagram } from '../../core/diagram-source';
@@ -42,9 +43,9 @@ const DEFAULT_PAINT: Paint = { fill: '#ffffff', stroke: '#b7c1bc', color: '#1d2a
   imports: [RouterLink, ConfirmDialogComponent, DiagramStageComponent],
   templateUrl: './diagram.page.html',
   styleUrl: './diagram.page.scss',
-  host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
+  host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)', '(window:beforeunload)': 'onBeforeUnload($event)' },
 })
-export class DiagramPage {
+export class DiagramPage implements LeaveGuarded {
   private readonly api = inject(RastroApi);
   private readonly renderer = inject(DIAGRAM_RENDERER);
 
@@ -65,6 +66,11 @@ export class DiagramPage {
   protected readonly message = signal<{ ok: boolean; text: string } | null>(null);
   protected readonly confirmRegenerate = signal<{ text: string; dropped: number } | null>(null);
   protected readonly confirmDiscard = signal(false);
+  // UX-G-F10: texto de partida (gerado, salvo ou herdado). Diferente dele e sem salvar, sair pergunta.
+  private readonly baseline = signal('');
+  protected readonly hasUnsaved = computed(() => (this.saved() !== null ? this.dirty() : this.detail() !== null && this.text() !== this.baseline()));
+  // Resposta pendente da pergunta "Sair sem salvar?" (a guarda de rota espera por ela).
+  protected readonly leaveAsk = signal<((leave: boolean) => void) | null>(null);
   // Edição trazida do levantamento anterior (ainda não salva neste): quantos passos editados saíram.
   protected readonly inherited = signal<{ dropped: number } | null>(null);
   protected readonly busy = signal(false);
@@ -129,6 +135,23 @@ export class DiagramPage {
     });
   }
 
+  canLeave(): boolean | Promise<boolean> {
+    if (!this.hasUnsaved()) return true;
+    return new Promise<boolean>((resolve) => {
+      this.leaveAsk.set((leave) => {
+        this.leaveAsk.set(null);
+        resolve(leave);
+      });
+    });
+  }
+
+  // Fechar a aba ou recarregar com edição não salva: o navegador pergunta.
+  protected onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!this.hasUnsaved()) return;
+    event.preventDefault();
+    event.returnValue = '';
+  }
+
   protected reload(): void {
     this.load(this.id());
   }
@@ -163,6 +186,7 @@ export class DiagramPage {
           this.saved.set(resolved.saved);
           this.inherited.set(resolved.inherited);
           this.text.set(resolved.text);
+          this.baseline.set(resolved.text);
         },
         error: (error) => this.error.set(apiErrorMessage(error)),
       });
@@ -328,6 +352,7 @@ export class DiagramPage {
         this.future = [];
         this.syncHistory();
         this.text.set(this.generated());
+        this.baseline.set(this.generated());
         this.show({ ok: true, text: 'Edição descartada. Voltou ao diagrama gerado do fluxo.' });
       },
       error: (error) => {

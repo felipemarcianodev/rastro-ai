@@ -97,33 +97,39 @@
   }
 </div>
 
-@if (result(); as r) {
-  @if (!r.analysis.error) {
-    <aside class="qa-side" aria-label="Plano e tabelas da consulta">
-      @if (live()) {
-        <app-query-plan [repository]="repository()" [sql]="r.sql" [dialect]="liveDialect() ?? dialect()" />
-      }
-      <h2 class="section-title qa-title">Tabelas da consulta</h2>
-      @if (r.analysis.tables.length === 0) {
-        <p class="muted">Nenhuma tabela citada.</p>
-      }
-      <ul class="qa-tables">
-        @for (t of r.analysis.tables; track t.name) {
-          <li>
-            @if (tableLink(t); as key) {
-              <button type="button" class="source-link code" (click)="pickTable.emit(key)" [title]="'Ver ' + key + ' no mapa do banco'">{{ t.name }}</button>
-            } @else {
-              <span class="code">{{ t.name }}</span>
-            }
-            @if (t.alias) {
-              <span class="muted">apelido {{ t.alias }}</span>
-            }
-            @if (!t.inSchema) {
-              <p class="muted qa-out">fora do esquema lido do código: os achados de índice e de nulo não valem para ela</p>
-            }
-          </li>
+@if (result() || !live()) {
+  <aside class="qa-side" aria-label="Plano e tabelas da consulta">
+    @if (result(); as r) {
+      @if (!r.analysis.error) {
+        @if (live()) {
+          <app-query-plan [repository]="repository()" [sql]="r.sql" [dialect]="liveDialect() ?? dialect()" />
         }
-      </ul>
-    </aside>
-  }
+        <h2 class="section-title qa-title">Tabelas da consulta</h2>
+        @if (r.analysis.tables.length === 0) {
+          <p class="muted">Nenhuma tabela citada.</p>
+        }
+        <ul class="qa-tables">
+          @for (t of r.analysis.tables; track t.name) {
+            <li>
+              @if (tableLink(t); as key) {
+                <button type="button" class="source-link code" (click)="pickTable.emit(key)" [title]="'Ver ' + key + ' no mapa do banco'">{{ t.name }}</button>
+              } @else {
+                <span class="code">{{ t.name }}</span>
+              }
+              @if (t.alias) {
+                <span class="muted">apelido {{ t.alias }}</span>
+              }
+              @if (!t.inSchema) {
+                <p class="muted qa-out">fora do esquema lido do código: os achados de índice e de nulo não valem para ela</p>
+              }
+            </li>
+          }
+        </ul>
+      }
+    }
+    @if (!live()) {
+      <p class="muted qa-live-hint">Quer o plano estimado? Conecte um banco vivo, só de leitura.</p>
+      <button type="button" class="btn btn-g btn-small" (click)="connect.emit()" aria-haspopup="dialog">Conectar banco vivo</button>
+    }
+  </aside>
 }

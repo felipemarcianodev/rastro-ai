@@ -197,7 +197,8 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     const notice = ctx.el.querySelector('.notice.is-error')!;
     expect(notice.textContent).toContain('O leitor de T-SQL não entendeu a consulta (linha 2, coluna 5): Sintaxe incorreta perto de FROM.');
     expect(ctx.el.querySelector('.qa-findings')).toBeNull();
-    expect(ctx.el.querySelector('.qa-side')).toBeNull();
+    // Com erro de leitura não há tabelas; a lateral fica só com o convite ao banco vivo (UX-G-B04).
+    expect(ctx.el.querySelector('.qa-tables')).toBeNull();
   });
 
   // WEB-DBQ-015
@@ -225,7 +226,7 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     expect(side.textContent).toContain('Tabelas da consulta');
     expect(side.textContent).toContain('apelido p');
     expect(side.textContent).toContain('fora do esquema lido do código: os achados de índice e de nulo não valem para ela');
-    expect(side.querySelectorAll('button').length).toBe(1);
+    expect(side.querySelectorAll('.qa-tables button').length).toBe(1);
 
     side.querySelector<HTMLButtonElement>('button')!.click();
     [...ctx.el.querySelectorAll<HTMLButtonElement>('.qa-map')][0].click();
@@ -396,4 +397,20 @@ describe('QueryAnalysisComponent no PostgreSQL (Fase 42)', () => {
     expect(document.activeElement).toBe(title);
     expect(ctx.el.querySelector('.qa-count')!.getAttribute('role')).toBe('status');
   }));
+
+  // UX-G-B04
+  it('sem banco vivo, a lateral convida a conectar e o botão emite o pedido; com banco vivo, some', () => {
+    const ctx = render();
+    const asked = jasmine.createSpy('connect');
+    ctx.fixture.componentInstance.connect.subscribe(asked);
+
+    const hint = ctx.el.querySelector('.qa-side')!;
+    expect(hint.textContent).toContain('Quer o plano estimado? Conecte um banco vivo, só de leitura.');
+    [...hint.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.trim() === 'Conectar banco vivo')!.click();
+    expect(asked).toHaveBeenCalledTimes(1);
+
+    ctx.fixture.componentRef.setInput('live', true);
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('.qa-live-hint')).toBeNull();
+  });
 });

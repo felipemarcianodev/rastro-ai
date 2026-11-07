@@ -37,6 +37,8 @@ export class LiveConnectionDialogComponent {
   readonly removed = output<void>();
 
   protected readonly key = signal('');
+  // "Mostrar" revela a string digitada (UX-G-B16); o diálogo é destruído ao fechar, então volta sempre escondida.
+  protected readonly reveal = signal(false);
   protected readonly busy = signal(false);
   protected readonly confirmingRemove = signal(false);
   protected readonly saved = signal(false);

@@ -57,6 +57,8 @@ export class QueryAnalysisComponent {
   readonly origin = input<string | undefined>();
   // Pedido para ver uma tabela no mapa; a página troca de aba.
   readonly pickTable = output<string>();
+  // Sem banco vivo, a lateral oferece conectar um (UX-G-B04); a página abre o diálogo.
+  readonly connect = output<void>();
 
   protected readonly text = signal('');
   protected readonly busy = signal(false);
@@ -91,6 +93,8 @@ export class QueryAnalysisComponent {
 
   private sub?: Subscription;
   private suggestSub?: Subscription;
+  // A última sugestão por texto da consulta (UX-G-B05): editar a consulta não a perde, e o mesmo texto de volta a mostra sem gastar de novo.
+  private readonly suggestions = new Map<string, QueryAiSuggestion>();
 
   protected readonly segments = computed(() => {
     const r = this.result();
@@ -144,6 +148,10 @@ export class QueryAnalysisComponent {
     this.discardSuggestion();
   }
 
+  private suggestionKey(sql: string): string {
+    return `${this.repository()}\u0000${sql}`;
+  }
+
   private discardSuggestion(): void {
     this.suggestSub?.unsubscribe();
     this.suggesting.set(false);
@@ -171,6 +179,7 @@ export class QueryAnalysisComponent {
     this.suggestSub = this.api.suggestQuery(this.repository(), sql).subscribe({
       next: (suggestion) => {
         this.suggesting.set(false);
+        this.suggestions.set(this.suggestionKey(sql), suggestion);
         this.suggestion.set(suggestion);
         this.revealSuggestion();
       },
@@ -196,6 +205,8 @@ export class QueryAnalysisComponent {
       next: (analysis) => {
         this.busy.set(false);
         this.result.set({ sql, analysis });
+        const remembered = this.suggestions.get(this.suggestionKey(sql));
+        if (remembered) this.suggestion.set(remembered);
         this.focusTitle();
       },
       error: (error) => {

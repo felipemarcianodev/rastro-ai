@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { DbSchema, DbUsageReport } from '../../core/database/db-schema';
-import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
+import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM, HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { DbOperation, FindingKind, FindingSeverity } from '../../core/models';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
 import { LastRepositoryService } from '../../core/last-repository.service';
@@ -151,14 +151,15 @@ describe('DatabasePage (Fase 38)', () => {
   // WEB-DBV-008
   it('o zoom muda a escala do mapa com limites, e o tipo divergente fica marcado no bloco', () => {
     const { fixture, el } = render();
-    const [minus, reset, plus] = [...el.querySelectorAll<HTMLButtonElement>('.db-zoom-tools button')];
+    const [minus, reset, , plus] = [...el.querySelectorAll<HTMLButtonElement>('.db-zoom-tools button')];
     expect(reset.textContent!.trim()).toBe('100%');
 
     minus.click();
     minus.click();
     fixture.detectChanges();
     expect(el.querySelector<HTMLElement>('.db-canvas')!.style.transform).toBe('scale(0.5)');
-    expect(minus.disabled).toBeTrue();
+    // O mínimo caiu para 25% (UX-G-B07): o limite é coberto no teste do "Ajustar".
+    expect(minus.disabled).toBeFalse();
     reset.click();
     plus.click();
     fixture.detectChanges();
@@ -240,11 +241,10 @@ describe('DatabasePage (Fase 38)', () => {
   });
 
   // WEB-DBV-013 (B07)
-  it('no erro de carga, esconde as abas e o banco vivo e leva às configurações', () => {
+  it('no erro de carga, mantém as abas (UX-G-B03), esconde o banco vivo e leva às configurações', () => {
     const { el } = render(null);
-    expect(el.querySelector('[role="tablist"]')).toBeNull();
-    expect(el.querySelector('[role="tab"]')).toBeNull();
-    expect([...el.querySelectorAll('button')].some((b) => b.textContent!.includes('banco vivo'))).toBeFalse();
+    expect(el.querySelectorAll('[role="tab"]').length).toBe(2);
+    expect([...el.querySelectorAll('.page-bar button')].some((b) => b.textContent!.includes('banco vivo'))).toBeFalse();
     expect(el.querySelector('a[href="/configuracoes"]')!.textContent).toContain('configurações');
   });
 
@@ -606,4 +606,137 @@ describe('DatabasePage (Fase 38)', () => {
     expect(getComputedStyle(dim).opacity).toBe('1');
     expect(getComputedStyle(dim).color).toBe(getComputedStyle(dim.querySelector('.db-row-type')!).color);
   }));
+
+  // UX-G-B01
+  it('escolher a tabela pelo mapa leva o foco ao título do painel e "Fechar" devolve o foco ao cartão', fakeAsync(() => {
+    const { fixture, el } = render();
+    card(el, 'pedidos').focus();
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+    tick();
+    expect(document.activeElement).toBe(el.querySelector('.db-panel-head h2'));
+    expect(document.activeElement!.textContent).toContain('pedidos');
+
+    buttonByText(el, 'Fechar')!.click();
+    fixture.detectChanges();
+    tick();
+    expect(document.activeElement).toBe(card(el, 'pedidos'));
+  }));
+
+  // UX-G-B03
+  it('com erro ao ler o esquema, as abas ficam e a análise de consulta funciona sem esquema', () => {
+    const { fixture, http, el } = render(null);
+    expect(el.querySelector('[role="alert"]')!.textContent).toBeTruthy();
+    expect(el.querySelectorAll('[role="tab"]').length).toBe(2);
+    expect(buttonByText(el, 'Analisar uma consulta mesmo assim')).toBeDefined();
+
+    fixture.componentRef.setInput('aba', DB_TAB_QUERY_PARAM);
+    fixture.detectChanges();
+    const analysis = el.querySelector<HTMLElement>('app-query-analysis')!;
+    expect(analysis.hidden).toBeFalse();
+    expect(el.querySelector('.page-state')).toBeNull();
+    expect(el.querySelector('.db-schema-off')!.textContent).toContain('O esquema do banco não foi lido');
+
+    const box = el.querySelector<HTMLTextAreaElement>('#qa-sql')!;
+    box.value = 'SELECT 1';
+    box.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.qa-actions .btn')!.click();
+    http.expectOne('/api/repositories/loja/schema/analyze').flush({ dialect: 0, statements: 1, findings: [], tables: [], error: null });
+    fixture.detectChanges();
+    expect(el.querySelector('#qa-result-title')).not.toBeNull();
+  });
+
+  // UX-G-B07
+  it('o zoom desce até 25% e "Ajustar" cabe o mapa na largura do contêiner', () => {
+    const { fixture, el } = render();
+    const zoomOut = el.querySelector<HTMLButtonElement>('button[aria-label="Diminuir o mapa"]')!;
+    for (let i = 0; i < 3; i++) {
+      zoomOut.click();
+      fixture.detectChanges();
+    }
+    expect(el.querySelector('.db-zoom-tools')!.textContent).toContain('25%');
+    expect(zoomOut.disabled).toBeTrue();
+
+    buttonByText(el, 'Ajustar')!.click();
+    fixture.detectChanges();
+    const container = el.querySelector<HTMLElement>('.db-scroll')!.clientWidth;
+    const mapWidth = parseFloat(el.querySelector<HTMLElement>('.db-canvas')!.style.width);
+    const expected = Math.min(1, Math.max(0.25, Math.floor((container / mapWidth) * 100) / 100));
+    expect(el.querySelector<HTMLElement>('.db-canvas')!.style.transform).toBe(`scale(${expected})`);
+  });
+
+  // UX-G-B14
+  it('o menu Exportar abre com o foco no primeiro item, anda pelas setas e fecha ao sair com Tab', fakeAsync(() => {
+    const { fixture, el } = render();
+    el.querySelector<HTMLButtonElement>('#db-export-button')!.click();
+    fixture.detectChanges();
+    tick();
+    const items = [...el.querySelectorAll<HTMLButtonElement>('#db-export-menu button')];
+    const menu = el.querySelector<HTMLElement>('#db-export-menu')!;
+    expect(document.activeElement).toBe(items[0]);
+
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(items[1]);
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+    menu.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+    expect(document.activeElement).toBe(items[items.length - 1]);
+
+    items[1].dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: items[2] }));
+    fixture.detectChanges();
+    expect(el.querySelector('#db-export-menu')).not.toBeNull();
+    items[items.length - 1].dispatchEvent(new FocusEvent('focusout', { bubbles: true, relatedTarget: document.body }));
+    fixture.detectChanges();
+    expect(el.querySelector('#db-export-menu')).toBeNull();
+  }));
+
+  // UX-G-B23
+  it('"Ver no mapa" abre o painel com "Voltar à análise", que volta à consulta com o resultado intacto', fakeAsync(() => {
+    const { fixture, http, el } = render();
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    fixture.componentRef.setInput('aba', DB_TAB_QUERY_PARAM);
+    fixture.detectChanges();
+    const box = el.querySelector<HTMLTextAreaElement>('#qa-sql')!;
+    box.value = 'SELECT * FROM pedidos';
+    box.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.qa-actions .btn')!.click();
+    http.expectOne('/api/repositories/loja/schema/analyze').flush({
+      dialect: 0, statements: 1, findings: [], tables: [{ name: 'pedidos', alias: null, inSchema: true }], error: null,
+    });
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.qa-tables .source-link')!.click();
+    fixture.detectChanges();
+    fixture.componentRef.setInput('aba', undefined);
+    fixture.detectChanges();
+
+    const back = buttonByText(el.querySelector<HTMLElement>('.db-panel')!, 'Voltar à análise')!;
+    expect(back).toBeDefined();
+    navigate.calls.reset();
+    back.click();
+    fixture.detectChanges();
+    tick();
+    expect(navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { aba: DB_TAB_QUERY_PARAM } }));
+    fixture.componentRef.setInput('aba', DB_TAB_QUERY_PARAM);
+    fixture.detectChanges();
+    expect(el.querySelector('#qa-result-title')).not.toBeNull();
+    expect(buttonByText(el, 'Voltar à análise')).toBeUndefined();
+  }));
+
+  // UX-G-B23
+  it('abrir uma tabela pelo mapa, sem vir da análise, não mostra "Voltar à análise"', () => {
+    const { fixture, el } = render();
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+    expect(buttonByText(el, 'Voltar à análise')).toBeUndefined();
+  });
+
+  // UX-G-B25
+  it('"Levantar o fluxo deste repositório" leva o repositório e a origem banco para a tela inicial', () => {
+    const { fixture, el } = render(lojaSchema(), undefined, { uses: [], findings: [] });
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+    const link = [...el.querySelectorAll<HTMLAnchorElement>('.db-panel a')].find((a) => a.textContent!.includes('Levantar o fluxo deste repositório'))!;
+    expect(link.getAttribute('href')).toBe(`/?repositorio=loja&${HOME_FROM_DB_PARAM}=${HOME_FROM_DB_VALUE}`);
+  });
 });

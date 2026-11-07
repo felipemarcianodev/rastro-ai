@@ -20,6 +20,16 @@
   }
 }
 
+.map-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.map-zoom-actual {
+  min-width: 3.5em;
+}
+
 .map-bar-label {
   font-size: var(--text-sm);
 }

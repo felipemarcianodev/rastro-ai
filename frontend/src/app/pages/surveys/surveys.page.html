@@ -137,14 +137,17 @@
 </div>
 
 @if (formOpen()) {
-  <div class="overlay" appDialog (click)="closeForm()" (dialogClose)="closeForm()">
+  <div class="overlay" appDialog (click)="dismissForm()" (dialogClose)="closeForm()">
     <section class="dialog is-form" role="dialog" aria-modal="true" aria-labelledby="create-title" (click)="$event.stopPropagation()">
       <header class="dialog-head">
         <div>
           <h2 id="create-title">Novo levantamento</h2>
           <p class="muted">O Rastro lê a solution com o compilador e segue cada chamada a partir do método escolhido.</p>
+          @if (backToDb(); as repo) {
+            <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repo, 'banco']">Voltar ao banco</a>
+          }
         </div>
-        <button type="button" class="btn btn-g btn-small" (click)="closeForm()">Fechar</button>
+        <button type="button" class="btn btn-g btn-small" data-dialog-close (click)="closeForm()">Fechar</button>
       </header>
       <div class="dialog-body">
     <form class="form" (ngSubmit)="submit()" novalidate>

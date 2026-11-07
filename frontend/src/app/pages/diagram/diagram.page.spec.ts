@@ -390,3 +390,58 @@ describe('DiagramPage: barra da edição', () => {
     expect(button(el, 'Salvar').classList.contains('btn-small')).toBeFalse();
   });
 });
+
+describe('DiagramPage: sair com edição não salva', () => {
+  // UX-G-F10
+  it('semEdicao_canLeaveLibera', async () => {
+    const { fixture } = await loaded();
+
+    expect(await fixture.componentInstance.canLeave()).toBeTrue();
+    expect(fixture.nativeElement.querySelector('[role="alertdialog"]')).toBeNull();
+  });
+
+  // UX-G-F10
+  it('comEdicao_perguntaEFicarMantemATela', async () => {
+    const { fixture, el } = await loaded();
+    type(el, 'flowchart TD\n  sx["Editado"]\n');
+    fixture.detectChanges();
+
+    const result = fixture.componentInstance.canLeave();
+    fixture.detectChanges();
+    expect(el.querySelector('#confirm-title')?.textContent).toBe('Sair sem salvar?');
+    expect(button(el, 'Ficar')).toBeTruthy();
+    button(el, 'Ficar').click();
+    fixture.detectChanges();
+
+    expect(await result).toBeFalse();
+    expect(el.querySelector('[role="alertdialog"]')).toBeNull();
+  });
+
+  // UX-G-F10
+  it('comEdicao_sairSemSalvarLibera', async () => {
+    const { fixture, el } = await loaded();
+    type(el, 'flowchart TD\n  sx["Editado"]\n');
+    fixture.detectChanges();
+
+    const result = fixture.componentInstance.canLeave();
+    fixture.detectChanges();
+    button(el, 'Sair sem salvar').click();
+
+    expect(await result).toBeTrue();
+  });
+
+  // UX-G-F10 (o evento real no window dispararia o detector de recarga do Karma, então chama o tratador)
+  it('beforeunload_soAvisaComEdicao', async () => {
+    const { fixture, el } = await loaded();
+    const handler = (event: Event) => (fixture.componentInstance as unknown as { onBeforeUnload(e: Event): void }).onBeforeUnload(event);
+    const clean = new Event('beforeunload', { cancelable: true });
+    handler(clean);
+    expect(clean.defaultPrevented).toBeFalse();
+
+    type(el, 'flowchart TD\n  sx["Editado"]\n');
+    fixture.detectChanges();
+    const dirty = new Event('beforeunload', { cancelable: true });
+    handler(dirty);
+    expect(dirty.defaultPrevented).toBeTrue();
+  });
+});

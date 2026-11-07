@@ -6,7 +6,7 @@
         <h2 id="validation-title">Validação da mudança</h2>
         <p class="muted">O Rastro levanta o fluxo de novo no código atual e confere o que o rascunho pediu. O agente faz o mesmo pelo MCP (check_change).</p>
       </div>
-      <button type="button" class="btn btn-icon" (click)="closed.emit()" aria-label="Fechar">×</button>
+      <button type="button" class="btn btn-icon" data-dialog-close (click)="closed.emit()" aria-label="Fechar">×</button>
     </header>
 
     <div class="dialog-body">

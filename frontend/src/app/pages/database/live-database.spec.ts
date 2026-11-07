@@ -633,4 +633,35 @@ describe('Permissão mínima em lista com Copiar (UX-PGL-05)', () => {
     expect(commands[3]).toContain('default_transaction_read_only = on');
     expect(writeText).toHaveBeenCalledOnceWith(commands.join('\n'));
   });
+
+  // UX-G-B16
+  it('o botão "Mostrar" alterna a string entre senha e texto, e ao reabrir o diálogo ela volta escondida', () => {
+    const ctx = renderPage(NONE);
+    open(ctx, 'Conectar banco vivo');
+    const input = () => ctx.el.querySelector<HTMLInputElement>('#live-key')!;
+    const show = () => button(ctx.el.querySelector<HTMLElement>('app-live-connection-dialog')!, 'Mostrar');
+    expect(input().type).toBe('password');
+    expect(show().getAttribute('aria-pressed')).toBe('false');
+
+    show().click();
+    ctx.fixture.detectChanges();
+    expect(input().type).toBe('text');
+    expect(show().getAttribute('aria-pressed')).toBe('true');
+
+    button(ctx.el.querySelector<HTMLElement>('app-live-connection-dialog')!, 'Fechar').click();
+    ctx.fixture.detectChanges();
+    open(ctx, 'Conectar banco vivo');
+    expect(input().type).toBe('password');
+    expect(show().getAttribute('aria-pressed')).toBe('false');
+  });
+
+  // UX-G-B04
+  it('"Conectar banco vivo" da lateral da consulta abre o diálogo', () => {
+    const ctx = renderPage(NONE, 'consulta');
+    const side = ctx.el.querySelector<HTMLElement>('.qa-side')!;
+    expect(side.textContent).toContain('Quer o plano estimado?');
+    button(side, 'Conectar banco vivo').click();
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('app-live-connection-dialog')).not.toBeNull();
+  });
 });

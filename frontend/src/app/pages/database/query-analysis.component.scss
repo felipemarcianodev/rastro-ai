@@ -25,6 +25,11 @@
   background: var(--surface);
 }
 
+.qa-live-hint {
+  margin: var(--space-3) 0 var(--space-2);
+  font-size: var(--text-xs);
+}
+
 .qa-ai {
   display: flex;
   flex-direction: column;

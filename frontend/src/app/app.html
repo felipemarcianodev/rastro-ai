@@ -12,7 +12,7 @@
 
   <nav class="nav" aria-label="Principal">
     <a class="nav-link" routerLink="/" [class.is-current]="area() === Area.Surveys" [attr.aria-current]="area() === Area.Surveys ? 'page' : null">Levantamentos</a>
-    <a class="nav-link" [routerLink]="bancoTarget().commands" [fragment]="bancoTarget().fragment" [class.is-current]="area() === Area.Database" [attr.aria-current]="area() === Area.Database ? 'page' : null">Banco</a>
+    <a class="nav-link" [routerLink]="bancoTarget().commands" [fragment]="bancoTarget().fragment" [attr.aria-label]="bancoLabel()" [class.is-current]="area() === Area.Database" [attr.aria-current]="area() === Area.Database ? 'page' : null">Banco</a>
     <a class="nav-link" routerLink="/configuracoes" [class.is-current]="area() === Area.Settings" [attr.aria-current]="area() === Area.Settings ? 'page' : null">Configurações</a>
   </nav>
 

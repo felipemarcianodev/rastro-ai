@@ -486,3 +486,19 @@ describe('SettingsPage: acréscimos do levantamento', () => {
     el.remove();
   });
 });
+
+describe('SettingsPage: largura', () => {
+  // UX-G-L08
+  it('largura_usaOTokenDeLeitura', () => {
+    TestBed.configureTestingModule({ imports: [SettingsPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SettingsPage);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+    const page = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('.page')!;
+    const reading = getComputedStyle(document.documentElement).getPropertyValue('--reading-w').trim();
+
+    expect(getComputedStyle(page).maxWidth).toBe(reading || '960px');
+    TestBed.inject(HttpTestingController).match(() => true);
+    fixture.nativeElement.remove();
+  });
+});
