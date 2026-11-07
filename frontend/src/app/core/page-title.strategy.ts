@@ -28,3 +28,19 @@ export class PageTitleStrategy extends TitleStrategy {
     if (template !== undefined) this.title.setTitle(resolveTitle(template, paramsOf(snapshot)));
   }
 }
+
+// UX-G-L23: o levantamento chega depois da rota; a página cita o ponto de entrada no título da aba.
+export const APP_TITLE_SUFFIX = 'Rastro AI';
+
+export function surveyTitle(prefix: string, entryPoint: string): string {
+  return `${prefix}: ${entryPoint} | ${APP_TITLE_SUFFIX}`;
+}
+
+@Injectable({ providedIn: 'root' })
+export class SurveyPageTitle {
+  private readonly title = inject(Title);
+
+  set(prefix: string, entryPoint: string | undefined): void {
+    if (entryPoint) this.title.setTitle(surveyTitle(prefix, entryPoint));
+  }
+}

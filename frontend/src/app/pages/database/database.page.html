@@ -56,7 +56,7 @@
     <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
       @for (t of tabs; track t) {
         <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="schema() ? 'db-panel-' + t : null"
-          [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)">
+          [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)" (keydown.home)="onTabEdge($event, false)" (keydown.end)="onTabEdge($event, true)">
           <span class="db-tab-label">{{ tabLabel[t] }}</span>
           <span class="db-tab-hint">{{ tabHint[t] }}</span>
         </button>
@@ -75,6 +75,9 @@
     </div>
   } @else if (!schema()) {
     <div class="page-state" role="status">
+      <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+        <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+      </svg>
       <p class="muted">Lendo o esquema do banco no código do repositório…</p>
     </div>
   }
@@ -98,7 +101,7 @@
         <input id="db-search" class="input is-small" type="search" placeholder="Buscar tabela ou campo" autocomplete="off"
           [value]="query()" (input)="onSearch($any($event.target).value)" />
         @if (list(); as l) {
-          <p class="visually-hidden" role="status">{{ l.tables.length + l.views.length + l.procedures.length }} itens encontrados</p>
+          <p class="visually-hidden" role="status">{{ foundAnnouncement() }}</p>
           <h2 class="db-group">Tabelas <span class="muted">{{ l.tables.length }}</span></h2>
           <ul class="db-items">
             @for (key of l.tables; track key) {
@@ -147,14 +150,18 @@
         <div class="db-map-bar" role="group" aria-label="Recorte do mapa">
           <label for="db-hops">Mostrar</label>
           <select id="db-hops" class="input is-small" [value]="hops()" (change)="setHops($any($event.target).value)" [disabled]="!selectedTable()"
-            [title]="selectedTable() ? 'Recorta o mapa na tabela escolhida' : 'Escolha uma tabela para recortar o mapa nela'">
+            [title]="selectedTable() ? 'Recorta o mapa na tabela escolhida' : 'Escolha uma tabela para recortar o mapa nela'" [attr.aria-describedby]="selectedTable() ? null : 'db-hops-help'">
             <option value="0" [selected]="hops() === 0">o banco inteiro</option>
             @for (n of hopChoices; track n) {
               <option [value]="n" [selected]="hops() === n">{{ selectedTable() ?? 'a tabela' }} e vizinhas até {{ n === 1 ? '1 salto' : n + ' saltos' }}</option>
             }
           </select>
+          @if (!selectedTable()) {
+            <span id="db-hops-help" class="muted db-hops-help">Escolha uma tabela para recortar o mapa nela.</span>
+          }
           @if (hiddenCount() > 0) {
             <span class="muted">{{ hiddenCount() === 1 ? '1 tabela fora do recorte' : hiddenCount() + ' tabelas fora do recorte' }}</span>
+            <button type="button" class="btn btn-g btn-small" (click)="showAll()">Mostrar tudo</button>
           }
           <span class="db-zoom-tools" role="group" aria-label="Zoom do mapa">
             <button type="button" class="btn btn-icon" (click)="zoomBy(-1)" [disabled]="zoom() <= zoomMin" aria-label="Diminuir o mapa" title="Diminuir">−</button>
@@ -179,7 +186,7 @@
                 }
               </svg>
               @for (l of g.links; track l.index) {
-                <span class="db-label" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [title]="l.relation.from + '.' + l.relation.fk.columns.join(', ') + ' aponta para ' + l.relation.to">{{ l.text }}</span>
+                <span class="db-label" aria-hidden="true" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [title]="l.relation.from + '.' + l.relation.fk.columns.join(', ') + ' aponta para ' + l.relation.to">{{ l.text }}</span>
               }
               @for (c of g.cards; track c.key) {
                 <button type="button" class="db-card" [attr.data-table]="c.key" [style.left.px]="c.x" [style.top.px]="c.y" [style.width.px]="card.width" [style.height.px]="c.height"
@@ -217,7 +224,7 @@
 
       @if (selection(); as pick) {
         <aside class="db-panel" [attr.aria-label]="'Painel de ' + pick.key">
-          <app-db-panel [repository]="nome()" [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event, true)" (closed)="closePanel()" />
+          <app-db-panel [repository]="nome()" [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event)" (closed)="closePanel()" />
         </aside>
       }
     </div>

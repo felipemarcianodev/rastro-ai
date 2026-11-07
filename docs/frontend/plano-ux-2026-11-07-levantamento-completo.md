@@ -1,6 +1,6 @@
 # Levantamento de UX completo: frontend depois dos acréscimos (2026-11-07)
 
-**Status:** PROPOSTA. As Fases A e B (risco baixo e médio) seguem a regra do `CLAUDE.md` e podem ser executadas; a Fase C (risco alto) espera a aprovação do dono, item a item.
+**Status:** EM EXECUÇÃO (o dono aprovou as três fases em 2026-11-07: "pode atacar os achados"). As Fases A e B (risco baixo e médio) seguem a regra do `CLAUDE.md` e podem ser executadas; a Fase C (risco alto) espera a aprovação do dono, item a item.
 **Escopo:** o frontend inteiro, no fim do [plano dos acréscimos de UX](plano-ux-2026-11-07-acrescimos.md), como a skill `levantamento-ux` pede no fim de cada plano.
 **Data:** 2026-11-07.
 **Como:** três agentes de leitura (análise estática, uma fatia cada: tela inicial, Configurações e cabeçalho; fluxo, painel do passo e visões; banco, consulta e IA) e a verificação no navegador pelo coordenador (Chrome, paleta Papel no claro), com a API local em modo de produção, um `RASTRO_HOME` temporário vazio e as lojas fictícias dos testes (`TarefasRepo`, com um `.csproj` só para o levantamento). O MCP Knowledge não estava disponível nesta sessão; as etapas seguiram a própria skill.
@@ -179,12 +179,13 @@ IDs: L (tela inicial, Configurações e cabeçalho), F (fluxo, painel e visões)
 
 ### Fase A: estados, foco, anúncios e tema (risco baixo)
 
-- [ ] UX-G-L02, L06, L07, L09, L13, L15, L16, L18, L20 (só o código), L21, L22, L23 e L25.
-- [ ] UX-G-F01, F13, F17, F20, F21 e F23.
-- [ ] UX-G-B02, B06, B08, B09, B10, B11, B12, B13, B17, B18, B19, B20, B21, B22 e B24.
-- [ ] UX-G-N05.
+- [x] UX-G-L02, L06, L07, L09, L13, L15, L16, L18, L20 (só o código), L21, L22, L23 e L25.
+- [x] UX-G-F01, F13, F17, F20, F21 e F23.
+- [x] UX-G-B02, B06, B08, B09, B10, B11, B12, B13, B17, B18, B19, B20, B21, B22 e B24.
+- [x] UX-G-N05.
 - **Aceite:** um primário por tela nas Configurações; nenhum foco no `body` depois de ação no banco; toda região de resultado com `role="status"` fixa; em 360, sem sobreposição na tela do banco; clique de verdade em cada botão novo.
 - **Métricas-alvo:** 0 erro de console; 0 caso de foco no `body` nas ações do banco e da consulta.
+- **Registro (2026-11-07):** feito. O cadastro de repositório virou um componente só (`app-register-repository`), usado nas Configurações e no diálogo da tela inicial, com a regra do nome na ajuda e o aviso de cadastrado. O título da aba do fluxo e da visão consolidada traz o ponto de entrada. O cartão esmaecido do mapa do banco tinha 2,1:1 de contraste no Papel claro e 2,8:1 no escuro; com `--ink-soft` no lugar da opacidade, passou a 4,7:1 e 6,9:1. A causa da barra "Mostrar" por cima da lista em 360 era a lista encolhendo na coluna flex. O token `--edge-mark-size` (16 px) entrou no `_tokens.scss`. Frontend 495/495.
 
 ### Fase B: comportamento novo (risco médio)
 

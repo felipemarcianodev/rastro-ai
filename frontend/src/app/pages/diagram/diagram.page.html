@@ -73,9 +73,11 @@
           class="input code source"
           spellcheck="false"
           aria-label="Texto do diagrama em Mermaid"
+          aria-describedby="mermaid-help"
           [value]="text()"
           (input)="onType($event)"
         ></textarea>
+        <span id="mermaid-help" class="field-help">Texto do Mermaid (flowchart TD). Cada linha é um passo ou uma ligação; a prévia ao lado acompanha o que você digita.</span>
         <div class="export" role="group" aria-label="Exportar">
           <button type="button" class="btn btn-g btn-small" (click)="copyMermaid()">{{ copy.label('Copiar Mermaid') }}</button>
           <button type="button" class="btn btn-g btn-small" (click)="downloadMermaid()">Baixar .mmd</button>

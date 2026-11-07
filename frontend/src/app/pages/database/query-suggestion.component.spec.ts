@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { AiStatusService } from '../../core/ai-status.service';
 import { SqlDialect } from '../../core/database/db-schema';
@@ -54,12 +54,15 @@ function suggestion(overrides: Partial<QueryAiSuggestion['review']> = {}): Query
   };
 }
 
-function render(uses: AiUse[] | null) {
+// null: a IA está desligada (a API respondeu); 'loading': o estado ainda não chegou (UX-G-B11).
+function render(uses: AiUse[] | null | 'loading') {
   TestBed.configureTestingModule({
     imports: [QueryAnalysisComponent],
     providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
   });
-  if (uses) {
+  if (uses === null) {
+    TestBed.inject(AiStatusService).status.set({ enabled: false, configured: false, provider: AiProvider.Claude, model: '', uses: [], tokensToday: 0, dailyTokenBudget: 0 });
+  } else if (uses !== 'loading') {
     TestBed.inject(AiStatusService).status.set({ enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses, tokensToday: 0, dailyTokenBudget: 0 });
   }
   const fixture = TestBed.createComponent(QueryAnalysisComponent);
@@ -120,6 +123,34 @@ describe('Sugestão da IA para a consulta (Fase 41)', () => {
     const on = render([AiUse.Suggestions]);
     expect(on.el.querySelector('.qa-ai-off')).toBeNull();
   });
+
+  // UX-G-B11
+  it('enquanto o estado da IA carrega, a dica de ligar as sugestões não aparece', () => {
+    const loading = render('loading');
+    expect(loading.el.querySelector('.qa-ai-off')).toBeNull();
+    expect(loading.el.textContent).not.toContain('Ligue o uso de sugestões');
+
+    TestBed.inject(AiStatusService).status.set({ enabled: false, configured: false, provider: AiProvider.Claude, model: '', uses: [], tokensToday: 0, dailyTokenBudget: 0 });
+    loading.fixture.detectChanges();
+    expect(loading.el.querySelector('.qa-ai-off')).not.toBeNull();
+  });
+
+  // UX-G-B10
+  it('depois de "Sugerir melhora", o foco vai ao título da sugestão, e também no erro', fakeAsync(() => {
+    const ctx = render([AiUse.Suggestions]);
+    suggestButton(ctx.el)!.focus();
+    ask(ctx, suggestion());
+    tick();
+    expect(document.activeElement).toBe(ctx.el.querySelector('#qa-ai-title'));
+
+    (document.activeElement as HTMLElement).blur();
+    buttonWith(ctx.el, 'Pedir outra sugestão')!.click();
+    ctx.http.expectOne(URL_SUGGEST).flush({ code: 'AI_FAILED' }, { status: 502, statusText: 'Bad Gateway' });
+    ctx.fixture.detectChanges();
+    tick();
+    expect(ctx.el.querySelector('.qa-ai [role="alert"]')).not.toBeNull();
+    expect(document.activeElement).toBe(ctx.el.querySelector('#qa-ai-title'));
+  }));
 
   // UX-FIM-Q17
   it('a sugestão já recebida fica na tela quando a IA some, sem botão de pedir e com aviso discreto', () => {

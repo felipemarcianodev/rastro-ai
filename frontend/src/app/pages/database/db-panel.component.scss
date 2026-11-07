@@ -69,7 +69,11 @@
   border-collapse: collapse;
   font-size: var(--text-sm);
 
+  // Cabeçalho fixo (UX-G-B20): a tabela longa rola dentro do painel e o cabeçalho acompanha.
   th {
+    position: sticky;
+    top: 0;
+    background: var(--surface);
     padding: var(--space-1);
     border-bottom: 1px solid var(--line-strong);
     color: var(--ink-soft);

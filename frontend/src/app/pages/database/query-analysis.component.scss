@@ -68,12 +68,20 @@
   text-decoration: underline wavy var(--ink-soft);
   text-underline-offset: 3px;
 
+  // O traço também muda com a gravidade (UX-G-B24): alta ondulada e grossa, média tracejada, baixa pontilhada.
   &.is-high {
     text-decoration-color: var(--danger);
+    text-decoration-style: wavy;
+    text-decoration-thickness: 2px;
   }
 
   &.is-medium {
     text-decoration-color: var(--unresolved);
+    text-decoration-style: dashed;
+  }
+
+  &.is-low {
+    text-decoration-style: dotted;
   }
 
   &.is-active {

@@ -66,7 +66,8 @@ export class DialogDirective implements AfterViewInit, OnDestroy {
     return dialog;
   }
 
+  // UX-G-L25: getClientRects, e não offsetParent, que é null em elemento com position: fixed.
   private focusables(): HTMLElement[] {
-    return Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hidden && el.offsetParent !== null);
+    return Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>(FOCUSABLE)).filter((el) => !el.hidden && el.getClientRects().length > 0);
   }
 }

@@ -75,6 +75,8 @@ export class QueryAnalysisComponent {
   private readonly ai = inject(AiStatusService);
   // Sugestão da IA (Fase 41): só com a IA ligada e o uso "Sugestões"; sem isso, nada aparece.
   protected readonly canSuggest = computed(() => aiCan(this.ai.status(), AiUse.Suggestions));
+  // Enquanto o estado da IA ainda não chegou, a dica "ligue o uso de sugestões" não aparece (UX-G-B11).
+  protected readonly aiLoaded = computed(() => this.ai.status() !== null);
   protected readonly suggesting = signal(false);
   protected readonly suggestError = signal<string | null>(null);
   protected readonly suggestion = signal<QueryAiSuggestion | null>(null);
@@ -151,8 +153,12 @@ export class QueryAnalysisComponent {
   }
 
   // A resposta da IA chega abaixo dos achados, fora da vista: rola só até o começo da seção (UX-DBA-01).
+  // O foco vai ao título da seção, que vem antes da sugestão e do erro (UX-G-B10).
   private revealSuggestion(): void {
-    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('.qa-ai')?.scrollIntoView({ block: 'start', behavior: 'smooth' }));
+    setTimeout(() => {
+      this.host.nativeElement.querySelector<HTMLElement>('.qa-ai')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      this.host.nativeElement.querySelector<HTMLElement>('#qa-ai-title')?.focus({ preventScroll: true });
+    });
   }
 
   protected suggest(): void {

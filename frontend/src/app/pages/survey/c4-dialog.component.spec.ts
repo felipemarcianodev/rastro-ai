@@ -27,6 +27,32 @@ describe('C4DialogComponent', () => {
     expect(el.querySelector('a[download]')?.getAttribute('href')).toBe('/api/surveys/s1/c4/workspace.dsl');
   });
 
+  // UX-G-F17
+  it('mostra o comando do Structurizr com %CD% e com $PWD', () => {
+    const { el } = setup();
+    const codes = Array.from(el.querySelectorAll('.hint code')).map((c) => c.textContent);
+    expect(codes.some((c) => c?.includes('%CD%'))).toBeTrue();
+    expect(codes.some((c) => c?.includes('$PWD'))).toBeTrue();
+  });
+
+  // UX-G-F17
+  it('com pessoas não salvas, o download fica com aria-disabled, sem href e não baixa', () => {
+    const { fixture, el } = setup();
+    (el.querySelector('.people-actions button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    const name = el.querySelector('#c4-name-1') as HTMLInputElement;
+    name.value = 'Nova';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const link = el.querySelector('a[download]') as HTMLAnchorElement;
+    expect(link.getAttribute('aria-disabled')).toBe('true');
+    expect(link.hasAttribute('href')).toBeFalse();
+    const click = new MouseEvent('click', { cancelable: true, bubbles: true });
+    link.dispatchEvent(click);
+    expect(click.defaultPrevented).toBeTrue();
+  });
+
   it('salvar ignora linha vazia e mostra o DSL novo', () => {
     const { fixture, http, el } = setup();
 
@@ -79,7 +105,8 @@ describe('C4DialogComponent', () => {
   // UX-FIM-Q06
   it('o aviso do que vai ao provedor e dos tokens só aparece com a IA de contexto ligada', () => {
     const { fixture, el } = setup();
-    expect(el.querySelector('app-ai-disclosure')?.textContent?.trim()).toBe('');
+    // UX-G-F23: o aviso mora ao lado do botão de IA, que só existe com a IA de contexto ligada.
+    expect(el.querySelector('app-ai-disclosure')).toBeNull();
 
     TestBed.inject(AiStatusService).status.set({
       enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses: [AiUse.ContextSuggestions], tokensToday: 1500, dailyTokenBudget: 10000,
@@ -90,6 +117,18 @@ describe('C4DialogComponent', () => {
     expect(text).toContain('Vai para Claude');
     expect(text).toContain('as classes do fluxo');
     expect(text).toContain('Hoje: 1.500 de 10.000 tokens.');
+  });
+
+  // UX-G-F23
+  it('o aviso da IA vem logo depois do botão de sugerir pessoas', () => {
+    const { fixture, el } = setup();
+    TestBed.inject(AiStatusService).status.set({
+      enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses: [AiUse.ContextSuggestions], tokensToday: 0, dailyTokenBudget: 0,
+    });
+    fixture.detectChanges();
+
+    const ask = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Sugerir pessoas com a IA'));
+    expect(ask?.nextElementSibling?.tagName.toLowerCase()).toBe('app-ai-disclosure');
   });
 
   it('com a IA de contexto ligada, sugere pessoas e acrescenta só a escolhida', async () => {

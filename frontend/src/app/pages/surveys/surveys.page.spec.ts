@@ -94,7 +94,8 @@ describe('SurveysPage', () => {
     const entry = toggles.find((b) => b.getAttribute('aria-label') === 'O que é Ponto de entrada')!;
 
     expect(toggles.length).toBe(4);
-    expect(entry.title).toContain('Classe.Metodo');
+    // UX-G-L18: o resumo não se repete no title do botão i.
+    expect(entry.title).toBe('');
     entry.click();
     fixture.detectChanges();
     expect(entry.getAttribute('aria-expanded')).toBe('true');
@@ -107,7 +108,8 @@ describe('SurveysPage', () => {
     http.match(() => true).forEach((request) => request.flush([]));
   });
 
-  it('sem repositório, leva às Configurações em vez de mandar para o terminal', async () => {
+  // UX-G-L13
+  it('semRepositorio_umVazioSoComUmCadastrar_semSelectDesabilitado', async () => {
     TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     const fixture = TestBed.createComponent(SurveysPage);
     fixture.detectChanges();
@@ -118,9 +120,10 @@ describe('SurveysPage', () => {
     await openNew(fixture);
     const el = fixture.nativeElement as HTMLElement;
 
-    const link = el.querySelector<HTMLAnchorElement>('.field-help a');
-    expect(link?.getAttribute('href')).toBe('/configuracoes#editor');
-    expect(el.textContent).not.toContain('recarregue');
+    expect(el.querySelector('#repository')).toBeNull();
+    expect(el.querySelector('.field-help a')).toBeNull();
+    const register = Array.from(el.querySelectorAll('.dialog button')).filter((b) => b.textContent?.includes('Cadastrar repositório'));
+    expect(register.length).toBe(1);
     http.match(() => true).forEach((request) => request.flush([]));
   });
 
@@ -530,6 +533,99 @@ describe('SurveysPage: Procurar pasta na janela própria', () => {
     await fixture.whenStable();
 
     expect((el.querySelector('#register-path') as HTMLInputElement).value).toBe('C:\codigo\loja');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L02
+  it('listaDeRepositorios_comErro_mostraTentarDeNovoERecarrega', () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelectorAll('.skeleton-card').length).toBe(3);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush({ code: 'X' }, { status: 500, statusText: 'Server Error' });
+    fixture.detectChanges();
+
+    const retry = el.querySelector<HTMLButtonElement>('.page > .notice.is-error .retry');
+    expect(retry).not.toBeNull();
+    expect(el.querySelectorAll('.skeleton-card').length).toBe(0);
+    retry!.click();
+    http.expectOne('/api/repositories').flush([]);
+    fixture.detectChanges();
+    expect(el.querySelector('.page > .notice.is-error')).toBeNull();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L02
+  it('semLevantamentos_textoNaoDizAcima', () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:\\codigo\\loja', hasGit: true, hasBuildCommand: false, hasTestCommand: false }]);
+    http.expectOne('/api/repositories/loja/solutions').flush([]);
+    fixture.detectChanges();
+    const empty = (fixture.nativeElement as HTMLElement).querySelector('.empty')!;
+    expect(empty.textContent).toContain('Nenhum levantamento ainda.');
+    expect(empty.textContent).not.toContain('acima');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L09
+  it('linhaDaLista_abrirDescreveOResumoQueFicaEscondidoDoLeitor', () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([survey('s1', 'A.Pronto', SurveyStatus.Completed)]);
+    http.expectOne('/api/repositories').flush([]);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    const open = Array.from(el.querySelectorAll('.row-actions a')).find((a) => a.textContent?.trim() === 'Abrir')!;
+    const id = open.getAttribute('aria-describedby')!;
+    expect(id).toBe('row-summary-s1');
+    expect(el.querySelector('#' + id)?.textContent).toContain('3 nós');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L16
+  it('dialogoCadastrar_mostraARegraDoNome', async () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush([]);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    el.querySelector<HTMLButtonElement>('.first-use button')!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(el.querySelector('#register-name-help')?.textContent).toContain('começando por letra ou número');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L18
+  it('ajudaDosCampos_viemDepoisDoControleESemTitleNosBotoesI', async () => {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([]);
+    http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:\\codigo\\loja', hasGit: true, hasBuildCommand: false, hasTestCommand: false }]);
+    http.expectOne('/api/repositories/loja/solutions').flush(['Loja.slnx']);
+    fixture.detectChanges();
+    await openNew(fixture);
+    const el = fixture.nativeElement as HTMLElement;
+    for (const field of ['repository', 'solution', 'entry', 'depth']) {
+      const control = el.querySelector('#' + field)!;
+      const help = el.querySelector('#' + field + '-help')!;
+      expect(control.compareDocumentPosition(help) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+    expect(Array.from(el.querySelectorAll('.info-toggle')).every((b) => !b.hasAttribute('title'))).toBeTrue();
     http.match(() => true).forEach((request) => request.flush([]));
   });
 });

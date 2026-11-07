@@ -254,6 +254,41 @@ describe('Banco vivo (Fase 40b)', () => {
     expect(card.textContent).toContain('Conversão implícita em pedidos.status pode impedir o uso do índice.');
   });
 
+  // UX-G-B09
+  it('a região viva do plano existe antes do pedido, anuncia a espera e depois o resumo', () => {
+    const ctx = renderPage(LIVE, 'consulta');
+    analyze(ctx);
+    const card = ctx.el.querySelector('app-query-plan') as HTMLElement;
+    const region = card.querySelector('[role="status"]')!;
+    expect(region.textContent!.trim()).toBe('');
+
+    button(card, 'Pedir o plano estimado').click();
+    ctx.fixture.detectChanges();
+    expect(card.querySelector('[role="status"]')).toBe(region);
+    expect(region.textContent).toContain('Pedindo o plano…');
+
+    ctx.http.expectOne(PLAN_URL).flush(PLAN);
+    ctx.fixture.detectChanges();
+    expect(card.querySelector('[role="status"]')).toBe(region);
+    expect(region.textContent).toContain('Plano estimado recebido: 3 operações, 1 índice sugerido.');
+  });
+
+  // UX-G-B17
+  it('depois de salvar, o foco vai ao "Testar conexão" e a frase diz o próximo passo', fakeAsync(() => {
+    const ctx = renderPage(NONE);
+    open(ctx, 'Conectar banco vivo');
+    typeKey(ctx, SECRET);
+    button(ctx.el, 'Salvar').click();
+    ctx.http.expectOne(CONNECTION_URL).flush(LIVE);
+    ctx.fixture.detectChanges();
+    flushLoad(ctx.http, LIVE);
+    ctx.fixture.detectChanges();
+    tick();
+
+    expect(ctx.el.querySelector('.dialog [role="status"]')!.textContent).toContain('Próximo passo: teste a conexão.');
+    expect(document.activeElement).toBe(button(ctx.el, 'Testar conexão'));
+  }));
+
   // WEB-DBL-009
   it('plano recusado mostra o motivo do title; outro erro, a mensagem do código', () => {
     const ctx = renderPage(LIVE, 'consulta');

@@ -341,13 +341,13 @@
 .edge-mark {
   display: inline-grid;
   place-items: center;
-  width: 14px;
-  height: 14px;
+  width: var(--edge-mark-size);
+  height: var(--edge-mark-size);
   margin-right: 2px;
   border-radius: 50%;
   color: var(--surface);
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
   line-height: 1;
   vertical-align: middle;
@@ -364,10 +364,21 @@
 // Afastado demais para ler (escala < 0,45): rótulos somem e o nó fica só com o glifo grande
 // e as marcas, que ainda se distinguem. O nome continua no title e no leitor de tela.
 .flow-host.is-far {
-  .edge-label,
+  .edge-label-text,
   .flow-node-label,
   .flow-node-meta {
     display: none;
+  }
+
+  // Das ligações sobra a marca de confiança (✓ e ?), ampliada como a dos nós.
+  .edge-label {
+    padding: 0;
+    border: 0;
+    background: none;
+  }
+
+  .edge-mark {
+    transform: scale(1.8);
   }
 
   .flow-node {
@@ -607,8 +618,8 @@
   flex: none;
   display: inline-grid;
   place-items: center;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   margin-left: auto;
   border-radius: var(--radius-sm);
   color: var(--ink-soft);

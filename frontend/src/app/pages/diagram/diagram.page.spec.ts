@@ -113,6 +113,17 @@ describe('DiagramPage (Fase 27)', () => {
     expect(el.textContent).toContain('o levantamento é do commit');
   });
 
+  // UX-G-F20
+  it('o texto Mermaid tem ajuda curta ligada por aria-describedby', async () => {
+    const { el } = await loaded();
+    const area = editor(el);
+    const help = el.querySelector(`#${area.getAttribute('aria-describedby')}`);
+
+    expect(help).not.toBeNull();
+    expect(help?.classList.contains('field-help')).toBeTrue();
+    expect(help?.textContent).toContain('Mermaid');
+  });
+
   // WEB-DIA-012
   it('salvar_enviaOTextoDoEditorEMostraAConfirmacao', async () => {
     const { fixture, http, el } = await loaded();

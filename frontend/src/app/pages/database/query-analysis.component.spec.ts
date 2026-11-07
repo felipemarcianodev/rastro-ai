@@ -135,6 +135,19 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     expect(items[1].textContent).toContain('SELECT *');
   });
 
+  // UX-G-B24
+  it('o traço sob o trecho marcado muda com a gravidade, não só a cor', () => {
+    const ctx = render();
+    analyze(ctx, analysis());
+
+    const style = (m: Element) => getComputedStyle(m).textDecorationStyle;
+    const high = ctx.el.querySelector('mark.is-high')!;
+    const low = ctx.el.querySelector('mark.is-low')!;
+    expect(style(high)).toBe('wavy');
+    expect(style(low)).toBe('dotted');
+    expect(style(high)).not.toBe(style(low));
+  });
+
   // WEB-DBQ-012
   it('o clique de verdade no achado destaca o trecho, e clicar de novo desmarca', () => {
     const ctx = render();

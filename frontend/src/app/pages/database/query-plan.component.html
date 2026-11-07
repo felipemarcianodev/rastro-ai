@@ -2,6 +2,8 @@
   <h2 id="plan-title" class="plan-title">Plano estimado pelo banco</h2>
   <p class="muted plan-note">{{ note() }}</p>
 
+  <!-- Região viva fixa (UX-G-B09): o anúncio da espera e da chegada do plano vale mesmo com o conteúdo aparecendo depois. -->
+  <p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
   <button type="button" class="btn btn-g btn-small" (click)="request()" [disabled]="busy()">{{ busy() ? 'Pedindo o plano…' : plan() ? 'Pedir o plano de novo' : 'Pedir o plano estimado' }}</button>
 
   @if (error(); as message) {
@@ -10,7 +12,6 @@
 
   @if (plan(); as p) {
     <div>
-      <p class="visually-hidden" role="status">{{ summary() }}</p>
       @if (p.operations.length === 0) {
         <p class="muted">O banco não devolveu operações para esta consulta.</p>
       } @else {

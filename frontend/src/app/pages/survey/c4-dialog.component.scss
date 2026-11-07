@@ -67,6 +67,11 @@ h3:first-child {
   }
 }
 
+a.btn[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .foot-warning {
   margin-right: auto;
   align-self: center;

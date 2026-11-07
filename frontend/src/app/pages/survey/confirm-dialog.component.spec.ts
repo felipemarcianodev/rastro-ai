@@ -54,4 +54,19 @@ describe('ConfirmDialogComponent', () => {
     expect(confirm().classList.contains('btn-danger')).toBeFalse();
     expect(confirm().classList.contains('btn')).toBeTrue();
   });
+
+  // UX-G-L22
+  it('foco_inicial_ficaNoCancelar', () => {
+    TestBed.configureTestingModule({ imports: [ConfirmDialogComponent] });
+    const fixture = TestBed.createComponent(ConfirmDialogComponent);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.componentRef.setInput('title', 'Remover o repositório "loja"?');
+    fixture.componentRef.setInput('text', 'x');
+    fixture.componentRef.setInput('confirmLabel', 'Remover loja');
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    expect(document.activeElement).toBe(el.querySelector('button.btn-g'));
+    fixture.destroy();
+    el.remove();
+  });
 });

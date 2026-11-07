@@ -98,7 +98,7 @@ describe('SettingsPage: repositórios', () => {
     type(el, 'repo-name', 'meu-sistema');
     type(el, 'repo-path', 'C:\\codigo\\meu-sistema');
     fixture.detectChanges();
-    (el.querySelector('form.repo-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    (el.querySelector('app-register-repository form') as HTMLFormElement).dispatchEvent(new Event('submit'));
     const req = http.expectOne((r) => r.method === 'POST' && r.url === '/api/repositories');
     expect(req.request.body).toEqual({ name: 'meu-sistema', path: 'C:\\codigo\\meu-sistema' });
     req.flush(repo('meu-sistema'), { status: 201, statusText: 'Created' });
@@ -117,7 +117,7 @@ describe('SettingsPage: repositórios', () => {
     type(el, 'repo-name', '-ruim');
     type(el, 'repo-path', 'relativa');
     fixture.detectChanges();
-    (el.querySelector('form.repo-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    (el.querySelector('app-register-repository form') as HTMLFormElement).dispatchEvent(new Event('submit'));
     fixture.detectChanges();
 
     expect(el.querySelector('#repo-name-error')?.textContent).toContain('Nome inválido');
@@ -133,7 +133,7 @@ describe('SettingsPage: repositórios', () => {
     type(el, 'repo-name', 'meu-sistema');
     type(el, 'repo-path', 'C:\\nao\\existe');
     fixture.detectChanges();
-    (el.querySelector('form.repo-form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    (el.querySelector('app-register-repository form') as HTMLFormElement).dispatchEvent(new Event('submit'));
     http.expectOne((r) => r.method === 'POST').flush({ code: 'REPOSITORY_FOLDER_NOT_FOUND' }, { status: 400, statusText: 'Bad Request' });
     fixture.detectChanges();
 
@@ -150,7 +150,7 @@ describe('SettingsPage: repositórios', () => {
     expect(el.querySelector('[role="alertdialog"]')?.textContent).toContain('levantamentos já feitos continuam guardados');
     http.expectNone((r) => r.method === 'DELETE');
 
-    const confirm = Array.from(el.querySelectorAll('[role="alertdialog"] button')).find((b) => b.textContent?.trim() === 'Remover') as HTMLButtonElement;
+    const confirm = Array.from(el.querySelectorAll('[role="alertdialog"] button')).find((b) => b.textContent?.trim() === 'Remover meu-sistema') as HTMLButtonElement;
     confirm.click();
     http.expectOne((r) => r.method === 'DELETE' && r.url === '/api/repositories/meu-sistema').flush(null, { status: 204, statusText: 'No Content' });
     fixture.detectChanges();
@@ -192,7 +192,7 @@ describe('SettingsPage: build e testes', () => {
     expect(document.activeElement?.id).toBe('build-loja');
     expect(el.querySelector('label[for="build-loja"]')?.textContent).toBe('Build');
     expect(el.querySelector('#build-loja')?.getAttribute('aria-describedby')).toBe('commands-help-loja');
-    expect(el.querySelector('#commands-help-loja')?.textContent).toContain('sem shell');
+    expect(el.querySelector('#commands-help-loja')?.textContent).toContain('sem encadear');
 
     type(el, 'build-loja', ' dotnet build ');
     type(el, 'test-loja', '');
@@ -382,5 +382,107 @@ describe('SettingsPage: Procurar pasta na janela própria', () => {
     fixture.detectChanges();
     await fixture.whenStable();
     expect((el.querySelector('#repo-path') as HTMLInputElement).value).toBe('C:\codigo\loja');
+  });
+});
+
+describe('SettingsPage: acréscimos do levantamento', () => {
+  const aiView = (extra: Record<string, unknown> = {}) => ({
+    enabled: true, provider: 0, claudeModel: 'claude-x', claudeHasKey: true, openAiModel: '', openAiHasKey: false, geminiModel: '', geminiHasKey: false,
+    dailyTokenBudget: 1000, useFillHoles: true, useDescribeRules: true, useSuggestions: true, useContextSuggestions: true, updatedAt: '2026-11-06T10:00:00Z',
+    ...extra,
+  });
+  const renderLoaded = (repos: RepositoryItem[] = []) => {
+    const ctx = render();
+    ctx.http.match('/api/ai/status').forEach((r) => r.flush({ enabled: true, tokensToday: 0, dailyTokenBudget: 0 }));
+    ctx.http.expectOne('/api/repositories').flush(repos);
+    ctx.http.expectOne('/api/settings/ai').flush(aiView());
+    ctx.fixture.detectChanges();
+    return ctx;
+  };
+  const tick = () => new Promise((r) => setTimeout(r));
+
+  // UX-G-L06
+  it('salvarComandos_usaBotaoSecundario_eSoSalvarConfiguracaoEPrimario', () => {
+    const { fixture, el } = renderLoaded([repo('loja')]);
+    button(el, 'Editar build e testes').click();
+    fixture.detectChanges();
+    expect(button(el, 'Salvar comandos').classList).toContain('btn-g');
+    expect(button(el, 'Salvar comandos').classList).not.toContain('btn-p');
+    expect(el.querySelectorAll('button.btn-p').length).toBe(1);
+    expect(button(el, 'Salvar configuração').classList).toContain('btn-p');
+  });
+
+  // UX-G-L07
+  it('alteracaoPendente_aparecePorQualquerCampoDaIa', async () => {
+    const { fixture, el } = renderLoaded();
+    // O ngModel escreve o valor inicial depois do primeiro ciclo: digitar antes disso perde o texto.
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const pending = () => el.querySelector('.note-pending');
+    expect(pending()).toBeNull();
+
+    type(el, 'model-claude', 'outro-modelo');
+    fixture.detectChanges();
+    expect(pending()).not.toBeNull();
+    type(el, 'model-claude', 'claude-x');
+    fixture.detectChanges();
+    expect(pending()).toBeNull();
+
+    type(el, 'budget', '5000');
+    fixture.detectChanges();
+    expect(pending()).not.toBeNull();
+    type(el, 'budget', '1000');
+    type(el, 'key-claude', 'sk-nova');
+    fixture.detectChanges();
+    expect(pending()).not.toBeNull();
+  });
+
+  // UX-G-L20
+  it('orcamento_semDisabledRedundante', () => {
+    const { el } = renderLoaded();
+    expect((el.querySelector('#budget') as HTMLInputElement).hasAttribute('disabled')).toBeFalse();
+  });
+
+  // UX-G-L15
+  it('comandosSalvos_avisoNaLinhaDoRepositorio', async () => {
+    const { fixture, http, el } = renderLoaded([repo('loja')]);
+    button(el, 'Editar build e testes').click();
+    fixture.detectChanges();
+    await tick();
+    button(el, 'Salvar comandos').click();
+    http.expectOne((r) => r.method === 'PUT').flush(repo('loja', { buildCommand: 'dotnet build' }));
+    fixture.detectChanges();
+    expect(el.querySelector('.repo-main .note-ok')?.textContent).toContain('Comandos salvos');
+    expect(el.textContent).not.toContain('redirecionamento');
+  });
+
+  // UX-G-L21
+  it('trocarPaleta_anunciaAPaletaAplicada', () => {
+    const { fixture, el } = renderLoaded();
+    const select = el.querySelector('#palette-select') as HTMLSelectElement;
+    const option = select.options[select.options.length - 1];
+    select.value = option.value;
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(el.querySelector('#aparencia [role="status"]')?.textContent).toContain('Paleta aplicada: ' + option.textContent?.trim());
+  });
+
+  // UX-G-L16
+  it('cadastro_mostraARegraDoNome', () => {
+    const { el } = renderLoaded();
+    expect(el.querySelector('#repo-name-help')?.textContent).toContain('começando por letra ou número');
+  });
+
+  // UX-G-L22
+  it('remover_tituloEBotaoComONome_efocoNoCancelar', async () => {
+    const { fixture, el } = renderLoaded([repo('loja')]);
+    document.body.appendChild(el);
+    button(el, 'Remover…').click();
+    fixture.detectChanges();
+    await tick();
+    expect(el.querySelector('#confirm-title')?.textContent).toContain('loja');
+    expect(el.querySelector('[role="alertdialog"] .btn-danger')?.textContent).toContain('Remover loja');
+    expect(document.activeElement?.textContent?.trim()).toBe('Cancelar');
+    el.remove();
   });
 });

@@ -51,6 +51,7 @@
         <button type="button" class="btn btn-g btn-small" (click)="addPerson()" [disabled]="people().length >= maxPeople">Acrescentar pessoa</button>
         @if (canSuggest()) {
           <button type="button" class="btn btn-g btn-small" (click)="suggestPeople()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Sugerir pessoas com a IA' }}</button>
+          <app-ai-disclosure goes="o nome do repositório, o ponto de entrada, as classes do fluxo, os sistemas externos e as pessoas já cadastradas" never="O código das classes não vai." />
         } @else {
           <span class="muted">Para a IA sugerir pessoas, ligue a IA e o uso "Contexto do C4" em <a routerLink="/configuracoes" (click)="closed.emit()">Configurações</a>.</span>
         }
@@ -61,7 +62,6 @@
           <span [class]="m.ok ? 'editbar-ok' : 'field-error'" role="status">{{ m.text }}</span>
         }
       </div>
-      <p class="c4-disclosure"><app-ai-disclosure goes="o nome do repositório, o ponto de entrada, as classes do fluxo, os sistemas externos e as pessoas já cadastradas" never="O código das classes não vai." /></p>
 
       <h3>workspace.dsl</h3>
       @if (loadError(); as error) {
@@ -76,8 +76,11 @@
       }
       <p class="muted hint">
         Para ver os diagramas sem o código sair da máquina, rode o Structurizr local na pasta onde salvou o arquivo:
+        No cmd do Windows:
         <code>docker run -it --rm -p 8080:8080 -v "%CD%:/usr/local/structurizr" structurizr/structurizr local</code>
-        e abra http://localhost:8080.
+        No macOS e no Linux:
+        <code>docker run -it --rm -p 8080:8080 -v "$PWD:/usr/local/structurizr" structurizr/structurizr local</code>
+        Depois abra http://localhost:8080.
       </p>
     </div>
 
@@ -87,7 +90,7 @@
       }
       <span class="visually-hidden" role="status">{{ dslCopy.status() === 'idle' ? '' : dslCopy.label('') }}</span>
       <button type="button" class="btn btn-g" (click)="copy()" [disabled]="!dsl()">{{ dslCopy.label('Copiar DSL') }}</button>
-      <a class="btn btn-p" [href]="downloadUrl()" download="workspace.dsl" title="Baixa o arquivo workspace.dsl para abrir no Structurizr">Baixar workspace.dsl</a>
+      <a class="btn btn-p" [attr.href]="unsaved() ? null : downloadUrl()" download="workspace.dsl" role="link" [attr.aria-disabled]="unsaved() ? 'true' : null" (click)="blockDownload($event)" title="Baixa o arquivo workspace.dsl para abrir no Structurizr">Baixar workspace.dsl</a>
     </footer>
   </section>
 </div>

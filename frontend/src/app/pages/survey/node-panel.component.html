@@ -417,6 +417,7 @@
         <button type="button" class="btn btn-g btn-small rule-action" [disabled]="describing()" (click)="describe.emit({ nodeId: null, overwrite: false })">
           {{ describing() ? 'Escrevendo…' : 'Escrever as regras que faltam com a IA' }}
         </button>
+        <app-ai-disclosure goes="o código dos passos sem regra, em lotes" never="Código já descrito antes não vai de novo." />
       }
       @if (describeMessage(); as message) {
         <p class="rule-origin muted" aria-live="polite">{{ message }}</p>
