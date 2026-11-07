@@ -1,5 +1,25 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { apiErrorMessage } from './rastro-api.service';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { RastroApi, apiErrorMessage } from './rastro-api.service';
+
+describe('RastroApi: comandos do repositório', () => {
+  // UX-FIM-C01
+  it('setRepositoryCommands faz PUT em /commands com o nome codificado e os dois comandos', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const api = TestBed.inject(RastroApi);
+    const http = TestBed.inject(HttpTestingController);
+    let result: unknown;
+    api.setRepositoryCommands('meu sistema', 'dotnet build', null).subscribe((r) => (result = r));
+
+    const req = http.expectOne('/api/repositories/meu%20sistema/commands');
+    expect(req.request.method).toBe('PUT');
+    expect(req.request.body).toEqual({ buildCommand: 'dotnet build', testCommand: null });
+    req.flush({ name: 'meu sistema' });
+    expect(result).toEqual({ name: 'meu sistema' });
+  });
+});
 
 describe('apiErrorMessage', () => {
   // Fase 17: a tela é do cliente, que não sabe o que é "a API"; ele sabe que rodou o comando rastro.

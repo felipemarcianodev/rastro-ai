@@ -106,18 +106,18 @@ Cada fase é commitável sozinha. Nenhuma foi executada.
 ### Fase A: estados, avisos e acessibilidade (risco baixo)
 
 - [x] UX-FIM-B02 (feito na repaginação, Fase C: a tela avisa "Conexão removida").
-- [ ] UX-FIM-B05, B06, B07, B13, B14, B15, B18, B19 e B20 (tela do banco e banco vivo). Conferidos no código de 2026-11-07: ainda valem. Do B18, o `role="status"` já é só do resumo; falta o título "Avisos do banco".
+- [x] UX-FIM-B05, B06, B07, B13, B14, B15, B18, B19 e B20 (tela do banco e banco vivo). Conferidos no código de 2026-11-07: ainda valem. Do B18, o `role="status"` já é só do resumo; falta o título "Avisos do banco". Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
 - [x] UX-FIM-Q01 (feito na repaginação, Fase A), Q05 (Fase A), Q09 (Fase A) e Q11 (Fase B).
-- [ ] UX-FIM-Q03, Q04, Q08, Q10 e Q16 (consulta, IA e painel do passo). Ainda valem. Do Q08, o "Tentar de novo" já existe; falta o link para as configurações quando o erro é de chave ou de orçamento.
+- [x] UX-FIM-Q03, Q04, Q08, Q10 e Q16 (consulta, IA e painel do passo). Ainda valem. Do Q08, o "Tentar de novo" já existe; falta o link para as configurações quando o erro é de chave ou de orçamento. Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
 - [x] UX-FIM-C02 (feito na repaginação, Fase A), C09 (Fase A), C18 (Fase A) e N02 (Fase A).
-- [ ] UX-FIM-C03, C11 e C13 (app). Ainda valem: sem "Ir para o conteúdo", título da aba fixo por rota e exemplo de pasta só do Windows.
+- [x] UX-FIM-C03, C11 e C13 (app). Ainda valem: sem "Ir para o conteúdo", título da aba fixo por rota e exemplo de pasta só do Windows. Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
 - **Arquivos:** `pages/database/*`, `pages/survey/node-panel.component.html`, `pages/settings/settings.page.html`, `pages/surveys/surveys.page.html`, `app.html`, `app.routes.ts`.
 - **Aceite:** sem IA, a aba de consulta diz como ligar a sugestão; remover a conexão dá aviso; toda ação de copiar e de pedir à IA é anunciada; o "Ir para o conteúdo" aparece no primeiro Tab; nenhum estado de erro sem "Tentar de novo".
 - **Métricas-alvo:** 0 erro de console; 0 região de resultado sem `role="status"` ou `aria-live`.
 
 ### Fase B: tema e tokens (risco baixo, sem efeito visível)
 
-- [ ] UX-FIM-B16, B17, Q13, Q14, C14, C15 e C16. Conferidos em 2026-11-07: ainda valem (`'FK'` no template, `[hidden]` só na tela do banco, `.has-holes` duplicado, altura da barra sem token).
+- [x] UX-FIM-B16, B17, Q13, Q14, C14, C15 e C16. Conferidos em 2026-11-07: ainda valem (`'FK'` no template, `[hidden]` só na tela do banco, `.has-holes` duplicado, altura da barra sem token). Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
 - **Arquivos:** `theme/_tokens.scss`, `_controls.scss`, `_base.scss`, `_database.scss`, os SCSS dos componentes citados e `docs/frontend/design-system.md`.
 - **Aceite:** sem pixel solto nos componentes do banco fora das medidas do mapa documentadas; sem string mágica no template do mapa; prints antes e depois iguais.
 - **Métricas-alvo:** `database.page.scss` abaixo de 4,5 kB (hoje 4,7 kB).
@@ -125,9 +125,9 @@ Cada fase é commitável sozinha. Nenhuma foi executada.
 ### Fase C: banco vivo, foco e estado da tela do banco (risco médio)
 
 - [x] UX-FIM-B01 (feito na repaginação, Fase B, B24) e B03 (Fase C, B23).
-- [ ] UX-FIM-B04, B08, B09, B11 e B12. Ainda valem. No B12, o "←" já volta ao fluxo de origem (Fase B, B04) e as Configurações já voltam pelo histórico; falta o Esc do painel só na aba do mapa e o foco de volta ao "Exportar". O B09 só funciona para tabela: view e procedure deixam o foco no `body`.
+- [x] UX-FIM-B04, B08, B09, B11 e B12. Ainda valem. No B12, o "←" já volta ao fluxo de origem (Fase B, B04) e as Configurações já voltam pelo histórico; falta o Esc do painel só na aba do mapa e o foco de volta ao "Exportar". O B09 só funciona para tabela: view e procedure deixam o foco no `body`. Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
 - [x] UX-FIM-Q02 (feito na repaginação, Fase B, B12) e Q12 (`showInMap` foca o bloco da tabela).
-- [ ] UX-FIM-Q17. Ainda vale.
+- [x] UX-FIM-Q17. Ainda vale. Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
 - [x] UX-FIM-N01 (feito na repaginação, Fase B, B26: tipo curto no bloco, nome inteiro no `title` e no painel).
 - **Arquivos:** `pages/database/*`, `core/database/db-map.ts` e um serviço de volta em `core/`.
 - **Aceite:** salvar a conexão não apaga a consulta digitada; clique no fundo com texto no campo não fecha o diálogo; depois de "Analisar", o foco está no título do resultado; o "←" volta ao levantamento de origem; no PostgreSQL, nenhum tipo cortado na loja fictícia. Clique real no navegador para cada um.
@@ -136,18 +136,18 @@ Cada fase é commitável sozinha. Nenhuma foi executada.
 ### Fase D: coerência do app (risco médio)
 
 - [x] UX-FIM-C10 (feito na repaginação, Fase B, H09 e H10).
-- [ ] UX-FIM-C04, C12 e C17. Ainda valem: o `appDialog` não trata Esc, só a lista de levantamentos leva o foco ao título e o "Refazer" ainda anuncia Ctrl+Y numa tela e Ctrl+Shift+Z na outra.
-- [ ] UX-FIM-Q06 (componente único de aviso do que vai para o provedor).
-- [ ] UX-FIM-B10 (banco grande: tabulação e atraso da busca).
-- [ ] UX-FIM-C01, só o "Copiar" do comando; os campos de build e testes na tela pedem decisão do dono, porque a ADR-003 deixa o comando só no terminal.
+- [x] UX-FIM-C04, C12 e C17. Ainda valem: o `appDialog` não trata Esc, só a lista de levantamentos leva o foco ao título e o "Refazer" ainda anuncia Ctrl+Y numa tela e Ctrl+Shift+Z na outra. Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
+- [x] UX-FIM-Q06 (componente único de aviso do que vai para o provedor). Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
+- [x] UX-FIM-B10 (banco grande: tabulação e atraso da busca). Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
+- [x] UX-FIM-C01, só o "Copiar" do comando; os campos de build e testes na tela pedem decisão do dono, porque a ADR-003 deixa o comando só no terminal. Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
 - **Aceite:** o Esc fecha todo diálogo; no primeiro uso, a lista leva às configurações; o foco vai ao título a cada troca de rota; os dois atalhos de refazer nas duas telas.
 
 ### Fase E: alto risco, requer aprovação
 
 Não é executada sem aprovação do dono, item a item.
 
-- [ ] **UX-FIM-Q07:** um padrão só para o rótulo dos botões de IA, com "Ver no mapa" em maiúscula.
-- [ ] **UX-FIM-Q15:** "A análise não consulta o banco." no lugar de "Nada vai a banco nenhum", e o passo de origem entre aspas.
+- [x] **UX-FIM-Q07:** um padrão só para o rótulo dos botões de IA, com "Ver no mapa" em maiúscula. Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
+- [x] **UX-FIM-Q15:** "A análise não consulta o banco." no lugar de "Nada vai a banco nenhum", e o passo de origem entre aspas. Fechado no [plano dos acréscimos de 2026-11-07](plano-ux-2026-11-07-acrescimos.md).
 - [x] **UX-FIM-A01:** no diálogo "Banco vivo", o campo antes do texto de permissões (feito na repaginação, Fase C, B23).
 
 ## Fora do escopo

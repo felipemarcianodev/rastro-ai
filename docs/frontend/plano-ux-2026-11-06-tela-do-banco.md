@@ -46,7 +46,7 @@
 | UX-DBF-02 | abertura por `?tabela=` | A tabela vinda do passo ganhava o foco do teclado ao abrir a tela | Só escolher e trazer para a vista, sem foco | Baixo | P | Feito |
 | UX-DBF-03 | painel da tabela | Operação, link do passo e linha quebravam em três linhas | O link ocupa o espaço que sobra; a linha fica numa coluna só | Baixo | P | Feito |
 | UX-DBF-04 | lista de tabelas | O selo "FK sem índice +1" quebrava em duas linhas | Selo numa linha só | Baixo | P | Feito |
-| UX-DBF-05 | grafo do fluxo | A tabela só aparecia no painel do passo; no nó, só a etiqueta "banco" | A dica e o rótulo de acessibilidade da etiqueta dizem a operação e a tabela ("Lê pedidos") | Médio | P | Feito; o nome no próprio bloco fica `[ ]` no plano |
+| UX-DBF-05 | grafo do fluxo | A tabela só aparecia no painel do passo; no nó, só a etiqueta "banco" | A dica e o rótulo de acessibilidade da etiqueta dizem a operação e a tabela ("Lê pedidos") | Médio | P | Feito; o nome no próprio bloco entrou nos acréscimos de 2026-11-07 |
 
 ## Fase 40a: aba "Analisar consulta"
 
@@ -58,7 +58,7 @@
 | UX-DBQ-02 | "Tabelas da consulta" | A tabela do esquema é um botão para o mapa, mas parecia texto comum | Sublinhado de link | Baixo | P | Feito |
 | UX-DBQ-03 | consulta sem achado | "0 achados" no título e "Nenhum achado nesta consulta" logo abaixo | Título "Sem achados" | Baixo | P | Feito |
 | UX-DBQ-04 | origem da consulta | "Veio do passo ..." continuava depois de trocar o texto por outra consulta | A origem só aparece enquanto o texto é o do passo | Médio | P | Feito |
-| UX-DBQ-05 | entrada pelo passo | Quem chega pelo "Analisar a consulta" do passo ainda precisa clicar em "Analisar" | Analisar sozinho ao chegar pelo passo | Alto (muda o fluxo aprovado no protótipo, que tem o botão) | P | `[ ]` no plano, espera aprovação |
+| UX-DBQ-05 | entrada pelo passo | Quem chega pelo "Analisar a consulta" do passo ainda precisa clicar em "Analisar" | Analisar sozinho ao chegar pelo passo | Alto (muda o fluxo aprovado no protótipo, que tem o botão) | P | `[x]` feito nos acréscimos de 2026-11-07 |
 
 ## Fase 40b: banco vivo
 
@@ -82,7 +82,7 @@
 | UX-DBA-03 | estado da reescrita e do índice | "Reescrita aceita pela conferência" e "Aceito", com borda, pareciam botões ao lado do "Copiar" | Estado em texto, sem borda | Baixo | P | Feito |
 | UX-DBA-04 | reescrita recusada | A lista "Mudanças" descrevia o texto recusado como se valesse | Título "Mudanças da reescrita recusada" | Baixo | P | Feito |
 | UX-DBA-05 | botão | Com uma sugestão na tela, o botão continuava "Sugerir melhora com a IA" | "Pedir outra sugestão" quando já há uma | Baixo | P | Feito |
-| UX-DBA-06 | erro do provedor (todas as telas de IA) | `AI_PROVIDER_ERROR` mostra sempre "O provedor de IA não respondeu", e o motivo que o Rastro escreve (chave inválida, limite de uso) se perde; as mensagens dos provedores ainda falam em "nó" | Mostrar o title do problema, como no plano recusado, e tirar "nó" das mensagens dos provedores | Médio (muda todas as telas de IA, fora do escopo desta fase) | P | `[ ]` no plano |
+| UX-DBA-06 | erro do provedor (todas as telas de IA) | `AI_PROVIDER_ERROR` mostra sempre "O provedor de IA não respondeu", e o motivo que o Rastro escreve (chave inválida, limite de uso) se perde; as mensagens dos provedores ainda falam em "nó" | Mostrar o title do problema, como no plano recusado, e tirar "nó" das mensagens dos provedores | Médio (muda todas as telas de IA, fora do escopo desta fase) | P | `[x]` feito nos acréscimos de 2026-11-07 |
 
 ## Fase 42a: PostgreSQL pelo código
 
@@ -94,7 +94,7 @@
 | UX-PG-02 | erro de leitura | "O leitor de T-SQL não entendeu" numa consulta do PostgreSQL | O leitor do dialeto da análise | Baixo | P | Feito |
 | UX-PG-03 | painel da tabela, índices | A chave sem nome escrito aparecia como "chave primária (id), chave primária" | O nome que o PostgreSQL dá (`produtos_pkey`), o mesmo do catálogo | Baixo | P | Feito |
 | UX-PG-04 | título do achado | "Função na coluna do filtro" para a conversão `::date` | "Função ou conversão na coluna do filtro"; o curinga vira "LIKE ou ILIKE" | Baixo | P | Feito |
-| UX-PG-05 | erro de leitura | A mensagem do leitor do PostgreSQL vem em inglês ("Expected an expression, found ="), como a do leitor de T-SQL | Traduzir as mensagens mais comuns dos dois leitores | Médio (muda o texto dos dois dialetos) | M | `[ ]` no plano |
+| UX-PG-05 | erro de leitura | A mensagem do leitor do PostgreSQL vem em inglês ("Expected an expression, found ="), como a do leitor de T-SQL | Traduzir as mensagens mais comuns dos dois leitores | Médio (muda o texto dos dois dialetos) | M | `[x]` feito nos acréscimos de 2026-11-07 |
 
 ## Fase 42b: banco vivo do PostgreSQL
 
@@ -106,4 +106,4 @@
 | UX-PGL-02 | cartão do plano | A nota falava do `SHOWPLAN_XML` num banco PostgreSQL | A nota do `EXPLAIN` sem `ANALYZE` e do plano genérico com parâmetro | Baixo | P | Feito |
 | UX-PGL-03 | erro do plano | "O banco vivo não respondeu" quando o banco respondeu recusando (permissão), nos dois dialetos | "O plano não veio do banco vivo", com o motivo | Baixo | P | Feito |
 | UX-PGL-04 | erro do plano | O motivo da permissão citava só o `SELECT` num `DELETE` | Citar o `SELECT`, ou o `INSERT`, `UPDATE` e `DELETE` | Baixo | P | Feito |
-| UX-PGL-05 | diálogo | O parágrafo da permissão mínima ficou longo (três comandos no PostgreSQL) | Lista curta com um comando por linha e o botão "Copiar" | Médio (muda o desenho do diálogo nos dois dialetos) | P | `[ ]` no plano |
+| UX-PGL-05 | diálogo | O parágrafo da permissão mínima ficou longo (três comandos no PostgreSQL) | Lista curta com um comando por linha e o botão "Copiar" | Médio (muda o desenho do diálogo nos dois dialetos) | P | `[x]` feito nos acréscimos de 2026-11-07 |

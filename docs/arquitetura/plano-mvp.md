@@ -505,6 +505,7 @@ Próximo passo da Fase 21: o usuário escolhe como quer ver a ramificação, ent
 - [ ] Landing page em português, inglês e espanhol.
 - [-] ~~Preço único e baixo no começo; pagamento por serviço pronto (Lemon Squeezy, Paddle ou similar) que emite a licença sozinho e manda por e-mail.~~ Cancelado pela ADR-004.
 - [ ] Textos do produto (tela, pacote, mensagens da CLI) nos três idiomas.
+  Referência (dono, 2026-11-07): um projeto irmão já tem multi-idioma no frontend e no backend; ao detalhar esta fase, partir do caminho de lá. Vale fazer depois que os rótulos da tela estabilizarem (o plano de UX de 2026-11-07 ainda mudou vários).
 
 ## Fase 16: IA pelo endpoint da empresa `[ ]` (futuro)
 
@@ -875,7 +876,7 @@ Dividida em dois PRs: 40a (análise pelo código) e 40b (banco vivo).
 - [x] Testes: `EXT-DBQ-001` a `015` (uma consulta da loja fictícia por achado, a do protótipo, a limpa, o erro de leitura e a tabela fora do esquema), `EXT-DBF-008`, `API-DBQ-001` e `002`, `MCP-DBQ-001`, `WEB-DBQ-001` a `004`, `010` a `018`, `020` a `022` e `030`. Backend 482/482 e frontend 312/312.
 - [x] Prints em `docs/telas/fase-40/` (loja fictícia, API local com `RASTRO_HOME` temporário, clique real) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md) (seção da Fase 40a): os achados de risco baixo e médio entraram na fase.
 - [ ] `ExecuteSql` e `SqlQuery` com SQL que não é `EXEC` não viram acesso do passo (não há tabela para ligar sem ler o texto); ler a tabela pelo leitor de T-SQL junto com Dapper e ADO.NET (pendência da Fase 39).
-- [ ] (UX, risco alto) Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05).
+- [x] (UX, risco alto) Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05). Feito nos [acréscimos de UX de 2026-11-07](../frontend/plano-ux-2026-11-07-acrescimos.md), Fase E.
 - [ ] Consulta montada em partes no código (concatenação, `StringBuilder`) não vai para o passo: só o literal.
 
 ### Fase 40b: banco vivo `[x]`
@@ -899,7 +900,7 @@ Dividida em dois PRs: 40a (análise pelo código) e 40b (banco vivo).
 - [x] README, README do pacote, `SECURITY.md`, ADR-006, `visao.md` e as instruções do MCP: o que vai para o provedor numa análise (a consulta com os literais, os achados e só as tabelas que ela usa; nunca a string de conexão nem os dados das tabelas) e a conferência. O texto da consulta não vai para o log.
 - [x] Testes: `EXT-DBA-001` a `012`, `API-DBA-001` a `003` (provedor falso e banco vivo de mentira), `MCP-DBA-001` e `002` e `WEB-DBA-001` a `009`. Backend 521/521 e frontend 333/333.
 - [x] Prints em `docs/telas/fase-41/` (loja fictícia, API local com `RASTRO_HOME` temporário; erro com chave falsa de teste; reescrita aceita e recusada com a resposta da IA simulada e conferida pelo núcleo de verdade) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md) (seção da Fase 41): os achados de risco baixo e médio da tela entraram na fase.
-- [ ] (UX-DBA-06, risco médio, todas as telas de IA) Mostrar o motivo que o Rastro escreve no erro do provedor (chave inválida, limite de uso) em vez de "O provedor de IA não respondeu", e tirar "nó" das mensagens dos provedores.
+- [x] (UX-DBA-06, risco médio, todas as telas de IA) Mostrar o motivo que o Rastro escreve no erro do provedor (chave inválida, limite de uso) em vez de "O provedor de IA não respondeu", e tirar "nó" das mensagens dos provedores. Feito nos [acréscimos de UX de 2026-11-07](../frontend/plano-ux-2026-11-07-acrescimos.md), Fase E.
 - [ ] Sugestão da IA pelo agente com o custo antes e depois: o MCP não tem banco vivo (pendência da Fase 40b).
 - [ ] A conferência não prova que a reescrita devolve as mesmas linhas (só a mesma operação, a mesma tabela, as mesmas colunas e o mesmo limite); a tela diz "conferida pelo Rastro", e quem decide é o usuário.
 
@@ -918,7 +919,7 @@ Dividida em dois PRs: 42a (código: extrator, achados e conferência) e 42b (ban
 - [x] Tela: o rótulo da caixa e o erro de leitura no dialeto do repositório; os títulos "Função ou conversão na coluna do filtro" e "Curinga no começo do LIKE ou ILIKE".
 - [x] Loja fictícia `Fixtures/LojaBancoPg` (a mesma loja no Npgsql, com `.sql` do PostgreSQL, função, procedure, trecho do `pg_dump` e arquivo quebrado). Testes: `EXT-PG-001` a `012`, `EXT-PGQ-001` a `018`, `EXT-PGA-001` a `006`, `EXT-PGP-001` e `002`, `API-PG-001` a `003`, `MCP-PG-001` e `WEB-PG-001`.
 - [x] Prints em `docs/telas/fase-42/` (loja fictícia, API local com `RASTRO_HOME` temporário, clique real) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md) (seção da Fase 42a).
-- [ ] (UX-PG-05, risco médio) Traduzir as mensagens mais comuns dos leitores de SQL (hoje em inglês, nos dois dialetos).
+- [x] (UX-PG-05, risco médio) Traduzir as mensagens mais comuns dos leitores de SQL (hoje em inglês, nos dois dialetos). Feito nos [acréscimos de UX de 2026-11-07](../frontend/plano-ux-2026-11-07-acrescimos.md), Fase E.
 - [ ] Corpo de função em `BEGIN ATOMIC` (PostgreSQL 14) e tipo com precisão no meio (`timestamp(3) with time zone`) não são lidos por inteiro.
 - [ ] Relatar ao SqlParserCS o defeito da precedência do `LIKE` e tirar o contorno quando a versão corrigida sair.
 
@@ -934,7 +935,7 @@ Dividida em dois PRs: 42a (código: extrator, achados e conferência) e 42b (ban
 - [x] Prints em `docs/telas/fase-42/` (PostgreSQL descartável em contêiner com usuário só de leitura, API local com `RASTRO_HOME` temporário, clique real) e levantamento de UX (seção da Fase 42b).
 - [ ] O PostgreSQL não aponta índice faltando: avaliar a sugestão de índice pelo plano (o `Seq Scan` com filtro) junto com os achados sem IA.
 - [ ] Banco vivo pelo MCP continua pendente (Fase 40b), agora nos dois dialetos.
-- [ ] (UX-PGL-05, risco médio) A permissão mínima do diálogo em lista, um comando por linha, com "Copiar".
+- [x] (UX-PGL-05, risco médio) A permissão mínima do diálogo em lista, um comando por linha, com "Copiar". Feito nos [acréscimos de UX de 2026-11-07](../frontend/plano-ux-2026-11-07-acrescimos.md), Fase E.
 
 **Melhorias propostas na análise do pedido (para o dono decidir):**
 - [x] **O diferencial é a ligação com o código:** a ferramenta de banco mostra a tabela; o Rastro mostra quem a usa e por qual fluxo (Fase 39, feita logo depois da 38).
@@ -951,10 +952,10 @@ Levantamento de UX completo do fim do plano em [`plano-ux-2026-11-06-fim-plano-b
 
 **Esperam a aprovação do dono (UX):**
 - [x] Entrada "Banco" no cabeçalho, sem escolher o repositório antes (UX-DB-09, Fase 38, risco alto). Feito na repaginação de UX, Fase C (2026-11-06).
-- [ ] Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05, Fase 40a, risco alto).
-- [ ] O motivo do erro do provedor em todas as telas de IA, sem "nó" nas mensagens (UX-DBA-06, Fase 41).
-- [ ] As mensagens mais comuns dos leitores de SQL em pt-BR, nos dois dialetos (UX-PG-05, Fase 42a).
-- [ ] A permissão mínima do diálogo "Banco vivo" em lista, um comando por linha, com "Copiar" (UX-PGL-05, Fase 42b).
+- [x] Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05, Fase 40a, risco alto). Feito nos [acréscimos de UX de 2026-11-07](../frontend/plano-ux-2026-11-07-acrescimos.md), Fase E.
+- [x] O motivo do erro do provedor em todas as telas de IA, sem "nó" nas mensagens (UX-DBA-06, Fase 41). Feito nos [acréscimos de UX de 2026-11-07](../frontend/plano-ux-2026-11-07-acrescimos.md), Fase E.
+- [x] As mensagens mais comuns dos leitores de SQL em pt-BR, nos dois dialetos (UX-PG-05, Fase 42a). Feito nos [acréscimos de UX de 2026-11-07](../frontend/plano-ux-2026-11-07-acrescimos.md), Fase E.
+- [x] A permissão mínima do diálogo "Banco vivo" em lista, um comando por linha, com "Copiar" (UX-PGL-05, Fase 42b). Feito nos [acréscimos de UX de 2026-11-07](../frontend/plano-ux-2026-11-07-acrescimos.md), Fase E.
 - [ ] As Fases A a E do levantamento do fim do plano (a Fase E, item a item). Em 2026-11-07, 16 dos 54 achados já estavam feitos pela repaginação de UX (Fases A, B e C); restam 38, listados em [`plano-ux-2026-11-06-repaginacao.md`](../frontend/plano-ux-2026-11-06-repaginacao.md), seção "Planos de UX anteriores depois da repaginação".
 
 **Leitura do código:**

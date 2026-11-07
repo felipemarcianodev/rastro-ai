@@ -50,9 +50,13 @@ public record SurveyStaleness(bool Stale, string? SurveyCommit, string? CurrentC
 public record SegmentStaleness(string Repository, bool Stale, string? SurveyCommit, string? CurrentCommit);
 
 // Path é a pasta cadastrada (ADR-003); os comandos de build e testes não saem, só se existem.
-public record RepositoryItem(string Name, string Path, bool HasGit, bool HasBuildCommand, bool HasTestCommand);
+// Os comandos de build e de testes voltam em texto para a edição nas Configurações (ADR-008): não são segredo.
+public record RepositoryItem(string Name, string Path, bool HasGit, bool HasBuildCommand, bool HasTestCommand,
+    string? BuildCommand = null, string? TestCommand = null);
 
 public record AddRepositoryRequest(string? Name, string? Path);
+
+public record SetRepositoryCommandsRequest(string? BuildCommand, string? TestCommand);
 
 // Consulta para a análise sem IA (Fase 40).
 public record AnalyzeQueryRequest(string? Sql);
@@ -105,6 +109,7 @@ public static class ErrorCodes
     public const string RepositoryFolderNotFound = "REPOSITORY_FOLDER_NOT_FOUND";
     public const string RepositoryExists = "REPOSITORY_EXISTS";
     public const string RepositoryNotFound = "REPOSITORY_NOT_FOUND";
+    public const string RepositoryCommandInvalid = "REPOSITORY_COMMAND_INVALID";
     public const string AngularUnavailable = "ANGULAR_UNAVAILABLE";
     public const string CrossRepositoriesInvalid = "CROSS_REPOSITORIES_INVALID";
     public const string OriginNotAllowed = "ORIGIN_NOT_ALLOWED";
