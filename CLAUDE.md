@@ -161,11 +161,12 @@ Os vídeos são produzidos no marketing, no outro repositório. Do episódio 4 e
 
 | Serviço | Endereço |
 |---|---|
-| `rastro` (pacote instalado, o que o dono usa) | `127.0.0.1:7450`, dados em `~/.rastro` |
+| `rastro` (pacote instalado, o que o dono usa) | `127.0.0.1:7450`, dados em `~/.rastro`; abre a janela própria ([ADR-007](docs/adr/adr-007-janela-propria.md)) |
 | Docker (opcional, container `rastro`) | `127.0.0.1:7400`, banco próprio no volume `rastro-data` |
 | `ng serve` | porta 4300, com proxy para a API |
 | API local (`dotnet run`) | porta 5310, mesmo `~/.rastro` do pacote |
 
+- Teste automatizado do pacote (sessão sem ninguém olhando, CI): `rastro --sem-janela`, para não abrir janela na tela do dono. Quem abre a janela para conferir a fecha no fim, pelo PID que subiu.
 - Mudou o código? Para o dono usar, gere o pacote (`scripts/empacotar.ps1`) e atualize com o `rastro` parado: `dotnet tool update -g rastro-ai --add-source artifacts`.
 - Com o Visual Studio rodando a API (prende o `bin`), compile e teste com `RASTRO_BIN=<pasta do repositório>/backend/bin`.
 - **Memória da máquina** (o dono roda outros projetos e sessões ao mesmo tempo):

@@ -37,14 +37,14 @@
 
 Nada aqui foi feito. Cada item muda texto, ordem, posição ou remove algo.
 
-- [ ] **A1. Escolha do desenho:** trocar o botão que gira pelos quatro desenhos (o ícone mostra o próximo, não o atual) por um seletor de quatro opções com o atual marcado.
-- [ ] **A2. Barra do fluxo:** separar informação (status, contagens) de ações, com "Editar fluxo" sempre no fim.
-- [ ] **A3. Configurações:** "← Voltar" vira a mesma barra das outras telas (`page-bar` com a seta e o título ao lado). Também: um botão primário só ("Salvar configuração"; "Adicionar repositório" vira secundário).
-- [ ] **A4. Menus "⋯" e "Mais":** o mesmo rótulo nos dois modos.
+- [x] **A1. Escolha do desenho:** trocar o botão que gira pelos quatro desenhos (o ícone mostra o próximo, não o atual) por um seletor de quatro opções com o atual marcado. Feito na repaginação, Fase C (F09): seletor segmentado "Desenho do fluxo".
+- [x] **A2. Barra do fluxo:** separar informação (status, contagens) de ações, com "Editar fluxo" sempre no fim. Feito na repaginação, Fase C (F08): grupos Ver, Compartilhar e Alterar, com "Editar fluxo" no fim do grupo Alterar.
+- [ ] **A3. Configurações (confere em 2026-11-07: o botão primário único já foi feito na Fase A da repaginação, H15; falta só o "← Voltar" virar `page-bar`):** "← Voltar" vira a mesma barra das outras telas (`page-bar` com a seta e o título ao lado). Também: um botão primário só ("Salvar configuração"; "Adicionar repositório" vira secundário).
+- [-] **A4. Menus "⋯" e "Mais":** o mesmo rótulo nos dois modos. Sem sentido depois da Fase C da repaginação (F06, F20): os dois menus de uma ação só viraram "Excluir levantamento…" e "Descartar rascunho…" à vista.
 - [ ] **A5. Botões que trocam de texto e de estado ao mesmo tempo** ("Resumo"/"Completo", "Mostrar"/"Esconder chamadas do .NET"): rótulo fixo e o estado só no `aria-pressed`.
 - [ ] **A6. Cabeçalho do painel:** o × fixo no canto, com "Ver somente este fluxo" numa linha própria.
 - [ ] **A7. Barra da edição da visão consolidada:** agrupar Desfazer e Refazer, "Descartar edição" com o estilo de ação destrutiva e "Salvar" em tamanho normal.
-- [ ] **A8. Cabeçalho do topo:** o selo "IA desligada" e a engrenagem levam ao mesmo lugar; ficar com um só.
+- [x] **A8. Cabeçalho do topo:** o selo "IA desligada" e a engrenagem levam ao mesmo lugar; ficar com um só. Feito na repaginação, Fase C (H02, H03): a engrenagem saiu, o cabeçalho tem o link "Configurações" e o selo "IA: configurar" mostra só o estado da IA.
 - [ ] **A9. Diálogo de validação:** trocar "3 → 5" por "de 3 para 5".
 
 ## Fora do escopo

@@ -4,6 +4,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
+import { DesktopBridge } from '../../core/desktop-bridge.service';
 import { EditorLinks, isAbsoluteFolder } from '../../core/editor-links';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { REPOSITORY_QUERY_PARAM } from '../surveys/surveys.page';
@@ -62,6 +63,8 @@ export class SettingsPage implements OnInit {
   protected readonly saveMessage = signal<{ ok: boolean; text: string } | null>(null);
   protected readonly commandCopy = new CopyFeedback();
   private readonly editor = inject(EditorLinks);
+  // Janela própria (ADR-007): o "Procurar…" ao lado da pasta só existe nela.
+  protected readonly desktop = inject(DesktopBridge);
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   protected readonly repositories = signal<RepositoryItem[]>([]);
@@ -228,6 +231,15 @@ export class SettingsPage implements OnInit {
         }
       },
     });
+  }
+
+  // Caixa "Escolher pasta" do sistema, pela janela própria. Cancelar deixa o campo como estava.
+  protected async browseFolder(): Promise<void> {
+    const path = await this.desktop.pickFolder();
+    if (!path) return;
+    this.newPath = path;
+    this.pathError.set(null);
+    this.focusField('repo-path');
   }
 
   protected askRemove(repo: RepositoryItem): void {

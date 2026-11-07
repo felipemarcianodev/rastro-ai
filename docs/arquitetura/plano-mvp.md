@@ -848,7 +848,7 @@ O dono pediu duas funcionalidades novas:
 - [x] **Melhorias propostas que entraram:** achado "chave estrangeira sem índice" (`SchemaFinding`, só quando a migration ou o `.sql` cria a FK sem um índice que comece pelas colunas dela; o índice da convenção do EF não dá falso positivo) e a marca "pessoal" pelo nome da coluna (`PersonalData`, palavra inteira: CPF, e-mail, telefone, nascimento, endereço, senha; "nome" fica de fora). Os dois também no texto do `get_db_schema`.
 - [x] Testes: `EXT-DB-014` a `016`, `CORE-DB-008` e `009`, `MCP-DB-001` (achados e dado pessoal), `WEB-DB-001` a `008` e `WEB-DBV-001` a `008`. Backend 455/455 e frontend 290/290.
 - [x] Prints em `docs/telas/fase-38/` (loja fictícia, API local com `RASTRO_HOME` temporário) e levantamento de UX em [`plano-ux-2026-11-06-tela-do-banco.md`](../frontend/plano-ux-2026-11-06-tela-do-banco.md): os achados de risco baixo e médio entraram na fase.
-- [ ] (UX, risco alto) Entrada "Banco" no cabeçalho do Rastro, ao lado das configurações, sem depender de escolher o repositório antes.
+- [x] (UX, risco alto) Entrada "Banco" no cabeçalho do Rastro, ao lado das configurações, sem depender de escolher o repositório antes. Feito na repaginação de UX, Fase C (2026-11-06).
 - [ ] Banco grande: com centenas de tabelas, o desenho fica largo (colunas de 8 tabelas). Avaliar enquadrar na tela e um minimapa quando aparecer um caso real.
 
 ## Fase 39: banco nos fluxos `[x]` (depende da Fase 37)
@@ -947,15 +947,15 @@ Dividida em dois PRs: 42a (código: extrator, achados e conferência) e 42b (ban
 
 ## Fim do plano do banco: pendências consolidadas
 
-Levantamento de UX completo do fim do plano em [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md): 54 achados (33 de risco baixo, 18 de risco médio e 3 de risco alto), em cinco fases. Nada foi implementado; tudo espera a aprovação do dono. Os itens abaixo são os `[ ]` das Fases 36 a 42, agrupados, e continuam registrados na própria fase.
+Levantamento de UX completo do fim do plano em [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md): 54 achados (33 de risco baixo, 18 de risco médio e 3 de risco alto), em cinco fases. A repaginação de UX (2026-11-06) já fez 16 dos 54 (entre eles o UX-DB-09, a entrada "Banco" no cabeçalho, e o campo antes das permissões no diálogo do banco vivo); o resto espera a aprovação do dono. Os itens abaixo são os `[ ]` das Fases 36 a 42, agrupados, e continuam registrados na própria fase.
 
 **Esperam a aprovação do dono (UX):**
-- [ ] Entrada "Banco" no cabeçalho, sem escolher o repositório antes (UX-DB-09, Fase 38, risco alto).
+- [x] Entrada "Banco" no cabeçalho, sem escolher o repositório antes (UX-DB-09, Fase 38, risco alto). Feito na repaginação de UX, Fase C (2026-11-06).
 - [ ] Analisar sozinho quem chega pelo "Analisar a consulta" do passo (UX-DBQ-05, Fase 40a, risco alto).
 - [ ] O motivo do erro do provedor em todas as telas de IA, sem "nó" nas mensagens (UX-DBA-06, Fase 41).
 - [ ] As mensagens mais comuns dos leitores de SQL em pt-BR, nos dois dialetos (UX-PG-05, Fase 42a).
 - [ ] A permissão mínima do diálogo "Banco vivo" em lista, um comando por linha, com "Copiar" (UX-PGL-05, Fase 42b).
-- [ ] As Fases A a E do levantamento do fim do plano (a Fase E, item a item).
+- [ ] As Fases A a E do levantamento do fim do plano (a Fase E, item a item). Em 2026-11-07, 16 dos 54 achados já estavam feitos pela repaginação de UX (Fases A, B e C); restam 38, listados em [`plano-ux-2026-11-06-repaginacao.md`](../frontend/plano-ux-2026-11-06-repaginacao.md), seção "Planos de UX anteriores depois da repaginação".
 
 **Leitura do código:**
 - [ ] Argumento posicional nas migrations e configuração em método auxiliar (Fase 37).
@@ -1044,13 +1044,14 @@ No segundo reteste, os 7 fluxos deram 21 achados, todos verdadeiros, e a anális
 
 O dono não achou a tela do banco: a entrada era um link de texto na barra do levantamento, e o cabeçalho não tem navegação. Ele pediu para repaginar a usabilidade. O levantamento está em [`plano-ux-2026-11-06-repaginacao.md`](../frontend/plano-ux-2026-11-06-repaginacao.md): a Fase A (entradas e rótulos) e a Fase B (comportamento) seguem o ciclo normal; a Fase C (cabeçalho com as áreas do produto, tela inicial por repositório, barra do levantamento em grupos e textos) espera a aprovação do dono item a item, com um protótipo antes.
 
-## Janela própria ao digitar `rastro` `[ ]` (pedido do dono em 2026-11-06; depois da repaginação)
+## Janela própria ao digitar `rastro` `[x]` (pedido do dono em 2026-11-06; depois da repaginação)
 
 O dono quer que o `rastro` abra como um app, numa janela própria, sem passar pelo navegador. Proposta: Photino.NET, que abre uma janela nativa a partir do próprio executável .NET, com o WebView do sistema (WebView2 no Windows, WebKit no Mac e no Linux). O pacote cresce poucos MB e continua sendo `dotnet tool`. A API segue em `127.0.0.1:7450`, então a tela continua abrindo no navegador, como hoje.
-- [ ] ADR comparando o Photino, o navegador em modo app (`--app`) e o Electron (recusado: Chromium e Node no pacote, cerca de 150 MB por sistema).
-- [ ] `rastro` abre a janela; `rastro --sem-janela` mantém o comportamento de hoje, para quem usa só o MCP ou o navegador.
-- [ ] Botão "Procurar…" ao lado de cada campo de caminho (cadastro do repositório na tela inicial e nas Configurações), que abre a caixa de "Escolher pasta" do sistema pela janela própria e devolve o caminho completo; o campo continua aceitando o caminho digitado (pedido do dono em 2026-11-06). No navegador, a página não recebe o caminho completo da pasta escolhida; o botão só aparece na janela própria, ou entra depois por uma rota local da API, com a proteção de origem das outras rotas, se o dono quiser.
-- [ ] Documentação do ambiente do cliente no mesmo PR (README, README do pacote, `visao.md`, `SECURITY.md` se mudar o que roda na máquina).
+- [x] ADR comparando o Photino, o navegador em modo app (`--app`) e o Electron (recusado: Chromium e Node no pacote, cerca de 150 MB por sistema): [ADR-007](../adr/adr-007-janela-propria.md). Photino.NET 4.0.16 com o Photino.Native 4.0.22, Apache-2.0; as bibliotecas nativas viajam em `runtimes/<rid>/native` dentro do pacote, sem passo novo no `empacotar.ps1`.
+- [x] `rastro` abre a janela; `rastro --sem-janela` mantém o comportamento de hoje, para quem usa só o MCP ou o navegador. A janela só abre no pacote rodando de verdade (não nos testes, não com `--urls` ou `dotnet run`, não sem a tela embutida). Fechar a janela encerra o Rastro e Ctrl+C fecha a janela. Sem WebView2, sem `libwebkit2gtk-4.1` ou sem tela, o Rastro avisa no console e segue no navegador (conferido antes, porque o Photino tentaria baixar o WebView2 sozinho e o GTK sem tela derruba o processo). O `Program` ficou sem `await` antes da janela, para ela rodar na thread principal no macOS; no Windows, numa thread STA.
+- [x] Botão "Procurar…" ao lado de cada campo de caminho (cadastro do repositório na tela inicial e nas Configurações), que abre a caixa de "Escolher pasta" do sistema pela janela própria e devolve o caminho completo; o campo continua aceitando o caminho digitado (pedido do dono em 2026-11-06). Só aparece com a ponte do Photino; mensagens com formato fixo (`{"type":0,"requestId":"pasta-N"}` e a resposta com o caminho absoluto ou `null`), conferidas dos dois lados. Testes: `API-JAN-001` a `011` e `UI-JAN-001` a `008`. Conferido no pacote instalado, no Windows: a janela abre, o "Procurar…" preenche o campo, o Chrome abre o mesmo endereço ao mesmo tempo e fechar a janela encerra o processo.
+- [x] Documentação do ambiente do cliente no mesmo PR (README, README do pacote, `visao.md`, `SECURITY.md`, `CLAUDE.md`).
+- [ ] "Procurar…" no navegador, por uma rota local da API com a proteção de origem, se o dono quiser. A janela no macOS e no Linux só foi decidida pela documentação do Photino; falta conferir numa máquina de cada.
 
 ## Levantamento de UX do fim do plano `[x]`
 
