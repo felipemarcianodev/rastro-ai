@@ -22,6 +22,7 @@ import {
   sameName,
   sourceText,
   tableKey,
+  estimatedRowsText,
 } from '../../core/database/db-schema';
 
 // O que está escolhido na tela do banco.
@@ -159,6 +160,7 @@ export class DbPanelComponent {
     return {
       key,
       sources: table.sources,
+      size: estimatedRowsText(table.estimatedRows),
       noKey: !table.primaryKey,
       columns,
       indexes,

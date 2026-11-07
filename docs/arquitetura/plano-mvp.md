@@ -1041,6 +1041,23 @@ No segundo reteste, os 7 fluxos deram 21 achados, todos verdadeiros, e a anális
 - [ ] A lista pelo espaço (filtro por chave estrangeira de uma tabela grande) fica silenciada pela regra da lista filha, e `IS NOT NULL` não conta como filtro para a leitura sem limite.
 - [x] Dois testes do backend falharam uma vez no CI e passaram na nova rodada (`PortProbeTests` e `LiveDatabaseEndpointTests`). Causa: não havia disputa de porta; o `config.json` era gravado sem ser de uma vez e o recarregamento em segundo plano lia o arquivo pela metade, esvaziando a lista de repositórios (agora grava num arquivo ao lado e troca), e o teste do sondador de porta esperava só os 2 segundos do produto por um servidor recém-aberto, na suíte em paralelo (agora o teste dá 30 segundos).
 
+## Fase 44: pendências do banco `[x]` (pedido do dono em 2026-11-07)
+
+As três pendências que ficaram depois da Fase 43 e da Fase 40b.
+
+- [x] **Banco vivo pelo MCP.** Hoje o banco vivo é só pela tela e pela API, e a sugestão da consulta feita pelo agente vem sem o custo estimado de antes e depois. Com banco vivo cadastrado, o MCP passa a pedir o plano estimado (ferramenta nova) e o `propose_query_rewrite` devolve o custo das duas consultas, como a tela. A string de conexão continua sem sair do Rastro: o agente só vê o plano e o custo. Atualiza a ADR-006, o `SECURITY.md`, o README e as instruções do MCP.
+- [x] **Conferir se algum achado verdadeiro se perdeu** com o achado único por tabela (de 39 para 19 verdadeiros no terceiro reteste). Gerar de novo as consultas do sistema real e rodar a análise de antes (`3db48f0^`) e a de agora, comparando item a item, só de leitura no repositório do dono. O que se perdeu vira correção nesta fase.
+- [x] **Leitura sem limite pelo tamanho da tabela.** Com banco vivo, o catálogo dá a estimativa de linhas de cada tabela (sem ler dados): a leitura sem limite só é achado em tabela grande, e a exceção da lista filha deixa de valer quando a lista do pai é grande (a lista pelo espaço). Sem banco vivo, o comportamento de hoje continua. `IS NOT NULL` e `IS NULL` não contam como filtro que limita a leitura.
+- [x] Reteste no sistema real e documentação (ADR-006, `SECURITY.md`, README, README do pacote, `visao.md`).
+- **Registro (2026-11-07):**
+  - **MCP:** a ferramenta `get_query_plan` e o custo de antes e depois no `propose_query_rewrite` reaproveitam o serviço da tela (mesma porta do leitor de SQL). O MCP lê as chaves da DataProtection do banco local só para decifrar (nunca cria nem grava chave), sem referenciar o `Rastro.Ai`.
+  - **Tamanho da tabela:** a estimativa sai de `pg_class.reltuples` e de `sys.partitions` (sem permissão nova), com os limites de 1.000 e 100.000 linhas (`TableSize`), e aparece no painel da tabela.
+  - **Comparação item a item no sistema real:** 52 consultas, na versão de antes do achado único por tabela e na de agora. O agrupamento não perdeu nada; o que se perdeu foi a lista do espaço, calada pela chave estrangeira implícita. Daí a regra da entidade principal: sem estimativa, a tabela apontada por duas ou mais outras não tem a exceção da lista filha.
+  - **`lower()` sem achado:** a comparação mostrou que o `lower()` dentro de `SELECT EXISTS (...)` nunca era analisado; agora é, nos dois dialetos.
+  - **Reteste com o código novo:** voltaram a lista do espaço, a de arquivadas (`IS NOT NULL`), os dois `lower()` e um `OR` que ficava escondido no mesmo `EXISTS`; os épicos e as features do espaço passaram a ter achado de gravidade baixa (épicos é apontada por 11 tabelas). Subtarefas, comentários e status do espaço continuam sem achado.
+  - **Testes:** backend 730/730, frontend 561/561.
+
+
 ## Repaginação da usabilidade `[x]` (pedido do dono em 2026-11-06)
 
 O dono não achou a tela do banco: a entrada era um link de texto na barra do levantamento, e o cabeçalho não tem navegação. Ele pediu para repaginar a usabilidade. O levantamento está em [`plano-ux-2026-11-06-repaginacao.md`](../frontend/plano-ux-2026-11-06-repaginacao.md): a Fase A (entradas e rótulos) e a Fase B (comportamento) seguem o ciclo normal; a Fase C (cabeçalho com as áreas do produto, tela inicial por repositório, barra do levantamento em grupos e textos) espera a aprovação do dono item a item, com um protótipo antes.

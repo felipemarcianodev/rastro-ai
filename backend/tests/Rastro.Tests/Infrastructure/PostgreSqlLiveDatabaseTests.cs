@@ -113,6 +113,18 @@ public class PostgreSqlLiveDatabaseTests(PostgreSqlContainerFixture server) : IC
         Assert.Equal(3, await _live.CountTablesAsync(server.ReaderConnectionString, default));
     }
 
+    [DockerFact] // INF-PGL-020
+    public async Task Catalogo_TrazAEstimativaDeLinhasDoReltuplesENuloQuandoDesconhecida()
+    {
+        // O ANALYZE atualiza o reltuples (pedidos tem uma linha); marcas, vazia, fica desconhecida (0).
+        await PostgreSqlContainerFixture.RunAsync(server.AdminConnectionString, "ANALYZE pedidos; ANALYZE marcas");
+
+        var fragment = await _live.ReadCatalogAsync(server.ReaderConnectionString, default);
+
+        Assert.Equal(1L, fragment.Tables.Single(t => t.Name == "pedidos").EstimatedRows);
+        Assert.Null(fragment.Tables.Single(t => t.Name == "marcas").EstimatedRows);
+    }
+
     [DockerFact] // INF-PGL-011
     public async Task Plano_DaConsultaDoPrototipoComParametros_VarreduraSemExecutar()
     {

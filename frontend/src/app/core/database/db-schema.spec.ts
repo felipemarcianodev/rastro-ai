@@ -1,5 +1,5 @@
 import { dbMapGeometry, dbMapSvg, shortType } from './db-map';
-import { Cardinality, KEY_MARK_LABEL, KeyMark, columnKeys, findingText, keyMark, linkTableOf, matches, neighborhood, relationsOf, toErMermaid } from './db-schema';
+import { Cardinality, KEY_MARK_LABEL, KeyMark, columnKeys, estimatedRowsText, findingText, keyMark, linkTableOf, matches, neighborhood, relationsOf, toErMermaid } from './db-schema';
 import { lojaSchema } from './loja-schema.spec';
 
 const colors = { paper: '#f2f4f1', surface: '#ffffff', surfaceSunk: '#e8ece9', ink: '#1d2a2e', inkSoft: '#5c6a6e', lineStrong: '#b7c1bc', edge: '#6b787c' };
@@ -122,5 +122,19 @@ describe('esquema do banco (Fase 38)', () => {
     const byName = new Map(card.rows.map((r) => [r.name, r]));
     expect(byName.get('id')).toEqual(jasmine.objectContaining({ mark: KeyMark.Pk, markLabel: 'PK', isPrimaryKey: true }));
     expect(byName.get('cliente_id')).toEqual(jasmine.objectContaining({ mark: KeyMark.Fk, markLabel: 'FK', isPrimaryKey: false }));
+  });
+});
+
+// Fase 44: estimativa de linhas do banco vivo no painel da tabela.
+describe('estimatedRowsText', () => {
+  it('formata com ponto de milhar e diz que é estimativa', () => {
+    expect(estimatedRowsText(123456)).toBe('Cerca de 123.456 linhas, pela estimativa do banco vivo.');
+    expect(estimatedRowsText(1)).toBe('Cerca de 1 linha, pela estimativa do banco vivo.');
+  });
+
+  it('sem banco vivo ou sem estatística, nada', () => {
+    expect(estimatedRowsText(null)).toBeNull();
+    expect(estimatedRowsText(undefined)).toBeNull();
+    expect(estimatedRowsText(0)).toBeNull();
   });
 });

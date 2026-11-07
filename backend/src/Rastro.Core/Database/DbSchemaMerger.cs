@@ -122,7 +122,8 @@ public static class DbSchemaMerger
 
         return new DbTable(schema, name, columns, primaryKey, foreignKeys, indexes,
             group.SelectMany(t => t.Sources).Distinct().OrderBy(s => s, SourceOrder.Instance).ToList(),
-            group.Select(t => t.Entity).FirstOrDefault(e => e is not null));
+            group.Select(t => t.Entity).FirstOrDefault(e => e is not null),
+            group.Select(t => t.EstimatedRows).FirstOrDefault(r => r is not null));
     }
 
     // O índice serve à FK quando as primeiras colunas dele são as colunas da FK (em qualquer ordem).

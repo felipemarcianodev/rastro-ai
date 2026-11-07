@@ -85,6 +85,15 @@ export interface DbTable {
   foreignKeys: DbForeignKey[];
   indexes: DbIndex[];
   sources: SchemaSource[];
+  // Estimativa de linhas pelo catálogo do banco vivo (Fase 44); nula sem banco vivo ou sem estatística.
+  estimatedRows?: number | null;
+}
+
+// "Cerca de 12.345 linhas, pela estimativa do banco vivo" (milhar com ponto, como a mensagem do backend).
+export function estimatedRowsText(rows: number | null | undefined): string | null {
+  if (rows === null || rows === undefined || rows <= 0) return null;
+  const formatted = String(Math.round(rows)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return `Cerca de ${formatted} ${rows === 1 ? 'linha' : 'linhas'}, pela estimativa do banco vivo.`;
 }
 
 export interface DbView {

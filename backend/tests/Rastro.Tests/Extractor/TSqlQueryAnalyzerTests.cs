@@ -155,7 +155,9 @@ public class TSqlQueryAnalyzerTests
         Assert.Equal("ORDER BY id DESC", Marked(sql, f));
         Assert.Empty(Analyze("SELECT id FROM pedidos WHERE cliente_id = 3 ORDER BY id OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY").Findings);
         // Filtro de igualdade pela chave estrangeira (a lista filha de um pai, Fase 43a): a ordenação não é apontada.
-        Assert.DoesNotContain(Analyze("SELECT id FROM pedidos WHERE cliente_id = 3 ORDER BY id DESC").Findings, x => x.Kind == QueryFindingKind.OrderByWithoutLimit);
+        Assert.DoesNotContain(Analyze("SELECT id FROM pagamentos WHERE pedido_id = 3 ORDER BY id DESC").Findings, x => x.Kind == QueryFindingKind.OrderByWithoutLimit);
+        // pedidos é apontada por mais de uma tabela (entidade principal, Fase 44): a lista dela por cliente tende a crescer.
+        Assert.Contains(Analyze("SELECT id FROM pedidos WHERE cliente_id = 3 ORDER BY id DESC").Findings, x => x.Kind == QueryFindingKind.OrderByWithoutLimit);
     }
 
     [Fact] // EXT-DBQ-011

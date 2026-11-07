@@ -89,6 +89,18 @@ public sealed class SqlServerLiveDatabase : ILiveDatabase
         ORDER BY s.name, p.name, pa.parameter_id
         """;
 
+    // A estimativa de linhas vem de sys.partitions (catálogo, a mesma visibilidade de metadados das outras
+    // consultas: não pede permissão nova, ao contrário de sys.dm_db_partition_stats, que pede VIEW DATABASE
+    // STATE). Só o heap (index 0) ou o índice agrupado (index 1), somando as partições. Nunca um COUNT(*).
+    private const string RowEstimatesSql = """
+        SELECT s.name, t.name, SUM(p.rows)
+        FROM sys.tables t
+        JOIN sys.schemas s ON s.schema_id = t.schema_id
+        JOIN sys.partitions p ON p.object_id = t.object_id AND p.index_id IN (0, 1)
+        WHERE t.is_ms_shipped = 0
+        GROUP BY s.name, t.name
+        """;
+
     private const string CountSql = "SELECT COUNT(*) FROM sys.tables WHERE is_ms_shipped = 0";
 
     public async Task<int> CountTablesAsync(string connectionString, CancellationToken ct)
@@ -168,6 +180,10 @@ public sealed class SqlServerLiveDatabase : ILiveDatabase
             tables[id.Item1].ForeignKeys.Add(new DbForeignKey(id.Item2, fk.Columns, fk.Principal, fk.PrincipalColumns, fk.OnDelete, Live));
         }
 
+        await foreach (var r in RowsAsync(connection, RowEstimatesSql, ct))
+            if (!r.IsDBNull(2) && r.GetInt64(2) > 0)
+                Table(r.GetString(0), r.GetString(1)).EstimatedRows = r.GetInt64(2);
+
         var views = new List<DbView>();
         await foreach (var r in RowsAsync(connection, ViewsSql, ct))
         {
@@ -191,7 +207,7 @@ public sealed class SqlServerLiveDatabase : ILiveDatabase
         }
 
         var built = order.Select(k => tables[k]).Select(t => new DbTable(NullIfDefault(t.Schema), t.Name, t.Columns, t.PrimaryKey,
-            t.ForeignKeys, t.Indexes, [Live])).ToList();
+            t.ForeignKeys, t.Indexes, [Live], null, t.EstimatedRows)).ToList();
         return new SchemaFragment(built, views, procedures, []);
     }
 
@@ -274,5 +290,6 @@ public sealed class SqlServerLiveDatabase : ILiveDatabase
         public List<DbForeignKey> ForeignKeys { get; } = [];
         public List<DbIndex> Indexes { get; } = [];
         public List<string> IndexOrder { get; } = [];
+        public long? EstimatedRows { get; set; }
     }
 }

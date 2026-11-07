@@ -74,6 +74,7 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
         // A chave de partição (o tenant): filtrar só por ela não é filtrar por um pai.
         private readonly HashSet<string> _partition = DbPartition.Columns(schema);
         private readonly HashSet<string> _tableKeys = DbPartition.TableKeys(schema);
+        private readonly Dictionary<string, int> _referrers = DbPartition.ReferrerCounts(schema, DbPartition.Columns(schema));
         private readonly SqlDialect _dialect = schema?.Dialect ?? SqlDialect.PostgreSql;
         private readonly Dictionary<string, DbTable> _tables = (schema?.Tables ?? [])
             .GroupBy(t => DbNames.Key(t.Schema, t.Name, schema!.Dialect))
@@ -651,9 +652,16 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
         private void Subqueries(Expression? expression, Scope? scope, bool correlated = false)
         {
             if (expression is null) return;
+            // EXISTS na lista do SELECT (SELECT EXISTS (...)) ou dentro de uma expressão: a subconsulta é analisada
+            // como no WHERE, senão os filtros de dentro nunca eram conferidos. Ela é feita para citar a de fora
+            // (semi-junção), então não vira achado de subconsulta correlata.
+            var exists = (expression is Expression.Exists selfExists
+                ? [selfExists]
+                : PgAst.Descendants(expression, n => n is Expression.Subquery or Expression.Exists or AstQuery).OfType<Expression.Exists>().ToList());
+            foreach (var e in exists) Query(e.SubQuery, scope, outermost: false, inExists: true);
             var found = expression is Expression.Subquery self
                 ? [self]
-                : PgAst.Descendants(expression, n => n is Expression.Subquery or AstQuery).OfType<Expression.Subquery>().ToList();
+                : PgAst.Descendants(expression, n => n is Expression.Subquery or Expression.Exists or AstQuery).OfType<Expression.Subquery>().ToList();
             foreach (var subquery in found)
             {
                 var inner = Query(subquery.Query, scope, outermost: false, inExists: false);
@@ -758,7 +766,7 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
                 case Expression.InList { Negated: false } list when Plain(list.Expression) is { } column:
                     return new Eq(column, null);
                 case Expression.IsNull isNull when Plain(isNull.Expression) is { } nullColumn:
-                    return new Eq(nullColumn, null);
+                    return new Eq(nullColumn, null, true);
                 // Booleano: "col", "NOT col", "NOT (col)" e "col IS [NOT] TRUE/FALSE" são col = true e col = false.
                 case Expression.UnaryOp { Op: UnaryOperator.Not } not when Plain(not.Expression) is { } negated:
                     return new Eq(negated, null);
@@ -799,6 +807,8 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
                 scope.OnlyEqualities = true;
                 foreach (var part in parts)
                 {
+                    // IS NOT NULL não é igualdade nem limita a leitura: não conta como filtro (nem desfaz o "só igualdades").
+                    if (part is Expression.IsNotNull) continue;
                     if (EqualityOf(part) is { } eq) scope.Where.Add(eq);
                     else scope.OnlyEqualities = false;
                 }
@@ -819,7 +829,7 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
         private static List<(TableRef Ref, DbTable Table, string Column)>? ValueFilters(Scope scope)
         {
             var found = new List<(TableRef, DbTable, string)>();
-            foreach (var eq in scope.Where.Where(e => e.Right is null))
+            foreach (var eq in scope.Where.Where(e => e.Right is null && !e.NullTest))
             {
                 if (scope.Resolve(eq.Left) is not { Depth: 0, Ref.Table: { } table, Column: { } name } resolved) return null;
                 found.Add((resolved.Ref!, table, name));
@@ -829,13 +839,33 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
 
         // Lista filha de um pai: algum filtro de igualdade do WHERE cai numa coluna de chave estrangeira que não
         // é a de partição (o tenant). Filtrar só pela chave de partição não limita o resultado a um pai pequeno.
-        private bool FilteredByForeignKey(Scope? scope)
+        // ignoreLarge (Fase 44): a lista de um pai deixa de ser exceção quando a tabela filtrada é grande pela
+        // estimativa do banco vivo (a lista pelo espaço numa tabela de milhões de linhas).
+        private bool FilteredByForeignKey(Scope? scope, bool ignoreLarge = false)
         {
             if (scope is null || ValueFilters(scope) is not { } filters) return false;
-            // Sem FK declarada, a coluna x_id cuja tabela x, xs ou xes existe no esquema conta como FK implícita.
-            return filters.Any(f => !_partition.Contains(DbNames.Unquote(f.Column))
-                && (f.Table.ForeignKeys.Any(fk => fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(f.Column), StringComparison.OrdinalIgnoreCase)))
-                    || DbPartition.IsImplicitForeignKey(_tableKeys, f.Column)));
+            if (ignoreLarge) filters = filters.Where(f => !TableSize.IsLarge(f.Table)).ToList();
+            return filters.Any(f => IsParentFilter(f.Table, f.Column) && !IsMainEntity(f.Table));
+        }
+
+        // Sem FK declarada, a coluna x_id cuja tabela x, xs ou xes existe no esquema conta como FK implícita.
+        private bool IsParentFilter(DbTable table, string column) =>
+            !_partition.Contains(DbNames.Unquote(column))
+            && (table.ForeignKeys.Any(fk => fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(column), StringComparison.OrdinalIgnoreCase)))
+                || DbPartition.IsImplicitForeignKey(_tableKeys, column));
+
+        // Entidade principal: apontada por duas ou mais tabelas. A lista dela por um pai tende a crescer, então a
+        // exceção da lista filha não vale. Com a estimativa do banco vivo, o tamanho estimado é que decide.
+        private bool IsMainEntity(DbTable table) =>
+            table.EstimatedRows is null && DbPartition.Referrers(_referrers, table.Name) >= DbPartition.MainEntityReferrers;
+
+        // O motivo de a exceção da lista filha não valer, para a mensagem do achado.
+        private string MainEntityNote(List<(TableRef Ref, DbTable Table, string Column)> filters)
+        {
+            foreach (var f in filters)
+                if (IsParentFilter(f.Table, f.Column) && IsMainEntity(f.Table))
+                    return $" {f.Ref.Name} é apontada por {DbPartition.Referrers(_referrers, f.Table.Name)} tabelas: a lista filtrada por {DbNames.Unquote(f.Column)} de um pai tende a crescer, então o filtro pela chave estrangeira não limita o resultado.";
+            return string.Empty;
         }
 
         // As colunas filtradas identificam uma linha: a chave primária ou uma única inteira.
@@ -853,15 +883,25 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
             if (scope is null || scope.Opaque || !scope.HasWhere || !scope.OnlyEqualities) return;
             if (ValueFilters(scope) is not { Count: > 0 } filters) return;
             if (select.GroupBy is not null || select.Having is not null || AggregateOnly(select)) return;
-            if (FilteredByForeignKey(scope)) return;
+            // Com a estimativa do banco vivo: tabela pequena não é achado, e a lista filha de tabela grande é.
+            if (filters.All(f => TableSize.IsSmall(f.Table))) return;
+            if (FilteredByForeignKey(scope, ignoreLarge: true)) return;
             foreach (var group in filters.GroupBy(f => f.Ref))
                 if (Identifies(group.First().Table, group.Select(f => f.Column))) return;
 
             var written = Join(filters.Select(f => $"{f.Ref.Name}.{f.Column}").Distinct(StringComparer.OrdinalIgnoreCase).ToList());
             var tables = Join(filters.Select(f => f.Ref.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
             Report(QueryFindingKind.ReadWithoutLimit, QuerySeverity.Low, At(select.Selection!.ToSql(), _range.From),
-                $"A consulta não tem LIMIT e filtra {tables} só por igualdade em {written}, que não identifica uma linha (não é chave primária nem única): o resultado cresce com a tabela. Se a tela mostra uma página, limite.",
+                $"A consulta não tem LIMIT e filtra {tables} só por igualdade em {written}, que não identifica uma linha (não é chave primária nem única): o resultado cresce com a tabela.{Estimated(filters)}{MainEntityNote(filters)} Se a tela mostra uma página, limite.",
                 filters[0].Ref.Name);
+        }
+
+        // O tamanho que o banco vivo estima para as tabelas filtradas, quando há.
+        private static string Estimated(List<(TableRef Ref, DbTable Table, string Column)> filters)
+        {
+            var sized = filters.Where(f => f.Table.EstimatedRows is not null).DistinctBy(f => f.Ref.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(f => $"{f.Ref.Name} tem cerca de {TableSize.Format(f.Table.EstimatedRows!.Value)} linhas").ToList();
+            return sized.Count == 0 ? string.Empty : $" Pela estimativa do banco vivo, {Join(sized)}.";
         }
 
         // count(*), sum(x) e parentes sem GROUP BY: uma linha só.
@@ -1000,7 +1040,8 @@ public sealed partial class PgSqlQueryAnalyzer : ISqlQueryAnalyzer
     private readonly record struct Resolution(TableRef? Ref, string? Column, int Depth);
 
     // Uma igualdade do filtro: coluna = valor (Right nulo) ou coluna = coluna.
-    private sealed record Eq(IReadOnlyList<string> Left, IReadOnlyList<string>? Right);
+    // NullTest: o "IS NULL" (conta para o índice, mas não limita a leitura: ver ReadWithoutLimit).
+    private sealed record Eq(IReadOnlyList<string> Left, IReadOnlyList<string>? Right, bool NullTest = false);
 
     private sealed class Scope(Scope? parent)
     {

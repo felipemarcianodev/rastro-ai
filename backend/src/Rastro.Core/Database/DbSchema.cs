@@ -84,6 +84,8 @@ public record DbIndex(string? Name, IReadOnlyList<string> Columns, IReadOnlyList
 
 // Schema nulo é o padrão do dialeto (dbo no SQL Server, public no PostgreSQL). Entity (Fase 39): a
 // classe da entidade no modelo do EF, que liga o passo do fluxo (DbSet<Entity>) à tabela.
+// EstimatedRows (Fase 44): a estimativa de linhas que o catálogo do banco vivo dá (nunca a contagem real, que
+// leria os dados). Nulo sem banco vivo e quando o banco não sabe (PostgreSQL com reltuples -1 ou 0).
 public record DbTable(
     string? Schema,
     string Name,
@@ -92,7 +94,8 @@ public record DbTable(
     IReadOnlyList<DbForeignKey> ForeignKeys,
     IReadOnlyList<DbIndex> Indexes,
     IReadOnlyList<SchemaSource> Sources,
-    string? Entity = null);
+    string? Entity = null,
+    long? EstimatedRows = null);
 
 // Columns: o que a view devolve, quando o nome sai do texto (coluna sem alias numa expressão fica de fora).
 public record DbView(string? Schema, string Name, IReadOnlyList<string> Columns, IReadOnlyList<string> Reads, SchemaSource Source);

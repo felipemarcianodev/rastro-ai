@@ -86,6 +86,8 @@ public sealed class ApiFixture : IAsyncLifetime
         var services = new ServiceCollection();
         services.AddLogging(b => b.SetMinimumLevel(LogLevel.Warning));
         services.AddRastroCore(configuration);
+        // Como o McpHost (Fase 44): o banco vivo é o mesmo serviço da API, e as chaves vêm do banco da API.
+        services.AddRastroMcpLiveDatabase(configuration);
         services.AddSingleton<ISolutionSource, FixtureSolutionSource>();
         services.AddScoped<RastroTools>();
         configure?.Invoke(services);
