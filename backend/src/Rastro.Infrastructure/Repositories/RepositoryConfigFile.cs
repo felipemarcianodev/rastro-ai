@@ -111,6 +111,17 @@ public sealed partial class RepositoryConfigFile(string configPath)
     private void Save(JsonObject root)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(configPath))!);
-        File.WriteAllText(configPath, root.ToJsonString(Indented));
+        // Grava num arquivo ao lado e troca de uma vez: quem recarrega o config.json (file watcher da API,
+        // outro processo) nunca pega o arquivo truncado ou pela metade, que esvaziaria a lista de repositórios.
+        var temp = configPath + "." + Guid.NewGuid().ToString("N") + ".tmp";
+        try
+        {
+            File.WriteAllText(temp, root.ToJsonString(Indented));
+            File.Move(temp, configPath, overwrite: true);
+        }
+        finally
+        {
+            File.Delete(temp);
+        }
     }
 }
