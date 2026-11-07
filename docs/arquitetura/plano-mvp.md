@@ -506,7 +506,9 @@ Próximo passo da Fase 21: o usuário escolhe como quer ver a ramificação, ent
 - [-] ~~Preço único e baixo no começo; pagamento por serviço pronto (Lemon Squeezy, Paddle ou similar) que emite a licença sozinho e manda por e-mail.~~ Cancelado pela ADR-004.
 - [ ] Textos do produto (tela, pacote, mensagens da CLI) nos três idiomas.
 
-## Fase 16: plano enterprise `[ ]` (futuro)
+## Fase 16: IA pelo endpoint da empresa `[ ]` (futuro)
+
+O Rastro é gratuito e de código aberto (ADR-004); o antigo "plano enterprise" deixou de ser um plano pago. Fica só a funcionalidade, para quem trabalha numa empresa que só libera o endpoint de IA contratado por ela.
 
 - [ ] IA com os tokens contratados pela empresa: endpoint próprio (Azure OpenAI, Bedrock ou gateway interno) no modo provedor.
 - [-] ~~Licença por assentos e emissão em lote.~~ Cancelado pela ADR-004.
