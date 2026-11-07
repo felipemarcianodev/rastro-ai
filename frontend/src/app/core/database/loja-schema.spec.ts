@@ -69,3 +69,13 @@ export function lojaSchema(): DbSchema {
     ],
   };
 }
+
+// A loja com pedidos de 18 campos, com a FK depois dos 12 primeiros.
+export function wideSchema(): DbSchema {
+  const schema = lojaSchema();
+  const pedidos = schema.tables.find((t) => t.name === 'pedidos')!;
+  const [id, clienteId, status] = pedidos.columns;
+  const filler = Array.from({ length: 14 }, (_, i) => ({ ...status, name: `campo_${String(i + 1).padStart(2, '0')}`, type: 'int' }));
+  pedidos.columns = [id, status, ...filler, clienteId, { ...status, name: 'atualizado_em', type: 'datetime2' }];
+  return schema;
+}

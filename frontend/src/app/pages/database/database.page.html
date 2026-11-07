@@ -219,10 +219,15 @@
                       <span class="db-row-type" [class.is-divergent]="r.divergent" [title]="r.divergent ? 'As fontes divergem: veja no painel' : r.fullType">{{ r.type }}</span>
                     </span>
                   }
-                  @if (c.more > 0) {
-                    <span class="db-row muted">+{{ c.more }} campos (todos no painel)</span>
-                  }
                 </button>
+                @if (c.extra > 0) {
+                  <!-- Fora do cartão, que já é um botão: fica por cima da última linha dele. -->
+                  <button type="button" class="db-more" [attr.data-more]="c.key" [style.left.px]="c.x" [style.top.px]="c.y + card.header + c.rows.length * card.row" [style.width.px]="card.width"
+                    [class.is-dim]="(!!matching() && !matching()!.has(c.key)) || (!!lit() && !selectedTable() && !lit()!.has(c.key))"
+                    [attr.tabindex]="matching() && !matching()!.has(c.key) ? -1 : null" [attr.aria-expanded]="c.open" [attr.aria-label]="(c.open ? 'Mostrar só os primeiros campos de ' : 'Mostrar os ' + c.table.columns.length + ' campos de ') + c.key" (click)="toggleFields(c.key)">
+                    {{ c.open ? 'Mostrar menos' : '+' + c.more + ' campos, mostrar todos' }}
+                  </button>
+                }
               }
             </div>
             </div>

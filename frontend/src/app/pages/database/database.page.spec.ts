@@ -5,7 +5,7 @@ import { Router, provideRouter } from '@angular/router';
 import { DbSchema, DbUsageReport, SchemaSourceKind } from '../../core/database/db-schema';
 import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM, HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { DbOperation, FindingKind, FindingSeverity } from '../../core/models';
-import { lojaSchema } from '../../core/database/loja-schema.spec';
+import { lojaSchema, wideSchema } from '../../core/database/loja-schema.spec';
 import { LastRepositoryService } from '../../core/last-repository.service';
 import { DatabasePage, LIST_ANNOUNCE_DELAY_MS } from './database.page';
 
@@ -757,5 +757,37 @@ describe('DatabasePage: fonte do banco vivo no painel', () => {
     const origin = el.querySelector('.db-origin')!.textContent!.replace(/\s+/g, ' ');
     expect(origin).not.toContain('banco vivo:0');
     expect(el.querySelector('.db-size')!.textContent).toContain('Cerca de 250.000 linhas');
+  });
+});
+
+describe('DatabasePage: campos escondidos no cartão', () => {
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+
+  // WEB-DBV-017
+  it('o "+N campos" abre o cartão no mapa com todos os campos, sem abrir o painel, e "Mostrar menos" fecha', () => {
+    const { fixture, el } = render(wideSchema());
+    const more = () => el.querySelector<HTMLButtonElement>('.db-more[data-more="pedidos"]')!;
+    const rows = () => card(el, 'pedidos').querySelectorAll('.db-row').length;
+
+    expect(el.querySelectorAll('.db-more').length).toBe(1);
+    expect(rows()).toBe(12);
+    expect(more().textContent!.trim()).toBe('+6 campos, mostrar todos');
+    expect(more().getAttribute('aria-expanded')).toBe('false');
+    expect(more().getAttribute('aria-label')).toBe('Mostrar os 18 campos de pedidos');
+    const height = parseFloat(card(el, 'pedidos').style.height);
+
+    more().click();
+    fixture.detectChanges();
+    expect(rows()).toBe(18);
+    expect(card(el, 'pedidos').textContent).toContain('cliente_id');
+    expect(parseFloat(card(el, 'pedidos').style.height)).toBeGreaterThan(height);
+    expect(more().textContent!.trim()).toBe('Mostrar menos');
+    expect(more().getAttribute('aria-expanded')).toBe('true');
+    expect(el.querySelector('.db-panel')).toBeNull();
+
+    more().click();
+    fixture.detectChanges();
+    expect(rows()).toBe(12);
+    expect(more().getAttribute('aria-expanded')).toBe('false');
   });
 });

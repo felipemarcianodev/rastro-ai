@@ -6,7 +6,7 @@ import { Cardinality, DIVERGENT_TEXT, DbRelation, DbTable, KEY_MARK_LABEL, KeyMa
 // Determinístico: o mesmo esquema dá o mesmo desenho.
 
 export const DB_CARD = { width: 272, header: 34, row: 22, padding: 8 } as const;
-// Colunas além disso ficam num "+N campos" (o painel mostra todas).
+// Colunas além disso ficam num "+N campos", que abre o cartão com todas (e o painel também mostra todas).
 export const DB_CARD_MAX_ROWS = 12;
 const GAP_X = 96;
 const GAP_Y = 28;
@@ -35,7 +35,11 @@ export interface DbCard {
   y: number;
   height: number;
   rows: DbCardRow[];
+  // Campos escondidos no "+N" (0 com o cartão aberto).
   more: number;
+  // Campos além de DB_CARD_MAX_ROWS: com algum, o cartão tem a linha de abrir e fechar.
+  extra: number;
+  open: boolean;
 }
 
 export interface DbLink {
@@ -77,8 +81,9 @@ export function shortType(type: string): string {
   return out.replace(/,\s+/g, ',');
 }
 
-function cardHeight(table: DbTable): number {
-  const rows = Math.min(table.columns.length, DB_CARD_MAX_ROWS) + (table.columns.length > DB_CARD_MAX_ROWS ? 1 : 0);
+function cardHeight(table: DbTable, open: boolean): number {
+  const total = table.columns.length;
+  const rows = (open ? total : Math.min(total, DB_CARD_MAX_ROWS)) + (total > DB_CARD_MAX_ROWS ? 1 : 0);
   return DB_CARD.header + Math.max(rows, 1) * DB_CARD.row + DB_CARD.padding;
 }
 
@@ -107,7 +112,8 @@ function levels(tables: readonly DbTable[], relations: readonly DbRelation[]): M
   return level;
 }
 
-export function dbMapGeometry(tables: readonly DbTable[], relations: readonly DbRelation[]): DbMapGeometry | null {
+// expanded: as tabelas com o cartão aberto (todos os campos); o resto do desenho desce para caber.
+export function dbMapGeometry(tables: readonly DbTable[], relations: readonly DbRelation[], expanded: ReadonlySet<string> = new Set()): DbMapGeometry | null {
   if (tables.length === 0) return null;
   const level = levels(tables, relations);
   const byKey = new Map(tables.map((t) => [tableKey(t), t]));
@@ -138,8 +144,11 @@ export function dbMapGeometry(tables: readonly DbTable[], relations: readonly Db
   columns.forEach((column, c) => {
     let y = MARGIN;
     for (const table of column) {
-      const h = cardHeight(table);
-      const rows = table.columns.slice(0, DB_CARD_MAX_ROWS).map((col) => {
+      const key = tableKey(table);
+      const extra = Math.max(0, table.columns.length - DB_CARD_MAX_ROWS);
+      const open = extra > 0 && expanded.has(key);
+      const h = cardHeight(table, open);
+      const rows = (open ? table.columns : table.columns.slice(0, DB_CARD_MAX_ROWS)).map((col) => {
         const mark = keyMark(columnKeys(table, col.name));
         return {
           name: col.name,
@@ -152,7 +161,7 @@ export function dbMapGeometry(tables: readonly DbTable[], relations: readonly Db
           divergent: col.type == null || col.nullable == null,
         };
       });
-      cards.push({ key: tableKey(table), table, x: MARGIN + c * (DB_CARD.width + GAP_X), y, height: h, rows, more: Math.max(0, table.columns.length - DB_CARD_MAX_ROWS) });
+      cards.push({ key, table, x: MARGIN + c * (DB_CARD.width + GAP_X), y, height: h, rows, more: open ? 0 : extra, extra, open });
       y += h + GAP_Y;
     }
     height = Math.max(height, y - GAP_Y + MARGIN);
