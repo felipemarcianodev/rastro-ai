@@ -2,7 +2,8 @@
 // na mesma linha, encostados no pé do cartão. Em tela estreita empilham, sem cortar texto.
 .repo-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
+  // 440px: o cartão cabe os três botões numa linha cada ("Analisar consulta" quebrava em 1440 px com 400px).
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
   gap: var(--space-4);
   margin: 0;
   padding: 0;
@@ -51,6 +52,7 @@
     padding: var(--space-1) var(--space-2);
     text-align: center;
     line-height: 1.2;
+    white-space: nowrap;
   }
 }
 
