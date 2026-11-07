@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
-import { DbSchema, DbUsageReport } from '../../core/database/db-schema';
+import { DbSchema, DbUsageReport, SchemaSourceKind } from '../../core/database/db-schema';
 import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM, HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { DbOperation, FindingKind, FindingSeverity } from '../../core/models';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
@@ -741,5 +741,21 @@ describe('DatabasePage (Fase 38)', () => {
     fixture.detectChanges();
     const link = [...el.querySelectorAll<HTMLAnchorElement>('.db-panel a')].find((a) => a.textContent!.includes('Levantar o fluxo deste repositório'))!;
     expect(link.getAttribute('href')).toBe(`/?repositorio=loja&${HOME_FROM_DB_PARAM}=${HOME_FROM_DB_VALUE}`);
+  });
+});
+
+// Passo de UX da 0.8.0: o banco vivo não tem arquivo nem linha, e o painel mostrava "banco vivo banco vivo:0".
+describe('DatabasePage: fonte do banco vivo no painel', () => {
+  it('mostra só o nome da fonte e a estimativa de linhas', () => {
+    const schema = lojaSchema();
+    const pedidos = schema.tables.find((t) => t.name === 'pedidos')!;
+    pedidos.sources = [...pedidos.sources, { kind: SchemaSourceKind.LiveDatabase, file: 'banco vivo', line: 0 }];
+    pedidos.estimatedRows = 250000;
+    const { el, fixture } = render(schema, 'pedidos');
+    fixture.detectChanges();
+
+    const origin = el.querySelector('.db-origin')!.textContent!.replace(/\s+/g, ' ');
+    expect(origin).not.toContain('banco vivo:0');
+    expect(el.querySelector('.db-size')!.textContent).toContain('Cerca de 250.000 linhas');
   });
 });

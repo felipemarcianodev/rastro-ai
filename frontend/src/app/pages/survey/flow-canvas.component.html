@@ -204,7 +204,8 @@
   </div>
 }
 
-@if (shortcutsHint() && laidOut()) {
+<!-- Com a legenda aberta, a dica de atalhos sai: a legenda já lista os atalhos, e as duas se cobriam. -->
+@if (shortcutsHint() && laidOut() && !legendOpen()) {
   <div class="shortcuts-hint" role="note">
     <span>Setas: andar · Alt+setas: mover · Ctrl+F: buscar · Esc: limpar</span>
     <button type="button" class="btn btn-g btn-small" (click)="closeShortcutsHint()" aria-label="Fechar a dica de atalhos">Fechar</button>

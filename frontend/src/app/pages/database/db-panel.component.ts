@@ -13,6 +13,7 @@ import {
   SCHEMA_FINDING_TITLE,
   KEY_MARK_LABEL,
   SCHEMA_SOURCE_LABEL,
+  SchemaSourceKind,
   columnKeys,
   findTable,
   findingText,
@@ -91,6 +92,7 @@ export class DbPanelComponent {
   protected readonly surveyParams = computed(() => ({ repositorio: this.repository(), [HOME_FROM_DB_PARAM]: HOME_FROM_DB_VALUE }));
   protected readonly DbItemKind = DbItemKind;
   protected readonly sourceLabel = SCHEMA_SOURCE_LABEL;
+  protected readonly SchemaSourceKind = SchemaSourceKind;
   protected readonly findingTitle = SCHEMA_FINDING_TITLE;
   protected readonly sourceText = sourceText;
   protected readonly findingText = findingText;
@@ -172,7 +174,7 @@ export class DbPanelComponent {
         .filter((d) => d.table.toLowerCase() === key.toLowerCase())
         .map((d) => ({
           title: `${DIVERGENCE_LABEL[d.kind]}${d.column ? ' de ' + d.column : ''}`,
-          values: d.values.map((v) => `${SCHEMA_SOURCE_LABEL[v.source.kind]} diz ${v.value} (${v.source.file}:${v.source.line})`),
+          values: d.values.map((v) => `${SCHEMA_SOURCE_LABEL[v.source.kind]} diz ${v.value}${v.source.kind === SchemaSourceKind.LiveDatabase ? '' : ` (${v.source.file}:${v.source.line})`}`),
         })),
       findings: schema.findings.filter((f) => f.table.toLowerCase() === key.toLowerCase()),
     };
