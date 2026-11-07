@@ -1001,9 +1001,10 @@ function writePositions(key: string | null, positions: Record<string, Point>): v
 
 function readLegendOpen(): boolean {
   try {
-    return localStorage.getItem(LEGEND_KEY) !== 'false';
+    // UX-G-N06: na primeira visita a legenda fica fechada; só abre depois que a pessoa a abre.
+    return localStorage.getItem(LEGEND_KEY) === 'true';
   } catch {
-    return true;
+    return false;
   }
 }
 

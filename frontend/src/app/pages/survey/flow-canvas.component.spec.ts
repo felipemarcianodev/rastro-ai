@@ -84,6 +84,7 @@ describe('FlowCanvasComponent: botões de modo (A5)', () => {
   }
 
   // A5
+  // UX-G-F12
   it('o rótulo não muda com o estado: ele fica só no aria-pressed', () => {
     const labels = (el: HTMLElement) => ({
       brief: el.querySelector('.tools-row-button')?.textContent?.trim(),
@@ -91,7 +92,7 @@ describe('FlowCanvasComponent: botões de modo (A5)', () => {
     });
     const off = render(false);
     const before = labels(off);
-    expect(before.brief).toBe('Resumo do fluxo');
+    expect(before.brief).toBe('Só o método de entrada');
     expect(before.framework).toBe('Chamadas do .NET (3)');
     expect(off.querySelector('.framework-button')?.getAttribute('aria-pressed')).toBe('false');
     TestBed.resetTestingModule();
@@ -162,6 +163,7 @@ describe('FlowCanvasComponent: botões de modo (A5)', () => {
 
 describe('FlowCanvasComponent: acréscimos da Fase B', () => {
   const SEEN_KEY = 'rastro.shortcutsHintSeen';
+  const LEGEND_KEY = 'rastro.legendOpen';
 
   function chain(count: number): FlowGraph {
     const nodes = Array.from({ length: count }, (_, i) => ({ id: `n${i}`, kind: i === 0 ? NodeKind.Entry : NodeKind.Method, label: `Servico${i}.Executar` }));
@@ -194,7 +196,9 @@ describe('FlowCanvasComponent: acréscimos da Fase B', () => {
     graph.edges[0] = { ...graph.edges[0], confidence: EdgeConfidence.Inferred, origin: ProposalOrigin.Provider };
     graph.edges[1] = { ...graph.edges[1], confidence: EdgeConfidence.Confirmed, origin: ProposalOrigin.Agent };
     graph.edges[2] = { ...graph.edges[2], confidence: EdgeConfidence.Confirmed, origin: ProposalOrigin.Manual };
+    localStorage.setItem(LEGEND_KEY, 'true');
     const { el } = await render(graph);
+    localStorage.removeItem(LEGEND_KEY);
     const marks = [...el.querySelectorAll('#legend .edge-origin')].map((m) => m.textContent!.trim());
     expect(marks).toEqual(['IA', 'MCP', '✎']);
     const inGraph = [...el.querySelectorAll('.edge-label .edge-origin')].map((m) => m.getAttribute('aria-label'));
@@ -291,6 +295,47 @@ describe('FlowCanvasComponent: acréscimos da Fase B', () => {
     const { inner } = await render(chain(200));
     expect(inner.lastLayoutMs()).toBeGreaterThanOrEqual(0);
     expect(inner.lastLayoutMs()).toBeLessThan(5000);
+  });
+
+  // UX-G-N06
+  it('na primeira visita a legenda começa fechada, com o botão Legenda à vista', async () => {
+    localStorage.removeItem(LEGEND_KEY);
+    const { el } = await render(chain(2));
+    expect(el.querySelector('#legend')).toBeNull();
+    const toggle = el.querySelector<HTMLButtonElement>('.legend-toggle')!;
+    expect(toggle.textContent!.trim()).toBe('Legenda');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  // UX-G-N06
+  it('aberta, a legenda lembra a escolha e não passa para cima dos controles do canvas', async () => {
+    localStorage.removeItem(LEGEND_KEY);
+    try {
+      const first = await render(chain(2));
+      first.el.querySelector<HTMLButtonElement>('.legend-toggle')!.click();
+      first.fixture.detectChanges();
+      expect(first.el.querySelector('#legend')).not.toBeNull();
+      expect(localStorage.getItem(LEGEND_KEY)).toBe('true');
+      const box = first.el.querySelector('.legend-box') as HTMLElement;
+      expect(getComputedStyle(box).maxHeight).not.toBe('none');
+      const second = await render(chain(2));
+      expect(second.el.querySelector('#legend')).not.toBeNull();
+    } finally {
+      localStorage.removeItem(LEGEND_KEY);
+    }
+  });
+
+  // UX-G-F04
+  it('a legenda do caminho fala em passo, não em nó', async () => {
+    localStorage.setItem(LEGEND_KEY, 'true');
+    try {
+      const { el } = await render(chain(2));
+      const text = el.querySelector('#legend')!.textContent!;
+      expect(text).toContain('Caminho até o passo escolhido');
+      expect(text).not.toMatch(/nós?/);
+    } finally {
+      localStorage.removeItem(LEGEND_KEY);
+    }
   });
 
   // UX-G-F14

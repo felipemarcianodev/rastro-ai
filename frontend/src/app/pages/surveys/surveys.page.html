@@ -1,10 +1,12 @@
 <div class="page">
   <header class="page-head">
     <div>
-      <h1 id="list-title" tabindex="-1">Seus repositórios</h1>
+      <h1 id="list-title" tabindex="-1">{{ welcome() ? 'Boas-vindas ao Rastro' : 'Levantamentos' }}</h1>
       <p class="muted">O Rastro lê o código com o compilador: siga um fluxo, veja o banco ou analise uma consulta.</p>
     </div>
-    <button type="button" class="btn btn-p new-survey" (click)="openForm()">Novo levantamento</button>
+    @if (!welcome()) {
+      <button type="button" class="btn btn-p new-survey" (click)="openForm()">Novo levantamento</button>
+    }
   </header>
 
   <span class="visually-hidden" role="status">{{ deletedNotice() ?? '' }}</span>
@@ -12,7 +14,19 @@
     <p class="note-ok saved-notice" aria-hidden="true">{{ notice }}</p>
   }
 
-  @if (reposState() === 'loading') {
+  @if (welcome()) {
+    <div class="empty first-use">
+      <p>Dois passos até o primeiro fluxo:</p>
+      <ol class="steps">
+        <li>Cadastre a pasta do código que o Rastro vai ler.</li>
+        <li>Escolha o método de entrada e levante o primeiro fluxo.</li>
+      </ol>
+      <div class="first-use-actions">
+        <button type="button" class="btn btn-p" (click)="openRegister()">Cadastrar repositório</button>
+      </div>
+      <p class="muted ai-note">A IA é opcional: o Rastro funciona sem ela. Para ligar, vá a <a routerLink="/configuracoes" fragment="ia">Configurações</a>.</p>
+    </div>
+  } @else if (reposState() === 'loading') {
     <ul class="repo-grid" aria-busy="true" aria-label="Carregando repositórios">
       @for (i of skeletonRows; track i) {
         <li class="repo-card skeleton-card" aria-hidden="true"></li>
@@ -24,26 +38,30 @@
       <button type="button" class="btn btn-g retry" (click)="loadRepositories()">Tentar de novo</button>
     </div>
   } @else if (hasRepositories()) {
-    <ul class="repo-grid" aria-label="Repositórios">
-      @for (card of repoCards(); track card.name) {
-        <li class="repo-card">
-          <div class="repo-card-head">
-            <h2 class="code">{{ card.name }}</h2>
-            <span class="muted">{{ card.count }}</span>
-          </div>
-          @if (card.stack) {
-            <p class="muted repo-stack code">{{ card.stack }}</p>
-          }
-          <div class="action-grid">
-            <button type="button" class="btn btn-p" (click)="openForm(card.name)">Levantar fluxo</button>
-            <a class="btn btn-g" [routerLink]="dbRoute(card.name)">Mapa do banco</a>
-            <a class="btn btn-g" [routerLink]="dbRoute(card.name)" [queryParams]="queryTabParams">Analisar consulta</a>
-          </div>
-        </li>
-      }
-    </ul>
+    <section class="repos-section" aria-labelledby="repos-title">
+      <h2 id="repos-title" class="section-title">Repositórios</h2>
+      <ul class="repo-grid" aria-labelledby="repos-title">
+        @for (card of repoCards(); track card.name) {
+          <li class="repo-card">
+            <div class="repo-card-head">
+              <h2 class="code">{{ card.name }}</h2>
+              <span class="muted">{{ card.count }}</span>
+            </div>
+            @if (card.stack) {
+              <p class="muted repo-stack code">{{ card.stack }}</p>
+            }
+            <div class="action-grid">
+              <button type="button" class="btn btn-g" (click)="openForm(card.name)">Levantar fluxo</button>
+              <a class="btn btn-g" [routerLink]="dbRoute(card.name)">Mapa do banco</a>
+              <a class="btn btn-g" [routerLink]="dbRoute(card.name)" [queryParams]="queryTabParams">Analisar consulta</a>
+            </div>
+          </li>
+        }
+      </ul>
+    </section>
   }
 
+  @if (!welcome()) {
   <section class="list" aria-labelledby="recent-title">
     <h2 id="recent-title" class="section-title">Levantamentos recentes</h2>
     @if (listError(); as error) {
@@ -58,18 +76,6 @@
           <div class="skeleton-row" aria-hidden="true"></div>
         }
       </div>
-    } @else if (surveys()!.length === 0 && firstUse()) {
-      <div class="empty first-use">
-        <p>Boas-vindas ao Rastro. Três passos até o primeiro fluxo:</p>
-        <ol class="steps">
-          <li>Cadastre a pasta do código que o Rastro vai ler.</li>
-          <li>A IA é opcional: o Rastro funciona sem ela. Se quiser, ligue em <a routerLink="/configuracoes" fragment="ia">Configurações</a>.</li>
-          <li>Escolha o método de entrada e levante o primeiro fluxo.</li>
-        </ol>
-        <div class="first-use-actions">
-          <button type="button" class="btn btn-p" (click)="openRegister()">Cadastrar repositório</button>
-        </div>
-      </div>
     } @else if (surveys()!.length === 0) {
       <div class="empty">
         <p>Nenhum levantamento ainda.</p>
@@ -78,7 +84,7 @@
     } @else {
       <div class="list-tools">
         <label class="visually-hidden" for="search">Buscar levantamento</label>
-        <input id="search" class="input search" type="search" placeholder="Buscar por método, repositório ou solution" autocomplete="off"
+        <input id="search" class="input search" type="search" placeholder="Buscar por ponto de entrada, repositório ou projeto" autocomplete="off"
           [ngModel]="query()" (ngModelChange)="query.set($event)" name="search" [ngModelOptions]="{ standalone: true }" />
         <div class="chips" role="group" aria-label="Filtrar por estado">
           @for (f of filters; track f) {
@@ -114,7 +120,7 @@
                 <span [class]="'pill is-' + statusSlug[survey.status]">{{ statusLabel[survey.status] }}</span>
                 @if (survey.status === SurveyStatus.Completed) {
                   <span class="row-counts muted">
-                    {{ plural(survey.nodeCount, 'nó', 'nós') }},
+                    {{ plural(survey.nodeCount, 'passo', 'passos') }},
                     <span [class.has-holes]="survey.unresolvedCount > 0">{{ plural(survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</span>
                   </span>
                 } @else if (survey.status === SurveyStatus.Failed) {
@@ -126,14 +132,13 @@
             <span class="row-actions">
               <a class="btn btn-g btn-small" [routerLink]="['/surveys', survey.id]" [attr.aria-label]="'Abrir o levantamento ' + survey.entryPoint"
                 [attr.aria-describedby]="'row-summary-' + survey.id">Abrir</a>
-              <a class="btn btn-g btn-small" [routerLink]="dbRoute(survey.repository)" [queryParams]="surveyOriginParams(survey.id)"
-                [attr.aria-label]="'Banco do fluxo ' + survey.entryPoint">Banco deste fluxo</a>
             </span>
           </li>
         }
       </ul>
     }
   </section>
+  }
 </div>
 
 @if (formOpen()) {
@@ -142,6 +147,9 @@
       <header class="dialog-head">
         <div>
           <h2 id="create-title">Novo levantamento</h2>
+          @if (registeredNotice(); as notice) {
+            <p class="note-ok" role="status">{{ notice }}</p>
+          }
           <p class="muted">O Rastro lê a solution com o compilador e segue cada chamada a partir do método escolhido.</p>
           @if (backToDb(); as repo) {
             <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repo, 'banco']">Voltar ao banco</a>
@@ -191,7 +199,7 @@
 
       <div class="field">
         <div class="field-head">
-          <label class="field-label" for="solution">Solution</label>
+          <label class="field-label" for="solution">Solution ou tsconfig</label>
           <button type="button" class="info-toggle" (click)="toggleInfo('solution')" (keydown.escape)="closeInfo($event)"
             [attr.aria-expanded]="openInfo() === 'solution'" [attr.aria-controls]="openInfo() === 'solution' ? 'solution-info' : null" aria-label="O que é Solution">i</button>
         </div>
@@ -262,7 +270,15 @@
         <span id="depth-error" class="field-error" [hidden]="!fieldErrors().depth">{{ fieldErrors().depth }}</span>
       </div>
 
-      @if (hasRepositories() && repository) {
+      @if (hasRepositories() && repository && crossOthers().length === 0) {
+        <div class="field cross">
+          <label class="check">
+            <input type="checkbox" name="cross-self" [checked]="crossSelf()" (change)="crossSelf.set($any($event.target).checked)" />
+            <span>Seguir as chamadas HTTP dentro do próprio repositório</span>
+          </label>
+          <span class="field-help">{{ crossHelp }}</span>
+        </div>
+      } @else if (hasRepositories() && repository) {
         <fieldset class="field cross">
           <legend class="field-label">Seguir chamadas HTTP para</legend>
           @for (repo of crossOthers(); track repo.name) {
@@ -275,7 +291,7 @@
             <input type="checkbox" name="cross-self" [checked]="crossSelf()" (change)="crossSelf.set($any($event.target).checked)" />
             <span>o próprio repositório</span>
           </label>
-          <span class="field-help">Quando o método chama outro serviço por HTTP, o fluxo continua no endpoint que atende a chamada. Desligado, a chamada fica como chamada externa.</span>
+          <span class="field-help">{{ crossHelp }}</span>
         </fieldset>
       }
 
@@ -284,7 +300,7 @@
       }
 
       <button class="btn btn-p" type="submit" [disabled]="submitting() || !repository">
-        {{ submitting() ? 'Enviando…' : 'Levantar o fluxo' }}
+        {{ submitting() ? 'Enviando…' : 'Levantar fluxo' }}
       </button>
     </form>
       </div>

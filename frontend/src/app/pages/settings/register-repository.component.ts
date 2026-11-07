@@ -29,13 +29,13 @@ export const REPOSITORY_NAME_HELP =
       <div class="field">
         <label class="field-label" [for]="id('path')">Pasta</label>
         <div class="field-row">
-          <input [id]="id('path')" class="input code" name="registerPath" [(ngModel)]="newPath" placeholder="C:\codigo\meu-sistema" autocomplete="off" spellcheck="false"
+          <input [id]="id('path')" class="input code" name="registerPath" [(ngModel)]="newPath" placeholder="C:\\codigo\\meu-sistema" autocomplete="off" spellcheck="false"
             [attr.aria-invalid]="pathError() ? true : null" [attr.aria-describedby]="pathError() ? id('path-error') : id('path-help')" />
           @if (desktop.available) {
             <button type="button" class="btn btn-g" (click)="browseFolder()" [disabled]="registering()">Procurar…</button>
           }
         </div>
-        <span [id]="id('path-help')" class="field-help">O caminho completo da pasta neste computador, onde está o .git. Windows: C:\codigo\meu-sistema. Linux ou macOS: /home/voce/meu-sistema.</span>
+        <span [id]="id('path-help')" class="field-help">O caminho completo da pasta neste computador, onde está o .git. Windows: C:\\codigo\\meu-sistema. Linux ou macOS: /home/voce/meu-sistema.</span>
         @if (pathError(); as error) {
           <span [id]="id('path-error')" class="field-error">{{ error }}</span>
         }

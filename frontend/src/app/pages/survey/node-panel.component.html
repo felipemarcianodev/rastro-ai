@@ -402,7 +402,7 @@
     <details class="section" open>
       <summary><h3>Regras do fluxo <span class="muted">({{ timeline().length }})</span></h3></summary>
       @if (timeline().length === 0) {
-        <p class="muted">Nenhuma regra escrita ainda. Elas aparecem aqui na ordem em que o fluxo passa pelos nós.</p>
+        <p class="muted">Nenhuma regra escrita ainda. Elas aparecem aqui na ordem em que o fluxo passa pelos passos.</p>
       } @else {
         <ol class="steps is-loose">
           @for (step of timeline(); track step.id) {
@@ -446,6 +446,11 @@
 
     @if (unresolved().length === 0) {
       <p class="muted no-holes">Sem buracos: o compilador resolveu todas as chamadas deste fluxo.</p>
+    }
+    @if (!editing()) {
+      <div class="overview-danger">
+        <button type="button" class="btn btn-danger-quiet btn-small" (click)="deleteSurvey.emit()">Excluir levantamento…</button>
+      </div>
     }
   </section>
 }

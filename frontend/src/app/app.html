@@ -16,7 +16,8 @@
     <a class="nav-link" routerLink="/configuracoes" [class.is-current]="area() === Area.Settings" [attr.aria-current]="area() === Area.Settings ? 'page' : null">Configurações</a>
   </nav>
 
-  <a class="ai-state" routerLink="/configuracoes" [fragment]="aiFragment" [class.is-on]="ai.active()" title="Configuração da IA e do modo agente">
+  <a class="ai-state" routerLink="/configuracoes" [fragment]="aiFragment" [class.is-on]="ai.active()" title="Configuração da IA e do modo agente"
+    [attr.aria-label]="ai.label() + ', abrir as configurações da IA'">
     {{ ai.label() }}
   </a>
 </header>

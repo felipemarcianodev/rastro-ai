@@ -1023,3 +1023,17 @@
     stroke-dashoffset: -20;
   }
 }
+
+// UX-G-F11: ação destrutiva do levantamento, no fim da visão geral do painel.
+.overview-danger {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+// Em tela estreita (toque), a dica de atalhos de teclado cobriria os controles do grafo (UX-G-F14).
+@media (max-width: 600px) {
+  .shortcuts-hint {
+    display: none;
+  }
+}

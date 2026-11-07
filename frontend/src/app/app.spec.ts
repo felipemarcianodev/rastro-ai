@@ -105,12 +105,29 @@ describe('App', () => {
   });
 
   // UX-H26
-  it('o selo da IA diz "IA: configurar" no primeiro uso e leva a #ia', () => {
+  it('o selo da IA diz "IA desligada" no primeiro uso e leva a #ia', () => {
     const { el } = render([], { enabled: false, configured: false });
     const badge = el.querySelector('a.ai-state') as HTMLAnchorElement;
-    expect(badge.textContent?.trim()).toBe('IA: configurar');
+    expect(badge.textContent?.trim()).toBe('IA desligada');
+    expect(badge.getAttribute('aria-label')).toBe('IA desligada, abrir as configurações da IA');
     expect(badge.getAttribute('href')).toBe('/configuracoes#ia');
     expect(el.querySelector('a.gear')).toBeNull();
+  });
+
+  // UX-G-L10
+  it('o selo da IA diz o estado: sem chave e com provedor', () => {
+    const semChave = render([], { enabled: true, configured: false, provider: 0 });
+    const badge = semChave.el.querySelector('a.ai-state') as HTMLAnchorElement;
+    expect(badge.textContent?.trim()).toBe('IA sem chave');
+    expect(badge.getAttribute('aria-label')).toBe('IA sem chave, abrir as configurações da IA');
+  });
+
+  // UX-G-L10
+  it('o selo da IA mostra o provedor quando a IA está pronta', () => {
+    const { el } = render([], { enabled: true, configured: true, provider: 0 });
+    const badge = el.querySelector('a.ai-state') as HTMLAnchorElement;
+    expect(badge.textContent?.trim()).toBe('IA: Claude (Anthropic)');
+    expect(badge.getAttribute('aria-label')).toBe('IA: Claude (Anthropic), abrir as configurações da IA');
   });
 
   // UX-H04

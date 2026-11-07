@@ -335,6 +335,8 @@ export class SettingsPage implements OnInit {
       if (!section) return;
       this.fragmentDone = true;
       section.scrollIntoView({ block: 'start' });
+      // UX-G-L19: chegando por #ia, o foco vai ao título da seção.
+      if (id === 'ia') document.getElementById('provider-title')?.focus({ preventScroll: true });
     });
   }
 

@@ -113,6 +113,19 @@ describe('DiagramPage (Fase 27)', () => {
     expect(el.textContent).toContain('o levantamento é do commit');
   });
 
+  // UX-G-F19
+  it('o aviso de commit desatualizado oferece "Atualizar pelo fluxo atual", e a barra segue com "Gerar de novo"', async () => {
+    const { fixture, el } = await loaded({ mermaid: 'flowchart TD\n  sa["x"]\n', commitHash: '1111111aaaa', updatedAt: '2026-10-30T10:00:00Z' });
+
+    const notice = el.querySelector('.notice.is-warning')!;
+    expect(notice.querySelector('button')?.textContent?.trim()).toBe('Atualizar pelo fluxo atual');
+    expect(notice.textContent).not.toContain('Gerar de novo');
+    expect(el.querySelector('.page-bar-side')?.textContent).toContain('Gerar de novo');
+    (notice.querySelector('button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(el.querySelector('.overlay')).not.toBeNull();
+  });
+
   // UX-G-F20
   it('o texto Mermaid tem ajuda curta ligada por aria-describedby', async () => {
     const { el } = await loaded();

@@ -22,12 +22,9 @@
     <div class="page-bar-side">
       @if (live(); as l) {
         <span class="pill db-live-pill" [title]="'Banco vivo: ' + l.server + '/' + l.database + ', só leitura'">Banco vivo: {{ l.server }}/{{ l.database }}, só leitura</span>
-        <span class="muted db-promise">Lido do código e do catálogo do banco vivo. Nenhum dado das tabelas é lido.</span>
       } @else if (connectionError()) {
         <span class="muted db-promise" role="alert">Não deu para ler a conexão do banco vivo.</span>
         <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button>
-      } @else {
-        <span class="muted db-promise">Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.</span>
       }
       @if (!error()) {
         <button type="button" class="btn btn-g btn-small" (click)="connectionOpen.set(true)" aria-haspopup="dialog">{{ live() ? 'Banco vivo' : 'Conectar banco vivo' }}</button>
@@ -62,6 +59,12 @@
       </button>
     }
   </div>
+  <!-- A promessa do que o Rastro lê sai da barra e fica sob as abas (UX-G-B15). -->
+  @if (live()) {
+    <p class="muted db-promise">Lido do código e do catálogo do banco vivo. Nenhum dado das tabelas é lido.</p>
+  } @else if (!connectionError()) {
+    <p class="muted db-promise">Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.</p>
+  }
 
   @if (error(); as message) {
     @if (tab() === DbTab.Map) {

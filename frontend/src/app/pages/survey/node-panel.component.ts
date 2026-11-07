@@ -124,6 +124,8 @@ export class NodePanelComponent {
   // Atalhos da Visão geral: a barra do levantamento é quem exporta e abre a edição.
   readonly exportFlow = output<void>();
   readonly editFlow = output<void>();
+  // UX-G-F11: excluir o levantamento mora no fim da visão geral, longe do "Editar fluxo".
+  readonly deleteSurvey = output<void>();
   readonly removeEdge = output<FlowEdge>();
   // Prompt de refatoração de um achado (índice na lista do grafo).
   readonly refactorPrompt = output<number>();

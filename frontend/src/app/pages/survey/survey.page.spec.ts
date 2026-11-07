@@ -3,7 +3,7 @@ import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@a
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { CheckStatus, EdgeConfidence, FlowGraph, NodeKind, SourceLanguage, SurveyDetail, SurveyStatus, ValidationStatus, ValidationVerdict, ValidationView } from '../../core/models';
-import { SurveyPage } from './survey.page';
+import { EDIT_HINT_SEEN_KEY, SurveyPage } from './survey.page';
 
 const SURVEY_ID = 's1';
 
@@ -100,6 +100,60 @@ describe('SurveyPage', () => {
       expect(link!.classList.contains('btn-small')).toBeTrue();
       expect(el.querySelector('.page-bar-meta a')).toBeNull();
     }
+  });
+
+  // UX-G-F11
+  it('Excluir levantamento… mora no fim da visão geral do painel, com o estilo quieto de perigo, e abre a confirmação', () => {
+    TestBed.resetTestingModule();
+    graphOverride = graphWith(1, 0);
+    try {
+      const el = open(SurveyStatus.Completed);
+      const remove = el.querySelector<HTMLButtonElement>('app-node-panel .overview-danger button')!;
+      expect(remove.textContent!.trim()).toBe('Excluir levantamento…');
+      expect(remove.classList.contains('btn-danger-quiet')).toBeTrue();
+      remove.click();
+      lastFixture!.detectChanges();
+      expect(el.querySelector('.overlay')).not.toBeNull();
+    } finally {
+      graphOverride = undefined;
+    }
+  });
+
+  // UX-G-F09
+  it('a dica da edição abre sozinha na primeira vez, cita o teclado e não volta na segunda', () => {
+    localStorage.removeItem(EDIT_HINT_SEEN_KEY);
+    graphOverride = graphWith(1, 0);
+    try {
+      for (const first of [true, false]) {
+        TestBed.resetTestingModule();
+        const el = open(SurveyStatus.Completed);
+        const fixture = lastFixture!;
+        (fixture.componentInstance as unknown as { startEditing(): void }).startEditing();
+        const http = TestBed.inject(HttpTestingController);
+        http.match(() => true).forEach((r) => r.flush(null));
+        fixture.detectChanges();
+        const hint = el.querySelector('#edit-hint');
+        if (first) {
+          expect(hint).not.toBeNull();
+          expect(hint!.textContent).toContain('Pelo teclado: escolha o passo e use "Seguir para outro passo" no painel.');
+          expect(localStorage.getItem(EDIT_HINT_SEEN_KEY)).toBe('true');
+        } else {
+          expect(hint).toBeNull();
+        }
+      }
+    } finally {
+      graphOverride = undefined;
+      localStorage.removeItem(EDIT_HINT_SEEN_KEY);
+    }
+  });
+
+  // UX-G-F04
+  it('o cabeçalho conta passos, não nós', () => {
+    TestBed.resetTestingModule();
+    const el = open(SurveyStatus.Completed);
+    const meta = el.querySelector('.page-bar-meta')!.textContent!;
+    expect(meta).toContain('3 passos');
+    expect(meta).not.toMatch(/nós?/);
   });
 
   // UX-G-F03
@@ -203,7 +257,8 @@ describe('SurveyPage', () => {
   });
 
   // WEB-UXC-011 (F08, F07, F06)
-  it('a barra tem os grupos Ver, Compartilhar e Alterar, com Comparar e Exportar separados e o Excluir à vista', () => {
+  // UX-G-F11
+  it('a barra tem os grupos Ver, Compartilhar e Alterar, com Comparar e Exportar separados e sem o Excluir', () => {
     TestBed.resetTestingModule();
     const el = open(SurveyStatus.Completed);
 
@@ -214,11 +269,12 @@ describe('SurveyPage', () => {
     expect(share[1].title).toBe('PNG, SVG, Mermaid e C4');
     expect(el.querySelector('.bar-group[aria-label="Alterar"] .btn-p')!.textContent!.trim()).toBe('Editar fluxo');
     const remove = [...el.querySelectorAll<HTMLButtonElement>('.page-bar-side button')].find((b) => b.textContent!.trim() === 'Excluir levantamento…');
-    expect(remove).toBeDefined();
+    expect(remove).toBeUndefined();
+    expect([...el.querySelectorAll('.page-bar-side button')].some((b) => b.textContent!.trim() === 'Validar mudança')).toBeFalse();
     expect(el.querySelector('[aria-label="Mais ações do levantamento"]')).toBeNull();
     // O status e a contagem de nós foram para a linha de metadados.
     expect(el.querySelector('.page-bar-meta .pill')!.textContent).toContain('Pronto');
-    expect(el.querySelector('.page-bar-meta')!.textContent).toContain('3 nós');
+    expect(el.querySelector('.page-bar-meta')!.textContent).toContain('3 passos');
   });
 
 });

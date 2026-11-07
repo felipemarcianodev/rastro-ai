@@ -74,6 +74,8 @@ const NOTE_UNDO_MS = 8000;
 const SHOW_FRAMEWORK_KEY = 'rastro.showFrameworkCalls';
 // Painel da direita recolhido: mais espaço para o grafo; a escolha vale para os próximos levantamentos.
 const PANEL_COLLAPSED_KEY = 'rastro.panelCollapsed';
+// UX-G-F09: a dica "Como funciona" da edição abre sozinha só na primeira vez.
+export const EDIT_HINT_SEEN_KEY = 'rastro.editHintSeen';
 // Falhas seguidas toleradas no polling antes de mostrar erro (rede piscando, API reiniciando).
 const POLL_TOLERATED_FAILURES = 2;
 
@@ -745,10 +747,22 @@ export class SurveyPage {
         this.redoStack.set([]);
         this.dirty.set(false);
         this.editing.set(true);
+        this.openHintFirstTime();
         if (saved) this.draftMessage.set({ ok: true, text: 'Rascunho salvo carregado.' });
       },
       error: (error) => this.draftMessage.set({ ok: false, text: apiErrorMessage(error) }),
     });
+  }
+
+  // UX-G-F09: na primeira vez que se entra em "Editar fluxo", a dica abre sozinha e a escolha de ter visto fica guardada.
+  private openHintFirstTime(): void {
+    try {
+      if (localStorage.getItem(EDIT_HINT_SEEN_KEY) === 'true') return;
+      localStorage.setItem(EDIT_HINT_SEEN_KEY, 'true');
+    } catch {
+      // Armazenamento bloqueado: a dica abre só nesta visita.
+    }
+    this.hintOpen.set(true);
   }
 
   // Toda edição passa por aqui: empilha o estado anterior para o desfazer.

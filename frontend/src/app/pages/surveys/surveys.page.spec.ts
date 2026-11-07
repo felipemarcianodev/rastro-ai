@@ -12,7 +12,10 @@ const survey = (id: string, entryPoint: string, status: SurveyStatus): SurveySum
   ({ id, entryPoint, status, repository: 'loja', solutionPath: 'backend/Loja.slnx', nodeCount: 3, unresolvedCount: 0, createdAt: '2026-10-16T10:00:00Z' }) as SurveySummary;
 
 async function openNew(fixture: ComponentFixture<SurveysPage>): Promise<void> {
-  (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.new-survey')!.click();
+  // UX-G-N02: sem repositório o botão do topo some; o formulário ainda abre (ex.: volta de um levantamento que falhou).
+  const button = (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('.new-survey');
+  if (button) button.click();
+  else (fixture.componentInstance as unknown as { openForm(): void }).openForm();
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
@@ -338,7 +341,7 @@ describe('SurveysPage: primeiro uso e cadastro de repositório', () => {
   it('semRepositorio_mostraPassosNumeradosComBotaoELinkDaIa', () => {
     const { el, http } = open([]);
 
-    expect(el.querySelectorAll('.first-use ol.steps li').length).toBe(3);
+    expect(el.querySelectorAll('.first-use ol.steps li').length).toBe(2);
     expect(text(el, '.first-use button', 'Cadastrar repositório')).toBeDefined();
     expect(el.querySelector('.first-use a')?.getAttribute('href')).toBe('/configuracoes#ia');
     http.match(() => true).forEach((request) => request.flush([]));
@@ -479,13 +482,13 @@ describe('SurveysPage: tela inicial por repositório', () => {
   });
 
   // UX-H22
-  it('linhaDoLevantamento_temAbrirEBancoDesteFluxoComOId', () => {
+  // UX-G-L24
+  it('linhaDoLevantamento_temSoAbrir', () => {
     const { el, http } = open([survey('abc-1', 'loja', 'Loja.slnx', '2026-10-02T10:00:00Z')]);
 
     const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('.row-actions a'));
-    expect(links.map((a) => a.textContent?.trim())).toEqual(['Abrir', 'Banco deste fluxo']);
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Abrir']);
     expect(links[0].getAttribute('href')).toBe('/surveys/abc-1');
-    expect(links[1].getAttribute('href')).toBe('/repositorios/loja/banco?levantamento=abc-1');
     http.match(() => true).forEach((request) => request.flush([]));
   });
 });
@@ -587,7 +590,8 @@ describe('SurveysPage: Procurar pasta na janela própria', () => {
     const open = Array.from(el.querySelectorAll('.row-actions a')).find((a) => a.textContent?.trim() === 'Abrir')!;
     const id = open.getAttribute('aria-describedby')!;
     expect(id).toBe('row-summary-s1');
-    expect(el.querySelector('#' + id)?.textContent).toContain('3 nós');
+    // UX-G-F04: a contagem fala em passos, como no cabeçalho do fluxo.
+    expect(el.querySelector('#' + id)?.textContent).toContain('3 passos');
     http.match(() => true).forEach((request) => request.flush([]));
   });
 
@@ -711,5 +715,117 @@ describe('SurveysPage: chegada pelo mapa do banco', () => {
 
     const back = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll<HTMLAnchorElement>('.dialog a')).find((a) => a.textContent?.trim() === 'Voltar ao banco');
     expect(back?.getAttribute('href')).toBe('/repositorios/pagamentos/banco');
+  });
+});
+
+describe('SurveysPage: Fase C do levantamento completo', () => {
+  const repo = (name: string) => ({ name, path: `C:\\codigo\\${name}`, hasGit: true, hasBuildCommand: false, hasTestCommand: false });
+
+  async function render(repos: ReturnType<typeof repo>[], surveys: SurveySummary[]) {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush(surveys);
+    http.expectOne('/api/repositories').flush(repos);
+    if (repos.length === 1) http.expectOne(`/api/repositories/${repos[0].name}/solutions`).flush(['Loja.slnx']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    return { fixture, http, el: fixture.nativeElement as HTMLElement };
+  }
+
+  // UX-G-N02
+  it('semRepositorio_mostraSoOBlocoDePrimeiroUsoComH1DeBoasVindas', async () => {
+    const { el, http } = await render([], []);
+
+    expect(el.querySelector('h1')?.textContent?.trim()).toBe('Boas-vindas ao Rastro');
+    expect(el.querySelector('.new-survey')).toBeNull();
+    expect(el.querySelector('#recent-title')).toBeNull();
+    expect(el.querySelector('.first-use')).not.toBeNull();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L14
+  it('primeiroUso_ia_viraNotaAbaixoDosDoisPassos', async () => {
+    const { el, http } = await render([], []);
+
+    const steps = Array.from(el.querySelectorAll('.first-use ol.steps li')).map((li) => li.textContent?.trim());
+    expect(steps).toEqual(['Cadastre a pasta do código que o Rastro vai ler.', 'Escolha o método de entrada e levante o primeiro fluxo.']);
+    const note = el.querySelector('.first-use .ai-note') as HTMLElement;
+    expect(note.textContent?.replace(/\s+/g, ' ').trim()).toBe('A IA é opcional: o Rastro funciona sem ela. Para ligar, vá a Configurações.');
+    expect(note.querySelector('a')?.getAttribute('href')).toBe('/configuracoes#ia');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L14
+  it('depoisDoCadastro_oAvisoApareceNoFormularioQueAbre', async () => {
+    const { fixture, http, el } = await render([], []);
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.first-use button')).find((b) => b.textContent?.includes('Cadastrar repositório'))!.click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const name = el.querySelector('#register-name') as HTMLInputElement;
+    const path = el.querySelector('#register-path') as HTMLInputElement;
+    name.value = 'loja';
+    name.dispatchEvent(new Event('input'));
+    path.value = 'C:\\codigo\\loja';
+    path.dispatchEvent(new Event('input'));
+    (el.querySelector('[role="dialog"] form') as HTMLFormElement).dispatchEvent(new Event('submit'));
+    http.expectOne('/api/repositories').flush(repo('loja'));
+    http.expectOne('/api/repositories/loja/solutions').flush(['Loja.slnx']);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('#create-title')).not.toBeNull();
+    expect(el.querySelector('.dialog-head .note-ok')?.textContent?.trim()).toBe('Repositório "loja" cadastrado.');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L01, UX-G-L11
+  it('comRepositorio_h1Levantamentos_doisH2_eUmUnicoBotaoPrimario', async () => {
+    const { el, http } = await render([repo('loja'), repo('estoque')], [survey('1', 'A.Pronto', SurveyStatus.Completed)]);
+
+    expect(el.querySelector('h1')?.textContent?.trim()).toBe('Levantamentos');
+    const h2 = Array.from(el.querySelectorAll('h2')).map((h) => h.textContent?.trim()).filter((t) => t === 'Repositórios' || t === 'Levantamentos recentes');
+    expect(h2).toEqual(['Repositórios', 'Levantamentos recentes']);
+    const primaries = Array.from(el.querySelectorAll('.page .btn-p'));
+    expect(primaries.length).toBe(1);
+    expect(primaries[0].textContent?.trim()).toBe('Novo levantamento');
+    const card = Array.from(el.querySelectorAll<HTMLButtonElement>('.repo-card button')).find((b) => b.textContent?.trim() === 'Levantar fluxo')!;
+    expect(card.classList.contains('btn-g')).toBeTrue();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L01
+  it('formulario_botaoDeEnvioDiz_LevantarFluxo', async () => {
+    const { fixture, http, el } = await render([repo('loja')], []);
+    await openNew(fixture);
+
+    const submit = el.querySelector('form button[type=submit]') as HTMLButtonElement;
+    expect(submit.textContent?.trim()).toBe('Levantar fluxo');
+    expect(submit.classList.contains('btn-p')).toBeTrue();
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-L17
+  it('busca_eCampoDaSolution_usamOsNomesNovos', async () => {
+    const { fixture, http, el } = await render([repo('loja')], [survey('1', 'A.Pronto', SurveyStatus.Completed)]);
+
+    expect((el.querySelector('#search') as HTMLInputElement).placeholder).toBe('Buscar por ponto de entrada, repositório ou projeto');
+    await openNew(fixture);
+    expect(el.querySelector('label[for=solution]')?.textContent?.trim()).toBe('Solution ou tsconfig');
+    http.match(() => true).forEach((request) => request.flush([]));
+  });
+
+  // UX-G-N04
+  it('comUmRepositorioSo_seguirChamadasHttpViraUmCheckboxSemGrupo', async () => {
+    const { fixture, http, el } = await render([repo('loja')], []);
+    await openNew(fixture);
+
+    expect(el.querySelector('fieldset.cross')).toBeNull();
+    expect(el.querySelectorAll('.cross input[type=checkbox]').length).toBe(1);
+    expect(el.querySelector('.cross .check span')?.textContent?.trim()).toBe('Seguir as chamadas HTTP dentro do próprio repositório');
+    http.match(() => true).forEach((request) => request.flush([]));
   });
 });

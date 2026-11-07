@@ -312,6 +312,9 @@ describe('DatabasePage (Fase 38)', () => {
     const { el } = render();
 
     expect(el.querySelector('.db-promise')!.textContent).toBe('Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.');
+    // UX-G-B15: a promessa fica sob as abas, fora da barra do alto.
+    expect(el.querySelector('.page-bar .db-promise')).toBeNull();
+    expect(el.querySelector('.db-tabs + p.db-promise')).not.toBeNull();
     const exportButton = [...el.querySelectorAll<HTMLButtonElement>('.page-bar-side button')].find((b) => b.textContent!.trim() === 'Exportar o mapa');
     expect(exportButton).toBeDefined();
   });
