@@ -28,6 +28,21 @@
   li + li {
     margin-top: var(--space-1);
   }
+
+  .live-commands {
+    margin: var(--space-1) 0;
+    padding-left: 0;
+    list-style: none;
+    overflow-x: auto;
+
+    code {
+      white-space: nowrap;
+    }
+  }
+
+  .live-commands-copy {
+    margin-bottom: var(--space-2);
+  }
 }
 
 .live-confirm {

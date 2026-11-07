@@ -108,7 +108,7 @@
               <span [class]="'flow-node-outcome is-' + outcome.slug" [title]="'Se a condição vale: ' + outcome.label"><span aria-hidden="true">→ </span>{{ outcome.label }}</span>
             }
             @if (item.effect !== undefined) {
-              <span [class]="'flow-node-effect is-' + effectSlug[item.effect]" [title]="effectTitle(item.node, item.effect)">{{ effectLabel[item.effect] }}</span>
+              <span [class]="'flow-node-effect is-' + effectSlug[item.effect]" [title]="effectTitle(item.node, item.effect)">{{ effectBadge(item.node, item.effect) }}</span>
             }
             @let fold = folds().get(item.node.id);
             @if (fold !== undefined) {
@@ -159,7 +159,7 @@
   }
   <button type="button" class="btn btn-g btn-small tools-row-button" [attr.aria-pressed]="brief()" (click)="toggleBrief()"
     [title]="brief() ? 'Mostrar também o que cada método chama' : 'Mostrar só o código do método de entrada, com os métodos chamados fechados'">
-    Ver: {{ brief() ? 'Resumo' : 'Completo' }}
+    Resumo do fluxo
   </button>
   @if (hasMoved()) {
     <button type="button" class="btn btn-g btn-small tools-row-button" (click)="resetLayout()" title="Volta os passos que você arrastou para a organização automática">Reorganizar</button>
@@ -167,7 +167,7 @@
   @if (frameworkCount() > 0) {
     <button type="button" class="btn btn-g btn-small framework-button" [attr.aria-pressed]="showFramework()" (click)="toggleFramework.emit()"
       [title]="showFramework() ? 'Esconder as chamadas do .NET (LINQ, EF Core, cache, DI, HttpClient)' : 'Mostrar as chamadas do .NET (LINQ, EF Core, cache, DI, HttpClient)'">
-      {{ showFramework() ? 'Esconder' : 'Mostrar' }} chamadas do .NET ({{ frameworkCount() }})
+      Chamadas do .NET ({{ frameworkCount() }})
     </button>
   }
 </div>

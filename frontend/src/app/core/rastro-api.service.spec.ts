@@ -20,4 +20,13 @@ describe('apiErrorMessage', () => {
 
     expect(apiErrorMessage(error)).toBe('Já existe um repositório com esse nome.');
   });
+
+  // UX-DBA-06
+  it('AI_PROVIDER_ERROR mostra o motivo do title (chave inválida, limite) e, sem ele, a mensagem do código', () => {
+    const withTitle = new HttpErrorResponse({ status: 502, error: { code: 'AI_PROVIDER_ERROR', title: 'A chave de API foi recusada pelo provedor.' } });
+    const withoutTitle = new HttpErrorResponse({ status: 502, error: { code: 'AI_PROVIDER_ERROR' } });
+
+    expect(apiErrorMessage(withTitle)).toBe('A chave de API foi recusada pelo provedor.');
+    expect(apiErrorMessage(withoutTitle)).toBe('O provedor de IA não respondeu. Tente de novo em instantes.');
+  });
 });

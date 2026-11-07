@@ -99,7 +99,7 @@ describe('C4DialogComponent', () => {
     });
     fixture.detectChanges();
 
-    const ask = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Sugerir pessoas com IA')) as HTMLButtonElement;
+    const ask = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Sugerir pessoas com a IA')) as HTMLButtonElement;
     ask.click();
     http.expectOne('/api/surveys/s1/c4/ai/people').flush({ people: [{ name: 'Cliente', description: 'Compra' }], provider: AiProvider.Claude });
     fixture.detectChanges();

@@ -48,6 +48,7 @@ Cada paleta tem variante escura. Regra que vale para todas: a cor forte é só d
 - `.pill` (estado: `is-running`, `is-completed`, `is-failed`, `is-stale`), `.notice` (`is-error`, `is-warning`).
 - `.row-wrap` (linha flexível que quebra), `.section-title` (título de seção no tamanho do texto), `.code-block` (bloco de código ou de consulta, que rola sozinho) e `.sev-tag` (selo de gravidade, `is-high` e `is-medium`, com o texto da gravidade escrito).
 - Avisos de estado do formulário: `.note-ok` (deu certo, "salvo") e `.note-pending` (falta fazer algo, "alteração pendente"). `.has-holes` é a cor de pendência para uma contagem dentro de uma frase. Telas novas usam essas classes e não repetem o estilo no `.component.scss`.
+- Rótulo dos botões de IA (UX-FIM-Q07): verbo no infinitivo, o objeto e "com a IA". Exemplos: "Sugerir melhora com a IA", "Sugerir refatoração com a IA", "Propor destinos com a IA", "Escrever regra com a IA". Em andamento, o rótulo vira "Perguntando à IA…". Pedir de novo é "Pedir outra sugestão", com o aviso do que vai ao provedor ao lado. Link de troca de aba começa com maiúscula ("Ver no mapa").
 - `[hidden]` vale em toda a aplicação (`_base.scss`), mesmo sobre um elemento com `display` próprio.
 
 ### Tokens de medida
