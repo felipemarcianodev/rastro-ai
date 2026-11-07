@@ -12,6 +12,9 @@
       <span>{{ sourceLabel[s.kind] }} <code>{{ s.file }}:{{ s.line }}</code>@if (!$last) {, }</span>
     }
   </p>
+  @if (t.size) {
+    <p class="muted db-size">{{ t.size }}</p>
+  }
   @if (t.link) {
     <p class="db-link-note">{{ t.link }}</p>
   }

@@ -82,6 +82,15 @@ public sealed class NpgsqlLiveDatabase : ILiveDatabase
         ORDER BY n.nspname, p.proname, p.oid, k.ord
         """;
 
+    // A estimativa de linhas é do catálogo (reltuples, mantida pelo VACUUM e pelo ANALYZE): nunca um
+    // count(*), que leria a tabela. -1 (nunca analisada) e 0 ficam como desconhecido.
+    private const string RowEstimatesSql = $"""
+        SELECT n.nspname, c.relname, c.reltuples::bigint
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.relkind IN ('r', 'p') AND NOT c.relispartition AND {UserSchemas}
+        """;
+
     private const string CountSql = $"""
         SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
         WHERE c.relkind IN ('r', 'p') AND NOT c.relispartition AND {UserSchemas}
@@ -164,6 +173,10 @@ public sealed class NpgsqlLiveDatabase : ILiveDatabase
             tables[id.Item1].ForeignKeys.Add(new DbForeignKey(id.Item2, fk.Columns, fk.Principal, fk.PrincipalColumns, fk.OnDelete, Live));
         }
 
+        await foreach (var r in RowsAsync(connection, RowEstimatesSql, ct))
+            if (!r.IsDBNull(2) && r.GetInt64(2) > 0)
+                Table(r.GetString(0), r.GetString(1)).EstimatedRows = r.GetInt64(2);
+
         var views = new List<(string? Schema, string Name, List<string> Columns)>();
         await foreach (var r in RowsAsync(connection, ViewsSql, ct))
         {
@@ -185,7 +198,7 @@ public sealed class NpgsqlLiveDatabase : ILiveDatabase
         }
 
         var built = order.Select(k => tables[k]).Select(t => new DbTable(NullIfDefault(t.Schema), t.Name, t.Columns, t.PrimaryKey,
-            t.ForeignKeys, t.Indexes, [Live])).ToList();
+            t.ForeignKeys, t.Indexes, [Live], null, t.EstimatedRows)).ToList();
         return new SchemaFragment(built,
             views.Select(v => new DbView(v.Schema, v.Name, v.Columns, [], Live)).ToList(),
             procedures.DistinctBy(p => (p.Schema, p.Name)).Select(p => new DbProcedure(p.Schema, p.Name, p.Parameters, [], [], Live)).ToList(),
@@ -286,5 +299,6 @@ public sealed class NpgsqlLiveDatabase : ILiveDatabase
         public DbPrimaryKey? PrimaryKey { get; set; }
         public List<DbForeignKey> ForeignKeys { get; } = [];
         public List<DbIndex> Indexes { get; } = [];
+        public long? EstimatedRows { get; set; }
     }
 }

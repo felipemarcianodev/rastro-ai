@@ -59,6 +59,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         // A chave de partição (o tenant): filtrar só por ela não é filtrar por um pai.
         private readonly HashSet<string> _partition = DbPartition.Columns(schema);
         private readonly HashSet<string> _tableKeys = DbPartition.TableKeys(schema);
+        private readonly Dictionary<string, int> _referrers = DbPartition.ReferrerCounts(schema, DbPartition.Columns(schema));
         private readonly SqlDialect _dialect = schema?.Dialect ?? SqlDialect.SqlServer;
         private readonly Dictionary<string, DbTable> _tables = (schema?.Tables ?? [])
             .GroupBy(t => DbNames.Key(t.Schema, t.Name, schema!.Dialect))
@@ -537,6 +538,9 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         {
             var finder = new SubqueryFinder();
             expression.Accept(finder);
+            // EXISTS dentro da expressão (CASE WHEN EXISTS ...): a subconsulta é feita para citar a de fora, e o
+            // SELECT * dela não é achado.
+            foreach (var exists in finder.Exists) Query(exists.QueryExpression, scope, outermost: false, inExists: true);
             foreach (var subquery in finder.Found)
             {
                 var inner = Query(subquery.QueryExpression, scope, outermost: false, inExists: false);
@@ -601,7 +605,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                 case InPredicate { NotDefined: false, Subquery: null } list when Plain(list.Expression) is { } column:
                     return new Eq(column, null);
                 case BooleanIsNullExpression { IsNot: false } isNull when Plain(isNull.Expression) is { } nullColumn:
-                    return new Eq(nullColumn, null);
+                    return new Eq(nullColumn, null, true);
                 default:
                     return null;
             }
@@ -635,6 +639,8 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                 scope.OnlyEqualities = true;
                 foreach (var part in parts)
                 {
+                    // IS NOT NULL não é igualdade nem limita a leitura: não conta como filtro (nem desfaz o "só igualdades").
+                    if (part is BooleanIsNullExpression { IsNot: true }) continue;
                     if (EqualityOf(part) is { } eq) scope.Where.Add(eq);
                     else scope.OnlyEqualities = false;
                 }
@@ -671,7 +677,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         private static List<(TableRef Ref, DbTable Table, string Column)>? ValueFilters(Scope scope)
         {
             var found = new List<(TableRef, DbTable, string)>();
-            foreach (var eq in scope.Where.Where(e => e.Right is null))
+            foreach (var eq in scope.Where.Where(e => e.Right is null && !e.NullTest))
             {
                 if (scope.Resolve(eq.Left) is not { Depth: 0, Ref.Table: { } table, Column: { } name } resolved) return null;
                 found.Add((resolved.Ref!, table, name));
@@ -681,13 +687,33 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
 
         // Lista filha de um pai: algum filtro de igualdade do WHERE cai numa coluna de chave estrangeira que não
         // é a de partição (o tenant). Filtrar só pela chave de partição não limita o resultado a um pai pequeno.
-        private bool FilteredByForeignKey(Scope? scope)
+        // ignoreLarge (Fase 44): a lista de um pai deixa de ser exceção quando a tabela filtrada é grande pela
+        // estimativa do banco vivo (a lista pelo espaço numa tabela de milhões de linhas).
+        private bool FilteredByForeignKey(Scope? scope, bool ignoreLarge = false)
         {
             if (scope is null || ValueFilters(scope) is not { } filters) return false;
-            // Sem FK declarada, a coluna x_id cuja tabela x, xs ou xes existe no esquema conta como FK implícita.
-            return filters.Any(f => !_partition.Contains(DbNames.Unquote(f.Column))
-                && (f.Table.ForeignKeys.Any(fk => fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(f.Column), StringComparison.OrdinalIgnoreCase)))
-                    || DbPartition.IsImplicitForeignKey(_tableKeys, f.Column)));
+            if (ignoreLarge) filters = filters.Where(f => !TableSize.IsLarge(f.Table)).ToList();
+            return filters.Any(f => IsParentFilter(f.Table, f.Column) && !IsMainEntity(f.Table));
+        }
+
+        // Sem FK declarada, a coluna x_id cuja tabela x, xs ou xes existe no esquema conta como FK implícita.
+        private bool IsParentFilter(DbTable table, string column) =>
+            !_partition.Contains(DbNames.Unquote(column))
+            && (table.ForeignKeys.Any(fk => fk.Columns.Any(c => DbNames.Unquote(c).Equals(DbNames.Unquote(column), StringComparison.OrdinalIgnoreCase)))
+                || DbPartition.IsImplicitForeignKey(_tableKeys, column));
+
+        // Entidade principal: apontada por duas ou mais tabelas. A lista dela por um pai tende a crescer, então a
+        // exceção da lista filha não vale. Com a estimativa do banco vivo, o tamanho estimado é que decide.
+        private bool IsMainEntity(DbTable table) =>
+            table.EstimatedRows is null && DbPartition.Referrers(_referrers, table.Name) >= DbPartition.MainEntityReferrers;
+
+        // O motivo de a exceção da lista filha não valer, para a mensagem do achado.
+        private string MainEntityNote(List<(TableRef Ref, DbTable Table, string Column)> filters)
+        {
+            foreach (var f in filters)
+                if (IsParentFilter(f.Table, f.Column) && IsMainEntity(f.Table))
+                    return $" {f.Ref.Name} é apontada por {DbPartition.Referrers(_referrers, f.Table.Name)} tabelas: a lista filtrada por {DbNames.Unquote(f.Column)} de um pai tende a crescer, então o filtro pela chave estrangeira não limita o resultado.";
+            return string.Empty;
         }
 
         // As colunas filtradas identificam uma linha: a chave primária ou uma única inteira.
@@ -705,15 +731,25 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             if (scope.Opaque || !scope.HasWhere || !scope.OnlyEqualities || spec.WhereClause?.SearchCondition is not { } where) return;
             if (ValueFilters(scope) is not { Count: > 0 } filters) return;
             if (spec.GroupByClause is not null || spec.HavingClause is not null || AggregateOnly(spec)) return;
-            if (FilteredByForeignKey(scope)) return;
+            // Com a estimativa do banco vivo: tabela pequena não é achado, e a lista filha de tabela grande é.
+            if (filters.All(f => TableSize.IsSmall(f.Table))) return;
+            if (FilteredByForeignKey(scope, ignoreLarge: true)) return;
             foreach (var group in filters.GroupBy(f => f.Ref))
                 if (Identifies(group.First().Table, group.Select(f => f.Column))) return;
 
             var written = Join(filters.Select(f => $"{f.Ref.Name}.{f.Column}").Distinct(StringComparer.OrdinalIgnoreCase).ToList());
             var tables = Join(filters.Select(f => f.Ref.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
             Report(QueryFindingKind.ReadWithoutLimit, QuerySeverity.Low, where,
-                $"A consulta não tem TOP nem OFFSET/FETCH e filtra {tables} só por igualdade em {written}, que não identifica uma linha (não é chave primária nem única): o resultado cresce com a tabela. Se a tela mostra uma página, limite.",
+                $"A consulta não tem TOP nem OFFSET/FETCH e filtra {tables} só por igualdade em {written}, que não identifica uma linha (não é chave primária nem única): o resultado cresce com a tabela.{Estimated(filters)}{MainEntityNote(filters)} Se a tela mostra uma página, limite.",
                 filters[0].Ref.Name);
+        }
+
+        // O tamanho que o banco vivo estima para as tabelas filtradas, quando há.
+        private static string Estimated(List<(TableRef Ref, DbTable Table, string Column)> filters)
+        {
+            var sized = filters.Where(f => f.Table.EstimatedRows is not null).DistinctBy(f => f.Ref.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(f => $"{f.Ref.Name} tem cerca de {TableSize.Format(f.Table.EstimatedRows!.Value)} linhas").ToList();
+            return sized.Count == 0 ? string.Empty : $" Pela estimativa do banco vivo, {Join(sized)}.";
         }
 
         // COUNT(*), SUM(x) e parentes sem GROUP BY: uma linha só.
@@ -872,7 +908,8 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
     private readonly record struct Resolution(TableRef? Ref, string? Column, int Depth);
 
     // Uma igualdade do filtro: coluna = valor (Right nulo) ou coluna = coluna.
-    private sealed record Eq(ColumnReferenceExpression Left, ColumnReferenceExpression? Right);
+    // NullTest: o "IS NULL" (conta para o índice, mas não limita a leitura: ver ReadWithoutLimit).
+    private sealed record Eq(ColumnReferenceExpression Left, ColumnReferenceExpression? Right, bool NullTest = false);
 
     private static readonly HashSet<string> AggregateFunctions = new(StringComparer.OrdinalIgnoreCase)
         { "count", "count_big", "sum", "avg", "min", "max", "string_agg", "stdev", "var" };
@@ -971,8 +1008,11 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
     private sealed class SubqueryFinder : TSqlFragmentVisitor
     {
         public List<ScalarSubquery> Found { get; } = [];
+        public List<ScalarSubquery> Exists { get; } = [];
 
         public override void ExplicitVisit(ScalarSubquery node) => Found.Add(node);
+
+        public override void ExplicitVisit(ExistsPredicate node) { if (node.Subquery is { } inner) Exists.Add(inner); }
     }
 
     [GeneratedRegex(@"\s+")]

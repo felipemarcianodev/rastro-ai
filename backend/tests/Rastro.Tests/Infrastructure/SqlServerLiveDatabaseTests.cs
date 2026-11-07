@@ -122,6 +122,15 @@ public class SqlServerLiveDatabaseTests(SqlServerContainer server) : IClassFixtu
         Assert.Equal(2, await _live.CountTablesAsync(server.ConnectionString, default));
     }
 
+    [DockerFact] // INF-DBL-020
+    public async Task Catalogo_TrazAEstimativaDeLinhasDeCadaTabelaSemLerOsDados()
+    {
+        var fragment = await _live.ReadCatalogAsync(server.ConnectionString, default);
+
+        // Uma linha em cada tabela (sys.partitions), sem COUNT(*).
+        Assert.All(fragment.Tables, t => Assert.Equal(1L, t.EstimatedRows));
+    }
+
     [DockerFact] // INF-DBL-011
     public async Task Plano_DaConsultaDoPrototipo_VarreduraEIndiceFaltandoSemExecutar()
     {
