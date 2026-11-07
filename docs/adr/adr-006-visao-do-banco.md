@@ -75,6 +75,7 @@ O que o SqlParserCS não dá, e como o Rastro resolve, sem palpite:
 | O quê | Para onde | Quando |
 |---|---|---|
 | Consultas ao catálogo e pedido de plano estimado | o servidor de banco que o usuário cadastrou (pode estar em outra máquina) | só com banco vivo ligado |
+| Plano estimado e custo da consulta (sem a string de conexão) | o agente conectado pelo MCP, na máquina do usuário | só com banco vivo cadastrado na tela, quando o agente chama `get_query_plan` ou `propose_query_rewrite` (Fase 44) |
 | A consulta analisada, os achados e só as tabelas que ela usa (nomes, colunas, tipos, índices) | o provedor de IA | só com o modo provedor ligado e o uso "Sugestões", no clique de "Sugerir melhora com a IA" (implementado na Fase 41). No modo agente, o `analyze_query` entrega o mesmo recorte ao agente |
 | Dados das tabelas | lugar nenhum | nunca: o Rastro não os lê |
 | String de conexão | lugar nenhum | nunca sai da máquina nem do banco local |
@@ -90,6 +91,14 @@ O teste das consultas de uma tela real (PostgreSQL, 87 tabelas) mostrou que as r
 - **Banco nos fluxos:** o repositório genérico é fechado pelo tipo da chamada, a chamada por interface é resolvida pelo tipo do receptor, e os achados seguem a cadeia de chamadas até quatro saltos.
 
 Sem o banco vivo, o Rastro não sabe o tamanho da tabela: a leitura sem limite numa tabela pequena continua aparecendo, com gravidade baixa.
+
+### Ajustes da Fase 44 (pendências do banco, 2026-11-07)
+
+- **Tamanho da tabela pelo catálogo.** Com banco vivo, o catálogo traz a estimativa de linhas de cada tabela, sem ler dados: `pg_class.reltuples` no PostgreSQL e a soma de `sys.partitions.rows` (heap ou índice clusterizado) no SQL Server. As duas leituras são de catálogo e não pedem permissão nova. A estimativa depende das estatísticas do banco (`ANALYZE` no PostgreSQL); valor zero ou desconhecido conta como "sem estimativa".
+- **Leitura sem limite pelo tamanho.** Com estimativa, a leitura sem limite não é achado em tabela abaixo de 1.000 linhas, e a exceção da lista filha deixa de valer em tabela com 100.000 linhas ou mais (a lista de um pai que tem muitas linhas). A mensagem diz o número estimado. Sem banco vivo, nada muda. `IS NULL` e `IS NOT NULL` não contam como filtro nessa regra.
+- **Entidade principal (sem banco vivo).** A comparação item a item do reteste mostrou que a chave estrangeira implícita calou a lista do contêiner (as tarefas de um espaço). Sem estimativa de tamanho, a exceção da lista filha não vale quando a tabela filtrada é apontada por duas ou mais tabelas do esquema: é entidade principal, e a lista dela tende a crescer. A tabela folha (subtarefas, comentários) ou apontada por uma só (os status de um espaço) continua sem achado. Vale para a leitura sem limite e para o `ORDER BY` sem limite.
+- **`EXISTS` na lista do `SELECT`.** A subconsulta dentro de `SELECT EXISTS (...)` (no SQL Server, `CASE WHEN EXISTS`) passa a ser analisada, como a do `WHERE`: antes, o `lower()` no filtro dela não era achado.
+- **Banco vivo pelo MCP.** O `rastro mcp` passa a pedir o plano estimado (ferramenta `get_query_plan`) e o `propose_query_rewrite` traz o custo da consulta original e da reescrita, com a mesma porta do leitor de SQL da tela. O cadastro e a string continuam só pela tela; o MCP lê as chaves da DataProtection do banco local (só leitura: nunca cria nem grava chave) para abrir a conexão, e a string nunca vai para o agente, para a resposta nem para o log. O agente vê o servidor, o banco, o plano e o custo, como a tela.
 
 ## Alternativas recusadas
 
