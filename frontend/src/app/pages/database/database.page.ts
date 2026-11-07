@@ -34,6 +34,8 @@ const MESSAGE_MS = 4000;
 const REVEAL_MARGIN = 16;
 // Atraso da busca da lista antes de refiltrar (UX-FIM-B10): em banco grande, não refiltra a cada tecla.
 const SEARCH_DEBOUNCE_MS = 150;
+// O anúncio "N itens encontrados" espera mais que o filtro (UX-G-B18): leitor de tela não repete a contagem a cada pausa na digitação.
+export const LIST_ANNOUNCE_DELAY_MS = 800;
 // Abaixo disso o painel abre embaixo do mapa (UX-FIM-B11).
 const NARROW_QUERY = '(max-width: 900px)';
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
@@ -122,6 +124,9 @@ export class DatabasePage {
   // O que de fato filtra: segue o texto digitado com atraso (SEARCH_DEBOUNCE_MS).
   protected readonly filter = signal('');
   private searchTimer?: ReturnType<typeof setTimeout>;
+  // O texto da busca que o leitor de tela já ouviu (UX-G-B18); segue o filtro com LIST_ANNOUNCE_DELAY_MS.
+  private readonly announceFilter = signal('');
+  private announceTimer?: ReturnType<typeof setTimeout>;
   protected readonly selection = signal<DbPick | null>(null);
   protected readonly hops = signal(0);
   protected readonly zoom = signal(1);
@@ -167,15 +172,12 @@ export class DatabasePage {
     return [...kinds].sort().map((k) => SCHEMA_SOURCE_LABEL[k]).join(', ');
   });
 
-  protected readonly list = computed(() => {
-    const schema = this.schema();
-    const q = this.filter();
-    if (!schema) return null;
-    return {
-      tables: schema.tables.filter((t) => matches(q, t, t.columns.map((c) => c.name))).map((t) => tableKey(t)),
-      views: schema.views.filter((v) => matches(q, v, v.columns)).map((v) => tableKey(v)),
-      procedures: schema.procedures.filter((p) => matches(q, p)).map((p) => tableKey(p)),
-    };
+  protected readonly list = computed(() => this.filtered(this.schema(), this.filter()));
+
+  // A contagem anunciada ao leitor de tela, com o atraso maior (UX-G-B18).
+  protected readonly foundAnnouncement = computed(() => {
+    const found = this.filtered(this.schema(), this.announceFilter());
+    return found ? `${found.tables.length + found.views.length + found.procedures.length} itens encontrados` : '';
   });
 
   protected readonly selectedTable = computed(() => {
@@ -237,8 +239,39 @@ export class DatabasePage {
     return map;
   });
 
+  // As relações de cada tabela, ditas no rótulo do bloco, já que as setas do mapa são só desenho (UX-G-B06).
+  private readonly relationLabels = computed(() => {
+    const out = new Map<string, string[]>();
+    const into = new Map<string, string[]>();
+    const add = (map: Map<string, string[]>, key: string, other: string) => map.set(key, [...(map.get(key) ?? []), other]);
+    for (const r of this.relations()) {
+      add(out, r.from, r.to);
+      add(into, r.to, r.from);
+    }
+    const labels = new Map<string, string>();
+    for (const key of new Set([...out.keys(), ...into.keys()])) {
+      const parts: string[] = [];
+      if (out.has(key)) parts.push(`aponta para ${out.get(key)!.join(', ')}`);
+      if (into.has(key)) parts.push(`referenciada por ${into.get(key)!.join(', ')}`);
+      labels.set(key, parts.join('; '));
+    }
+    return labels;
+  });
+
+  private filtered(schema: DbSchema | null, q: string) {
+    if (!schema) return null;
+    return {
+      tables: schema.tables.filter((t) => matches(q, t, t.columns.map((c) => c.name))).map((t) => tableKey(t)),
+      views: schema.views.filter((v) => matches(q, v, v.columns)).map((v) => tableKey(v)),
+      procedures: schema.procedures.filter((p) => matches(q, p)).map((p) => tableKey(p)),
+    };
+  }
+
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearTimeout(this.searchTimer));
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.searchTimer);
+      clearTimeout(this.announceTimer);
+    });
 
     // Abaixo de 900px o painel abre embaixo do mapa: ao escolher, ele rola para a vista (UX-FIM-B11).
     effect(() => {
@@ -349,6 +382,12 @@ export class DatabasePage {
     if (focus) setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(`#${DB_TAB_ID[tab]}`)?.focus({ preventScroll: true }));
   }
 
+  // Home e End vão à primeira e à última aba (UX-G-B13).
+  protected onTabEdge(event: Event, last: boolean): void {
+    event.preventDefault();
+    this.selectTab(DB_TABS[last ? DB_TABS.length - 1 : 0], true);
+  }
+
   // Setas trocam de aba, como no padrão de abas.
   protected onTabKey(event: Event, current: DbTab, step: number): void {
     event.preventDefault();
@@ -367,6 +406,8 @@ export class DatabasePage {
     this.query.set(value);
     clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.filter.set(value), SEARCH_DEBOUNCE_MS);
+    clearTimeout(this.announceTimer);
+    this.announceTimer = setTimeout(() => this.announceFilter.set(value), LIST_ANNOUNCE_DELAY_MS);
   }
 
   protected itemId(kind: DbItemKind, key: string): string {
@@ -390,6 +431,11 @@ export class DatabasePage {
 
   protected setHops(value: string): void {
     this.hops.set(Number(value) || 0);
+  }
+
+  // "Mostrar tudo" tira o recorte (UX-G-B12).
+  protected showAll(): void {
+    this.hops.set(0);
   }
 
   protected closePanel(): void {
@@ -434,7 +480,8 @@ export class DatabasePage {
   }
 
   protected cardLabel(key: string, columns: number, badge: string | undefined): string {
-    return `Tabela ${key}, ${columns === 1 ? '1 campo' : columns + ' campos'}${badge ? ', achado: ' + badge : ''}`;
+    const relations = this.relationLabels().get(key);
+    return `Tabela ${key}, ${columns === 1 ? '1 campo' : columns + ' campos'}${relations ? ', ' + relations : ''}${badge ? ', achado: ' + badge : ''}`;
   }
 
   // Exportar o que está no mapa (o recorte, se houver) --------------------------------------

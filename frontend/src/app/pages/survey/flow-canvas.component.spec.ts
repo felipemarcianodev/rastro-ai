@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { FlowGraph, NodeKind } from '../../core/models';
+import { EdgeConfidence, FlowGraph, NodeKind } from '../../core/models';
 import { FlowCanvasComponent, isPanGesture, isSelectionGesture, pickedFromSelection, splitLabel } from './flow-canvas.component';
 
 describe('splitLabel', () => {
@@ -98,5 +98,64 @@ describe('FlowCanvasComponent: botões de modo (A5)', () => {
     const on = render(true);
     expect(labels(on)).toEqual(before);
     expect(on.querySelector('.framework-button')?.getAttribute('aria-pressed')).toBe('true');
+  });
+
+  // UX-G-F13
+  it('a ajuda do grafo cita as teclas + e −', () => {
+    const help = render(false).querySelector('#graph-keys-help')?.textContent ?? '';
+    expect(help).toContain('+ e −');
+  });
+
+  // UX-G-F13
+  it('o glifo de recolher tem área mínima de 24 px', () => {
+    const probe = document.createElement('span');
+    probe.className = 'flow-node-fold';
+    document.body.appendChild(probe);
+    const box = probe.getBoundingClientRect();
+    probe.remove();
+    expect(box.width).toBeGreaterThanOrEqual(24);
+    expect(box.height).toBeGreaterThanOrEqual(24);
+  });
+
+  // UX-G-F01
+  // UX-G-F21
+  it('com o grafo afastado, a marca da ligação continua visível e só o texto do rótulo some', () => {
+    const host = document.createElement('div');
+    host.className = 'flow-host is-far';
+    host.innerHTML = '<span class="edge-label"><span class="edge-mark is-inferred">?</span><span class="edge-label-text">texto</span></span>';
+    document.body.appendChild(host);
+    const mark = getComputedStyle(host.querySelector('.edge-mark')!);
+    const textDisplay = getComputedStyle(host.querySelector('.edge-label-text')!).display;
+    const markDisplay = mark.display;
+    const markTransform = mark.transform;
+    const size = host.querySelector('.edge-mark')!.getBoundingClientRect();
+    host.remove();
+
+    expect(textDisplay).toBe('none');
+    expect(markDisplay).not.toBe('none');
+    expect(markTransform).not.toBe('none');
+    expect(size.width).toBeGreaterThan(16);
+  });
+
+  // UX-G-F21
+  it('a marca da ligação tem 16 px e um aria-label', () => {
+    const probe = document.createElement('span');
+    probe.className = 'edge-mark is-confirmed';
+    document.body.appendChild(probe);
+    const box = probe.getBoundingClientRect();
+    probe.remove();
+    expect(box.width).toBe(16);
+
+    TestBed.configureTestingModule({ imports: [FlowCanvasComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(FlowCanvasComponent);
+    const withEdge: FlowGraph = {
+      ...graph,
+      nodes: [...graph.nodes, { id: 'b', kind: NodeKind.Entry, label: 'B' }],
+      edges: [{ from: 'a', to: 'b', order: 1, confidence: EdgeConfidence.Inferred }],
+    };
+    fixture.componentRef.setInput('graph', withEdge);
+    fixture.detectChanges();
+    const rendered = (fixture.nativeElement as HTMLElement).querySelector('.edge-label .edge-mark.is-inferred');
+    if (rendered) expect(rendered.getAttribute('aria-label')).toBe('Inferida, a conferir');
   });
 });

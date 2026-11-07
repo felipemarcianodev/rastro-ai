@@ -9,6 +9,7 @@ import { DIAGRAM_RENDERER, readDiagramColors, standaloneSvg } from '../../core/m
 import { SurveyDetail, SurveyDiagram, SurveyStatus } from '../../core/models';
 import { shortCommit } from '../../core/format';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { SurveyPageTitle } from '../../core/page-title.strategy';
 import { ConfirmDialogComponent, ConfirmTone } from '../survey/confirm-dialog.component';
 import { DiagramStageComponent, StagePick } from './diagram-stage.component';
 
@@ -51,6 +52,9 @@ export class DiagramPage {
   readonly id = input.required<string>();
 
   protected readonly detail = signal<SurveyDetail | null>(null);
+  // UX-G-L23: título da aba com o ponto de entrada, assim que o levantamento chega.
+  private readonly pageTitle = inject(SurveyPageTitle);
+  private readonly titleSync = effect(() => this.pageTitle.set('Visão consolidada', this.detail()?.survey.entryPoint));
   protected readonly error = signal<string | null>(null);
   protected readonly saved = signal<SurveyDiagram | null>(null);
   protected readonly text = signal('');

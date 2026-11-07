@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { DialogDirective } from '../../core/dialog.directive';
 import { SQL_DIALECT_LABEL, SqlDialect } from '../../core/database/db-schema';
@@ -22,6 +22,8 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 export class LiveConnectionDialogComponent {
   private readonly api = inject(RastroApi);
   private closing = false;
+  // Salvou e falta o "Testar conexão" aparecer com a conexão nova: o foco vai a ele (UX-G-B17).
+  private focusTestNext = false;
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly repository = input.required<string>();
@@ -48,6 +50,14 @@ export class LiveConnectionDialogComponent {
   protected readonly SqlDialect = SqlDialect;
 
   constructor() {
+    effect(() => {
+      const configured = this.connection()?.configured;
+      untracked(() => {
+        if (!this.focusTestNext || !configured) return;
+        this.focusTestNext = false;
+        this.focusLater('#live-test');
+      });
+    });
     inject(DestroyRef).onDestroy(() => {
       this.closing = true;
       this.commandsCopy.reset();
@@ -73,6 +83,7 @@ export class LiveConnectionDialogComponent {
         // A string já foi: o campo esvazia e a tela passa a mostrar só o servidor e o banco.
         this.key.set('');
         this.saved.set(true);
+        this.focusTestNext = true;
         this.changed.emit();
       },
       error: (error) => this.fail(error),

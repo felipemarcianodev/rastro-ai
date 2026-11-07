@@ -7,7 +7,7 @@ import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/
 import { DbOperation, FindingKind, FindingSeverity } from '../../core/models';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
 import { LastRepositoryService } from '../../core/last-repository.service';
-import { DatabasePage } from './database.page';
+import { DatabasePage, LIST_ANNOUNCE_DELAY_MS } from './database.page';
 
 const usage: DbUsageReport = {
   uses: [
@@ -43,6 +43,7 @@ function render(schema: DbSchema | null = lojaSchema(), tabela?: string, report:
 }
 
 const cards = (el: HTMLElement) => [...el.querySelectorAll<HTMLButtonElement>('.db-card')];
+const buttonByText = (el: HTMLElement, text: string) => [...el.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.trim() === text);
 const card = (el: HTMLElement, key: string) => el.querySelector<HTMLButtonElement>(`.db-card[data-table="${key}"]`)!;
 
 describe('DatabasePage (Fase 38)', () => {
@@ -133,6 +134,7 @@ describe('DatabasePage (Fase 38)', () => {
     // UX-FIM-B10: o bloco fora do filtro sai da ordem de Tab; o que casa continua nela.
     expect(card(el, 'pedidos').getAttribute('tabindex')).toBe('-1');
     expect(card(el, 'clientes').hasAttribute('tabindex')).toBeFalse();
+    tick(LIST_ANNOUNCE_DELAY_MS);
   }));
 
   // WEB-DBV-006
@@ -459,5 +461,149 @@ describe('DatabasePage (Fase 38)', () => {
     fixture.detectChanges();
     tick(5000);
     expect(document.activeElement).toBe(exportButton);
+  }));
+
+  // UX-G-B02
+  it('clicar em "A view X lê esta tabela" leva o foco ao título do painel novo', fakeAsync(() => {
+    const { fixture, el } = render();
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+
+    const link = [...el.querySelectorAll<HTMLButtonElement>('.db-panel .source-link')].find((b) => b.textContent!.includes('A view vw_pedidos_por_cliente'))!;
+    link.focus();
+    link.click();
+    fixture.detectChanges();
+    tick();
+
+    const title = el.querySelector<HTMLElement>('.db-panel .db-panel-head h2')!;
+    expect(title.textContent).toContain('vw_pedidos_por_cliente');
+    expect(document.activeElement).toBe(title);
+  }));
+
+  // UX-G-B06
+  it('os rótulos das setas ficam escondidos do leitor de tela e as relações vão no rótulo do bloco', () => {
+    const { el } = render();
+
+    const labels = [...el.querySelectorAll('.db-label')];
+    expect(labels.length).toBeGreaterThan(0);
+    expect(labels.every((l) => l.getAttribute('aria-hidden') === 'true')).toBeTrue();
+    const aria = card(el, 'pedidos').getAttribute('aria-label')!;
+    expect(aria).toContain('aponta para clientes');
+    expect(aria).toContain('referenciada por');
+    expect(aria).toContain('pagamentos');
+  });
+
+  // UX-G-B12
+  it('o recorte desabilitado explica com texto visível e "Mostrar tudo" tira o recorte', () => {
+    const { fixture, el } = render();
+    const hops = el.querySelector<HTMLSelectElement>('#db-hops')!;
+    expect(hops.disabled).toBeTrue();
+    expect(el.querySelector('#db-hops-help')!.textContent).toContain('Escolha uma tabela para recortar o mapa nela.');
+    expect(hops.getAttribute('aria-describedby')).toBe('db-hops-help');
+    expect(buttonByText(el, 'Mostrar tudo')).toBeUndefined();
+
+    card(el, 'pagamentos').click();
+    fixture.detectChanges();
+    hops.value = '1';
+    hops.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(el.querySelector('#db-hops-help')).toBeNull();
+    expect(cards(el).length).toBe(2);
+
+    buttonByText(el, 'Mostrar tudo')!.click();
+    fixture.detectChanges();
+    expect(cards(el).length).toBe(6);
+    expect(buttonByText(el, 'Mostrar tudo')).toBeUndefined();
+  });
+
+  // UX-G-B13
+  it('Home e End vão à primeira e à última aba', fakeAsync(() => {
+    const { fixture, el } = render();
+    const navigate = spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+    const mapTab = el.querySelector<HTMLElement>('#db-tab-map')!;
+
+    mapTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', cancelable: true }));
+    fixture.detectChanges();
+    tick();
+    expect(navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { aba: DB_TAB_QUERY_PARAM } }));
+    expect(document.activeElement).toBe(el.querySelector('#db-tab-query'));
+
+    fixture.componentRef.setInput('aba', DB_TAB_QUERY_PARAM);
+    fixture.detectChanges();
+    navigate.calls.reset();
+    el.querySelector<HTMLElement>('#db-tab-query')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', cancelable: true }));
+    fixture.detectChanges();
+    tick();
+    expect(navigate).toHaveBeenCalledWith([], jasmine.objectContaining({ queryParams: { aba: null } }));
+    expect(document.activeElement).toBe(mapTab);
+  }));
+
+  // UX-G-B18
+  it('a lista usa content-visibility e o anúncio da contagem espera mais que o filtro', fakeAsync(() => {
+    const { fixture, el } = render();
+    expect(getComputedStyle(el.querySelector('.db-item')!).contentVisibility).toBe('auto');
+    expect(getComputedStyle(card(el, 'pedidos')).contentVisibility).toBe('auto');
+    const status = () => el.querySelector('.db-side [role="status"]')!.textContent!.trim();
+    expect(status()).toBe('8 itens encontrados');
+
+    const search = el.querySelector<HTMLInputElement>('#db-search')!;
+    search.value = 'cpf';
+    search.dispatchEvent(new Event('input'));
+    tick(150);
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.db-side .db-item').length).toBe(1);
+    expect(status()).toBe('8 itens encontrados');
+
+    tick(LIST_ANNOUNCE_DELAY_MS);
+    fixture.detectChanges();
+    expect(status()).toBe('1 itens encontrados');
+  }));
+
+  // UX-G-B19
+  it('a carga do esquema usa o mesmo estado de carga das outras telas', () => {
+    TestBed.configureTestingModule({
+      imports: [DatabasePage],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(DatabasePage);
+    fixture.componentRef.setInput('nome', 'loja');
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    const state = el.querySelector('.page-state')!;
+    expect(state.querySelector('svg.walking')).not.toBeNull();
+    expect(state.textContent).toContain('Lendo o esquema do banco no código do repositório…');
+    http.expectOne('/api/repositories').flush([]);
+    http.expectOne('/api/repositories/loja/connection').flush({ configured: false, server: null, database: null, updatedAt: null });
+    http.expectOne('/api/repositories/loja/schema').flush(lojaSchema());
+    http.expectOne('/api/repositories/loja/schema/usage').flush({ uses: [], findings: [] });
+  });
+
+  // UX-G-B20
+  it('o cabeçalho da tabela de campos fica fixo e Nulo e Chave se explicam no title', () => {
+    const { fixture, el } = render();
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+
+    const heads = [...el.querySelectorAll<HTMLElement>('.db-fields th')];
+    expect(getComputedStyle(heads[0]).position).toBe('sticky');
+    expect(heads[2].title).toContain('nulo');
+    expect(heads[3].title).toContain('Chave primária');
+  });
+
+  // UX-G-B21
+  it('o bloco esmaecido troca a opacidade pela cor de apoio', fakeAsync(() => {
+    const { fixture, el } = render();
+    const search = el.querySelector<HTMLInputElement>('#db-search')!;
+    search.value = 'cpf';
+    search.dispatchEvent(new Event('input'));
+    tick(LIST_ANNOUNCE_DELAY_MS);
+    fixture.detectChanges();
+
+    const dim = card(el, 'pedidos');
+    expect(dim.classList).toContain('is-dim');
+    expect(getComputedStyle(dim).opacity).toBe('1');
+    expect(getComputedStyle(dim).color).toBe(getComputedStyle(dim.querySelector('.db-row-type')!).color);
   }));
 });

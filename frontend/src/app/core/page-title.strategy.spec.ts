@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Title } from '@angular/platform-browser';
 import { Router, TitleStrategy, provideRouter } from '@angular/router';
-import { PageTitleStrategy, resolveTitle } from './page-title.strategy';
+import { PageTitleStrategy, SurveyPageTitle, resolveTitle, surveyTitle } from './page-title.strategy';
 
 describe('PageTitleStrategy', () => {
   // UX-FIM-C11
@@ -26,5 +26,17 @@ describe('PageTitleStrategy', () => {
 
   it('resolveTitle deixa o token quando falta o parâmetro', () => {
     expect(resolveTitle('Banco de :nome', {})).toBe('Banco de :nome');
+  });
+
+  // UX-G-L23
+  it('SurveyPageTitle cita o ponto de entrada e ignora quando ele ainda não chegou', () => {
+    const title = TestBed.inject(Title);
+    const service = TestBed.inject(SurveyPageTitle);
+    title.setTitle('Fluxo | Rastro AI');
+    service.set('Fluxo', undefined);
+    expect(title.getTitle()).toBe('Fluxo | Rastro AI');
+    service.set('Fluxo', 'PedidosController.Criar');
+    expect(title.getTitle()).toBe('Fluxo: PedidosController.Criar | Rastro AI');
+    expect(surveyTitle('Visão consolidada', 'A.B')).toBe('Visão consolidada: A.B | Rastro AI');
   });
 });

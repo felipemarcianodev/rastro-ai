@@ -50,18 +50,21 @@
                     <input [id]="'test-' + repo.name" class="input code" name="testCommand" [(ngModel)]="testDraft" placeholder="dotnet test"
                       autocomplete="off" spellcheck="false" [attr.aria-describedby]="'commands-help-' + repo.name" />
                   </div>
-                  <span [id]="'commands-help-' + repo.name" class="field-help">Roda na pasta do repositório, sem shell: <code>&amp;&amp;</code>, <code>|</code> e redirecionamento não funcionam. Deixe vazio para não rodar.</span>
+                  <span [id]="'commands-help-' + repo.name" class="field-help">Roda na pasta do repositório. Escreva um comando só, sem encadear com <code>&amp;&amp;</code> nem usar <code>|</code> ou <code>&gt;</code>. Deixe vazio para não rodar.</span>
                   @if (commandsError(); as error) {
                     <span class="field-error" role="alert">{{ error }}</span>
                   }
                   <div class="actions">
-                    <button type="button" class="btn btn-p btn-small" (click)="saveCommands(repo)" [disabled]="savingCommands()">{{ savingCommands() ? 'Salvando…' : 'Salvar comandos' }}</button>
+                    <button type="button" class="btn btn-g btn-small" (click)="saveCommands(repo)" [disabled]="savingCommands()">{{ savingCommands() ? 'Salvando…' : 'Salvar comandos' }}</button>
                     <button type="button" class="btn btn-g btn-small" (click)="cancelCommands(repo)" [disabled]="savingCommands()">Cancelar</button>
                   </div>
                 </div>
               } @else {
                 <span class="muted small">Build: @if (repo.buildCommand) { <code>{{ repo.buildCommand }}</code> } @else { sem comando }</span>
                 <span class="muted small">Testes: @if (repo.testCommand) { <code>{{ repo.testCommand }}</code> } @else { sem comando }</span>
+                @if (commandsSaved() === repo.name) {
+                  <span class="note-ok small" role="status">Comandos salvos</span>
+                }
               }
             </div>
             <div class="repo-actions">
@@ -81,38 +84,14 @@
       <p [class]="message.ok ? 'note-ok' : 'field-error'" [attr.role]="message.ok ? null : 'alert'">{{ message.text }}</p>
     }
 
-    <form class="repo-form" (ngSubmit)="addRepository()" novalidate aria-labelledby="add-repo-title">
+    <div class="repo-form">
       <h3 id="add-repo-title">Adicionar repositório</h3>
-      <div class="field">
-        <label class="field-label" for="repo-name">Nome</label>
-        <input id="repo-name" class="input code" name="repoName" [(ngModel)]="newName" placeholder="meu-sistema" autocomplete="off" spellcheck="false"
-          [attr.aria-invalid]="nameError() ? true : null" [attr.aria-describedby]="nameError() ? 'repo-name-error' : null" />
-        @if (nameError(); as error) {
-          <span id="repo-name-error" class="field-error">{{ error }}</span>
-        }
-      </div>
-      <div class="field">
-        <label class="field-label" for="repo-path">Pasta</label>
-        <div class="field-row">
-          <input id="repo-path" class="input code" name="repoPath" [(ngModel)]="newPath" placeholder="C:\codigo\meu-sistema" autocomplete="off" spellcheck="false"
-            [attr.aria-invalid]="pathError() ? true : null" [attr.aria-describedby]="pathError() ? 'repo-path-error' : 'repo-path-help'" />
-          @if (desktop.available) {
-            <button type="button" class="btn btn-g" (click)="browseFolder()" [disabled]="adding()">Procurar…</button>
-          }
-        </div>
-        <span id="repo-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git. Windows: C:\codigo\meu-sistema. Linux ou macOS: /home/voce/meu-sistema.</span>
-        @if (pathError(); as error) {
-          <span id="repo-path-error" class="field-error">{{ error }}</span>
-        }
-      </div>
-      <div class="actions">
-        <button class="btn btn-g" type="submit" [disabled]="adding()">{{ adding() ? 'Cadastrando…' : 'Adicionar repositório' }}</button>
-      </div>
-    </form>
+      <app-register-repository idPrefix="repo" label="Adicionar repositório" submitLabel="Adicionar repositório" (registered)="onRegistered($event)" />
+    </div>
   </section>
 
   @if (pendingRemoval()) {
-    <app-confirm-dialog title="Remover o repositório?" [text]="removalText()" confirmLabel="Remover" [busy]="removing()"
+    <app-confirm-dialog [title]="'Remover o repositório ' + pendingRemoval()!.name + '?'" [text]="removalText()" [confirmLabel]="'Remover ' + pendingRemoval()!.name" [busy]="removing()"
       (confirm)="confirmRemove()" (cancel)="cancelRemove()" />
   }
 
@@ -136,6 +115,7 @@
         </label>
       }
     </fieldset>
+    <span class="visually-hidden" role="status">{{ paletteNotice() }}</span>
   </section>
 
   @if (loadError(); as error) {
@@ -164,7 +144,7 @@
           <input type="checkbox" name="enabled" [(ngModel)]="enabled" />
           <span>{{ enabled ? 'IA ligada' : 'IA desligada' }}</span>
         </label>
-        @if (enabled !== loaded()!.enabled) {
+        @if (dirty()) {
           <span class="note-pending" role="status">Alteração pendente, falta salvar</span>
         }
       </div>
@@ -231,7 +211,7 @@
 
       <div class="field budget">
         <label class="field-label" for="budget">Orçamento diário de tokens</label>
-        <input id="budget" class="input" type="number" min="0" step="1000" name="budget" [(ngModel)]="budget" [disabled]="!enabled" aria-describedby="budget-help" />
+        <input id="budget" class="input" type="number" min="0" step="1000" name="budget" [(ngModel)]="budget" aria-describedby="budget-help" />
         <span id="budget-help" class="field-help">Entrada + saída por dia (UTC). 0 = sem limite. {{ usageText() }}</span>
       </div>
       }

@@ -43,6 +43,7 @@ import {
   CreateSurveyRequest,
 } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { SurveyPageTitle } from '../../core/page-title.strategy';
 import { FlowCanvasComponent } from './flow-canvas.component';
 import { ConsolidatedViewComponent } from './consolidated-view.component';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
@@ -101,6 +102,9 @@ export class SurveyPage {
   private passoApplied: string | null = null;
 
   protected readonly detail = signal<SurveyDetail | null>(null);
+  // UX-G-L23: título da aba com o ponto de entrada, assim que o levantamento chega.
+  private readonly pageTitle = inject(SurveyPageTitle);
+  private readonly titleSync = effect(() => this.pageTitle.set('Fluxo', this.detail()?.survey.entryPoint));
   protected readonly error = signal<string | null>(null);
   // Erro depois que a tela já carregou: faixa no topo, a tela (e a edição) continuam.
   protected readonly softError = signal<string | null>(null);

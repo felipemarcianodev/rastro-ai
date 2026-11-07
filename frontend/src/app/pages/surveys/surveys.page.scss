@@ -215,6 +215,13 @@ h1 {
   gap: var(--space-2);
 }
 
+.skeleton-card {
+  min-height: 112px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+  animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
 .skeleton-row {
   height: 56px;
   border-radius: var(--radius-md);
@@ -229,6 +236,7 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .skeleton-card,
   .skeleton-row {
     animation: none;
   }

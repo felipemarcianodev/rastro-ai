@@ -12,7 +12,18 @@
     <p class="note-ok saved-notice" aria-hidden="true">{{ notice }}</p>
   }
 
-  @if (hasRepositories()) {
+  @if (reposState() === 'loading') {
+    <ul class="repo-grid" aria-busy="true" aria-label="Carregando repositórios">
+      @for (i of skeletonRows; track i) {
+        <li class="repo-card skeleton-card" aria-hidden="true"></li>
+      }
+    </ul>
+  } @else if (reposState() === 'error') {
+    <div class="notice is-error" role="alert">
+      <p>{{ reposError() }}</p>
+      <button type="button" class="btn btn-g retry" (click)="loadRepositories()">Tentar de novo</button>
+    </div>
+  } @else if (hasRepositories()) {
     <ul class="repo-grid" aria-label="Repositórios">
       @for (card of repoCards(); track card.name) {
         <li class="repo-card">
@@ -62,7 +73,7 @@
     } @else if (surveys()!.length === 0) {
       <div class="empty">
         <p>Nenhum levantamento ainda.</p>
-        <p class="muted">Use "Levantar fluxo" em um dos repositórios acima para seguir o primeiro rastro.</p>
+        <p class="muted">Use "Levantar fluxo" em um repositório para seguir o primeiro rastro.</p>
       </div>
     } @else {
       <div class="list-tools">
@@ -99,7 +110,7 @@
                 </span>
               </span>
 
-              <span class="row-side">
+              <span class="row-side" [id]="'row-summary-' + survey.id">
                 <span [class]="'pill is-' + statusSlug[survey.status]">{{ statusLabel[survey.status] }}</span>
                 @if (survey.status === SurveyStatus.Completed) {
                   <span class="row-counts muted">
@@ -113,7 +124,8 @@
               </span>
             </a>
             <span class="row-actions">
-              <a class="btn btn-g btn-small" [routerLink]="['/surveys', survey.id]" [attr.aria-label]="'Abrir o levantamento ' + survey.entryPoint">Abrir</a>
+              <a class="btn btn-g btn-small" [routerLink]="['/surveys', survey.id]" [attr.aria-label]="'Abrir o levantamento ' + survey.entryPoint"
+                [attr.aria-describedby]="'row-summary-' + survey.id">Abrir</a>
               <a class="btn btn-g btn-small" [routerLink]="dbRoute(survey.repository)" [queryParams]="surveyOriginParams(survey.id)"
                 [attr.aria-label]="'Banco do fluxo ' + survey.entryPoint">Banco deste fluxo</a>
             </span>
@@ -139,10 +151,9 @@
       <div class="field">
         <div class="field-head">
           <label class="field-label" for="repository">Repositório</label>
-          <button type="button" class="info-toggle" (click)="toggleInfo('repository')" (keydown.escape)="closeInfo($event)" [title]="fieldInfo.repository.summary"
+          <button type="button" class="info-toggle" (click)="toggleInfo('repository')" (keydown.escape)="closeInfo($event)"
             [attr.aria-expanded]="openInfo() === 'repository'" [attr.aria-controls]="openInfo() === 'repository' ? 'repository-info' : null" aria-label="O que é Repositório">i</button>
         </div>
-        <span id="repository-help" class="field-help">{{ fieldInfo.repository.summary }}</span>
         @if (openInfo() === 'repository') {
           <div id="repository-info" class="info-text" (keydown.escape)="closeInfo($event)">
             @for (line of fieldInfo.repository.text; track $index) {
@@ -150,22 +161,25 @@
             }
           </div>
         }
-        <select id="repository" class="input" name="repository" [ngModel]="repository" (ngModelChange)="selectRepository($event)" [disabled]="!hasRepositories()"
-          [attr.aria-invalid]="!!fieldErrors().repository" aria-describedby="repository-help repository-error">
-          <option value="" disabled>{{ reposState() === 'loading' ? 'Carregando repositórios…' : 'Escolha um repositório' }}</option>
-          @for (repo of repositories(); track repo.name) {
-            <option [value]="repo.name">{{ repo.name }}</option>
-          }
-        </select>
+        @if (reposState() === 'loading' || hasRepositories()) {
+          <select id="repository" class="input" name="repository" [ngModel]="repository" (ngModelChange)="selectRepository($event)" [disabled]="!hasRepositories()"
+            [attr.aria-invalid]="!!fieldErrors().repository" aria-describedby="repository-help repository-error">
+            <option value="" disabled>{{ reposState() === 'loading' ? 'Carregando repositórios…' : 'Escolha um repositório' }}</option>
+            @for (repo of repositories(); track repo.name) {
+              <option [value]="repo.name">{{ repo.name }}</option>
+            }
+          </select>
+        }
         @if (reposState() === 'error') {
           <span class="field-error repos-error" role="alert">
             {{ reposError() }}
             <button type="button" class="btn btn-g btn-small" (click)="loadRepositories()">Tentar de novo</button>
           </span>
         } @else if (reposState() === 'ready' && !hasRepositories()) {
-          <span class="field-help">Nenhum repositório cadastrado. Cadastre a pasta do seu código aqui ou em <a routerLink="/configuracoes" fragment="editor">Configurações</a>.</span>
+          <span class="field-help">Nenhum repositório cadastrado.</span>
           <button type="button" class="btn btn-g btn-small db-link" (click)="openRegister()">Cadastrar repositório</button>
         }
+        <span id="repository-help" class="field-help">{{ fieldInfo.repository.summary }}</span>
         <span id="repository-error" class="field-error" [hidden]="!fieldErrors().repository">{{ fieldErrors().repository }}</span>
         @if (repository) {
           <a class="btn btn-g btn-small db-link" [routerLink]="['/repositorios', repository, 'banco']">Ver o mapa do banco de {{ repository }}</a>
@@ -175,10 +189,9 @@
       <div class="field">
         <div class="field-head">
           <label class="field-label" for="solution">Solution</label>
-          <button type="button" class="info-toggle" (click)="toggleInfo('solution')" (keydown.escape)="closeInfo($event)" [title]="fieldInfo.solution.summary"
+          <button type="button" class="info-toggle" (click)="toggleInfo('solution')" (keydown.escape)="closeInfo($event)"
             [attr.aria-expanded]="openInfo() === 'solution'" [attr.aria-controls]="openInfo() === 'solution' ? 'solution-info' : null" aria-label="O que é Solution">i</button>
         </div>
-        <span id="solution-help" class="field-help">{{ fieldInfo.solution.summary }}</span>
         @if (openInfo() === 'solution') {
           <div id="solution-info" class="info-text" (keydown.escape)="closeInfo($event)">
             @for (line of fieldInfo.solution.text; track $index) {
@@ -197,13 +210,14 @@
             <option [value]="solution">{{ solution }}</option>
           }
         </select>
+        <span id="solution-help" class="field-help">{{ fieldInfo.solution.summary }}</span>
         <span id="solution-error" class="field-error" [hidden]="!fieldErrors().solution">{{ fieldErrors().solution }}</span>
       </div>
 
       <div class="field">
         <div class="field-head">
           <label class="field-label" for="entry">Ponto de entrada</label>
-          <button type="button" class="info-toggle" (click)="toggleInfo('entry')" (keydown.escape)="closeInfo($event)" [title]="fieldInfo.entry.summary"
+          <button type="button" class="info-toggle" (click)="toggleInfo('entry')" (keydown.escape)="closeInfo($event)"
             [attr.aria-expanded]="openInfo() === 'entry'" [attr.aria-controls]="openInfo() === 'entry' ? 'entry-info' : null" aria-label="O que é Ponto de entrada">i</button>
         </div>
         @if (openInfo() === 'entry') {
@@ -229,7 +243,7 @@
       <div class="field">
         <div class="field-head">
           <label class="field-label" for="depth">Profundidade</label>
-          <button type="button" class="info-toggle" (click)="toggleInfo('depth')" (keydown.escape)="closeInfo($event)" [title]="fieldInfo.depth.summary"
+          <button type="button" class="info-toggle" (click)="toggleInfo('depth')" (keydown.escape)="closeInfo($event)"
             [attr.aria-expanded]="openInfo() === 'depth'" [attr.aria-controls]="openInfo() === 'depth' ? 'depth-info' : null" aria-label="O que é Profundidade">i</button>
         </div>
         @if (openInfo() === 'depth') {
@@ -279,37 +293,9 @@
   <div class="overlay" appDialog (click)="closeRegister()" (dialogClose)="closeRegister()">
     <section class="dialog is-narrow" role="dialog" aria-modal="true" aria-labelledby="register-title" (click)="$event.stopPropagation()">
       <h2 id="register-title">Cadastrar repositório</h2>
-      <form class="form" (ngSubmit)="register()" novalidate>
-        <div class="field">
-          <label class="field-label" for="register-name">Nome</label>
-          <input id="register-name" class="input code" name="registerName" [(ngModel)]="newName" placeholder="meu-sistema" autocomplete="off" spellcheck="false"
-            [attr.aria-invalid]="nameError() ? true : null" [attr.aria-describedby]="nameError() ? 'register-name-error' : null" />
-          @if (nameError(); as error) {
-            <span id="register-name-error" class="field-error">{{ error }}</span>
-          }
-        </div>
-        <div class="field">
-          <label class="field-label" for="register-path">Pasta</label>
-          <div class="field-row">
-            <input id="register-path" class="input code" name="registerPath" [(ngModel)]="newPath" placeholder="C:\codigo\meu-sistema" autocomplete="off" spellcheck="false"
-              [attr.aria-invalid]="pathError() ? true : null" [attr.aria-describedby]="pathError() ? 'register-path-error' : 'register-path-help'" />
-            @if (desktop.available) {
-              <button type="button" class="btn btn-g" (click)="browseFolder()" [disabled]="registering()">Procurar…</button>
-            }
-          </div>
-          <span id="register-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git. Windows: C:\codigo\meu-sistema. Linux ou macOS: /home/voce/meu-sistema.</span>
-          @if (pathError(); as error) {
-            <span id="register-path-error" class="field-error">{{ error }}</span>
-          }
-        </div>
-        @if (registerError(); as error) {
-          <p class="field-error" role="alert">{{ error }}</p>
-        }
-        <footer class="dialog-foot">
-          <button type="button" class="btn btn-g" (click)="closeRegister()" [disabled]="registering()">Cancelar</button>
-          <button type="submit" class="btn btn-p" [disabled]="registering()">{{ registering() ? 'Cadastrando…' : 'Cadastrar' }}</button>
-        </footer>
-      </form>
+      <app-register-repository idPrefix="register" primary inDialog (registered)="onRegistered($event)" (busy)="registering.set($event)">
+        <button type="button" class="btn btn-g" (click)="closeRegister()" [disabled]="registering()">Cancelar</button>
+      </app-register-repository>
     </section>
   </div>
 }

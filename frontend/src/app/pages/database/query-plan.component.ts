@@ -42,6 +42,9 @@ export class QueryPlanComponent {
     return `Plano estimado recebido: ${ops === 1 ? '1 operação' : ops + ' operações'}, ${missing === 0 ? 'nenhum índice sugerido' : missing === 1 ? '1 índice sugerido' : missing + ' índices sugeridos'}.`;
   });
 
+  // O que o leitor de tela ouve: a espera, e depois o resumo do plano.
+  protected readonly announcement = computed(() => (this.busy() ? 'Pedindo o plano…' : this.summary()));
+
   constructor() {
     inject(DestroyRef).onDestroy(() => this.sub?.unsubscribe());
   }

@@ -174,6 +174,9 @@
   text-align: left;
   cursor: pointer;
   overflow: hidden;
+  // Banco grande (UX-G-B18): o que está fora da vista não é desenhado; a altura do bloco já vem do estilo em linha.
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
 
   &:hover {
     border-color: var(--ink-soft);
@@ -189,8 +192,20 @@
     background: var(--trail-wash);
   }
 
+  // Esmaecido sem opacidade (UX-G-B21): a 0,35 o texto dava 2,13:1 no Papel claro e 2,75:1 no escuro.
+  // Com --ink-soft sobre --surface-sunk o texto fica acima de 4,5:1 nos dois.
   &.is-dim {
-    opacity: 0.35;
+    border-color: var(--line);
+    background: var(--surface-sunk);
+    color: var(--ink-soft);
+
+    .db-key.is-pk {
+      background: var(--ink-soft);
+    }
+
+    .db-key.is-fk {
+      color: var(--ink-soft);
+    }
   }
 
   &:focus-visible {

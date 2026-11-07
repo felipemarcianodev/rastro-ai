@@ -40,15 +40,17 @@
           <div fConnectionContent [position]="0.5" [hidden]="!item.edge.http && (!item.edge.label || quietLabels().has(item.index)) && item.edge.confidence === EdgeConfidence.Extracted">
             <span class="edge-label" [class.is-http]="!!item.edge.http">
               @if (item.edge.confidence === EdgeConfidence.Confirmed) {
-                <span class="edge-mark is-confirmed" title="Confirmada por você">✓</span>
+                <span class="edge-mark is-confirmed" role="img" aria-label="Confirmada por você" title="Confirmada por você">✓</span>
               } @else if (item.edge.confidence === EdgeConfidence.Inferred) {
-                <span class="edge-mark is-inferred" title="Inferida, a conferir">?</span>
+                <span class="edge-mark is-inferred" role="img" aria-label="Inferida, a conferir" title="Inferida, a conferir">?</span>
               }
-              @if (item.edge.http) {
-                {{ httpLabel(item.edge) }}
-              } @else if (!quietLabels().has(item.index)) {
-                {{ item.edge.label }}
-              }
+              <span class="edge-label-text">
+                @if (item.edge.http) {
+                  {{ httpLabel(item.edge) }}
+                } @else if (!quietLabels().has(item.index)) {
+                  {{ item.edge.label }}
+                }
+              </span>
             </span>
           </div>
         </f-connection>
@@ -137,7 +139,7 @@
   </div>
 }
 
-<span id="graph-keys-help" class="visually-hidden">Setas andam pelos passos seguindo as ligações; Alt+setas move o passo; Enter escolhe; Ctrl+clique ou Shift+arrastar no fundo marca vários para mover juntos.</span>
+<span id="graph-keys-help" class="visually-hidden">Setas andam pelos passos seguindo as ligações; Alt+setas move o passo; Enter escolhe; as teclas + e − abrem e recolhem o detalhe do passo; Ctrl+clique ou Shift+arrastar no fundo marca vários para mover juntos.</span>
 <span class="visually-hidden" role="status">{{ walkMessage() }}</span>
 
 <div class="canvas-tools" role="toolbar" aria-label="Navegação do grafo">

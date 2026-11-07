@@ -1,4 +1,4 @@
-import { Component, computed, input, output } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, computed, input, output, viewChild } from '@angular/core';
 import { DialogDirective } from '../../core/dialog.directive';
 
 // Tom da confirmação: Danger para ação destrutiva (padrão), Primary para ação segura.
@@ -22,14 +22,15 @@ export const CONFIRM_TONE_BUTTON: Record<ConfirmTone, string> = {
         <h2 id="confirm-title">{{ title() }}</h2>
         <p id="confirm-text">{{ text() }}</p>
         <footer class="dialog-foot">
-          <button type="button" class="btn btn-g" (click)="cancel.emit()" [disabled]="busy()">Cancelar</button>
+          <button #cancelButton type="button" class="btn btn-g" (click)="cancel.emit()" [disabled]="busy()">Cancelar</button>
           <button type="button" [class]="'btn ' + toneClass()" (click)="confirm.emit()" [disabled]="busy()">{{ confirmLabel() }}</button>
         </footer>
       </section>
     </div>
   `,
 })
-export class ConfirmDialogComponent {
+export class ConfirmDialogComponent implements AfterViewInit {
+  private readonly cancelButton = viewChild<ElementRef<HTMLButtonElement>>('cancelButton');
   readonly title = input.required<string>();
   readonly text = input.required<string>();
   readonly confirmLabel = input.required<string>();
@@ -39,4 +40,10 @@ export class ConfirmDialogComponent {
   protected readonly toneClass = computed(() => CONFIRM_TONE_BUTTON[this.tone()]);
   readonly confirm = output<void>();
   readonly cancel = output<void>();
+
+  // UX-G-L22: o foco inicial é sempre o "Cancelar" (o caminho seguro), sem depender da ordem do DOM.
+  // O hook do componente roda depois do da diretiva do diálogo, que só escolhe o primeiro foco.
+  ngAfterViewInit(): void {
+    this.cancelButton()?.nativeElement.focus();
+  }
 }

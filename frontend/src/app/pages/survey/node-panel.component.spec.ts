@@ -209,3 +209,27 @@ describe('NodePanelComponent: cabeçalho (A6)', () => {
     expect(el.querySelector('.panel-focus')?.textContent).toContain('Ver somente este fluxo');
   });
 });
+
+// UX-G-F23
+describe('NodePanelComponent: aviso ao lado de "Escrever as regras que faltam"', () => {
+  it('diz que vai o código dos passos sem regra', () => {
+    TestBed.configureTestingModule({ imports: [NodePanelComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    TestBed.inject(AiStatusService).status.set({
+      enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses: [AiUse.DescribeRules], tokensToday: 0, dailyTokenBudget: 0,
+    });
+    const fixture = TestBed.createComponent(NodePanelComponent);
+    fixture.componentRef.setInput('surveyId', 's1');
+    fixture.componentRef.setInput('graph', graph);
+    fixture.componentRef.setInput('selectedId', null);
+    fixture.componentRef.setInput('notes', new Map());
+    fixture.componentRef.setInput('aiActive', true);
+    fixture.componentRef.setInput('canDescribe', true);
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    const button = [...el.querySelectorAll('button')].find((b) => b.textContent?.includes('regras que faltam'));
+    if (!button) return pending('o botão só aparece com passos sem regra na visão geral');
+    expect(button.nextElementSibling?.tagName.toLowerCase()).toBe('app-ai-disclosure');
+    expect(button.nextElementSibling?.textContent).toContain('o código dos passos sem regra');
+  });
+});

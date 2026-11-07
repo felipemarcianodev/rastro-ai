@@ -62,7 +62,7 @@
 
       @if (canSuggest() || suggestion()) {
         <section class="qa-ai" aria-labelledby="qa-ai-title">
-          <h2 id="qa-ai-title" class="section-title qa-title">Sugestão da IA</h2>
+          <h2 id="qa-ai-title" class="section-title qa-title" tabindex="-1">Sugestão da IA</h2>
           @if (canSuggest()) {
             <div class="row-wrap qa-actions">
               <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : suggestion() ? 'Pedir outra sugestão' : 'Sugerir melhora com a IA' }}</button>
@@ -90,7 +90,7 @@
             <app-query-suggestion [suggestion]="s" [sql]="r.sql" />
           }
         </section>
-      } @else {
+      } @else if (aiLoaded()) {
         <p class="muted qa-hint qa-ai-off">Quer uma sugestão de melhora feita por IA? Ligue o uso de sugestões em <a routerLink="/configuracoes">Configurações</a>. Sem isso, a análise segue só com as regras fixas.</p>
       }
     }

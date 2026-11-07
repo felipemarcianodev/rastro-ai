@@ -26,12 +26,6 @@
   overflow: hidden;
   line-height: 22px;
   text-overflow: ellipsis;
-
-  &::before {
-    display: inline-block;
-    margin-right: var(--space-1-5);
-    vertical-align: middle;
-  }
   background: var(--trail-wash);
   color: var(--trail-ink);
 }
@@ -91,6 +85,9 @@
   font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
+  // Banco grande (UX-G-B18): o item fora da vista não é desenhado; 28px é a altura de uma linha da lista.
+  content-visibility: auto;
+  contain-intrinsic-size: auto 28px;
 
   &:hover {
     background: var(--surface-sunk);
@@ -206,6 +203,14 @@
     overflow: auto;
   }
 
+  // Numa coluna rolável, cada parte guarda a própria altura: sem isso o flex as encolhia e a barra
+  // "Mostrar" ficava por cima da lista de tabelas (UX-G-N05).
+  .db-side,
+  .db-panel,
+  .db-map {
+    flex: none;
+  }
+
   .db-side,
   .db-panel {
     overflow: visible;
@@ -213,8 +218,26 @@
     border-bottom: 1px solid var(--line);
   }
 
+  // A lista não empurra o mapa para fora da vista (UX-G-B08).
+  .db-side {
+    max-height: 40vh;
+    overflow: auto;
+  }
+
   .db-scroll {
     min-height: 420px;
+  }
+}
+
+// Em tela muito estreita as duas abas dividem a largura e o texto de apoio quebra (UX-G-B13).
+@media (max-width: 480px) {
+  .db-tab {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .db-tab-hint {
+    overflow-wrap: anywhere;
   }
 }
 

@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DB_OPERATION_SHORT, DB_OPERATION_SLUG, FINDING_KIND_LABEL, FINDING_SEVERITY_LABEL } from '../../core/models';
 import {
@@ -63,6 +63,21 @@ export class DbPanelComponent {
   readonly usageError = input(false);
   readonly pick = output<DbPick>();
   readonly closed = output<void>();
+
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  // Escolheu algo dentro do painel (UX-G-B02): o botão clicado some com o painel antigo, então o foco vai ao título do novo.
+  private focusTitleNext = false;
+
+  constructor() {
+    effect(() => {
+      this.selection();
+      untracked(() => {
+        if (!this.focusTitleNext) return;
+        this.focusTitleNext = false;
+        setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('.db-panel-head h2')?.focus({ preventScroll: true }));
+      });
+    });
+  }
 
   protected readonly DbItemKind = DbItemKind;
   protected readonly sourceLabel = SCHEMA_SOURCE_LABEL;
@@ -174,10 +189,12 @@ export class DbPanelComponent {
   }
 
   protected pickTable(key: string): void {
+    this.focusTitleNext = true;
     this.pick.emit({ kind: DbItemKind.Table, key });
   }
 
   protected pickItem(kind: DbItemKind, key: string): void {
+    this.focusTitleNext = true;
     this.pick.emit({ kind, key });
   }
 }

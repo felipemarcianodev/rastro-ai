@@ -4,8 +4,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
-import { DesktopBridge } from '../../core/desktop-bridge.service';
-import { EditorLinks, isAbsoluteFolder } from '../../core/editor-links';
+import { EditorLinks } from '../../core/editor-links';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { REPOSITORY_QUERY_PARAM } from '../surveys/surveys.page';
 import { shortDate } from '../../core/format';
@@ -13,14 +12,13 @@ import { PALETTES, PALETTE_LABEL, PaletteChoice, ThemeChoice, ThemeService } fro
 import {
   AI_PROVIDER_LABEL,
   AI_PROVIDER_SLUG,
-  API_ERROR_MESSAGE,
   AiProvider,
   AiSettingsUpdate,
   AiSettingsView,
-  REPOSITORY_NAME_PATTERN,
   RepositoryItem,
 } from '../../core/models';
 import { ConfirmDialogComponent } from '../survey/confirm-dialog.component';
+import { RegisterRepositoryComponent } from './register-repository.component';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 // Sem caminho de máquina: o usuário troca o marcador pela pasta onde o Rastro está.
@@ -44,7 +42,7 @@ const THEME_OPTION_LABEL: Record<ThemeChoice, string> = {
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, RouterLink, ConfirmDialogComponent],
+  imports: [FormsModule, RouterLink, ConfirmDialogComponent, RegisterRepositoryComponent],
   templateUrl: './settings.page.html',
   styleUrl: './settings.page.scss',
 })
@@ -56,6 +54,8 @@ export class SettingsPage implements OnInit {
   protected readonly paletteLabel = PALETTE_LABEL;
   protected readonly themes: ThemeChoice[] = ['system', 'light', 'dark'];
   protected readonly themeLabel = THEME_OPTION_LABEL;
+  // UX-G-L21: a troca de paleta é anunciada ao leitor de tela.
+  protected readonly paletteNotice = signal('');
 
   protected readonly loaded = signal<AiSettingsView | null>(null);
   protected readonly loadError = signal<string | null>(null);
@@ -63,26 +63,20 @@ export class SettingsPage implements OnInit {
   protected readonly saveMessage = signal<{ ok: boolean; text: string } | null>(null);
   protected readonly commandCopy = new CopyFeedback();
   private readonly editor = inject(EditorLinks);
-  // Janela própria (ADR-007): o "Procurar…" ao lado da pasta só existe nela.
-  protected readonly desktop = inject(DesktopBridge);
   private readonly location = inject(Location);
   private readonly router = inject(Router);
   protected readonly repositories = signal<RepositoryItem[]>([]);
   protected readonly reposState = signal<'loading' | 'error' | 'ready'>('loading');
   private readonly route = inject(ActivatedRoute);
 
-  // Formulário "Adicionar repositório".
-  protected newName = '';
-  protected newPath = '';
-  protected readonly adding = signal(false);
-  protected readonly nameError = signal<string | null>(null);
-  protected readonly pathError = signal<string | null>(null);
   protected readonly repoMessage = signal<{ ok: boolean; text: string } | null>(null);
 
   // Edição em linha de build e testes (ADR-008): um repositório por vez.
   protected readonly editingCommands = signal<RepositoryItem | null>(null);
   protected readonly savingCommands = signal(false);
   protected readonly commandsError = signal<string | null>(null);
+  // UX-G-L15: o aviso "Comandos salvos" fica na linha do repositório editado.
+  protected readonly commandsSaved = signal<string | null>(null);
   protected buildDraft = '';
   protected testDraft = '';
 
@@ -122,6 +116,32 @@ export class SettingsPage implements OnInit {
       ? `Hoje: ${used} de ${status.dailyTokenBudget.toLocaleString('pt-BR')} tokens.`
       : `Hoje: ${used} tokens (sem limite).`;
   });
+
+  // UX-G-L07: alteração pendente em qualquer campo da IA (não só ligar e desligar).
+  protected dirty(): boolean {
+    const view = this.loaded();
+    if (!view) return false;
+    const formOf = (provider: AiProvider): ProviderForm => this.forms[provider];
+    const model: Record<AiProvider, string> = {
+      [AiProvider.Claude]: view.claudeModel,
+      [AiProvider.OpenAi]: view.openAiModel,
+      [AiProvider.Gemini]: view.geminiModel,
+    };
+    const providerChanged = this.providers.some((p) => {
+      const form = formOf(p);
+      return form.model !== model[p] || form.key.trim() !== '' || form.removeKey;
+    });
+    return (
+      this.enabled !== view.enabled ||
+      this.provider !== view.provider ||
+      Number(this.budget) !== view.dailyTokenBudget ||
+      this.useFillHoles !== view.useFillHoles ||
+      this.useDescribeRules !== view.useDescribeRules ||
+      this.useSuggestions !== view.useSuggestions ||
+      this.useContextSuggestions !== view.useContextSuggestions ||
+      providerChanged
+    );
+  }
 
   ngOnInit(): void {
     this.ai.refresh();
@@ -203,54 +223,15 @@ export class SettingsPage implements OnInit {
     });
   }
 
-  protected addRepository(): void {
-    const name = this.newName.trim();
-    const path = this.newPath.trim();
+  // UX-G-L16: o formulário único de cadastro avisa o repositório criado; aqui só entra na lista.
+  protected onRegistered(created: RepositoryItem): void {
     this.repoMessage.set(null);
-    this.nameError.set(REPOSITORY_NAME_PATTERN.test(name) ? null : API_ERROR_MESSAGE['REPOSITORY_NAME_INVALID']);
-    this.pathError.set(isAbsoluteFolder(path) ? null : API_ERROR_MESSAGE['REPOSITORY_PATH_INVALID']);
-    if (this.nameError()) return this.focusField('repo-name');
-    if (this.pathError()) return this.focusField('repo-path');
-
-    this.adding.set(true);
-    this.api.addRepository(name, path).subscribe({
-      next: (created) => {
-        this.adding.set(false);
-        this.applyList([...this.repositories(), created]);
-        this.newName = '';
-        this.newPath = '';
-        this.repoMessage.set({ ok: true, text: `Repositório "${created.name}" cadastrado.` });
-        this.focusField('repo-name');
-      },
-      error: (error) => {
-        this.adding.set(false);
-        const code = error instanceof HttpErrorResponse ? (error.error?.code as string | undefined) : undefined;
-        const text = apiErrorMessage(error);
-        // O erro de cada campo fica junto dele; o resto vai para a mensagem do formulário.
-        if (code === 'REPOSITORY_NAME_INVALID' || code === 'REPOSITORY_EXISTS') {
-          this.nameError.set(text);
-          this.focusField('repo-name');
-        } else if (code === 'REPOSITORY_PATH_INVALID' || code === 'REPOSITORY_FOLDER_NOT_FOUND') {
-          this.pathError.set(text);
-          this.focusField('repo-path');
-        } else {
-          this.repoMessage.set({ ok: false, text });
-        }
-      },
-    });
-  }
-
-  // Caixa "Escolher pasta" do sistema, pela janela própria. Cancelar deixa o campo como estava.
-  protected async browseFolder(): Promise<void> {
-    const path = await this.desktop.pickFolder();
-    if (!path) return;
-    this.newPath = path;
-    this.pathError.set(null);
-    this.focusField('repo-path');
+    this.applyList([...this.repositories(), created]);
   }
 
   protected editCommands(repo: RepositoryItem): void {
     this.repoMessage.set(null);
+    this.commandsSaved.set(null);
     this.commandsError.set(null);
     this.buildDraft = repo.buildCommand ?? '';
     this.testDraft = repo.testCommand ?? '';
@@ -275,7 +256,7 @@ export class SettingsPage implements OnInit {
         this.savingCommands.set(false);
         this.applyList(this.repositories().map((r) => (r.name === updated.name ? updated : r)));
         this.editingCommands.set(null);
-        this.repoMessage.set({ ok: true, text: 'Comandos salvos' });
+        this.commandsSaved.set(updated.name);
         this.focusField('edit-commands-' + repo.name);
       },
       error: (error) => {
@@ -370,6 +351,7 @@ export class SettingsPage implements OnInit {
 
   protected choosePalette(value: string): void {
     this.theme.setPalette(value as PaletteChoice);
+    this.paletteNotice.set(`Paleta aplicada: ${PALETTE_LABEL[value as PaletteChoice]}.`);
   }
 
   protected slug(provider: AiProvider): string {

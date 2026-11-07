@@ -32,7 +32,7 @@
         <p class="notice is-error" role="alert">{{ message }}</p>
       }
       @if (saved()) {
-        <p class="notice" role="status">Conexão salva. O esquema foi lido de novo.</p>
+        <p class="notice" role="status">Conexão salva. O esquema foi lido de novo. Próximo passo: teste a conexão.</p>
       }
       @if (testResult(); as t) {
         <p class="notice" [class.is-error]="!t.ok" [attr.role]="t.ok ? 'status' : 'alert'">{{ t.message }}</p>
@@ -79,7 +79,7 @@
     <footer class="dialog-foot live-foot">
       @if (connection()?.configured && !confirmingRemove()) {
         <button type="button" id="live-remove-ask" class="btn btn-g live-remove" (click)="askRemove()" [disabled]="busy()">Remover conexão</button>
-        <button type="button" class="btn btn-g" (click)="test()" [disabled]="busy() || !!key().trim()" aria-describedby="live-test-help"
+        <button type="button" id="live-test" class="btn btn-g" (click)="test()" [disabled]="busy() || !!key().trim()" aria-describedby="live-test-help"
           [title]="key().trim() ? 'Salve a nova string para testá-la' : 'Testa a conexão já salva'">{{ busy() ? 'Aguarde…' : 'Testar conexão' }}</button>
       }
       <button type="button" class="btn btn-g" (click)="closed.emit()">Fechar</button>

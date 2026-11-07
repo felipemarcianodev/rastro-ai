@@ -59,6 +59,8 @@
   --control-h: 36px;
   --control-h-sm: 32px;
   --control-h-xs: 28px;
+  // Marca de confiança da ligação no grafo (✓ e ?), com alvo legível (UX-G-F21).
+  --edge-mark-size: 16px;
 
   // Altura mínima da barra do alto; largura máxima de leitura de uma coluna de texto (motivos, consulta).
   --topbar-h: 52px;

@@ -152,6 +152,11 @@ export class C4DialogComponent implements OnInit {
       .map((p) => ({ name: p.name.trim(), description: p.description.trim(), fromAi: p.fromAi }));
   }
 
+  // Com pessoas não salvas o arquivo baixado não as traria: o link fica travado (aria-disabled).
+  protected blockDownload(event: Event): void {
+    if (this.unsaved()) event.preventDefault();
+  }
+
   protected downloadUrl(): string {
     return `/api/surveys/${this.surveyId()}/c4/workspace.dsl`;
   }
