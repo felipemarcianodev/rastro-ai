@@ -33,10 +33,11 @@
     margin: var(--space-1) 0;
     padding-left: 0;
     list-style: none;
-    overflow-x: auto;
 
+    // O comando quebra a linha no diálogo estreito, em vez de rolar e esconder o fim (passo de UX da 0.8.0).
     code {
-      white-space: nowrap;
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
   }
 

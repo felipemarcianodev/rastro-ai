@@ -355,4 +355,18 @@ describe('FlowCanvasComponent: acréscimos da Fase B', () => {
       localStorage.removeItem(SEEN_KEY);
     }
   });
+
+  // Passo de UX da 0.8.0: com a legenda aberta, a linha de atalhos ficava por cima dela.
+  it('com a legenda aberta, a linha de atalhos não aparece', async () => {
+    localStorage.removeItem(SEEN_KEY);
+    localStorage.setItem('rastro.legendOpen', 'true');
+    try {
+      const { el } = await render(chain(2));
+      expect(el.querySelector('#legend')).not.toBeNull();
+      expect(el.querySelector('.shortcuts-hint')).toBeNull();
+    } finally {
+      localStorage.removeItem(SEEN_KEY);
+      localStorage.removeItem('rastro.legendOpen');
+    }
+  });
 });

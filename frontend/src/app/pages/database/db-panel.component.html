@@ -9,7 +9,8 @@
   <p class="muted db-origin">
     {{ t.sources.length === 1 ? 'Fonte:' : 'Fontes:' }}
     @for (s of t.sources; track $index) {
-      <span>{{ sourceLabel[s.kind] }} <code>{{ s.file }}:{{ s.line }}</code>@if (!$last) {, }</span>
+      <!-- O banco vivo não tem arquivo nem linha: só o nome da fonte (passo de UX da 0.8.0). -->
+      <span>{{ sourceLabel[s.kind] }}@if (s.kind !== SchemaSourceKind.LiveDatabase) { <code>{{ s.file }}:{{ s.line }}</code>}@if (!$last) {, }</span>
     }
   </p>
   @if (t.size) {
