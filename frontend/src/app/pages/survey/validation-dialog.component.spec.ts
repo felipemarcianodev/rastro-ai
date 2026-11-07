@@ -40,7 +40,7 @@ describe('ValidationDialogComponent', () => {
     expect(el.querySelector('.score-value')?.textContent?.trim()).toBe('0');
     expect(el.textContent).toContain('Reprovada');
     expect(el.textContent).toContain('Audit.Record não aparece no fluxo levantado.');
-    expect(el.textContent).toContain('Pontos de decisão do fluxo: 3 → 4');
+    expect(el.textContent).toContain('Pontos de decisão do fluxo: de 3 para 4');
     expect(el.textContent).not.toContain('Aprovar e documentar');
   });
 

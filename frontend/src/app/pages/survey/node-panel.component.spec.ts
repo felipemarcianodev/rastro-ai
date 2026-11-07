@@ -180,7 +180,7 @@ describe('NodePanelComponent: linguagem do sistema (Fase 26)', () => {
 
 // UX-FIM-Q06
 describe('NodePanelComponent: aviso do que vai para a IA', () => {
-  it('ao lado do "Escrever regra com IA", diz que vai o código deste passo', () => {
+  it('ao lado do "Escrever regra com a IA", diz que vai o código deste passo', () => {
     TestBed.configureTestingModule({ imports: [NodePanelComponent], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
     TestBed.inject(AiStatusService).status.set({
       enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses: [AiUse.DescribeRules], tokensToday: 0, dailyTokenBudget: 0,
@@ -196,5 +196,16 @@ describe('NodePanelComponent: aviso do que vai para a IA', () => {
 
     const disclosure = (fixture.nativeElement as HTMLElement).querySelector('app-ai-disclosure');
     expect(disclosure?.textContent).toContain('o código deste passo');
+  });
+});
+
+describe('NodePanelComponent: cabeçalho (A6)', () => {
+  // A6
+  it('o × fica no cabeçalho e "Ver somente este fluxo" numa linha própria, fora dele', () => {
+    const { el } = render(new Map());
+
+    expect(el.querySelector('.panel-head .panel-close')).not.toBeNull();
+    expect(el.querySelector('.panel-head')?.textContent).not.toContain('Ver somente este fluxo');
+    expect(el.querySelector('.panel-focus')?.textContent).toContain('Ver somente este fluxo');
   });
 });

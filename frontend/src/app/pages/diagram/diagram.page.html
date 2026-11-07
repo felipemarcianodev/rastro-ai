@@ -29,13 +29,17 @@
         </div>
       </div>
       <div class="page-bar-side">
-        <button type="button" class="btn btn-g btn-small" (click)="undo()" [disabled]="!canUndo()" title="Desfazer (Ctrl+Z)">Desfazer</button>
-        <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" title="Refazer (Ctrl+Y ou Ctrl+Shift+Z)">Refazer</button>
-        <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()" title="Refaz o diagrama a partir do fluxo e mantém suas cores e textos">Gerar de novo</button>
-        @if (saved() !== null) {
-          <button type="button" class="btn btn-g btn-small" (click)="confirmDiscard.set(true)">Descartar edição</button>
-        }
-        <button type="button" class="btn btn-p btn-small" (click)="save()" [disabled]="saving() || nothingToSave() || (saved() !== null && !dirty())">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+        <div class="bar-group" role="group" aria-label="Histórico">
+          <button type="button" class="btn btn-g btn-small" (click)="undo()" [disabled]="!canUndo()" title="Desfazer (Ctrl+Z)">Desfazer</button>
+          <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" title="Refazer (Ctrl+Y ou Ctrl+Shift+Z)">Refazer</button>
+        </div>
+        <div class="bar-group" role="group" aria-label="Edição">
+          <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()" title="Refaz o diagrama a partir do fluxo e mantém suas cores e textos">Gerar de novo</button>
+          @if (saved() !== null) {
+            <button type="button" class="btn btn-small btn-danger-quiet" (click)="confirmDiscard.set(true)">Descartar edição</button>
+          }
+          <button type="button" class="btn btn-p" (click)="save()" [disabled]="saving() || nothingToSave() || (saved() !== null && !dirty())">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+        </div>
       </div>
     </header>
 

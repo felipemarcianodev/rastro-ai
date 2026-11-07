@@ -50,7 +50,7 @@
       <div class="people-actions">
         <button type="button" class="btn btn-g btn-small" (click)="addPerson()" [disabled]="people().length >= maxPeople">Acrescentar pessoa</button>
         @if (canSuggest()) {
-          <button type="button" class="btn btn-g btn-small" (click)="suggestPeople()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Sugerir pessoas com IA' }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="suggestPeople()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Sugerir pessoas com a IA' }}</button>
         } @else {
           <span class="muted">Para a IA sugerir pessoas, ligue a IA e o uso "Contexto do C4" em <a routerLink="/configuracoes" (click)="closed.emit()">Configurações</a>.</span>
         }

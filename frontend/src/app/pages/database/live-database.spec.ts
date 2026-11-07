@@ -563,3 +563,39 @@ describe('Acréscimos do banco vivo (UX-FIM, Fase A)', () => {
     expect(button(ctx.el, 'Salvar').disabled).toBeFalse();
   }));
 });
+
+describe('Permissão mínima em lista com Copiar (UX-PGL-05)', () => {
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+
+  async function copyAndRead(connection: LiveConnectionView) {
+    const ctx = renderPage(connection);
+    open(ctx, connection.configured ? 'Banco vivo' : 'Conectar banco vivo');
+    const writeText = jasmine.createSpy('writeText').and.resolveTo();
+    spyOnProperty(navigator, 'clipboard', 'get').and.returnValue({ writeText } as unknown as Clipboard);
+    const commands = [...ctx.el.querySelectorAll('.live-commands li')].map((li) => li.textContent!.trim());
+    button(ctx.el, 'Copiar').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    ctx.fixture.detectChanges();
+    return { ctx, writeText, commands };
+  }
+
+  // UX-PGL-05
+  it('no SQL Server, cada comando fica numa linha e o Copiar leva todos e anuncia "Copiado"', async () => {
+    const { ctx, writeText, commands } = await copyAndRead(NONE);
+    expect(commands.length).toBe(3);
+    expect(commands[0]).toBe('GRANT VIEW DEFINITION TO usuario;');
+    expect(writeText).toHaveBeenCalledOnceWith(commands.join('\n'));
+    expect(button(ctx.el, 'Copiado')).toBeDefined();
+    expect(ctx.el.querySelector('.live-commands-copy [role="status"]')!.textContent).toContain('Copiado');
+  });
+
+  // UX-PGL-05
+  it('no PostgreSQL, a lista traz CONNECT, USAGE, SELECT e o somente leitura', async () => {
+    const { writeText, commands } = await copyAndRead(LIVE_PG);
+    expect(commands.length).toBe(4);
+    expect(commands[0]).toContain('GRANT CONNECT');
+    expect(commands[3]).toContain('default_transaction_read_only = on');
+    expect(writeText).toHaveBeenCalledOnceWith(commands.join('\n'));
+  });
+});

@@ -30,7 +30,7 @@
     <label class="field-label" for="map-ask">Pergunta livre sobre o fluxo</label>
     <div class="ask-row">
       <input id="map-ask" class="input" name="question" [(ngModel)]="text" [disabled]="asking()" autocomplete="off" placeholder="Por exemplo: o que acontece se o pagamento for recusado?" />
-      <button type="submit" class="btn btn-p btn-small" [disabled]="asking()">{{ asking() ? 'Perguntando…' : 'Perguntar' }}</button>
+      <button type="submit" class="btn btn-p btn-small" [disabled]="asking()">{{ asking() ? 'Perguntando à IA…' : 'Perguntar à IA' }}</button>
     </div>
     <app-ai-disclosure class="ask-disclosure" goes="a sua pergunta, o mapa do fluxo (nomes de métodos e arquivo:linha), as regras e até 8 trechos de código em volta das entradas e das decisões" />
     @if (askError(); as message) {

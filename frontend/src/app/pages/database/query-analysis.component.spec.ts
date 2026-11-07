@@ -72,18 +72,47 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     expect(empty.el.textContent).toContain('Cole uma consulta ou abra uma pelo passo do fluxo');
     TestBed.resetTestingModule();
 
-    const filled = render('SELECT 1', 'PedidoRepositorio.DoAno');
+    // Texto colado à mão com origem na URL não analisa sozinho, mas aqui só confere o rótulo: sem origem, a caixa aparece.
+    const filled = render('SELECT 1');
     expect(filled.el.querySelector<HTMLTextAreaElement>('#qa-sql')!.value).toBe('SELECT 1');
-    expect(filled.el.textContent).toContain('Veio do passo PedidoRepositorio.DoAno');
     expect(filled.el.querySelector<HTMLButtonElement>('.qa-actions .btn')!.disabled).toBeFalse();
+  });
+
+  // UX-DBQ-05, UX-FIM-Q15
+  it('chegando pelo passo (consulta e origem na URL), já analisa e mostra a origem entre aspas', () => {
+    const ctx = render('SELECT 1', 'PedidoRepositorio.DoAno');
+    const request = ctx.http.expectOne('/api/repositories/loja/schema/analyze');
+    expect(request.request.body).toEqual({ sql: 'SELECT 1' });
+    request.flush(analysis({ findings: [] }));
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('.qa-sql')).not.toBeNull();
+    expect(ctx.el.querySelector('#qa-sql')).toBeNull();
+    expect(ctx.el.textContent).toContain('Veio do passo “PedidoRepositorio.DoAno”');
+  });
+
+  // UX-DBQ-05
+  it('sem origem (consulta colada ou só ?consulta=), não analisa sozinho', () => {
+    const ctx = render('SELECT 1');
+    ctx.http.expectNone('/api/repositories/loja/schema/analyze');
+    expect(ctx.el.querySelector('.qa-sql')).toBeNull();
+  });
+
+  // UX-FIM-Q15
+  it('o texto de ajuda diz que a análise não consulta o banco', () => {
+    const ctx = render('SELECT 1');
+    expect(ctx.el.textContent).toContain('A análise não consulta o banco.');
+    expect(ctx.el.textContent).not.toContain('banco nenhum');
   });
 
   // WEB-DBQ-018
   it('editada, a consulta deixa de dizer que veio do passo; sem achado, o título diz "Sem achados"', () => {
     const ctx = render('SELECT 1', 'PedidoRepositorio.DoAno');
-    analyze(ctx, analysis({ findings: [] }));
+    ctx.http.expectOne('/api/repositories/loja/schema/analyze').flush(analysis({ findings: [] }));
+    ctx.fixture.detectChanges();
+    expect(ctx.el.textContent).toContain('Sem achados');
+    (ctx.fixture.componentInstance as unknown as { edit(v: string): void }).edit('SELECT 2');
+    ctx.fixture.detectChanges();
     expect(ctx.el.textContent).not.toContain('Veio do passo');
-    expect(ctx.el.querySelector('.qa-count .qa-title')!.textContent).toContain('Sem achados');
   });
 
   // WEB-DBQ-011

@@ -22,7 +22,7 @@ public sealed class TSqlSchemaReader : ISqlSchemaReader
         if (errors.Count > 0)
         {
             var first = errors[0];
-            notes.Add(new SchemaNote($"O leitor de T-SQL não entendeu o arquivo ({first.Message}); o que vem depois do erro pode ter ficado de fora.", file, firstLine + first.Line - 1));
+            notes.Add(new SchemaNote($"O leitor de T-SQL não entendeu o arquivo ({SqlMessageTranslator.Translate(first.Message)}); o que vem depois do erro pode ter ficado de fora.", file, firstLine + first.Line - 1));
         }
         if (tree is null) return new SchemaFragment([], [], [], notes);
 

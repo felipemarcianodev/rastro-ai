@@ -177,11 +177,22 @@ describe('SettingsPage: repositórios', () => {
 });
 
 describe('SettingsPage: voltar', () => {
+  // A3
+  it('o voltar é a seta da barra de página, com o título ao lado', () => {
+    const { fixture, http, el } = render(3);
+    answerInitial(http, []);
+    fixture.detectChanges();
+    const bar = el.querySelector('.page-bar')!;
+    expect(bar.querySelector('.page-back')!.getAttribute('aria-label')).toBe('Voltar');
+    expect(bar.querySelector('h1')!.textContent).toBe('Configurações');
+    expect(el.querySelector('.head h1')).toBeNull();
+  });
+
   it('volta à tela anterior quando a navegação veio de dentro do app', () => {
     const { fixture, http, el, fakeLocation } = render(3);
     answerInitial(http, []);
     fixture.detectChanges();
-    button(el, 'Voltar').click();
+    el.querySelector<HTMLButtonElement>('.page-bar .page-back')!.click();
     expect(fakeLocation.back).toHaveBeenCalled();
   });
 
@@ -190,7 +201,7 @@ describe('SettingsPage: voltar', () => {
     answerInitial(http, []);
     fixture.detectChanges();
     const navigate = spyOn(TestBed.inject(Router), 'navigateByUrl').and.resolveTo(true);
-    button(el, 'Voltar').click();
+    el.querySelector<HTMLButtonElement>('.page-bar .page-back')!.click();
     expect(fakeLocation.back).not.toHaveBeenCalled();
     expect(navigate).toHaveBeenCalledWith('/');
   });
