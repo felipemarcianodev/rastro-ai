@@ -28,7 +28,7 @@
 | D12 | `diagram.page.html`, `_diagram.scss` | O seletor de cor não mostra o hexadecimal; o realce do passo escolhido é só sombra | Hexadecimal ao lado do seletor e contorno no passo escolhido | baixo | feito |
 | D13 | `diagram.page.scss` | Divisão fixa entre o texto e a prévia | Divisória ajustável | baixo | fora (o zoom resolve a leitura) |
 | D14 | `diagram.page.html` | "Salvar" habilitado sem nada para salvar | Desabilitar quando o texto é igual ao gerado e não há nada salvo | baixo | feito |
-| D15 | `survey.page.html` | Texto de ajuda do link com jargão ("Mermaid") | Trocar o texto | alto | espera aprovação (item `[ ]` na Fase 27 do plano) |
+| D15 | `survey.page.html` | Texto de ajuda do link com jargão ("Mermaid") | Trocar o texto | alto | `[-]` sem sentido depois da repaginação: o dono aprovou na Fase C (F10) o texto "Editar o Mermaid (texto e cores)", que mantém o termo de propósito |
 
 ## Fora do escopo
 
