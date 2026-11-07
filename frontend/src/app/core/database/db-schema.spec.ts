@@ -1,6 +1,6 @@
-import { dbMapGeometry, dbMapSvg, shortType } from './db-map';
+import { DB_CARD, DB_CARD_MAX_ROWS, dbMapGeometry, dbMapSvg, shortType } from './db-map';
 import { Cardinality, KEY_MARK_LABEL, KeyMark, columnKeys, estimatedRowsText, findingText, keyMark, linkTableOf, matches, neighborhood, relationsOf, toErMermaid } from './db-schema';
-import { lojaSchema } from './loja-schema.spec';
+import { lojaSchema, wideSchema } from './loja-schema.spec';
 
 const colors = { paper: '#f2f4f1', surface: '#ffffff', surfaceSunk: '#e8ece9', ink: '#1d2a2e', inkSoft: '#5c6a6e', lineStrong: '#b7c1bc', edge: '#6b787c' };
 
@@ -122,6 +122,40 @@ describe('esquema do banco (Fase 38)', () => {
     const byName = new Map(card.rows.map((r) => [r.name, r]));
     expect(byName.get('id')).toEqual(jasmine.objectContaining({ mark: KeyMark.Pk, markLabel: 'PK', isPrimaryKey: true }));
     expect(byName.get('cliente_id')).toEqual(jasmine.objectContaining({ mark: KeyMark.Fk, markLabel: 'FK', isPrimaryKey: false }));
+  });
+
+  // WEB-DB-009
+  it('o cartão aberto mostra todos os campos, desce os de baixo e liga a FK que estava no "+N"', () => {
+    const schema = wideSchema();
+    const relations = relationsOf(schema);
+    const closed = dbMapGeometry(schema.tables, relations)!;
+    const pedidos = closed.cards.find((c) => c.key === 'pedidos')!;
+
+    expect(pedidos.rows.length).toBe(DB_CARD_MAX_ROWS);
+    expect(pedidos.more).toBe(6);
+    expect(pedidos.extra).toBe(6);
+    expect(pedidos.open).toBeFalse();
+    expect(pedidos.rows.some((r) => r.name === 'cliente_id')).toBeFalse();
+
+    const open = dbMapGeometry(schema.tables, relations, new Set(['pedidos']))!;
+    const opened = open.cards.find((c) => c.key === 'pedidos')!;
+    expect(opened.rows.length).toBe(18);
+    expect(opened.more).toBe(0);
+    expect(opened.open).toBeTrue();
+    expect(opened.height - pedidos.height).toBe(6 * DB_CARD.row);
+    for (const card of open.cards.filter((c) => c.x === opened.x && c.y > opened.y)) {
+      expect(card.y - closed.cards.find((c) => c.key === card.key)!.y).toBe(6 * DB_CARD.row);
+    }
+
+    // A ligação de pedidos para clientes saía do cabeçalho; aberto, sai da linha do cliente_id.
+    const link = (g: typeof open) => g.links.find((l) => l.relation.from === 'pedidos')!.d;
+    const rowY = opened.y + DB_CARD.header + opened.rows.findIndex((r) => r.name === 'cliente_id') * DB_CARD.row + DB_CARD.row / 2;
+    expect(link(closed)).toContain(` ${pedidos.y + DB_CARD.header / 2} `);
+    expect(link(open)).toContain(` ${rowY} `);
+
+    // Tabela sem campo escondido não abre, e o mesmo pedido dá o mesmo desenho.
+    expect(dbMapGeometry(schema.tables, relations, new Set(['clientes']))).toEqual(closed);
+    expect(dbMapGeometry(schema.tables, relations, new Set(['pedidos']))).toEqual(open);
   });
 });
 

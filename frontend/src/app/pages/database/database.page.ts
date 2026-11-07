@@ -130,6 +130,8 @@ export class DatabasePage {
   private announceTimer?: ReturnType<typeof setTimeout>;
   protected readonly selection = signal<DbPick | null>(null);
   protected readonly hops = signal(0);
+  // Cartões abertos no mapa com todos os campos (o "+N campos").
+  protected readonly expanded = signal<ReadonlySet<string>>(new Set());
   protected readonly zoom = signal(1);
   protected readonly zoomMin = ZOOM_MIN;
   protected readonly zoomMax = ZOOM_MAX;
@@ -200,7 +202,7 @@ export class DatabasePage {
     if (!schema) return null;
     const scope = this.scope();
     const tables = scope ? schema.tables.filter((t) => scope.has(tableKey(t))) : schema.tables;
-    return dbMapGeometry(tables, this.relations());
+    return dbMapGeometry(tables, this.relations(), this.expanded());
   });
 
   protected readonly hiddenCount = computed(() => {
@@ -299,6 +301,7 @@ export class DatabasePage {
         this.loadedName = name;
         this.schema.set(null);
         this.selection.set(null);
+        this.expanded.set(new Set());
         this.hops.set(0);
         this.usage.set(null);
       });
@@ -437,6 +440,14 @@ export class DatabasePage {
     this.selection.set(closing ? null : { kind: DbItemKind.Table, key });
     // Escolher pelo mapa leva o foco ao título do painel, como escolher dentro do painel (UX-G-B01).
     if (!closing) setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(DB_PANEL_TITLE_SELECTOR)?.focus({ preventScroll: true }));
+  }
+
+  protected toggleFields(key: string): void {
+    this.expanded.update((open) => {
+      const next = new Set(open);
+      if (!next.delete(key)) next.add(key);
+      return next;
+    });
   }
 
   protected zoomBy(step: number): void {

@@ -1057,6 +1057,15 @@ As três pendências que ficaram depois da Fase 43 e da Fase 40b.
   - **Reteste com o código novo:** voltaram a lista do espaço, a de arquivadas (`IS NOT NULL`), os dois `lower()` e um `OR` que ficava escondido no mesmo `EXISTS`; os épicos e as features do espaço passaram a ter achado de gravidade baixa (a tabela de épicos é apontada por 11 tabelas). Subtarefas, comentários e status do espaço continuam sem achado.
   - **Testes:** backend 730/730, frontend 561/561.
 
+## Campos escondidos no cartão do mapa do banco `[x]` (pedido do dono em 2026-11-07)
+
+Tabela com mais de 12 colunas mostrava "+N campos (todos no painel)", um texto cinza que não parecia clicável. Clicar nele abria o painel, como clicar em qualquer ponto do cartão, e um segundo clique fechava o painel. O dono quer ver a tabela inteira no próprio mapa, sem ter que abrir um gerenciador de banco.
+
+- [x] A linha "+N campos" vira um botão próprio: abre o cartão no mapa com todos os campos e, aberto, mostra "Mostrar menos". O cartão continua mostrando os 12 primeiros por padrão.
+- [x] O desenho se refaz com a altura nova (os cartões de baixo descem), de forma determinística: o mesmo esquema com os mesmos cartões abertos dá o mesmo desenho. A ligação de uma chave estrangeira que estava escondida no "+N" passa a sair da linha dela.
+- [x] Trocar de repositório fecha os cartões abertos. O PNG e o SVG exportados saem como o mapa está na tela.
+- [x] Testes do desenho e da tela, com o clique de verdade no navegador e os prints em `docs/telas/`.
+- **Registro (2026-11-07):** a linha virou um botão ao lado do cartão (o cartão já é um botão e não pode ter outro dentro), por cima da última linha dele. Conferido no navegador com clique de verdade, num esquema fictício de 18 campos: abre, fecha e não abre o painel. Prints em `docs/telas/mapa-banco-campos/`. Testes `WEB-DB-009` e `WEB-DBV-017`.
 
 ## Repaginação da usabilidade `[x]` (pedido do dono em 2026-11-06)
 
