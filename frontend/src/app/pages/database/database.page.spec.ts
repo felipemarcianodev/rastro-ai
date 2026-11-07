@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { DbSchema, DbUsageReport } from '../../core/database/db-schema';
 import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
@@ -115,18 +115,25 @@ describe('DatabasePage (Fase 38)', () => {
   });
 
   // WEB-DBV-005
-  it('a busca filtra a lista e escurece no mapa o que não casa', () => {
+  it('a busca filtra a lista e escurece no mapa o que não casa', fakeAsync(() => {
     const { fixture, el } = render();
     const search = el.querySelector<HTMLInputElement>('#db-search')!;
 
     search.value = 'cpf';
     search.dispatchEvent(new Event('input'));
+    // UX-FIM-B10: a lista só refiltra depois do atraso de 150 ms.
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.db-side .db-item').length).toBe(8);
+    tick(150);
     fixture.detectChanges();
 
     expect([...el.querySelectorAll('.db-side .db-item')].map((b) => b.textContent!.trim())).toEqual(['clientes']);
     expect(card(el, 'clientes').classList).not.toContain('is-dim');
     expect(card(el, 'pedidos').classList).toContain('is-dim');
-  });
+    // UX-FIM-B10: o bloco fora do filtro sai da ordem de Tab; o que casa continua nela.
+    expect(card(el, 'pedidos').getAttribute('tabindex')).toBe('-1');
+    expect(card(el, 'clientes').hasAttribute('tabindex')).toBeFalse();
+  }));
 
   // WEB-DBV-006
   it('a view escolhida acende as tabelas que ela lê', () => {
@@ -334,4 +341,123 @@ describe('DatabasePage (Fase 38)', () => {
     const cells = [...el.querySelectorAll('.db-fields td.db-divergent')].map((td) => td.textContent!.trim());
     expect(cells).toContain('divergente');
   });
+
+  // UX-FIM-B08
+  it('escolher uma tabela pela lista não move o foco do item da lista', fakeAsync(() => {
+    const { fixture, el } = render();
+    const item = el.querySelector<HTMLButtonElement>('.db-side .db-item[data-item="0:pedidos"]')!;
+    item.focus();
+
+    item.click();
+    fixture.detectChanges();
+    tick();
+
+    expect(card(el, 'pedidos').classList).toContain('is-selected');
+    expect(document.activeElement).toBe(item);
+  }));
+
+  // UX-FIM-B08
+  it('escolher uma tabela pelo mapa continua focando o bloco ao fechar o painel', fakeAsync(() => {
+    const { fixture, el } = render();
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+
+    el.querySelector<HTMLButtonElement>('.db-panel button')!.click();
+    fixture.detectChanges();
+    tick();
+
+    expect(document.activeElement).toBe(card(el, 'pedidos'));
+  }));
+
+  // UX-FIM-B09
+  it('fechar o painel de uma view ou procedure devolve o foco ao item da lista', fakeAsync(() => {
+    const { fixture, el } = render();
+    for (const name of ['vw_pedidos_por_cliente', 'sp_baixar_estoque']) {
+      const item = [...el.querySelectorAll<HTMLButtonElement>('.db-side .db-item')].find((b) => b.textContent!.includes(name))!;
+      item.click();
+      fixture.detectChanges();
+      el.querySelector<HTMLButtonElement>('.db-panel button')!.click();
+      fixture.detectChanges();
+      tick();
+
+      expect(el.querySelector('.db-panel')).toBeNull();
+      expect(document.activeElement).toBe(item);
+    }
+  }));
+
+  // UX-FIM-B11
+  it('abaixo de 900px o painel rola para a vista ao escolher, e respeita movimento reduzido', fakeAsync(() => {
+    const queries: string[] = [];
+    spyOn(window, 'matchMedia').and.callFake((q: string) => {
+      queries.push(q);
+      return { matches: true } as MediaQueryList;
+    });
+    const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
+    const { fixture, el } = render();
+
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+    tick();
+
+    expect(scroll).toHaveBeenCalledOnceWith({ block: 'nearest', behavior: 'auto' });
+    expect(queries.some((q) => q.includes('prefers-reduced-motion'))).toBeTrue();
+  }));
+
+  // UX-FIM-B11
+  it('em tela larga o painel não rola a página', fakeAsync(() => {
+    spyOn(window, 'matchMedia').and.returnValue({ matches: false } as MediaQueryList);
+    const scroll = spyOn(HTMLElement.prototype, 'scrollIntoView');
+    const { fixture, el } = render();
+
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+    tick();
+
+    expect(scroll).not.toHaveBeenCalled();
+  }));
+
+  // UX-FIM-B12
+  it('o Esc só fecha o painel do mapa com a aba do mapa ativa', fakeAsync(() => {
+    const { fixture, el } = render();
+    card(el, 'pedidos').click();
+    fixture.detectChanges();
+    const escape = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+    fixture.componentRef.setInput('aba', DB_TAB_QUERY_PARAM);
+    fixture.detectChanges();
+    escape();
+    fixture.detectChanges();
+    expect(el.querySelector('.db-panel')).not.toBeNull();
+
+    fixture.componentRef.setInput('aba', undefined);
+    fixture.detectChanges();
+    escape();
+    fixture.detectChanges();
+    tick();
+    expect(el.querySelector('.db-panel')).toBeNull();
+  }));
+
+  // UX-FIM-B12
+  it('o menu Exportar devolve o foco ao botão ao fechar por Esc e por escolha', fakeAsync(() => {
+    const { fixture, el } = render();
+    const exportButton = el.querySelector<HTMLButtonElement>('#db-export-button')!;
+
+    exportButton.click();
+    fixture.detectChanges();
+    expect(el.querySelector('#db-export-menu')).not.toBeNull();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    fixture.detectChanges();
+    tick();
+    expect(el.querySelector('#db-export-menu')).toBeNull();
+    expect(document.activeElement).toBe(exportButton);
+
+    exportButton.click();
+    fixture.detectChanges();
+    const mermaid = [...el.querySelectorAll<HTMLButtonElement>('#db-export-menu button')].find((b) => b.textContent!.includes('Copiar como Mermaid'))!;
+    mermaid.focus();
+    mermaid.click();
+    fixture.detectChanges();
+    tick(5000);
+    expect(document.activeElement).toBe(exportButton);
+  }));
 });

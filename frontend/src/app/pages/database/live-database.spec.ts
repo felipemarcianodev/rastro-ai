@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LiveConnectionView, QueryPlan, missingIndexText, operatorLabel } from '../../core/database/live-database';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
@@ -473,7 +473,7 @@ describe('Acréscimos do banco vivo (UX-FIM, Fase A)', () => {
   });
 
   // UX-FIM-B13, B14, B15, B19, B20
-  it('abas com aria-controls só com painel, zoom nomeado, listas vazias, selo com title e painel nomeado', () => {
+  it('abas com aria-controls só com painel, zoom nomeado, listas vazias, selo com title e painel nomeado', fakeAsync(() => {
     const ctx = renderPage({ ...LIVE, server: 'servidor-com-nome-muito-comprido.dominio.interno' });
     const { el } = ctx;
 
@@ -491,6 +491,7 @@ describe('Acréscimos do banco vivo (UX-FIM, Fase A)', () => {
     const search = el.querySelector<HTMLInputElement>('#db-search')!;
     search.value = 'zzzz-nada';
     search.dispatchEvent(new Event('input'));
+    tick(150);
     ctx.fixture.detectChanges();
     expect(el.querySelectorAll('.db-side .db-none').length).toBe(3);
     expect(el.querySelector('.db-side')!.textContent).toContain('Nenhuma view com esse nome');
@@ -498,13 +499,14 @@ describe('Acréscimos do banco vivo (UX-FIM, Fase A)', () => {
 
     search.value = '';
     search.dispatchEvent(new Event('input'));
+    tick(150);
     ctx.fixture.detectChanges();
     el.querySelector<HTMLButtonElement>('.db-card[data-table="pedidos"]')!.click();
     ctx.fixture.detectChanges();
     expect(el.querySelector('.db-panel')!.getAttribute('aria-label')).toBe('Painel de pedidos');
     expect(el.querySelector('.db-fields')!.getAttribute('aria-label')).toBe('Campos de pedidos');
     expect(el.querySelector('app-db-panel button[aria-label]')!.getAttribute('aria-label')).toBe('Fechar o painel de pedidos');
-  });
+  }));
 
   it('com erro ao carregar, as abas não apontam para painéis que não existem (UX-FIM-B13)', () => {
     TestBed.configureTestingModule({
@@ -536,4 +538,28 @@ describe('Acréscimos do banco vivo (UX-FIM, Fase A)', () => {
     expect(title.textContent).toBe('Avisos do banco');
     expect(ctx.el.querySelector('.plan-warnings')!.getAttribute('aria-labelledby')).toBe('plan-warnings-title');
   });
+
+  // UX-FIM-B04
+  it('a pergunta de remover foca "Manter", desabilita o Salvar e devolve o foco ao fechar', fakeAsync(() => {
+    const ctx = renderPage(LIVE);
+    open(ctx, 'Banco vivo');
+    typeKey(ctx, 'Server=x');
+    const save = button(ctx.el, 'Salvar');
+    expect(save.disabled).toBeFalse();
+
+    button(ctx.el, 'Remover conexão').click();
+    ctx.fixture.detectChanges();
+    tick();
+
+    expect(document.activeElement).toBe(button(ctx.el, 'Manter'));
+    expect(button(ctx.el, 'Salvar').disabled).toBeTrue();
+
+    button(ctx.el, 'Manter').click();
+    ctx.fixture.detectChanges();
+    tick();
+
+    expect(ctx.el.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(document.activeElement).toBe(button(ctx.el, 'Remover conexão'));
+    expect(button(ctx.el, 'Salvar').disabled).toBeFalse();
+  }));
 });
