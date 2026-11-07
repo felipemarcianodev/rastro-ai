@@ -18,14 +18,16 @@ public sealed record PortCheck(PortState State, string? Version = null);
 // processo nem chega a migrar o banco que o primeiro está usando.
 public static class PortProbe
 {
-    private static readonly TimeSpan HealthTimeout = TimeSpan.FromSeconds(2);
+    public static readonly TimeSpan DefaultHealthTimeout = TimeSpan.FromSeconds(2);
 
-    public static async Task<PortCheck> CheckAsync(int port, ILogger logger, CancellationToken ct = default)
+    // healthTimeout só muda nos testes: numa máquina carregada, a primeira resposta de um servidor recém-aberto
+    // passa de 2 segundos e o Rastro de verdade seria tomado por outro programa.
+    public static async Task<PortCheck> CheckAsync(int port, ILogger logger, CancellationToken ct = default, TimeSpan? healthTimeout = null)
     {
         if (IsFree(port))
             return new PortCheck(PortState.Free);
 
-        var version = await RastroVersionAtAsync(port, logger, ct);
+        var version = await RastroVersionAtAsync(port, logger, healthTimeout ?? DefaultHealthTimeout, ct);
         return version is null ? new PortCheck(PortState.OtherProgram) : new PortCheck(PortState.RastroOpen, version);
     }
 
@@ -60,9 +62,9 @@ public static class PortProbe
         }
     }
 
-    private static async Task<string?> RastroVersionAtAsync(int port, ILogger logger, CancellationToken ct)
+    private static async Task<string?> RastroVersionAtAsync(int port, ILogger logger, TimeSpan timeout, CancellationToken ct)
     {
-        using var http = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = HealthTimeout };
+        using var http = new HttpClient(new HttpClientHandler { UseProxy = false }) { Timeout = timeout };
         try
         {
             var body = await http.GetStringAsync($"http://127.0.0.1:{port}/api/health", ct);
