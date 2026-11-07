@@ -290,7 +290,7 @@ describe('SettingsPage: índice de seções', () => {
     fixture.detectChanges();
 
     const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('nav.toc a'));
-    expect(links.map((a) => a.textContent?.trim())).toEqual(['Repositórios', 'Modo agente (MCP)', 'Inteligência artificial', 'Aparência']);
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Repositórios', 'Modo agente (MCP)', 'IA (modo provedor)', 'Aparência']);
     for (const link of links) expect(el.querySelector(link.getAttribute('href')!)).not.toBeNull();
   });
 });
@@ -500,5 +500,55 @@ describe('SettingsPage: largura', () => {
     expect(getComputedStyle(page).maxWidth).toBe(reading || '960px');
     TestBed.inject(HttpTestingController).match(() => true);
     fixture.nativeElement.remove();
+  });
+});
+
+describe('SettingsPage: Fase C do levantamento completo', () => {
+  function loaded() {
+    const { fixture, http, el } = render();
+    http.match('/api/ai/status').forEach((r) => r.flush({ tokensToday: 0, dailyTokenBudget: 0 }));
+    http.expectOne('/api/repositories').flush([]);
+    http.expectOne('/api/settings/ai').flush({
+      enabled: true, provider: 0, claudeModel: '', claudeHasKey: false, openAiModel: '', openAiHasKey: false, geminiModel: '', geminiHasKey: false,
+      dailyTokenBudget: 0, useFillHoles: true, useDescribeRules: true, useSuggestions: true, useContextSuggestions: true, updatedAt: '2026-11-06T10:00:00Z',
+    });
+    fixture.detectChanges();
+    return { fixture, http, el };
+  }
+
+  // UX-G-L05
+  it('aparencia_ficaNoFimDaPagina_naOrdemDoIndice', () => {
+    const { el } = loaded();
+
+    const ids = Array.from(el.querySelectorAll('.page > section, .page > form')).map((s) => s.id);
+    expect(ids).toEqual(['editor', 'agente', 'ia', 'aparencia']);
+  });
+
+  // UX-G-L19
+  it('ia_temUmNomeSoNoTituloENoIndice', () => {
+    const { el } = loaded();
+
+    expect(el.querySelector('#provider-title')?.textContent?.trim()).toBe('IA (modo provedor)');
+    expect(el.querySelector('nav.toc a[href="#ia"]')?.textContent?.trim()).toBe('IA (modo provedor)');
+  });
+
+  // UX-G-L20
+  it('orcamento_explicaOZeroDoContadorEmUtcEBrasilia', () => {
+    const { el } = loaded();
+
+    expect(el.querySelector('#budget-help')?.textContent).toContain('Entrada mais saída de tokens por dia. O contador zera à meia-noite UTC (21h em Brasília). 0 = sem limite.');
+  });
+});
+
+// UX-G-L16: o template do cadastro mora no .ts; a barra invertida do exemplo de pasta precisa chegar à tela.
+describe('SettingsPage: exemplo de pasta no cadastro', () => {
+  it('mostra o caminho do Windows com as barras', () => {
+    const { el, http, fixture } = render();
+    answerInitial(http, []);
+    fixture.detectChanges();
+
+    const path = el.querySelector<HTMLInputElement>('#repo-path')!;
+    expect(path.placeholder).toBe(String.raw`C:\codigo\meu-sistema`);
+    expect(el.querySelector('#repo-path-help')!.textContent).toContain(String.raw`C:\codigo\meu-sistema`);
   });
 });

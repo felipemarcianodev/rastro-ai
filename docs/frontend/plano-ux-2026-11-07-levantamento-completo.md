@@ -1,6 +1,6 @@
 # Levantamento de UX completo: frontend depois dos acréscimos (2026-11-07)
 
-**Status:** EM EXECUÇÃO (o dono aprovou as três fases em 2026-11-07: "pode atacar os achados"). As Fases A e B (risco baixo e médio) seguem a regra do `CLAUDE.md` e podem ser executadas; a Fase C (risco alto) espera a aprovação do dono, item a item.
+**Status:** EXECUTADO em 2026-11-07 (o dono aprovou as três fases: "pode atacar os achados"). As Fases A e B (risco baixo e médio) seguem a regra do `CLAUDE.md` e podem ser executadas; a Fase C (risco alto) espera a aprovação do dono, item a item.
 **Escopo:** o frontend inteiro, no fim do [plano dos acréscimos de UX](plano-ux-2026-11-07-acrescimos.md), como a skill `levantamento-ux` pede no fim de cada plano.
 **Data:** 2026-11-07.
 **Como:** três agentes de leitura (análise estática, uma fatia cada: tela inicial, Configurações e cabeçalho; fluxo, painel do passo e visões; banco, consulta e IA) e a verificação no navegador pelo coordenador (Chrome, paleta Papel no claro), com a API local em modo de produção, um `RASTRO_HOME` temporário vazio e as lojas fictícias dos testes (`TarefasRepo`, com um `.csproj` só para o levantamento). O MCP Knowledge não estava disponível nesta sessão; as etapas seguiram a própria skill.
@@ -209,19 +209,31 @@ IDs: L (tela inicial, Configurações e cabeçalho), F (fluxo, painel e visões)
 
 Cada item tem a pergunta a fazer ao dono.
 
-- [ ] **UX-G-L01:** um primário por contexto na tela inicial e um rótulo só para levantar. Pergunta: "Novo levantamento" no topo como único primário, e os cartões com "Levantar fluxo" em botão comum?
-- [ ] **UX-G-N02:** sem repositório, a tela inicial vira um bloco só de primeiro uso. Pergunta: tirar "Seus repositórios" e "Levantamentos recentes" até o primeiro cadastro?
-- [ ] **UX-G-N06:** a legenda do fluxo fechada por padrão. Pergunta: fechada na primeira visita, com o botão "Legenda" à vista?
-- [ ] **UX-G-L14:** a IA sai dos três passos e vira nota, e o cadastro mostra "Repositório X cadastrado". Pergunta: pode mudar o texto?
-- [ ] **UX-G-F04 e F05:** "nó" vira "passo" no cabeçalho, no Comparar, na legenda e nas regras. Pergunta: pode trocar?
-- [ ] **UX-G-L10 e L11:** o selo da IA diz o estado ("IA desligada") e a tela inicial tem um nome só. Pergunta: qual nome para a tela inicial, "Levantamentos" ou "Repositórios"?
-- [ ] **UX-G-L05:** Aparência por último nas Configurações. Pergunta: pode reordenar?
-- [ ] **UX-G-F09:** a dica da edição aberta na primeira vez. Pergunta: pode mostrar sozinha uma vez?
-- [ ] **UX-G-F11:** "Excluir levantamento…" longe do "Editar fluxo" e "Validar mudança" num lugar só. Pergunta: para onde vai o Excluir?
-- [ ] **UX-G-F12, F15, F16 e F19:** textos do filtro "Só o método de entrada", do botão "Última validação", sem nome de ferramenta do MCP e "Atualizar pelo fluxo atual". Pergunta: pode mudar os quatro textos?
-- [ ] **UX-G-L17, L19 e L20 (texto):** "Solution ou tsconfig", um nome só para a IA nas Configurações e a hora local do orçamento. Pergunta: pode mudar?
-- [ ] **UX-G-L24 e N04:** tirar "Banco deste fluxo" da linha da lista e o "Seguir chamadas HTTP" com um repositório só. Pergunta: pode remover os dois?
-- [ ] **UX-G-B15:** a promessa da barra do banco numa linha sob as abas. Pergunta: pode mover?
+- [x] **UX-G-L01:** um primário por contexto na tela inicial e um rótulo só para levantar. Pergunta: "Novo levantamento" no topo como único primário, e os cartões com "Levantar fluxo" em botão comum?
+- [x] **UX-G-N02:** sem repositório, a tela inicial vira um bloco só de primeiro uso. Pergunta: tirar "Seus repositórios" e "Levantamentos recentes" até o primeiro cadastro?
+- [x] **UX-G-N06:** a legenda do fluxo fechada por padrão. Pergunta: fechada na primeira visita, com o botão "Legenda" à vista?
+- [x] **UX-G-L14:** a IA sai dos três passos e vira nota, e o cadastro mostra "Repositório X cadastrado". Pergunta: pode mudar o texto?
+- [x] **UX-G-F04 e F05:** "nó" vira "passo" no cabeçalho, no Comparar, na legenda e nas regras. Pergunta: pode trocar?
+- [x] **UX-G-L10 e L11:** o selo da IA diz o estado ("IA desligada") e a tela inicial tem um nome só. Pergunta: qual nome para a tela inicial, "Levantamentos" ou "Repositórios"?
+- [x] **UX-G-L05:** Aparência por último nas Configurações. Pergunta: pode reordenar?
+- [x] **UX-G-F09:** a dica da edição aberta na primeira vez. Pergunta: pode mostrar sozinha uma vez?
+- [x] **UX-G-F11:** "Excluir levantamento…" longe do "Editar fluxo" e "Validar mudança" num lugar só. Pergunta: para onde vai o Excluir?
+- [x] **UX-G-F12, F15, F16 e F19:** textos do filtro "Só o método de entrada", do botão "Última validação", sem nome de ferramenta do MCP e "Atualizar pelo fluxo atual". Pergunta: pode mudar os quatro textos?
+- [x] **UX-G-L17, L19 e L20 (texto):** "Solution ou tsconfig", um nome só para a IA nas Configurações e a hora local do orçamento. Pergunta: pode mudar?
+- [x] **UX-G-L24 e N04:** tirar "Banco deste fluxo" da linha da lista e o "Seguir chamadas HTTP" com um repositório só. Pergunta: pode remover os dois?
+- [x] **UX-G-B15:** a promessa da barra do banco numa linha sob as abas. Pergunta: pode mover?
+- **Registro (2026-11-07):** feito, com as escolhas do coordenador nos itens que pediam decisão:
+  - a tela inicial se chama "Levantamentos" (como o menu e a aba), com os h2 "Repositórios" e "Levantamentos recentes", e "Novo levantamento" é o único primário;
+  - sem repositório (e sem levantamento guardado), a tela é só o bloco "Boas-vindas ao Rastro", com dois passos e a IA como nota;
+  - o "Excluir levantamento…" foi para o fim da "Visão geral" do painel, e o "Validar mudança" ficou só na barra de edição (validar um rascunho salvo pede entrar em "Editar fluxo");
+  - o "Seguir chamadas HTTP" com um repositório só não sumiu, porque a opção serve à chamada dentro do próprio repositório: virou um checkbox só;
+  - o selo da IA diz "IA desligada", "IA sem chave" ou "IA: <provedor>".
+- **Conferido no Chrome**, com a API em produção e um `RASTRO_HOME` vazio: primeiro uso, cadastro pela tela com o aviso de cadastrado, levantamento, legenda fechada, "10 passos", título da aba com o ponto de entrada e a promessa do banco sob as abas. A conferência achou três coisas, corrigidas nesta fase:
+  - o exemplo de pasta do cadastro saía sem as barras ("C:codigomeu-sistema"), porque o template do componente da Fase A mora no `.ts`;
+  - a linha da lista ainda dizia "nós";
+  - o h2 "Repositórios" ficava longe do cartão.
+
+  A linha de atalhos some abaixo de 600 px, onde cobria os controles do grafo. Prints em `docs/telas/ux-levantamento/`. Frontend 559/559.
 
 ## Fora do escopo
 

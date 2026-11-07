@@ -68,6 +68,19 @@ describe('ValidationDialogComponent', () => {
     expect(el.querySelector('.score-why')?.textContent).toBe('1 critério falhou.');
   });
 
+  // UX-G-F16
+  it('o texto não cita nome de ferramenta do MCP', () => {
+    const head = render(view(ValidationVerdict.Rejected)).querySelector('.dialog-head')!.textContent!;
+    expect(head).toContain('Um agente conectado ao Rastro (MCP) obtém o mesmo resultado.');
+    expect(head).not.toContain('check_change');
+  });
+
+  // UX-G-F15
+  it('a espera cita o botão Última validação, no topo da página', () => {
+    const el = render(view(ValidationVerdict.Rejected, { status: ValidationStatus.Running, result: undefined }));
+    expect(el.querySelector('.running')!.textContent).toContain('o botão Última validação, no topo da página, mostra o resultado');
+  });
+
   it('parcial deixa aprovar mesmo assim', () => {
     const el = render(view(ValidationVerdict.Partial));
 

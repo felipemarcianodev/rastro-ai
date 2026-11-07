@@ -23,6 +23,10 @@
   font-size: var(--text-xs);
 }
 
+p.db-promise {
+  margin: var(--space-2) var(--space-4) 0;
+}
+
 .db-live-pill {
   display: inline-block;
   max-width: 100%;

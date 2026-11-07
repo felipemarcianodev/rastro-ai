@@ -46,7 +46,7 @@
     @if (outdated(); as old) {
       <p class="notice is-warning" role="status">
         Editado no commit <span class="code">{{ shortCommit(old.saved) }}</span>; o levantamento é do commit <span class="code">{{ shortCommit(old.survey) }}</span>.
-        <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()">Gerar de novo</button>
+        <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()">Atualizar pelo fluxo atual</button>
       </p>
     }
     @if (inherited(); as from) {

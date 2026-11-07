@@ -22,7 +22,7 @@
           <span [class]="'pill is-' + statusSlug[d.survey.status]">{{ statusLabel[d.survey.status] }}</span>
           @if (d.survey.status === SurveyStatus.Completed) {
             <span class="muted">
-              {{ plural(d.survey.nodeCount, 'nó', 'nós') }},
+              {{ plural(d.survey.nodeCount, 'passo', 'passos') }},
               @if (d.survey.unresolvedCount > 0) {
                 <button type="button" class="btn btn-g btn-small has-holes" (click)="nextHole()" title="Ir para o próximo não resolvido no grafo">{{ plural(d.survey.unresolvedCount, 'não resolvido', 'não resolvidos') }}</button>
               } @else {
@@ -84,7 +84,7 @@
                       <li role="none"><button type="button" role="menuitem" (click)="loadSiblings()">Tentar de novo</button></li>
                     } @else {
                       @for (other of siblings(); track other.id) {
-                        <li role="none"><button type="button" role="menuitem" (click)="compareWith(other.id)">{{ shortDate(other.createdAt) }}, commit {{ shortCommit(other.commitHash) || 'desconhecido' }}, {{ plural(other.nodeCount, 'nó', 'nós') }}</button></li>
+                        <li role="none"><button type="button" role="menuitem" (click)="compareWith(other.id)">{{ shortDate(other.createdAt) }}, commit {{ shortCommit(other.commitHash) || 'desconhecido' }}, {{ plural(other.nodeCount, 'passo', 'passos') }}</button></li>
                       } @empty {
                         <li class="popover-empty muted" role="presentation">Nenhum outro levantamento pronto deste método.</li>
                       }
@@ -108,13 +108,8 @@
               </span>
             </div>
             <div class="bar-group" role="group" aria-label="Alterar">
-              @if (savedChanges() > 0) {
-                <button type="button" class="btn btn-g btn-small" (click)="validate()" [disabled]="validationBusy()"
-                  [title]="'Rascunho salvo com ' + plural(savedChanges(), 'mudança', 'mudanças') + '. Depois de aplicar no código: levanta o fluxo de novo e confere'">Validar mudança</button>
-              }
               <button type="button" class="btn btn-p btn-small" (click)="startEditing()">Editar fluxo</button>
             </div>
-            <button type="button" class="link-quiet delete-link" (click)="requestDelete()">Excluir levantamento…</button>
           }
         }
       </div>
@@ -149,6 +144,7 @@
         <p id="edit-hint" class="edit-hint muted">
           Arraste de uma bolinha de saída até a de entrada de outro passo para ligar; arraste a ponta de uma ligação para mover o passo.
           O caminho é: desenhar a mudança, gerar o prompt, deixar o agente aplicar no código e validar.
+          Pelo teclado: escolha o passo e use "Seguir para outro passo" no painel.
         </p>
       }
       @if (showNewStep) {
@@ -308,7 +304,7 @@
           [canDescribe]="canDescribe()" [describing]="describing()" [describeMessage]="describeMessage()"
           [editing]="editing()" [focusId]="focusId()" [aiActive]="aiActive()"
           [notes]="notes()" [crossFlow]="crossFlow()" [savingNote]="savingNote()" [noteMessage]="noteMessage()" [noteUndo]="noteUndo()" (saveNote)="saveNote($event)"
-          (focusFlow)="focusOnNode($event)" (showAll)="showAll()" (openQuestions)="openQuestions()" (exportFlow)="togglePopover('export')" (editFlow)="startEditing()"
+          (focusFlow)="focusOnNode($event)" (showAll)="showAll()" (openQuestions)="openQuestions()" (exportFlow)="togglePopover('export')" (editFlow)="startEditing()" (deleteSurvey)="requestDelete()"
           (selectNode)="select($event)" (closePanel)="closePanel($event)" (decideEdge)="decide($event)" (fillHole)="fillHole($event)" (describe)="describe($event)"
           (removeEdge)="onRemoveEdge($event)" (removeStep)="onRemoveStep($event)" (restoreStep)="onRestoreStep($event)"
           (setIntent)="onSetIntent($event)" (connectTo)="onConnectTo($event)" (refactorPrompt)="openRefactorPrompt($event)" />

@@ -1,7 +1,7 @@
 import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM, HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
+import { DB_TAB_QUERY_PARAM, HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { DialogDirective } from '../../core/dialog.directive';
 import { EditorLinks } from '../../core/editor-links';
 import { plural, shortCommit, shortDate } from '../../core/format';
@@ -40,6 +40,9 @@ interface RepoCard {
 }
 
 const DEFAULT_MAX_DEPTH = 15;
+
+const CROSS_HELP =
+  'Quando o método chama outro serviço por HTTP, o fluxo continua no endpoint que atende a chamada. Desligado, a chamada fica como chamada externa.';
 
 type Field = 'repository' | 'solution' | 'entry' | 'depth';
 
@@ -160,6 +163,11 @@ export class SurveysPage implements OnInit {
   protected readonly hasRepositories = computed(() => this.repositories().length > 0);
   // Primeiro uso: a lista de repositórios já chegou e está vazia.
   protected readonly firstUse = computed(() => this.reposState() === 'ready' && !this.hasRepositories());
+  // UX-G-N02: sem repositório e sem levantamento guardado, a tela mostra só o bloco de boas-vindas.
+  protected readonly welcome = computed(() => this.firstUse() && !this.surveys()?.length && !this.listError());
+  protected readonly crossHelp = CROSS_HELP;
+  // UX-G-L14: o aviso do cadastro aparece no formulário que abre em seguida.
+  protected readonly registeredNotice = signal<string | null>(null);
 
   // Painel "Novo levantamento": abre pelo botão do topo ou pelo "Levantar fluxo" de um cartão.
   protected readonly formOpen = signal(false);
@@ -183,10 +191,6 @@ export class SurveysPage implements OnInit {
     return ['/repositorios', repository, 'banco'];
   }
 
-  protected surveyOriginParams(id: string): Record<string, string> {
-    return { [DB_SURVEY_ORIGIN_PARAM]: id };
-  }
-
   protected openForm(repository?: string): void {
     if (repository && repository !== this.repository) this.selectRepository(repository);
     else if (repository) this.lastRepository.remember(repository);
@@ -201,7 +205,10 @@ export class SurveysPage implements OnInit {
   }
 
   protected closeForm(): void {
-    if (!this.submitting() && !this.registerOpen()) this.formOpen.set(false);
+    if (!this.submitting() && !this.registerOpen()) {
+      this.formOpen.set(false);
+      this.registeredNotice.set(null);
+    }
   }
 
   // Diálogo "Cadastrar repositório": o formulário é o mesmo das Configurações (UX-G-L16).
@@ -222,6 +229,7 @@ export class SurveysPage implements OnInit {
     this.editor.set(list);
     this.reposState.set('ready');
     this.registerOpen.set(false);
+    this.registeredNotice.set(`Repositório "${created.name}" cadastrado.`);
     this.selectRepository(created.name);
     this.formOpen.set(true);
   }

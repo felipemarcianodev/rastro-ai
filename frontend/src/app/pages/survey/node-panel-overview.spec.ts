@@ -120,4 +120,24 @@ describe('NodePanelComponent: Visão geral (Fase B)', () => {
     items[2].click();
     expect([exported, edited]).toEqual([1, 1]);
   });
+
+  // UX-G-F05
+  it('o vazio das regras fala em passos, não em nós', () => {
+    const text = (render(base).nativeElement as HTMLElement).textContent!;
+    expect(text).toContain('na ordem em que o fluxo passa pelos passos.');
+    expect(text).not.toMatch(/nós?/);
+  });
+
+  // UX-G-F11
+  it('o fim da visão geral tem Excluir levantamento…, quieto, e avisa a página', () => {
+    const fixture = render(base);
+    const el = fixture.nativeElement as HTMLElement;
+    let deleted = 0;
+    fixture.componentInstance.deleteSurvey.subscribe(() => deleted++);
+    const button = el.querySelector<HTMLButtonElement>('.overview-danger button')!;
+    expect(button.textContent!.trim()).toBe('Excluir levantamento…');
+    expect(button.classList.contains('btn-danger-quiet')).toBeTrue();
+    button.click();
+    expect(deleted).toBe(1);
+  });
 });

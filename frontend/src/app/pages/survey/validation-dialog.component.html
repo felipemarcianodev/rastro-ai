@@ -4,7 +4,7 @@
     <header class="dialog-head">
       <div>
         <h2 id="validation-title">Validação da mudança</h2>
-        <p class="muted">O Rastro levanta o fluxo de novo no código atual e confere o que o rascunho pediu. O agente faz o mesmo pelo MCP (check_change).</p>
+        <p class="muted">O Rastro levanta o fluxo de novo no código atual e confere o que o rascunho pediu. Um agente conectado ao Rastro (MCP) obtém o mesmo resultado.</p>
       </div>
       <button type="button" class="btn btn-icon" data-dialog-close (click)="closed.emit()" aria-label="Fechar">×</button>
     </header>
@@ -13,7 +13,7 @@
       @if (v.status === ValidationStatus.Pending || v.status === ValidationStatus.Running) {
         <p class="running" aria-live="polite">
           {{ v.status === ValidationStatus.Pending ? 'Na fila para validar.' : 'Levantando o fluxo de novo e rodando o build e os testes do repositório.' }}
-          <span class="muted">Pode levar alguns minutos. Esta janela atualiza sozinha. Se fechar, a validação continua e o botão Validação, no topo, mostra o resultado.</span>
+          <span class="muted">Pode levar alguns minutos. Esta janela atualiza sozinha. Se fechar, a validação continua e o botão Última validação, no topo da página, mostra o resultado.</span>
         </p>
       } @else if (v.status === ValidationStatus.Failed) {
         <p class="notice is-error" role="alert">{{ v.error }}</p>

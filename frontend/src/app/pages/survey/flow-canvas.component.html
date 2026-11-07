@@ -177,7 +177,7 @@
   }
   <button type="button" class="btn btn-g btn-small tools-row-button" [attr.aria-pressed]="brief()" (click)="toggleBrief()"
     [title]="brief() ? 'Mostrar também o que cada método chama' : 'Mostrar só o código do método de entrada, com os métodos chamados fechados'">
-    Resumo do fluxo
+    Só o método de entrada
   </button>
   @if (hasMoved()) {
     <button type="button" class="btn btn-g btn-small tools-row-button" (click)="resetLayout()" title="Volta os passos que você arrastou para a organização automática">Reorganizar</button>
@@ -226,7 +226,7 @@
       <div><dt><span [class]="'edge-origin is-' + originSlug[origin]" aria-hidden="true">{{ originMark[origin] }}</span></dt><dd>{{ originLabel[origin] }}</dd></div>
     }
   }
-  <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-trail" /></svg></dt><dd>Caminho até o nó escolhido</dd></div>
+  <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-trail" /></svg></dt><dd>Caminho até o passo escolhido</dd></div>
   @if (horizontal()) {
     <div><dt><span class="legend-glyph" aria-hidden="true">→</span></dt><dd>Linha para a direita: o passo seguinte, na ordem do código</dd></div>
     <div><dt><span class="legend-glyph" aria-hidden="true">↓</span></dt><dd>Seta para baixo: o que o passo chama, ou o que acontece quando a condição vale</dd></div>

@@ -27,6 +27,14 @@ describe('C4DialogComponent', () => {
     expect(el.querySelector('a[download]')?.getAttribute('href')).toBe('/api/surveys/s1/c4/workspace.dsl');
   });
 
+  // UX-G-F16
+  it('o texto do diálogo não cita nome de ferramenta do MCP', () => {
+    const { el } = setup();
+    const head = el.querySelector('.dialog-head')!.textContent!;
+    expect(head).toContain('Um agente conectado ao Rastro (MCP) obtém o mesmo resultado.');
+    expect(head).not.toContain('get_c4');
+  });
+
   // UX-G-F17
   it('mostra o comando do Structurizr com %CD% e com $PWD', () => {
     const { el } = setup();

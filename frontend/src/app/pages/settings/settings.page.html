@@ -12,7 +12,7 @@
   <nav class="toc" aria-label="Nesta página">
     <a href="#editor" (click)="goTo($event, 'editor')">Repositórios</a>
     <a href="#agente" (click)="goTo($event, 'agente')">Modo agente (MCP)</a>
-    <a href="#ia" (click)="goTo($event, 'ia')">Inteligência artificial</a>
+    <a href="#ia" (click)="goTo($event, 'ia')">IA (modo provedor)</a>
     <a href="#aparencia" (click)="goTo($event, 'aparencia')">Aparência</a>
   </nav>
 
@@ -95,29 +95,6 @@
       (confirm)="confirmRemove()" (cancel)="cancelRemove()" />
   }
 
-  <section id="aparencia" class="card" aria-labelledby="appearance-title">
-    <h2 id="appearance-title">Aparência</h2>
-    <p>A escolha fica neste navegador.</p>
-    <div class="field">
-      <label class="field-label" for="palette-select">Paleta de cores</label>
-      <select id="palette-select" class="input palette-select" [value]="theme.palette()" (change)="choosePalette($any($event.target).value)">
-        @for (p of palettes; track p) {
-          <option [value]="p" [selected]="p === theme.palette()">{{ paletteLabel[p] }}</option>
-        }
-      </select>
-    </div>
-    <fieldset class="theme-options">
-      <legend class="field-label">Tema</legend>
-      @for (t of themes; track t) {
-        <label class="check">
-          <input type="radio" name="theme" [value]="t" [checked]="theme.choice() === t" (change)="theme.set(t)" />
-          <span>{{ themeLabel[t] }}</span>
-        </label>
-      }
-    </fieldset>
-    <span class="visually-hidden" role="status">{{ paletteNotice() }}</span>
-  </section>
-
   @if (loadError(); as error) {
     <div class="notice is-error" role="alert">
       <p>{{ error }}</p>
@@ -139,7 +116,7 @@
 
     <form id="ia" class="card" (ngSubmit)="save()" novalidate aria-labelledby="provider-title">
       <div class="card-head">
-        <h2 id="provider-title">Modo provedor</h2>
+        <h2 id="provider-title" tabindex="-1">IA (modo provedor)</h2>
         <label class="switch">
           <input type="checkbox" name="enabled" [(ngModel)]="enabled" />
           <span>{{ enabled ? 'IA ligada' : 'IA desligada' }}</span>
@@ -212,7 +189,7 @@
       <div class="field budget">
         <label class="field-label" for="budget">Orçamento diário de tokens</label>
         <input id="budget" class="input" type="number" min="0" step="1000" name="budget" [(ngModel)]="budget" aria-describedby="budget-help" />
-        <span id="budget-help" class="field-help">Entrada + saída por dia (UTC). 0 = sem limite. {{ usageText() }}</span>
+        <span id="budget-help" class="field-help">Entrada mais saída de tokens por dia. O contador zera à meia-noite UTC (21h em Brasília). 0 = sem limite. {{ usageText() }}</span>
       </div>
       }
 
@@ -225,4 +202,27 @@
       <p class="muted small">Última alteração: {{ shortDate(loaded()!.updatedAt) }}</p>
     </form>
   }
+
+  <section id="aparencia" class="card" aria-labelledby="appearance-title">
+    <h2 id="appearance-title">Aparência</h2>
+    <p>A escolha fica neste navegador.</p>
+    <div class="field">
+      <label class="field-label" for="palette-select">Paleta de cores</label>
+      <select id="palette-select" class="input palette-select" [value]="theme.palette()" (change)="choosePalette($any($event.target).value)">
+        @for (p of palettes; track p) {
+          <option [value]="p" [selected]="p === theme.palette()">{{ paletteLabel[p] }}</option>
+        }
+      </select>
+    </div>
+    <fieldset class="theme-options">
+      <legend class="field-label">Tema</legend>
+      @for (t of themes; track t) {
+        <label class="check">
+          <input type="radio" name="theme" [value]="t" [checked]="theme.choice() === t" (change)="theme.set(t)" />
+          <span>{{ themeLabel[t] }}</span>
+        </label>
+      }
+    </fieldset>
+    <span class="visually-hidden" role="status">{{ paletteNotice() }}</span>
+  </section>
 </div>

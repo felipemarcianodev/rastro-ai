@@ -49,6 +49,11 @@ h1 {
   gap: var(--space-1);
 }
 
+// Sem repositório, o bloco de primeiro uso vem logo abaixo do título, sem o respiro da lista vazia (UX-G-N02).
+.empty.first-use {
+  padding-top: 0;
+}
+
 .first-use-actions {
   margin-top: var(--space-2);
 }
@@ -264,4 +269,11 @@ h1 {
   input {
     accent-color: var(--ink);
   }
+}
+
+// O título "Repositórios" fica junto dos cartões, não no espaço entre os blocos da página (UX-G-L11).
+.repos-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
