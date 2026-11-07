@@ -1,14 +1,10 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, inject, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, inject, input, output, signal } from '@angular/core';
+import { CopyFeedback } from '../../core/copy-feedback';
 import { DialogDirective } from '../../core/dialog.directive';
 import { SQL_DIALECT_LABEL, SqlDialect } from '../../core/database/db-schema';
 import {
   LIVE_CONNECTION_PLACEHOLDER,
-  LIVE_PERMISSION_GRANTS,
-  LIVE_PERMISSION_SELECT,
-  LIVE_PERMISSION_SHOWPLAN,
-  LIVE_PG_PERMISSION_CONNECT,
-  LIVE_PG_PERMISSION_SELECT,
-  LIVE_PG_READ_ONLY,
+  LIVE_PERMISSION_COMMANDS,
   LiveConnectionTest,
   LiveConnectionView,
 } from '../../core/database/live-database';
@@ -26,6 +22,7 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 export class LiveConnectionDialogComponent {
   private readonly api = inject(RastroApi);
   private closing = false;
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly repository = input.required<string>();
   readonly connection = input<LiveConnectionView | null>(null);
@@ -44,18 +41,21 @@ export class LiveConnectionDialogComponent {
   protected readonly error = signal<string | null>(null);
   protected readonly testResult = signal<LiveConnectionTest | null>(null);
 
-  protected readonly grants = LIVE_PERMISSION_GRANTS;
-  protected readonly showplan = LIVE_PERMISSION_SHOWPLAN;
-  protected readonly select = LIVE_PERMISSION_SELECT;
-  protected readonly pgConnect = LIVE_PG_PERMISSION_CONNECT;
-  protected readonly pgSelect = LIVE_PG_PERMISSION_SELECT;
-  protected readonly pgReadOnly = LIVE_PG_READ_ONLY;
+  protected readonly commands = computed(() => LIVE_PERMISSION_COMMANDS[this.dialect()]);
+  protected readonly commandsCopy = new CopyFeedback();
   protected readonly placeholder = LIVE_CONNECTION_PLACEHOLDER;
   protected readonly dialectLabel = SQL_DIALECT_LABEL;
   protected readonly SqlDialect = SqlDialect;
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => (this.closing = true));
+    inject(DestroyRef).onDestroy(() => {
+      this.closing = true;
+      this.commandsCopy.reset();
+    });
+  }
+
+  protected copyCommands(): void {
+    this.commandsCopy.copy(this.commands().join('\n'));
   }
 
   // Clique no fundo fecha, menos com a string digitada: um clique sem querer apagaria o que a pessoa colou (B23).
@@ -65,7 +65,7 @@ export class LiveConnectionDialogComponent {
 
   protected save(): void {
     const value = this.key().trim();
-    if (!value || this.busy()) return;
+    if (!value || this.busy() || this.confirmingRemove()) return;
     this.begin();
     this.api.saveConnection(this.repository(), value).subscribe({
       next: () => {
@@ -77,6 +77,21 @@ export class LiveConnectionDialogComponent {
       },
       error: (error) => this.fail(error),
     });
+  }
+
+  // A pergunta de remover foca "Manter" (o caminho seguro) e, ao fechar, devolve o foco ao "Remover conexão" (UX-FIM-B04).
+  protected askRemove(): void {
+    this.confirmingRemove.set(true);
+    this.focusLater('#live-keep');
+  }
+
+  protected keepConnection(): void {
+    this.confirmingRemove.set(false);
+    this.focusLater('#live-remove-ask');
+  }
+
+  private focusLater(selector: string): void {
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(selector)?.focus());
   }
 
   protected test(): void {

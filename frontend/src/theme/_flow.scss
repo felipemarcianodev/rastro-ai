@@ -258,7 +258,7 @@
 }
 
 .flow-node.kind-external {
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: transparent;
 
   .flow-node-glyph {
@@ -788,7 +788,7 @@
 
 // O que o passo faz no mundo: etiqueta em texto, para quem não programa ler sem legenda.
 .flow-node-effect {
-  flex: none;
+  flex: 0 1 auto;
   padding: 0 6px;
   border-radius: 9px;
   border: 1px solid var(--line-strong);
@@ -798,6 +798,12 @@
   line-height: 16px;
   color: var(--ink-soft);
   background: var(--surface-sunk);
+  // Com o nome da tabela ("lê pedidos +2") a etiqueta pode ser longa: corta com reticências.
+  min-width: 0;
+  max-width: 108px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 
   &.is-database {
     border-color: color-mix(in srgb, var(--kind-decision) 55%, var(--line));

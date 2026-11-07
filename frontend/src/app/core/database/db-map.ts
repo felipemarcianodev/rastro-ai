@@ -1,5 +1,5 @@
 import { DiagramColors } from '../mermaid-render';
-import { Cardinality, DbRelation, DbTable, columnKeys, keyMark, tableKey } from './db-schema';
+import { Cardinality, DIVERGENT_TEXT, DbRelation, DbTable, KEY_MARK_LABEL, KeyMark, columnKeys, hasPrimaryKey, keyMark, tableKey } from './db-schema';
 
 // Mapa relacional (Fase 38): as tabelas em colunas pela FK (quem é apontado fica à esquerda, quem
 // aponta à direita) e as ligações saindo da linha da coluna da FK até a chave da tabela de destino.
@@ -19,7 +19,10 @@ export interface DbCardRow {
   // Tipo curto para o bloco (varchar(120), timestamptz); o completo fica em fullType, no title e no painel.
   type: string;
   fullType: string;
-  mark: string;
+  mark: KeyMark;
+  // Texto da marca (PK, FK, PK FK) e se a chave primária está nela, para o bloco e para o SVG.
+  markLabel: string;
+  isPrimaryKey: boolean;
   personal: boolean;
   // As fontes divergem no tipo ou no nulo: o Rastro não escolhe.
   divergent: boolean;
@@ -136,14 +139,19 @@ export function dbMapGeometry(tables: readonly DbTable[], relations: readonly Db
     let y = MARGIN;
     for (const table of column) {
       const h = cardHeight(table);
-      const rows = table.columns.slice(0, DB_CARD_MAX_ROWS).map((col) => ({
-        name: col.name,
-        type: col.type == null ? 'divergente' : shortType(col.type),
-        fullType: col.type ?? 'divergente',
-        mark: keyMark(columnKeys(table, col.name)),
-        personal: col.personal,
-        divergent: col.type == null || col.nullable == null,
-      }));
+      const rows = table.columns.slice(0, DB_CARD_MAX_ROWS).map((col) => {
+        const mark = keyMark(columnKeys(table, col.name));
+        return {
+          name: col.name,
+          type: col.type == null ? DIVERGENT_TEXT : shortType(col.type),
+          fullType: col.type ?? DIVERGENT_TEXT,
+          mark,
+          markLabel: KEY_MARK_LABEL[mark],
+          isPrimaryKey: hasPrimaryKey(mark),
+          personal: col.personal,
+          divergent: col.type == null || col.nullable == null,
+        };
+      });
       cards.push({ key: tableKey(table), table, x: MARGIN + c * (DB_CARD.width + GAP_X), y, height: h, rows, more: Math.max(0, table.columns.length - DB_CARD_MAX_ROWS) });
       y += h + GAP_Y;
     }
@@ -203,7 +211,7 @@ export function dbMapSvg(geometry: DbMapGeometry, colors: DiagramColors, badges:
     const rows = card.rows.map((r, i) => {
       const y = card.y + header + i * row + row / 2 + 4;
       return (
-        `<text x="${card.x + 10}" y="${y}" font-size="10" font-weight="600" fill="${colors.inkSoft}">${xml(r.mark)}</text>` +
+        `<text x="${card.x + 10}" y="${y}" font-size="10" font-weight="600" fill="${colors.inkSoft}">${xml(r.markLabel)}</text>` +
         `<text x="${card.x + 50}" y="${y}" font-size="12" fill="${colors.ink}">${xml(r.name)}${r.personal ? ' *' : ''}</text>` +
         `<text x="${card.x + w - 10}" y="${y}" font-size="11" text-anchor="end" fill="${colors.inkSoft}">${xml(clip(r.type, 16))}</text>`
       );

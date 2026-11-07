@@ -3,11 +3,6 @@
   height: 100%;
 }
 
-.has-holes {
-  color: var(--unresolved);
-  font-weight: 500;
-}
-
 // Contagem de não resolvidos que leva ao próximo deles.
 .link-button {
   padding: 0;
@@ -309,17 +304,6 @@
   font-size: var(--text-sm);
 }
 
-// Barra em grupos (Ver, Compartilhar, Alterar): um divisor entre eles.
-.bar-group {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-
-  & + .bar-group {
-    padding-left: var(--space-3);
-    border-left: 1px solid var(--line);
-  }
-}
 
 // Seletor das visões: um controle só, com a visão atual marcada.
 .segmented {

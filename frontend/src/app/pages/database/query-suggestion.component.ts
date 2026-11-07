@@ -49,6 +49,17 @@ export class QuerySuggestionComponent {
     return this.copiedIndex === index ? this.indexCopy.label('Copiar') : 'Copiar';
   }
 
+  // Resposta sem reescrita, sem mudança e sem índice (UX-FIM-Q16).
+  protected readonly isEmpty = computed(() => {
+    const review = this.suggestion().review;
+    return !review.rewrite && review.changes.length === 0 && review.indexes.length === 0;
+  });
+
+  // Texto da região viva do índice copiado (UX-FIM-Q04): só o índice que foi copiado fala.
+  protected indexStatus(index: number): string {
+    return this.copiedIndex === index && this.indexCopy.status() !== 'idle' ? this.indexCopy.label('') : '';
+  }
+
   protected columns(values: string[]): string {
     return values.join(', ');
   }

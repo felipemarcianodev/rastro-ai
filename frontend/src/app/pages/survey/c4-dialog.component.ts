@@ -1,5 +1,6 @@
 import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { DialogDirective } from '../../core/dialog.directive';
 import { RouterLink } from '@angular/router';
 import { AI_PROVIDER_LABEL, AiUse, C4Export, C4Person, PeopleSuggestion, aiCan } from '../../core/models';
@@ -20,7 +21,7 @@ interface PersonRow {
 // o compilador não sabe, então o usuário informa aqui (ficam salvas com o levantamento).
 @Component({
   selector: 'app-c4-dialog',
-  imports: [FormsModule, DialogDirective, RouterLink],
+  imports: [FormsModule, DialogDirective, RouterLink, AiDisclosureComponent],
   templateUrl: './c4-dialog.component.html',
   styleUrl: './c4-dialog.component.scss',
 })

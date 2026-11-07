@@ -1,4 +1,4 @@
-<div class="overlay" appDialog (click)="closed.emit()">
+<div class="overlay" appDialog (click)="closed.emit()" (dialogClose)="closed.emit()">
   <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="c4-title" (click)="$event.stopPropagation()">
     <header class="dialog-head">
       <div>
@@ -50,17 +50,18 @@
       <div class="people-actions">
         <button type="button" class="btn btn-g btn-small" (click)="addPerson()" [disabled]="people().length >= maxPeople">Acrescentar pessoa</button>
         @if (canSuggest()) {
-          <button type="button" class="btn btn-g btn-small" (click)="suggestPeople()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Sugerir pessoas com IA' }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="suggestPeople()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Sugerir pessoas com a IA' }}</button>
         } @else {
           <span class="muted">Para a IA sugerir pessoas, ligue a IA e o uso "Contexto do C4" em <a routerLink="/configuracoes" (click)="closed.emit()">Configurações</a>.</span>
         }
         <button type="button" class="btn btn-g btn-small" (click)="savePeople()" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar pessoas' }}</button>
         @if (unsaved()) {
-          <span class="unsaved">Pessoas alteradas e não salvas: o DSL abaixo ainda não as inclui.</span>
+          <span class="note-pending">Pessoas alteradas e não salvas: o DSL abaixo ainda não as inclui.</span>
         } @else if (message(); as m) {
           <span [class]="m.ok ? 'editbar-ok' : 'field-error'" role="status">{{ m.text }}</span>
         }
       </div>
+      <p class="c4-disclosure"><app-ai-disclosure goes="o nome do repositório, o ponto de entrada, as classes do fluxo, os sistemas externos e as pessoas já cadastradas" never="O código das classes não vai." /></p>
 
       <h3>workspace.dsl</h3>
       @if (loadError(); as error) {
@@ -82,7 +83,7 @@
 
     <footer class="dialog-foot">
       @if (unsaved()) {
-        <span class="unsaved foot-warning">Salve as pessoas antes de baixar.</span>
+        <span class="note-pending foot-warning">Salve as pessoas antes de baixar.</span>
       }
       <span class="visually-hidden" role="status">{{ dslCopy.status() === 'idle' ? '' : dslCopy.label('') }}</span>
       <button type="button" class="btn btn-g" (click)="copy()" [disabled]="!dsl()">{{ dslCopy.label('Copiar DSL') }}</button>

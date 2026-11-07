@@ -1,6 +1,6 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { LiveConnectionView, QueryPlan, missingIndexText, operatorLabel } from '../../core/database/live-database';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
@@ -408,5 +408,194 @@ describe('Banco vivo do PostgreSQL (Fase 42b)', () => {
     ctx.el.querySelector<HTMLElement>('.overlay')!.click();
     ctx.fixture.detectChanges();
     expect(ctx.el.querySelector('.dialog')).toBeNull();
+  });
+});
+
+describe('Acréscimos do banco vivo (UX-FIM, Fase A)', () => {
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+
+  // UX-FIM-B05
+  it('o "Testar conexão" explica que usa a conexão salva e fica desabilitado com texto novo', () => {
+    const ctx = renderPage(LIVE);
+    open(ctx, 'Banco vivo');
+
+    expect(ctx.el.querySelector('#live-test-help')!.textContent).toContain('já salva');
+    expect(button(ctx.el, 'Testar conexão').disabled).toBe(false);
+
+    typeKey(ctx, SECRET);
+    expect(button(ctx.el, 'Testar conexão').disabled).toBe(true);
+    expect(ctx.el.querySelector('#live-test-help')!.textContent).toContain('Salve a nova string');
+  });
+
+  // UX-FIM-B06
+  it('a permissão mínima e a promessa do diálogo usam --text-sm e --ink', () => {
+    const ctx = renderPage(LIVE);
+    open(ctx, 'Banco vivo');
+
+    const grants = ctx.el.querySelector<HTMLElement>('.live-grants')!;
+    const probe = document.createElement('span');
+    probe.style.fontSize = 'var(--text-sm)';
+    probe.style.color = 'var(--ink)';
+    grants.appendChild(probe);
+    const expected = getComputedStyle(probe);
+    const actual = getComputedStyle(grants);
+    expect(actual.fontSize).toBe(expected.fontSize);
+    expect(actual.color).toBe(expected.color);
+    probe.remove();
+  });
+
+  // UX-FIM-B07
+  it('se a leitura da conexão falha, a barra não promete e oferece "Tentar de novo"', () => {
+    TestBed.configureTestingModule({
+      imports: [DatabasePage],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(DatabasePage);
+    fixture.componentRef.setInput('nome', 'loja');
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:/loja' }]);
+    http.expectOne(CONNECTION_URL).flush({ code: 'X' }, { status: 500, statusText: 'Erro' });
+    http.expectOne('/api/repositories/loja/schema').flush(lojaSchema());
+    http.expectOne('/api/repositories/loja/schema/usage').flush({ uses: [], findings: [] });
+    fixture.detectChanges();
+
+    expect(el.textContent).not.toContain('Nenhum banco é consultado');
+    expect(el.textContent).toContain('Não deu para ler a conexão do banco vivo.');
+
+    button(el, 'Tentar de novo').click();
+    fixture.detectChanges();
+    flushLoad(http, NONE);
+    fixture.detectChanges();
+    expect(el.textContent).toContain('Nenhum banco é consultado');
+    expect(el.textContent).not.toContain('Não deu para ler a conexão');
+  });
+
+  // UX-FIM-B13, B14, B15, B19, B20
+  it('abas com aria-controls só com painel, zoom nomeado, listas vazias, selo com title e painel nomeado', fakeAsync(() => {
+    const ctx = renderPage({ ...LIVE, server: 'servidor-com-nome-muito-comprido.dominio.interno' });
+    const { el } = ctx;
+
+    expect(el.querySelector('#db-tab-map')!.getAttribute('aria-controls')).toBe('db-panel-0');
+    expect(el.querySelector('#db-panel-0')).not.toBeNull();
+
+    const reset = [...el.querySelectorAll<HTMLButtonElement>('.db-zoom-tools button')].find((b) => b.textContent!.trim() === '100%')!;
+    expect(reset.getAttribute('aria-label')).toBe('Voltar o mapa a 100%');
+    expect(el.querySelector('.db-zoom-tools [aria-live]')!.textContent).toContain('100%');
+
+    const pill = el.querySelector<HTMLElement>('.db-live-pill')!;
+    expect(pill.getAttribute('title')).toContain('servidor-com-nome-muito-comprido.dominio.interno');
+    expect(getComputedStyle(pill).textOverflow).toBe('ellipsis');
+
+    const search = el.querySelector<HTMLInputElement>('#db-search')!;
+    search.value = 'zzzz-nada';
+    search.dispatchEvent(new Event('input'));
+    tick(150);
+    ctx.fixture.detectChanges();
+    expect(el.querySelectorAll('.db-side .db-none').length).toBe(3);
+    expect(el.querySelector('.db-side')!.textContent).toContain('Nenhuma view com esse nome');
+    expect(el.querySelector('.db-side')!.textContent).toContain('Nenhuma procedure com esse nome');
+
+    search.value = '';
+    search.dispatchEvent(new Event('input'));
+    tick(150);
+    ctx.fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.db-card[data-table="pedidos"]')!.click();
+    ctx.fixture.detectChanges();
+    expect(el.querySelector('.db-panel')!.getAttribute('aria-label')).toBe('Painel de pedidos');
+    expect(el.querySelector('.db-fields')!.getAttribute('aria-label')).toBe('Campos de pedidos');
+    expect(el.querySelector('app-db-panel button[aria-label]')!.getAttribute('aria-label')).toBe('Fechar o painel de pedidos');
+  }));
+
+  it('com erro ao carregar, as abas não apontam para painéis que não existem (UX-FIM-B13)', () => {
+    TestBed.configureTestingModule({
+      imports: [DatabasePage],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(DatabasePage);
+    fixture.componentRef.setInput('nome', 'loja');
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    http.expectOne('/api/repositories').flush([]);
+    http.expectOne(CONNECTION_URL).flush(NONE);
+    // Esquema ainda a caminho: aba na tela, painel não.
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('#db-tab-map')!.hasAttribute('aria-controls')).toBe(false);
+    http.expectOne('/api/repositories/loja/schema').flush(lojaSchema());
+    http.expectOne('/api/repositories/loja/schema/usage').flush({ uses: [], findings: [] });
+  });
+
+  // UX-FIM-B18
+  it('os avisos do plano têm o título "Avisos do banco"', () => {
+    const ctx = renderPage(LIVE, 'consulta');
+    analyze(ctx);
+    button(ctx.el.querySelector('app-query-plan') as HTMLElement, 'Pedir o plano estimado').click();
+    ctx.http.expectOne(PLAN_URL).flush(PLAN);
+    ctx.fixture.detectChanges();
+
+    const title = ctx.el.querySelector('#plan-warnings-title')!;
+    expect(title.textContent).toBe('Avisos do banco');
+    expect(ctx.el.querySelector('.plan-warnings')!.getAttribute('aria-labelledby')).toBe('plan-warnings-title');
+  });
+
+  // UX-FIM-B04
+  it('a pergunta de remover foca "Manter", desabilita o Salvar e devolve o foco ao fechar', fakeAsync(() => {
+    const ctx = renderPage(LIVE);
+    open(ctx, 'Banco vivo');
+    typeKey(ctx, 'Server=x');
+    const save = button(ctx.el, 'Salvar');
+    expect(save.disabled).toBeFalse();
+
+    button(ctx.el, 'Remover conexão').click();
+    ctx.fixture.detectChanges();
+    tick();
+
+    expect(document.activeElement).toBe(button(ctx.el, 'Manter'));
+    expect(button(ctx.el, 'Salvar').disabled).toBeTrue();
+
+    button(ctx.el, 'Manter').click();
+    ctx.fixture.detectChanges();
+    tick();
+
+    expect(ctx.el.querySelector('[role="alertdialog"]')).toBeNull();
+    expect(document.activeElement).toBe(button(ctx.el, 'Remover conexão'));
+    expect(button(ctx.el, 'Salvar').disabled).toBeFalse();
+  }));
+});
+
+describe('Permissão mínima em lista com Copiar (UX-PGL-05)', () => {
+  afterEach(() => TestBed.inject(HttpTestingController).verify());
+
+  async function copyAndRead(connection: LiveConnectionView) {
+    const ctx = renderPage(connection);
+    open(ctx, connection.configured ? 'Banco vivo' : 'Conectar banco vivo');
+    const writeText = jasmine.createSpy('writeText').and.resolveTo();
+    spyOnProperty(navigator, 'clipboard', 'get').and.returnValue({ writeText } as unknown as Clipboard);
+    const commands = [...ctx.el.querySelectorAll('.live-commands li')].map((li) => li.textContent!.trim());
+    button(ctx.el, 'Copiar').click();
+    await Promise.resolve();
+    await Promise.resolve();
+    ctx.fixture.detectChanges();
+    return { ctx, writeText, commands };
+  }
+
+  // UX-PGL-05
+  it('no SQL Server, cada comando fica numa linha e o Copiar leva todos e anuncia "Copiado"', async () => {
+    const { ctx, writeText, commands } = await copyAndRead(NONE);
+    expect(commands.length).toBe(3);
+    expect(commands[0]).toBe('GRANT VIEW DEFINITION TO usuario;');
+    expect(writeText).toHaveBeenCalledOnceWith(commands.join('\n'));
+    expect(button(ctx.el, 'Copiado')).toBeDefined();
+    expect(ctx.el.querySelector('.live-commands-copy [role="status"]')!.textContent).toContain('Copiado');
+  });
+
+  // UX-PGL-05
+  it('no PostgreSQL, a lista traz CONNECT, USAGE, SELECT e o somente leitura', async () => {
+    const { writeText, commands } = await copyAndRead(LIVE_PG);
+    expect(commands.length).toBe(4);
+    expect(commands[0]).toContain('GRANT CONNECT');
+    expect(commands[3]).toContain('default_transaction_read_only = on');
+    expect(writeText).toHaveBeenCalledOnceWith(commands.join('\n'));
   });
 });

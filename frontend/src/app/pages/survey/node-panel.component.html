@@ -5,18 +5,19 @@
         <span class="kind-glyph" aria-hidden="true">{{ glyph[node.kind] }}</span>
         {{ kindLabel[node.kind] }}
       </span>
-      <span class="panel-head-actions">
-        @if (focusId() === node.id) {
-          <button type="button" class="btn btn-g btn-small" (click)="showAll.emit()">Mostrar o grafo inteiro</button>
-        } @else {
-          <button type="button" class="btn btn-g btn-small" (click)="focusFlow.emit(node.id)" aria-describedby="focus-help" title="Esconde os outros caminhos: fica o que leva a este passo e o que roda depois">Ver somente este fluxo</button>
-          <span id="focus-help" class="visually-hidden">Esconde os outros caminhos: fica o que leva a este passo e o que roda depois.</span>
-        }
-        <button type="button" class="btn btn-icon" (click)="closePanel.emit(node.id)" aria-label="Fechar o passo e voltar à visão geral" title="Fechar (Esc)">×</button>
-      </span>
+      <button type="button" class="btn btn-icon panel-close" (click)="closePanel.emit(node.id)" aria-label="Fechar o passo e voltar à visão geral" title="Fechar (Esc)">×</button>
     </header>
 
     <h2 id="node-title" class="node-title code">{{ breakable(node.label) }}</h2>
+
+    <div class="panel-focus">
+      @if (focusId() === node.id) {
+        <button type="button" class="btn btn-g btn-small" (click)="showAll.emit()">Mostrar o grafo inteiro</button>
+      } @else {
+        <button type="button" class="btn btn-g btn-small" (click)="focusFlow.emit(node.id)" aria-describedby="focus-help" title="Esconde os outros caminhos: fica o que leva a este passo e o que roda depois">Ver somente este fluxo</button>
+        <span id="focus-help" class="visually-hidden">Esconde os outros caminhos: fica o que leva a este passo e o que roda depois.</span>
+      }
+    </div>
 
     @if (origin(node); as from) {
       <p class="origin code muted">Sistema {{ from.system }} · {{ from.language }}@if (from.commit) { · commit {{ from.commit }}}</p>
@@ -76,8 +77,9 @@
       }
       @if (canDescribe()) {
         <button type="button" class="btn btn-g btn-small rule-action" [disabled]="describing()" (click)="describe.emit({ nodeId: node.id, overwrite: !!node.rule })">
-          {{ describing() ? 'Escrevendo…' : node.rule ? 'Reescrever com IA' : 'Escrever regra com IA' }}
+          {{ describing() ? 'Escrevendo…' : node.rule ? 'Reescrever regra com a IA' : 'Escrever regra com a IA' }}
         </button>
+        <app-ai-disclosure goes="o código deste passo" never="Código já descrito antes não vai de novo." />
       }
       @if (describeMessage(); as message) {
         <p class="rule-origin muted" aria-live="polite">{{ message }}</p>
@@ -149,6 +151,9 @@
                 <span class="code">{{ a.target }}</span>
               }
               <span class="muted">linha {{ a.line }}</span>
+              @if (!a.sql && repository()) {
+                <span class="muted db-no-sql">sem consulta no código</span>
+              }
               @if (a.sql && repository()) {
                 <a class="db-sql-link" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="withOrigin({ aba: queryTab, consulta: a.sql, origem: node.label })" title="Abrir a consulta deste passo na análise de consulta" [attr.aria-label]="'Analisar a consulta de ' + a.target + ', linha ' + a.line">Analisar a consulta</a>
               }
@@ -188,8 +193,9 @@
         }
         @if (canFillHoles()) {
           <button type="button" class="btn btn-g btn-small fill" [disabled]="filling()" (click)="fillHole.emit(node.id)">
-            {{ filling() ? 'Perguntando à IA…' : 'Propor destinos com IA' }}
+            {{ filling() ? 'Perguntando à IA…' : 'Propor destinos com a IA' }}
           </button>
+          <app-ai-disclosure goes="a chamada sem destino, o código em volta dela e os candidatos que o compilador achou" />
         }
         @if (!canFillHoles() && !aiActive()) {
           <p class="muted ai-off">IA desligada. <a routerLink="/configuracoes">Ligar em Configurações</a></p>
@@ -409,7 +415,7 @@
       }
       @if (canDescribe()) {
         <button type="button" class="btn btn-g btn-small rule-action" [disabled]="describing()" (click)="describe.emit({ nodeId: null, overwrite: false })">
-          {{ describing() ? 'Escrevendo…' : 'Escrever as regras que faltam com IA' }}
+          {{ describing() ? 'Escrevendo…' : 'Escrever as regras que faltam com a IA' }}
         </button>
       }
       @if (describeMessage(); as message) {

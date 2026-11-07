@@ -29,6 +29,11 @@ function analysis(overrides: Partial<QueryAnalysis> = {}): QueryAnalysis {
   };
 }
 
+// Texto visível do trecho marcado, sem o complemento escondido de leitor de tela (UX-FIM-Q03).
+function markText(m: Element): string {
+  return (m.firstChild?.textContent ?? '');
+}
+
 function render(initial?: string, origin?: string) {
   TestBed.configureTestingModule({
     imports: [QueryAnalysisComponent],
@@ -67,18 +72,47 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     expect(empty.el.textContent).toContain('Cole uma consulta ou abra uma pelo passo do fluxo');
     TestBed.resetTestingModule();
 
-    const filled = render('SELECT 1', 'PedidoRepositorio.DoAno');
+    // Texto colado à mão com origem na URL não analisa sozinho, mas aqui só confere o rótulo: sem origem, a caixa aparece.
+    const filled = render('SELECT 1');
     expect(filled.el.querySelector<HTMLTextAreaElement>('#qa-sql')!.value).toBe('SELECT 1');
-    expect(filled.el.textContent).toContain('Veio do passo PedidoRepositorio.DoAno');
     expect(filled.el.querySelector<HTMLButtonElement>('.qa-actions .btn')!.disabled).toBeFalse();
+  });
+
+  // UX-DBQ-05, UX-FIM-Q15
+  it('chegando pelo passo (consulta e origem na URL), já analisa e mostra a origem entre aspas', () => {
+    const ctx = render('SELECT 1', 'PedidoRepositorio.DoAno');
+    const request = ctx.http.expectOne('/api/repositories/loja/schema/analyze');
+    expect(request.request.body).toEqual({ sql: 'SELECT 1' });
+    request.flush(analysis({ findings: [] }));
+    ctx.fixture.detectChanges();
+    expect(ctx.el.querySelector('.qa-sql')).not.toBeNull();
+    expect(ctx.el.querySelector('#qa-sql')).toBeNull();
+    expect(ctx.el.textContent).toContain('Veio do passo “PedidoRepositorio.DoAno”');
+  });
+
+  // UX-DBQ-05
+  it('sem origem (consulta colada ou só ?consulta=), não analisa sozinho', () => {
+    const ctx = render('SELECT 1');
+    ctx.http.expectNone('/api/repositories/loja/schema/analyze');
+    expect(ctx.el.querySelector('.qa-sql')).toBeNull();
+  });
+
+  // UX-FIM-Q15
+  it('o texto de ajuda diz que a análise não consulta o banco', () => {
+    const ctx = render('SELECT 1');
+    expect(ctx.el.textContent).toContain('A análise não consulta o banco.');
+    expect(ctx.el.textContent).not.toContain('banco nenhum');
   });
 
   // WEB-DBQ-018
   it('editada, a consulta deixa de dizer que veio do passo; sem achado, o título diz "Sem achados"', () => {
     const ctx = render('SELECT 1', 'PedidoRepositorio.DoAno');
-    analyze(ctx, analysis({ findings: [] }));
+    ctx.http.expectOne('/api/repositories/loja/schema/analyze').flush(analysis({ findings: [] }));
+    ctx.fixture.detectChanges();
+    expect(ctx.el.textContent).toContain('Sem achados');
+    (ctx.fixture.componentInstance as unknown as { edit(v: string): void }).edit('SELECT 2');
+    ctx.fixture.detectChanges();
     expect(ctx.el.textContent).not.toContain('Veio do passo');
-    expect(ctx.el.querySelector('.qa-count .qa-title')!.textContent).toContain('Sem achados');
   });
 
   // WEB-DBQ-011
@@ -86,9 +120,11 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     const ctx = render();
     analyze(ctx, analysis());
 
-    const marks = [...ctx.el.querySelectorAll('mark')].map((m) => m.textContent);
+    const marks = [...ctx.el.querySelectorAll('mark')].map(markText);
     expect(marks).toEqual(['*', 'UPPER(p.status)']);
-    expect(ctx.el.querySelector('.qa-sql')!.textContent).toBe(SQL);
+    const sqlPre = ctx.el.querySelector('.qa-sql')!.cloneNode(true) as HTMLElement;
+    sqlPre.querySelectorAll('.visually-hidden').forEach((h) => h.remove());
+    expect(sqlPre.textContent).toBe(SQL);
     expect(ctx.el.textContent).toContain('2 achados');
     expect(ctx.el.textContent).toContain('Regra fixa, sem IA');
     const items = [...ctx.el.querySelectorAll('.qa-finding')];
@@ -113,11 +149,11 @@ describe('QueryAnalysisComponent (Fase 40a)', () => {
     buttons[0].click();
     ctx.fixture.detectChanges();
     expect(buttons[0].getAttribute('aria-pressed')).toBe('true');
-    expect([...ctx.el.querySelectorAll('mark.is-active')].map((m) => m.textContent)).toEqual(['UPPER(p.status)']);
+    expect([...ctx.el.querySelectorAll('mark.is-active')].map(markText)).toEqual(['UPPER(p.status)']);
 
     buttons[1].click();
     ctx.fixture.detectChanges();
-    expect([...ctx.el.querySelectorAll('mark.is-active')].map((m) => m.textContent)).toEqual(['*']);
+    expect([...ctx.el.querySelectorAll('mark.is-active')].map(markText)).toEqual(['*']);
     expect(buttons[0].getAttribute('aria-pressed')).toBe('false');
 
     buttons[1].click();

@@ -120,7 +120,7 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
             tree = parser.Parse(reader, out errors);
         if (errors.Count == 0 && tree is TSqlScript script) return (script, null);
         var first = errors.FirstOrDefault();
-        return (null, first is null ? "texto vazio" : $"linha {first.Line}, coluna {first.Column}: {first.Message}");
+        return (null, first is null ? "texto vazio" : $"linha {first.Line}, coluna {first.Column}: {SqlMessageTranslator.Translate(first.Message)}");
     }
 
     private static string Kind(TSqlStatement statement) => statement switch

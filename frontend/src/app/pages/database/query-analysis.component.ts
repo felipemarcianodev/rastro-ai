@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Subscription } from 'rxjs';
@@ -13,11 +14,17 @@ import {
   querySegments,
 } from '../../core/database/query-analysis';
 import { QueryAiSuggestion } from '../../core/database/query-suggestion';
-import { AI_PROVIDER_LABEL, AiUse, aiCan } from '../../core/models';
+import { AiUse, aiCan } from '../../core/models';
+import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { AiStatusService } from '../../core/ai-status.service';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { QueryPlanComponent } from './query-plan.component';
 import { QuerySuggestionComponent } from './query-suggestion.component';
+
+// Códigos de erro da API (ErrorCodes) que só as Configurações resolvem.
+const AI_NOT_CONFIGURED_CODE = 'AI_NOT_CONFIGURED';
+const AI_BUDGET_EXCEEDED_CODE = 'AI_BUDGET_EXCEEDED';
+const SETTINGS_FIX_ERROR_CODES: ReadonlySet<string> = new Set([AI_NOT_CONFIGURED_CODE, AI_BUDGET_EXCEEDED_CODE]);
 
 interface Analyzed {
   sql: string;
@@ -29,7 +36,7 @@ interface Analyzed {
 // regras fixas. Sem IA e sem banco: a mesma consulta dá sempre o mesmo resultado.
 @Component({
   selector: 'app-query-analysis',
-  imports: [RouterLink, QueryPlanComponent,QuerySuggestionComponent],
+  imports: [RouterLink, QueryPlanComponent, QuerySuggestionComponent, AiDisclosureComponent],
   templateUrl: './query-analysis.component.html',
   styleUrl: './query-analysis.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -68,10 +75,6 @@ export class QueryAnalysisComponent {
   private readonly ai = inject(AiStatusService);
   // Sugestão da IA (Fase 41): só com a IA ligada e o uso "Sugestões"; sem isso, nada aparece.
   protected readonly canSuggest = computed(() => aiCan(this.ai.status(), AiUse.Suggestions));
-  protected readonly providerName = computed(() => {
-    const status = this.ai.status();
-    return status ? AI_PROVIDER_LABEL[status.provider] : '';
-  });
   protected readonly suggesting = signal(false);
   protected readonly suggestError = signal<string | null>(null);
   protected readonly suggestion = signal<QueryAiSuggestion | null>(null);
@@ -80,6 +83,9 @@ export class QueryAnalysisComponent {
     if (this.suggesting()) return 'Perguntando à IA…';
     return this.suggestion() ? 'A sugestão da IA chegou.' : '';
   });
+
+  // Chave ausente ou orçamento esgotado: repetir não adianta, o conserto está nas Configurações (UX-FIM-Q08).
+  protected readonly suggestErrorNeedsSettings = signal(false);
 
   private sub?: Subscription;
   private suggestSub?: Subscription;
@@ -90,7 +96,7 @@ export class QueryAnalysisComponent {
   });
 
   protected readonly analyzeHelp = computed(() =>
-    this.text().trim() ? 'Ctrl+Enter também analisa. Nada vai a banco nenhum.' : 'Escreva ou cole uma consulta, ou use o exemplo, para poder analisar. Nada vai a banco nenhum.',
+    this.text().trim() ? 'Ctrl+Enter também analisa. A análise não consulta o banco.' : 'Escreva ou cole uma consulta, ou use o exemplo, para poder analisar. A análise não consulta o banco.',
   );
 
   protected readonly countText = computed(() => {
@@ -112,6 +118,8 @@ export class QueryAnalysisComponent {
       untracked(() => {
         this.discard();
         this.text.set(initial ?? '');
+        // UX-DBQ-05: quem chega pelo "Analisar a consulta" do passo (consulta e origem na URL) já vê a análise.
+        if (initial?.trim() && this.origin()) this.analyze();
       });
     });
     inject(DestroyRef).onDestroy(() => {
@@ -139,6 +147,7 @@ export class QueryAnalysisComponent {
     this.suggesting.set(false);
     this.suggestion.set(null);
     this.suggestError.set(null);
+    this.suggestErrorNeedsSettings.set(false);
   }
 
   // A resposta da IA chega abaixo dos achados, fora da vista: rola só até o começo da seção (UX-DBA-01).
@@ -151,6 +160,7 @@ export class QueryAnalysisComponent {
     if (!sql || this.suggesting()) return;
     this.suggesting.set(true);
     this.suggestError.set(null);
+    this.suggestErrorNeedsSettings.set(false);
     this.suggestSub?.unsubscribe();
     this.suggestSub = this.api.suggestQuery(this.repository(), sql).subscribe({
       next: (suggestion) => {
@@ -161,6 +171,8 @@ export class QueryAnalysisComponent {
       error: (error) => {
         this.suggesting.set(false);
         this.suggestError.set(apiErrorMessage(error));
+        const code = error instanceof HttpErrorResponse ? (error.error?.code as string | undefined) : undefined;
+        this.suggestErrorNeedsSettings.set(!!code && SETTINGS_FIX_ERROR_CODES.has(code));
         this.revealSuggestion();
       },
     });

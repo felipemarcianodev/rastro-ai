@@ -21,8 +21,11 @@
     </div>
     <div class="page-bar-side">
       @if (live(); as l) {
-        <span class="pill db-live-pill">Banco vivo: {{ l.server }}/{{ l.database }}, só leitura</span>
+        <span class="pill db-live-pill" [title]="'Banco vivo: ' + l.server + '/' + l.database + ', só leitura'">Banco vivo: {{ l.server }}/{{ l.database }}, só leitura</span>
         <span class="muted db-promise">Lido do código e do catálogo do banco vivo. Nenhum dado das tabelas é lido.</span>
+      } @else if (connectionError()) {
+        <span class="muted db-promise" role="alert">Não deu para ler a conexão do banco vivo.</span>
+        <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button>
       } @else {
         <span class="muted db-promise">Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.</span>
       }
@@ -31,11 +34,11 @@
       }
       @if (geometry() && tab() === DbTab.Map) {
         <span class="popover">
-          <button type="button" class="btn btn-g btn-small" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
+          <button type="button" class="btn btn-g btn-small" id="db-export-button" (click)="exportOpen.set(!exportOpen())" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
             {{ copy.label('Exportar o mapa') }}
           </button>
           @if (exportOpen()) {
-            <div class="menu-backdrop" (click)="exportOpen.set(false)"></div>
+            <div class="menu-backdrop" (click)="closeExport()"></div>
             <ul id="db-export-menu" class="popover-menu">
               <li class="popover-group" role="presentation">Exportar o que está no mapa</li>
               <li><button type="button" (click)="exportImage('png')" [disabled]="pngBusy()">Imagem PNG</button></li>
@@ -52,7 +55,7 @@
   @if (!error()) {
     <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
       @for (t of tabs; track t) {
-        <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="'db-panel-' + t"
+        <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="schema() ? 'db-panel-' + t : null"
           [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)">
           <span class="db-tab-label">{{ tabLabel[t] }}</span>
           <span class="db-tab-hint">{{ tabHint[t] }}</span>
@@ -93,14 +96,14 @@
       <aside class="db-side" aria-label="Tabelas, views e procedures">
         <label class="visually-hidden" for="db-search">Buscar tabela, view, procedure ou campo</label>
         <input id="db-search" class="input is-small" type="search" placeholder="Buscar tabela ou campo" autocomplete="off"
-          [value]="query()" (input)="query.set($any($event.target).value)" />
+          [value]="query()" (input)="onSearch($any($event.target).value)" />
         @if (list(); as l) {
           <p class="visually-hidden" role="status">{{ l.tables.length + l.views.length + l.procedures.length }} itens encontrados</p>
           <h2 class="db-group">Tabelas <span class="muted">{{ l.tables.length }}</span></h2>
           <ul class="db-items">
             @for (key of l.tables; track key) {
               <li><button type="button" class="db-item code" [class.is-active]="selectedTable() === key" [attr.aria-pressed]="selectedTable() === key"
-                (click)="choose({ kind: DbItemKind.Table, key }, true)">{{ key }}@if (badges().get(key); as b) { <span class="db-alert">{{ b }}</span> }</button></li>
+                [attr.data-item]="itemId(DbItemKind.Table, key)" (click)="choose({ kind: DbItemKind.Table, key })">{{ key }}@if (badges().get(key); as b) { <span class="db-alert">{{ b }}</span> }</button></li>
             } @empty {
               <li class="muted db-none">Nenhuma tabela com esse nome ou campo.</li>
             }
@@ -110,7 +113,9 @@
             <ul class="db-items">
               @for (key of l.views; track key) {
                 <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.View && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.View && selection()?.key === key"
-                  (click)="choose({ kind: DbItemKind.View, key })">{{ key }}</button></li>
+                  [attr.data-item]="itemId(DbItemKind.View, key)" (click)="choose({ kind: DbItemKind.View, key })">{{ key }}</button></li>
+              } @empty {
+                <li class="muted db-none">Nenhuma view com esse nome ou campo.</li>
               }
             </ul>
           }
@@ -119,7 +124,9 @@
             <ul class="db-items">
               @for (key of l.procedures; track key) {
                 <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key"
-                  (click)="choose({ kind: DbItemKind.Procedure, key })">{{ key }}</button></li>
+                  [attr.data-item]="itemId(DbItemKind.Procedure, key)" (click)="choose({ kind: DbItemKind.Procedure, key })">{{ key }}</button></li>
+              } @empty {
+                <li class="muted db-none">Nenhuma procedure com esse nome.</li>
               }
             </ul>
           }
@@ -151,7 +158,8 @@
           }
           <span class="db-zoom-tools" role="group" aria-label="Zoom do mapa">
             <button type="button" class="btn btn-icon" (click)="zoomBy(-1)" [disabled]="zoom() <= zoomMin" aria-label="Diminuir o mapa" title="Diminuir">−</button>
-            <button type="button" class="btn btn-g btn-small" (click)="zoom.set(1)" [disabled]="zoom() === 1" title="Voltar ao tamanho normal">{{ zoomPercent() }}</button>
+            <button type="button" class="btn btn-g btn-small" (click)="zoom.set(1)" [disabled]="zoom() === 1" aria-label="Voltar o mapa a 100%" title="Voltar ao tamanho normal">{{ zoomPercent() }}</button>
+            <span class="visually-hidden" role="status" aria-live="polite">Zoom do mapa em {{ zoomPercent() }}</span>
             <button type="button" class="btn btn-icon" (click)="zoomBy(1)" [disabled]="zoom() >= zoomMax" aria-label="Aumentar o mapa" title="Aumentar">+</button>
           </span>
           <span class="muted db-legend">Setas pela chave estrangeira, com a cardinalidade. <span class="db-key is-pk">PK</span> <span class="db-key is-fk">FK</span> <span class="db-personal">pessoal</span> pelo nome da coluna.</span>
@@ -177,7 +185,7 @@
                 <button type="button" class="db-card" [attr.data-table]="c.key" [style.left.px]="c.x" [style.top.px]="c.y" [style.width.px]="card.width" [style.height.px]="c.height"
                   [class.is-selected]="selectedTable() === c.key" [class.is-lit]="!selectedTable() && !!lit()?.has(c.key)"
                   [class.is-dim]="(!!matching() && !matching()!.has(c.key)) || (!!lit() && !selectedTable() && !lit()!.has(c.key))"
-                  [attr.aria-pressed]="selectedTable() === c.key" [attr.aria-label]="cardLabel(c.key, c.table.columns.length, badges().get(c.key))" (click)="pickTable(c.key)">
+                  [attr.aria-pressed]="selectedTable() === c.key" [attr.tabindex]="matching() && !matching()!.has(c.key) ? -1 : null" [attr.aria-label]="cardLabel(c.key, c.table.columns.length, badges().get(c.key))" (click)="pickTable(c.key)">
                   <span class="db-card-head">
                     <strong class="code">{{ c.key }}</strong>
                     @if (badges().get(c.key); as b) {
@@ -186,7 +194,7 @@
                   </span>
                   @for (r of c.rows; track r.name) {
                     <span class="db-row">
-                      <span class="db-key" [class.is-pk]="r.mark.includes('PK')" [class.is-fk]="r.mark === 'FK'">{{ r.mark || '·' }}</span>
+                      <span class="db-key" [class.is-pk]="r.isPrimaryKey" [class.is-fk]="r.mark === KeyMark.Fk">{{ r.markLabel || '·' }}</span>
                       <span class="db-row-name">{{ r.name }}</span>
                       @if (r.personal) {
                         <span class="db-personal">pessoal</span>
@@ -208,7 +216,7 @@
       </section>
 
       @if (selection(); as pick) {
-        <aside class="db-panel" aria-label="Item escolhido">
+        <aside class="db-panel" [attr.aria-label]="'Painel de ' + pick.key">
           <app-db-panel [repository]="nome()" [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event, true)" (closed)="closePanel()" />
         </aside>
       }

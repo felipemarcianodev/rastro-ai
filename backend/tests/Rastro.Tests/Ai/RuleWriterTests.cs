@@ -194,7 +194,7 @@ public partial class RuleWriterTests(ApiFixture fixture)
 
         var body = (await response.Content.ReadFromJsonAsync<DescribeResponse>(Json))!;
         Assert.Equal(0, calls);
-        Assert.Contains("Nenhum nó sem regra", body.Result.Messages[0]);
+        Assert.Contains("Nenhum passo sem regra", body.Result.Messages[0]);
     }
 
     [Fact] // AI-RULE-004

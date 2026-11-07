@@ -42,7 +42,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         {
             var first = errors.FirstOrDefault();
             return new QueryAnalysis(Dialect, 0, [], [],
-                new QueryParseError(first?.Message ?? "Texto vazio.", first?.Line ?? 1, first?.Column ?? 1));
+                new QueryParseError(first is null ? "Texto vazio." : SqlMessageTranslator.Translate(first.Message), first?.Line ?? 1, first?.Column ?? 1));
         }
 
         var run = new Run(sql, schema);

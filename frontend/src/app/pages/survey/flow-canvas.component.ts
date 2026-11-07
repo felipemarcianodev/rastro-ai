@@ -44,6 +44,7 @@ import {
   flowDrawing,
   timelineRoutes,
 } from '../../core/graph/timeline-layout';
+import { dbBadgeText } from './flow-db-tables';
 import { NODE_EFFECT_HINT, NODE_EFFECT_LABEL, NODE_EFFECT_SLUG, NodeEffect, effectOf, effectText, entryCodeOnly, splitLabel } from '../../core/graph/reading';
 import { FlowSummary, flowSummary, readingLabel } from '../../core/graph/summary';
 import { TREE_CONNECTION, TreeConnectionBuilder } from '../../core/graph/tree-connection';
@@ -89,6 +90,8 @@ const LEGEND_KEY = 'rastro.legendOpen';
 const BRIEF_KEY = 'rastro.brief';
 // Largura da etiqueta "banco", "mensagem" (Fase 23) no passo.
 const EFFECT_PX = 76;
+// Com o nome da tabela na etiqueta ("lê pedidos +2"), ela ganha espaço e corta com reticências.
+const DB_EFFECT_PX = 112;
 // Profundidade na cadeia de chamadas -> classe do passo: quanto mais fundo, mais leve (Fase 23).
 const DEPTH_CLASS = ['', ' is-depth-1', ' is-depth-2'];
 
@@ -194,6 +197,10 @@ export class FlowCanvasComponent {
   // Modo "Resumo" (Fase 23): só o código do método de entrada, com os métodos chamados fechados.
   protected readonly brief = signal(readBrief());
   protected readonly effectLabel = NODE_EFFECT_LABEL;
+  // Texto da etiqueta no bloco: com banco visto no código, o nome da tabela.
+  protected effectBadge(node: FlowNode, effect: NodeEffect): string {
+    return effect === NodeEffect.Database ? dbBadgeText(node, NODE_EFFECT_LABEL[effect]) : NODE_EFFECT_LABEL[effect];
+  }
   protected readonly effectHint = NODE_EFFECT_HINT;
   protected readonly effectText = effectText;
   // A etiqueta de banco avisa que o passo leva à tabela (o painel tem o link para o mapa do banco).
@@ -353,7 +360,7 @@ export class FlowCanvasComponent {
       const key = this.positionsKey();
       const direction = this.direction();
       const brief = this.brief();
-      const drawing = flowDrawing(graph, this.axis(), (node) => (effects.has(node.id) ? EFFECT_PX : 0), this.systems());
+      const drawing = flowDrawing(graph, this.axis(), (node) => (effects.has(node.id) ? (node.db?.length ? DB_EFFECT_PX : EFFECT_PX) : 0), this.systems());
       this.layouts.run(Promise.resolve(drawing.boxes), (boxes) => {
         this.autoBoxes = boxes;
         this.blocks.set(drawing.blocks);

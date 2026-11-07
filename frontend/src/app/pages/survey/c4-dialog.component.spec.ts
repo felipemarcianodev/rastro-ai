@@ -76,6 +76,22 @@ describe('C4DialogComponent', () => {
     expect(el.textContent).toContain('Ninguém cadastrado ainda.');
   });
 
+  // UX-FIM-Q06
+  it('o aviso do que vai ao provedor e dos tokens só aparece com a IA de contexto ligada', () => {
+    const { fixture, el } = setup();
+    expect(el.querySelector('app-ai-disclosure')?.textContent?.trim()).toBe('');
+
+    TestBed.inject(AiStatusService).status.set({
+      enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses: [AiUse.ContextSuggestions], tokensToday: 1500, dailyTokenBudget: 10000,
+    });
+    fixture.detectChanges();
+
+    const text = el.querySelector('app-ai-disclosure')?.textContent ?? '';
+    expect(text).toContain('Vai para Claude');
+    expect(text).toContain('as classes do fluxo');
+    expect(text).toContain('Hoje: 1.500 de 10.000 tokens.');
+  });
+
   it('com a IA de contexto ligada, sugere pessoas e acrescenta só a escolhida', async () => {
     const { fixture, http, el } = setup();
     TestBed.inject(AiStatusService).status.set({
@@ -83,7 +99,7 @@ describe('C4DialogComponent', () => {
     });
     fixture.detectChanges();
 
-    const ask = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Sugerir pessoas com IA')) as HTMLButtonElement;
+    const ask = Array.from(el.querySelectorAll('button')).find((b) => b.textContent?.includes('Sugerir pessoas com a IA')) as HTMLButtonElement;
     ask.click();
     http.expectOne('/api/surveys/s1/c4/ai/people').flush({ people: [{ name: 'Cliente', description: 'Compra' }], provider: AiProvider.Claude });
     fixture.detectChanges();

@@ -17,7 +17,7 @@ export const CONFIRM_TONE_BUTTON: Record<ConfirmTone, string> = {
   selector: 'app-confirm-dialog',
   imports: [DialogDirective],
   template: `
-    <div class="overlay" appDialog (click)="cancel.emit()">
+    <div class="overlay" appDialog (click)="cancel.emit()" (dialogClose)="cancel.emit()">
       <section class="dialog is-narrow" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-text" (click)="$event.stopPropagation()">
         <h2 id="confirm-title">{{ title() }}</h2>
         <p id="confirm-text">{{ text() }}</p>

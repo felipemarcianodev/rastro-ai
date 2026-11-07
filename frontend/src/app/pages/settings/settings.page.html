@@ -1,7 +1,11 @@
+<header class="page-bar">
+  <button type="button" class="page-back" (click)="back()" aria-label="Voltar" title="Voltar">←</button>
+  <div class="page-bar-title">
+    <h1>Configurações</h1>
+  </div>
+</header>
 <div class="page">
   <header class="head">
-    <button type="button" class="btn btn-g btn-small back" (click)="back()">← Voltar</button>
-    <h1>Configurações</h1>
     <p class="muted">O Rastro funciona sem IA. Com IA, ela completa os buracos do grafo e escreve as regras; tudo o que ela propõe passa pelo compilador antes de entrar.</p>
   </header>
 
@@ -53,7 +57,7 @@
     }
     <span class="visually-hidden" role="status">{{ repoMessage()?.text }}</span>
     @if (repoMessage(); as message) {
-      <p [class]="message.ok ? 'saved' : 'field-error'" [attr.role]="message.ok ? null : 'alert'">{{ message.text }}</p>
+      <p [class]="message.ok ? 'note-ok' : 'field-error'" [attr.role]="message.ok ? null : 'alert'">{{ message.text }}</p>
     }
 
     <form class="repo-form" (ngSubmit)="addRepository()" novalidate aria-labelledby="add-repo-title">
@@ -75,7 +79,7 @@
             <button type="button" class="btn btn-g" (click)="browseFolder()" [disabled]="adding()">Procurar…</button>
           }
         </div>
-        <span id="repo-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git.</span>
+        <span id="repo-path-help" class="field-help">O caminho completo da pasta neste computador, onde está o .git. Windows: C:\codigo\meu-sistema. Linux ou macOS: /home/voce/meu-sistema.</span>
         @if (pathError(); as error) {
           <span id="repo-path-error" class="field-error">{{ error }}</span>
         }
@@ -140,7 +144,7 @@
           <span>{{ enabled ? 'IA ligada' : 'IA desligada' }}</span>
         </label>
         @if (enabled !== loaded()!.enabled) {
-          <span class="pending" role="status">Alteração pendente, falta salvar</span>
+          <span class="note-pending" role="status">Alteração pendente, falta salvar</span>
         }
       </div>
       <p>O próprio Rastro chama a IA com a sua chave de API. As chaves ficam cifradas no armazenamento local do Rastro e nunca voltam para a tela.</p>
@@ -214,7 +218,7 @@
       <div class="actions">
         <button class="btn btn-p" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar configuração' }}</button>
         @if (saveMessage(); as message) {
-          <span [class]="message.ok ? 'saved' : 'field-error'" role="status">{{ message.text }}</span>
+          <span [class]="message.ok ? 'note-ok' : 'field-error'" role="status">{{ message.text }}</span>
         }
       </div>
       <p class="muted small">Última alteração: {{ shortDate(loaded()!.updatedAt) }}</p>

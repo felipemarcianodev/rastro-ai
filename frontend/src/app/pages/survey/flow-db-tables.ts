@@ -1,4 +1,4 @@
-import { DbOperation, FlowGraph } from '../../core/models';
+import { DbOperation, FlowGraph, FlowNode } from '../../core/models';
 
 // O que o fluxo faz com uma tabela, em três grupos (gravar junta incluir, alterar e excluir).
 export enum DbEffect {
@@ -52,4 +52,15 @@ export function flowDbTables(graph: FlowGraph): FlowDbTable[] {
 // Rota do mapa do banco: com uma tabela só, já abre nela.
 export function dbMapQuery(tables: FlowDbTable[]): { tabela: string } | null {
   return tables.length === 1 ? { tabela: tables[0].name } : null;
+}
+
+// Texto da etiqueta "banco" no bloco do passo: o que ele faz na primeira tabela e quantas outras toca
+// ("lê pedidos", "lê pedidos +2"). Sem acesso visto no código, fica o rótulo genérico.
+export function dbBadgeText(node: FlowNode, fallback: string): string {
+  const accesses = node.db ?? [];
+  if (accesses.length === 0) return fallback;
+  const first = accesses[0];
+  const tables = new Set(accesses.map((a) => a.target.toLowerCase()));
+  const more = tables.size - 1;
+  return `${DB_EFFECT_LABEL[EFFECT_OF_OPERATION[first.operation]]} ${first.target}${more > 0 ? ` +${more}` : ''}`;
 }

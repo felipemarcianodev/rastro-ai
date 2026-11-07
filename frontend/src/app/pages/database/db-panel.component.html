@@ -1,7 +1,7 @@
 @if (table(); as t) {
   <header class="db-panel-head">
     <h2 class="code">{{ t.key }}</h2>
-    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" title="Fechar o painel (Esc)">Fechar</button>
+    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" [attr.aria-label]="'Fechar o painel de ' + t.key" title="Fechar o painel (Esc)">Fechar</button>
   </header>
   <p class="muted db-origin">
     {{ t.sources.length === 1 ? 'Fonte:' : 'Fontes:' }}
@@ -31,7 +31,7 @@
   }
 
   <h3 class="db-h">Campos</h3>
-  <table class="db-fields">
+  <table class="db-fields" [attr.aria-label]="'Campos de ' + t.key">
     <thead>
       <tr><th scope="col">Campo</th><th scope="col">Tipo</th><th scope="col">Nulo</th><th scope="col">Chave</th></tr>
     </thead>
@@ -53,7 +53,7 @@
               <span class="muted db-extra">padrão {{ c.default }}</span>
             }
           </td>
-          <td [class.db-divergent]="c.nullable === 'divergente'">{{ c.nullable }}</td>
+          <td [class.db-divergent]="c.nullableDivergent">{{ c.nullable }}</td>
           <td>{{ c.keyText }}</td>
         </tr>
       }
@@ -103,7 +103,7 @@
   <header class="db-panel-head">
     <h2 class="code">{{ v.key }}</h2>
     <span class="muted">view</span>
-    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" title="Fechar o painel (Esc)">Fechar</button>
+    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" [attr.aria-label]="'Fechar o painel de ' + v.key" title="Fechar o painel (Esc)">Fechar</button>
   </header>
   <p class="muted db-origin">Fonte: {{ sourceText(v.view.source) }}</p>
   <h3 class="db-h">Colunas que devolve</h3>
@@ -118,7 +118,7 @@
   <header class="db-panel-head">
     <h2 class="code">{{ p.key }}</h2>
     <span class="muted">procedure</span>
-    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" title="Fechar o painel (Esc)">Fechar</button>
+    <button type="button" class="btn btn-g btn-small" (click)="closed.emit()" [attr.aria-label]="'Fechar o painel de ' + p.key" title="Fechar o painel (Esc)">Fechar</button>
   </header>
   <p class="muted db-origin">Fonte: {{ sourceText(p.procedure.source) }}</p>
   <h3 class="db-h">Parâmetros</h3>

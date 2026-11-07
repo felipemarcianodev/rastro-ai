@@ -109,8 +109,16 @@ export const LIVE_PERMISSION_SELECT = 'GRANT SELECT ON SCHEMA::dbo TO usuario';
 // PostgreSQL (Fase 42b): o catálogo (pg_catalog) se lê só com o CONNECT; o EXPLAIN confere a permissão
 // da instrução, então o plano pede o USAGE no schema e o SELECT nas tabelas da consulta.
 export const LIVE_PG_PERMISSION_CONNECT = 'GRANT CONNECT ON DATABASE banco TO usuario';
-export const LIVE_PG_PERMISSION_SELECT = 'GRANT USAGE ON SCHEMA public TO usuario; GRANT SELECT ON ALL TABLES IN SCHEMA public TO usuario';
+export const LIVE_PG_PERMISSION_USAGE = 'GRANT USAGE ON SCHEMA public TO usuario';
+export const LIVE_PG_PERMISSION_SELECT = 'GRANT SELECT ON ALL TABLES IN SCHEMA public TO usuario';
 export const LIVE_PG_READ_ONLY = 'ALTER ROLE usuario SET default_transaction_read_only = on';
+
+// A permissão mínima como lista curta, um comando por linha (UX-PGL-05), por dialeto: a mesma lista
+// aparece no diálogo e vai inteira para a área de transferência.
+export const LIVE_PERMISSION_COMMANDS: Record<SqlDialect, readonly string[]> = {
+  [SqlDialect.SqlServer]: [LIVE_PERMISSION_GRANTS, LIVE_PERMISSION_SHOWPLAN, LIVE_PERMISSION_SELECT].map((c) => c + ';'),
+  [SqlDialect.PostgreSql]: [LIVE_PG_PERMISSION_CONNECT, LIVE_PG_PERMISSION_USAGE, LIVE_PG_PERMISSION_SELECT, LIVE_PG_READ_ONLY].map((c) => c + ';'),
+};
 
 export const LIVE_CONNECTION_PLACEHOLDER: Record<SqlDialect, string> = {
   [SqlDialect.SqlServer]: 'Server=...;Database=...;User Id=...;Password=...',

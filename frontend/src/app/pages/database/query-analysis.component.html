@@ -1,18 +1,18 @@
 <div class="qa-main">
   <p class="muted qa-origin">
     @if (shownOrigin(); as o) {
-      Veio do passo {{ o }}
+      Veio do passo “{{ o }}”
     } @else {
       Cole uma consulta ou abra uma pelo passo do fluxo
     }
   </p>
 
   @if (!result()) {
-    <label class="qa-label" for="qa-sql">Consulta SQL ({{ dialectLabel[dialect()] }})</label>
+    <label class="section-title qa-label" for="qa-sql">Consulta SQL ({{ dialectLabel[dialect()] }})</label>
     <textarea #box id="qa-sql" class="input qa-box code" rows="12" spellcheck="false" autocomplete="off"
       placeholder="SELECT ... FROM ..." [value]="text()" (input)="edit($any($event.target).value)"
       (keydown.control.enter)="analyze()" (keydown.meta.enter)="analyze()"></textarea>
-    <div class="qa-actions">
+    <div class="row-wrap qa-actions">
       <button type="button" class="btn btn-p" (click)="analyze()" [disabled]="!text().trim() || busy()" aria-describedby="qa-analyze-help">{{ busy() ? 'Analisando…' : 'Analisar' }}</button>
       @if (!text().trim()) {
         <button type="button" class="btn btn-g" (click)="useExample()">Usar um exemplo</button>
@@ -27,17 +27,17 @@
     }
   } @else {
     @let r = result()!;
-    <div class="qa-sql-head">
-      <h2 id="qa-result-title" class="qa-title" tabindex="-1">Consulta analisada</h2>
+    <div class="row-wrap qa-sql-head">
+      <h2 id="qa-result-title" class="section-title qa-title" tabindex="-1">Consulta analisada</h2>
       <button type="button" class="btn btn-g btn-small" (click)="backToEditing()">Editar a consulta</button>
     </div>
-    <pre class="qa-sql code" tabindex="0" aria-label="Consulta analisada, com os trechos dos achados marcados"><code>@for (s of segments(); track $index) {@if (s.findings.length) {<mark class="qa-mark is-{{ severitySlug[severityOf(s.findings)!] }}" [class.is-active]="isActive(s.findings)" [attr.data-f]="s.key">{{ s.text }}</mark>}@else{<ng-container>{{ s.text }}</ng-container>}}</code></pre>
+    <pre class="code-block qa-sql code" role="region" tabindex="0" aria-label="Consulta analisada, com os trechos dos achados marcados"><code>@for (s of segments(); track $index) {@if (s.findings.length) {<mark class="qa-mark is-{{ severitySlug[severityOf(s.findings)!] }}" [class.is-active]="isActive(s.findings)" [attr.data-f]="s.key">{{ s.text }}<span class="visually-hidden"> (achado, gravidade: {{ severityLabel[severityOf(s.findings)!] }})</span></mark>}@else{<ng-container>{{ s.text }}</ng-container>}}</code></pre>
 
     @if (r.analysis.error; as e) {
       <p class="notice is-error" role="alert">{{ readerLabel[r.analysis.dialect] }} não entendeu a consulta (linha {{ e.line }}, coluna {{ e.column }}): {{ e.message }}</p>
     } @else {
-      <div class="qa-count" role="status">
-        <h2 class="qa-title">{{ countText() }}</h2>
+      <div class="row-wrap qa-count" role="status">
+        <h2 class="section-title qa-title">{{ countText() }}</h2>
         <span class="muted">Regra fixa, sem IA: a mesma consulta dá sempre o mesmo resultado</span>
       </div>
       @if (r.analysis.findings.length === 0) {
@@ -47,32 +47,43 @@
           @for (f of r.analysis.findings; track $index) {
             <li class="qa-finding is-{{ severitySlug[f.severity] }}" [class.is-active]="active() === $index">
               <button type="button" class="qa-finding-btn" [attr.aria-pressed]="active() === $index" (click)="toggle($index)">
-                <span class="qa-sev is-{{ severitySlug[f.severity] }}">{{ severityLabel[f.severity] }}</span>
+                <span class="sev-tag is-{{ severitySlug[f.severity] }}">{{ severityLabel[f.severity] }}</span>
                 <strong>{{ title[f.kind] }}</strong>
                 <code class="qa-snippet">{{ f.snippet }}</code>
                 <span class="qa-why">{{ f.message }}</span>
               </button>
               @if (tableOf(f); as key) {
-                <button type="button" class="btn btn-g btn-small qa-map" (click)="pickTable.emit(key)" [attr.aria-label]="'Ver ' + key + ' no mapa'">ver no mapa</button>
+                <button type="button" class="btn btn-g btn-small qa-map" (click)="pickTable.emit(key)" [attr.aria-label]="'Ver ' + key + ' no mapa'">Ver no mapa</button>
               }
             </li>
           }
         </ul>
       }
 
-      @if (canSuggest()) {
+      @if (canSuggest() || suggestion()) {
         <section class="qa-ai" aria-labelledby="qa-ai-title">
-          <h2 id="qa-ai-title" class="qa-title">Sugestão da IA</h2>
-          <div class="qa-actions">
-            <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : suggestion() ? 'Pedir outra sugestão' : 'Sugerir melhora com a IA' }}</button>
-            <span class="muted qa-hint">Vai para {{ providerName() }}: a consulta, os achados e só as tabelas que ela usa (nomes, colunas, tipos e índices). Os dados das tabelas e a string de conexão nunca vão.</span>
-          </div>
+          <h2 id="qa-ai-title" class="section-title qa-title">Sugestão da IA</h2>
+          @if (canSuggest()) {
+            <div class="row-wrap qa-actions">
+              <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : suggestion() ? 'Pedir outra sugestão' : 'Sugerir melhora com a IA' }}</button>
+              <app-ai-disclosure class="qa-hint" goes="a consulta, os achados e só as tabelas que ela usa (nomes, colunas, tipos e índices)" never="Os dados das tabelas e a string de conexão nunca vão." />
+            </div>
+          } @else {
+            <p class="muted qa-hint qa-ai-gone">A IA está desligada agora. A sugestão abaixo foi recebida antes e continua aqui; para pedir outra, ligue o uso de sugestões em <a routerLink="/configuracoes">Configurações</a>.</p>
+          }
           <!-- Região viva fixa: o anúncio da espera e da resposta vale mesmo com o conteúdo aparecendo depois. -->
           <p class="visually-hidden" role="status" aria-live="polite">{{ suggestAnnouncement() }}</p>
           @if (suggestError(); as message) {
             <div class="notice is-error" role="alert">
               <p>{{ message }}</p>
-              <button type="button" class="btn btn-g btn-small" (click)="suggest()">Tentar de novo</button>
+              <div class="row-wrap qa-actions">
+                @if (canSuggest()) {
+                  <button type="button" class="btn btn-g btn-small" (click)="suggest()">Tentar de novo</button>
+                }
+                @if (suggestErrorNeedsSettings()) {
+                  <a class="btn btn-g btn-small" routerLink="/configuracoes">Abrir as Configurações</a>
+                }
+              </div>
             </div>
           }
           @if (suggestion(); as s) {
@@ -92,7 +103,7 @@
       @if (live()) {
         <app-query-plan [repository]="repository()" [sql]="r.sql" [dialect]="liveDialect() ?? dialect()" />
       }
-      <h2 class="qa-title">Tabelas da consulta</h2>
+      <h2 class="section-title qa-title">Tabelas da consulta</h2>
       @if (r.analysis.tables.length === 0) {
         <p class="muted">Nenhuma tabela citada.</p>
       }

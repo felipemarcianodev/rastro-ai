@@ -1,3 +1,4 @@
+import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
@@ -103,5 +104,106 @@ describe('App', () => {
     const { el } = render([]);
     expect(el.querySelector('select')).toBeNull();
     expect(el.querySelector('header button')).toBeNull();
+  });
+
+  // UX-FIM-C03
+  it('tem o link "Ir para o conteúdo" que foca o main', () => {
+    const { el } = render([]);
+    const skip = el.querySelector<HTMLAnchorElement>('a.skip-link')!;
+    const main = el.querySelector<HTMLElement>('main#conteudo')!;
+    expect(skip.textContent?.trim()).toBe('Ir para o conteúdo');
+    expect(main.getAttribute('tabindex')).toBe('-1');
+    document.body.appendChild(el);
+    skip.click();
+    expect(document.activeElement).toBe(main);
+    el.remove();
+  });
+});
+
+@Component({ template: '<h1>Pagina A</h1><button id="item" type="button">Item</button>' })
+class PageAComponent {}
+
+@Component({ template: '<h1>Pagina B</h1><button id="item" type="button">Item</button>' })
+class PageBComponent {
+  constructor() {
+    // Como ?passo= e ?tabela=: a página já pôs o foco num item ao abrir.
+    setTimeout(() => document.getElementById('item')?.focus());
+  }
+}
+
+@Component({ template: '<h1>Pagina C</h1>' })
+class PageCComponent {}
+
+// UX-FIM-C12
+describe('App, foco no h1 depois da navegação', () => {
+  const tick = () => new Promise<void>((resolve) => setTimeout(resolve));
+
+  async function setup() {
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideRouter([
+          { path: 'a', component: PageAComponent },
+          { path: 'b', component: PageBComponent },
+          { path: 'c', component: PageCComponent },
+          { path: '**', children: [] },
+        ]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(App);
+    const http = TestBed.inject(HttpTestingController);
+    http.match('/api/ai/status').forEach((r) => r.flush({}));
+    http.expectOne('/api/repositories').flush([]);
+    document.body.appendChild(fixture.nativeElement);
+    fixture.detectChanges();
+    return { fixture, router: TestBed.inject(Router) };
+  }
+
+  it('foca o h1 da página nova, com tabindex -1 posto pelo código, e não na primeira carga', async () => {
+    const { fixture, router } = await setup();
+    await router.navigateByUrl('/a');
+    fixture.detectChanges();
+    await tick();
+    expect(document.activeElement?.tagName).toBe('BODY');
+
+    await router.navigateByUrl('/c');
+    fixture.detectChanges();
+    await tick();
+    const h1 = document.activeElement as HTMLElement;
+    expect(h1.tagName).toBe('H1');
+    expect(h1.textContent).toBe('Pagina C');
+    expect(h1.getAttribute('tabindex')).toBe('-1');
+    fixture.nativeElement.remove();
+  });
+
+  it('não tira o foco de um item que a página já selecionou', async () => {
+    const { fixture, router } = await setup();
+    await router.navigateByUrl('/a');
+    fixture.detectChanges();
+    await router.navigateByUrl('/b');
+    fixture.detectChanges();
+    await tick();
+    await tick();
+    expect(document.activeElement?.id).toBe('item');
+    fixture.nativeElement.remove();
+  });
+
+  it('mudança só de query ou fragmento na mesma página não move o foco', async () => {
+    const { fixture, router } = await setup();
+    await router.navigateByUrl('/a');
+    fixture.detectChanges();
+    await router.navigateByUrl('/c');
+    fixture.detectChanges();
+    await tick();
+    const item = document.createElement('button');
+    fixture.nativeElement.querySelector('main').appendChild(item);
+    item.focus();
+    await router.navigateByUrl('/c?aba=2');
+    fixture.detectChanges();
+    await tick();
+    expect(document.activeElement).toBe(item);
+    fixture.nativeElement.remove();
   });
 });

@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { DB_CARD, DB_CARD_MAX_ROWS, dbMapGeometry, dbMapSvg } from '../../core/database/db-map';
 import {
   DbSchema,
   DbUsageReport,
+  KeyMark,
   sameName,
   SCHEMA_FINDING_BADGE,
   SCHEMA_SOURCE_LABEL,
@@ -31,6 +32,12 @@ import { QueryAnalysisComponent } from './query-analysis.component';
 
 const MESSAGE_MS = 4000;
 const REVEAL_MARGIN = 16;
+// Atraso da busca da lista antes de refiltrar (UX-FIM-B10): em banco grande, não refiltra a cada tecla.
+const SEARCH_DEBOUNCE_MS = 150;
+// Abaixo disso o painel abre embaixo do mapa (UX-FIM-B11).
+const NARROW_QUERY = '(max-width: 900px)';
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const EXPORT_BUTTON_ID = 'db-export-button';
 // Recorte por tabela: 0 é o banco inteiro; 1 a 3, os vizinhos até tantos saltos.
 const HOP_CHOICES = [1, 2, 3];
 // Zoom do mapa: de metade a uma vez e meia, de quarto em quarto.
@@ -97,6 +104,7 @@ export class DatabasePage {
   protected readonly canSwitch = computed(() => this.repositories().length > 1 && this.repositories().some((r) => r.name === this.nome()));
 
   protected readonly DbTab = DbTab;
+  protected readonly KeyMark = KeyMark;
   protected readonly tabs = DB_TABS;
   protected readonly tabLabel = DB_TAB_LABEL;
   protected readonly tabHint = DB_TAB_HINT;
@@ -111,6 +119,9 @@ export class DatabasePage {
   protected readonly error = signal<string | null>(null);
   protected readonly repositories = signal<RepositoryItem[]>([]);
   protected readonly query = signal('');
+  // O que de fato filtra: segue o texto digitado com atraso (SEARCH_DEBOUNCE_MS).
+  protected readonly filter = signal('');
+  private searchTimer?: ReturnType<typeof setTimeout>;
   protected readonly selection = signal<DbPick | null>(null);
   protected readonly hops = signal(0);
   protected readonly zoom = signal(1);
@@ -124,6 +135,8 @@ export class DatabasePage {
   private readonly reload = signal(0);
   protected readonly connection = signal<LiveConnectionView | null>(null);
   protected readonly connectionOpen = signal(false);
+  // A leitura da conexão falhou (UX-FIM-B07): a barra não promete "nenhum banco é consultado" sem saber.
+  protected readonly connectionError = signal(false);
   // Com conexão salva, o selo e a promessa mudam; sem ela, o banco nunca é consultado.
   protected readonly live = computed(() => (this.connection()?.configured ? this.connection() : null));
   // O dialeto da conexão salva ou, sem ela, o do código do repositório (Fase 42b).
@@ -156,7 +169,7 @@ export class DatabasePage {
 
   protected readonly list = computed(() => {
     const schema = this.schema();
-    const q = this.query();
+    const q = this.filter();
     if (!schema) return null;
     return {
       tables: schema.tables.filter((t) => matches(q, t, t.columns.map((c) => c.name))).map((t) => tableKey(t)),
@@ -206,7 +219,7 @@ export class DatabasePage {
   });
 
   // Busca escurece no mapa o que não casa (a lista mostra só o que casa).
-  protected readonly matching = computed<ReadonlySet<string> | null>(() => (this.query().trim() ? new Set(this.list()?.tables ?? []) : null));
+  protected readonly matching = computed<ReadonlySet<string> | null>(() => (this.filter().trim() ? new Set(this.list()?.tables ?? []) : null));
 
   // Selo do bloco: o achado do esquema pelo nome ("FK sem índice", "+1" com os outros) ou a contagem dos achados dos fluxos.
   protected readonly badges = computed(() => {
@@ -225,6 +238,19 @@ export class DatabasePage {
   });
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.searchTimer));
+
+    // Abaixo de 900px o painel abre embaixo do mapa: ao escolher, ele rola para a vista (UX-FIM-B11).
+    effect(() => {
+      const pick = this.selection();
+      if (!pick) return;
+      untracked(() => {
+        if (!window.matchMedia(NARROW_QUERY).matches) return;
+        const behavior: ScrollBehavior = window.matchMedia(REDUCED_MOTION_QUERY).matches ? 'auto' : 'smooth';
+        setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>('.db-panel')?.scrollIntoView({ block: 'nearest', behavior }));
+      });
+    });
+
     effect((onCleanup) => {
       const name = this.nome();
       this.reload();
@@ -267,8 +293,14 @@ export class DatabasePage {
       const name = this.nome();
       this.reload();
       const sub = this.api.connection(name).subscribe({
-        next: (connection) => this.connection.set(connection),
-        error: () => this.connection.set(null),
+        next: (connection) => {
+          this.connectionError.set(false);
+          this.connection.set(connection);
+        },
+        error: () => {
+          this.connection.set(null);
+          this.connectionError.set(true);
+        },
       });
       onCleanup(() => sub.unsubscribe());
     });
@@ -331,6 +363,16 @@ export class DatabasePage {
     if (table) this.choose({ kind: DbItemKind.Table, key: tableKey(table) }, true);
   }
 
+  protected onSearch(value: string): void {
+    this.query.set(value);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.filter.set(value), SEARCH_DEBOUNCE_MS);
+  }
+
+  protected itemId(kind: DbItemKind, key: string): string {
+    return `${kind}:${key}`;
+  }
+
   protected choose(pick: DbPick, focus = false): void {
     this.selection.set(pick);
     if (pick.kind !== DbItemKind.Table) this.hops.set(0);
@@ -352,9 +394,12 @@ export class DatabasePage {
 
   protected closePanel(): void {
     const key = this.selectedTable();
+    const pick = this.selection();
     this.selection.set(null);
     this.hops.set(0);
     if (key) this.focusCard(key);
+    // View ou procedure: o foco volta ao item da lista que abriu o painel (UX-FIM-B09).
+    else if (pick) this.focusItem(pick);
   }
 
   // Salvou ou removeu a conexão: o esquema (a fonte "banco vivo" entra ou sai) e a conexão são lidos de novo.
@@ -368,8 +413,19 @@ export class DatabasePage {
 
   protected onEscape(): void {
     if (this.connectionOpen()) this.connectionOpen.set(false);
-    else if (this.exportOpen()) this.exportOpen.set(false);
-    else if (this.selection()) this.closePanel();
+    else if (this.exportOpen()) this.closeExport();
+    // Na aba de consulta o Esc não fecha o painel do mapa, que nem está à vista (UX-FIM-B12).
+    else if (this.selection() && this.tab() === DbTab.Map) this.closePanel();
+  }
+
+  // Fecha o menu e devolve o foco ao botão "Exportar" (UX-FIM-B12).
+  protected closeExport(): void {
+    this.exportOpen.set(false);
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(`#${EXPORT_BUTTON_ID}`)?.focus({ preventScroll: true }));
+  }
+
+  private focusItem(pick: DbPick): void {
+    setTimeout(() => this.host.nativeElement.querySelector<HTMLElement>(`[data-item="${CSS.escape(this.itemId(pick.kind, pick.key))}"]`)?.focus({ preventScroll: true }));
   }
 
   private focusCard(key: string): void {
@@ -389,14 +445,14 @@ export class DatabasePage {
 
   protected copyMermaid(): void {
     const schema = this.schema();
-    this.exportOpen.set(false);
+    this.closeExport();
     if (!schema) return;
     this.copy.copy('```mermaid\n' + toErMermaid(schema, this.shownKeys()) + '```\n');
   }
 
   protected downloadMermaid(): void {
     const schema = this.schema();
-    this.exportOpen.set(false);
+    this.closeExport();
     if (!schema) return;
     downloadBlob(new Blob([toErMermaid(schema, this.shownKeys())], { type: 'text/plain' }), `${this.fileName()}.mmd`);
     this.show({ ok: true, text: `Download iniciado: ${this.fileName()}.mmd` });
@@ -404,7 +460,7 @@ export class DatabasePage {
 
   protected exportImage(format: 'png' | 'svg'): void {
     const geometry = this.geometry();
-    this.exportOpen.set(false);
+    this.closeExport();
     if (!geometry) return;
     const svg = dbMapSvg(geometry, readDiagramColors(), this.badges());
     const name = this.fileName();

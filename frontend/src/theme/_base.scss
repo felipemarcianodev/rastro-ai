@@ -67,6 +67,11 @@ code,
   color: var(--ink-soft);
 }
 
+// O atributo hidden vale em qualquer tela, mesmo sobre um elemento com display próprio (flex, grid).
+[hidden] {
+  display: none !important;
+}
+
 // Preso ao topo: sem top e left, o elemento fica na posição que teria no fluxo e, dentro
 // de uma página que rola por conta própria, estica o documento e cria uma segunda rolagem.
 .visually-hidden {
@@ -86,5 +91,23 @@ code,
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+// UX-FIM-C03: link de pular para o conteúdo, visível só com foco.
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 8px;
+  z-index: 1000;
+  padding: 8px 14px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0 0 6px 6px;
+  transform: translateY(-120%);
+
+  &:focus {
+    transform: translateY(0);
   }
 }

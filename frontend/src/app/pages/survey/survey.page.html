@@ -120,7 +120,7 @@
       <div class="editbar" role="toolbar" aria-label="Edição do fluxo">
         <button type="button" class="btn btn-g btn-small" (click)="toggleNewStep()" [attr.aria-expanded]="showNewStep" aria-controls="new-step">Novo passo</button>
         <button type="button" class="btn btn-g btn-small" (click)="undo()" [disabled]="!canUndo()" title="Desfazer (Ctrl+Z)">Desfazer</button>
-        <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" title="Refazer (Ctrl+Shift+Z)">Refazer</button>
+        <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" title="Refazer (Ctrl+Y ou Ctrl+Shift+Z)">Refazer</button>
         <span class="muted editbar-count">{{ plural(changes(), 'mudança', 'mudanças') }}{{ dirty() ? ', não salvas' : '' }}</span>
         <button type="button" class="btn btn-g btn-small" (click)="hintOpen.set(!hintOpen())" [attr.aria-expanded]="hintOpen()" aria-controls="edit-hint" title="Como ligar e mover passos">Como funciona</button>
         @if (draftMessage(); as message) {
@@ -326,7 +326,7 @@
 }
 
 @if (prompt(); as p) {
-  <div class="overlay" appDialog (click)="closePrompt()">
+  <div class="overlay" appDialog (click)="closePrompt()" (dialogClose)="closePrompt()">
     <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="prompt-title" (click)="$event.stopPropagation()">
       <header class="dialog-head">
         <div>
@@ -367,7 +367,8 @@
             </ol>
             <button type="button" class="btn btn-g btn-small" (click)="appendSuggestion()">Acrescentar ao prompt</button>
           } @else if (canSuggest()) {
-            <button type="button" class="btn btn-g btn-small" (click)="askSuggestion()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Pedir sugestão de refatoração à IA' }}</button>
+            <button type="button" class="btn btn-g btn-small" (click)="askSuggestion()" [disabled]="suggesting()">{{ suggesting() ? 'Perguntando à IA…' : 'Sugerir refatoração com a IA' }}</button>
+            <app-ai-disclosure goes="o achado, o nome e as métricas do método e o trecho de código dele" />
           } @else {
             <p class="muted">Para a IA sugerir a refatoração, ligue a IA e o uso "Sugestões de melhoria" em <a routerLink="/configuracoes" (click)="closePrompt()">Configurações</a>.</p>
           }
