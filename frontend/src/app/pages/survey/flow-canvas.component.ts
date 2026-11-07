@@ -1016,6 +1016,14 @@ function readShortcutsSeen(): boolean {
   }
 }
 
+function readShortcutsSeen(): boolean {
+  try {
+    return localStorage.getItem(SHORTCUTS_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
 function readBrief(): boolean {
   try {
     return localStorage.getItem(BRIEF_KEY) === 'true';
