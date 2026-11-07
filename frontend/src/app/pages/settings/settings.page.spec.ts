@@ -193,3 +193,21 @@ describe('SettingsPage: voltar', () => {
     expect(navigate).toHaveBeenCalledWith('/');
   });
 });
+
+describe('SettingsPage: índice de seções', () => {
+  // UX-H16
+  it('mostraOIndiceComAsTresSecoesCadaUmaComId', () => {
+    const { fixture, http, el } = render();
+    http.match('/api/ai/status').forEach((r) => r.flush({}));
+    http.expectOne('/api/repositories').flush([]);
+    http.expectOne('/api/settings/ai').flush({
+      enabled: false, provider: 0, claudeModel: '', claudeHasKey: false, openAiModel: '', openAiHasKey: false, geminiModel: '', geminiHasKey: false,
+      dailyTokenBudget: 0, useFillHoles: true, useDescribeRules: true, useSuggestions: true, useContextSuggestions: true, updatedAt: '2026-11-06T10:00:00Z',
+    });
+    fixture.detectChanges();
+
+    const links = Array.from(el.querySelectorAll<HTMLAnchorElement>('nav.toc a'));
+    expect(links.map((a) => a.textContent?.trim())).toEqual(['Repositórios', 'Modo agente (MCP)', 'Inteligência artificial']);
+    for (const link of links) expect(el.querySelector(link.getAttribute('href')!)).not.toBeNull();
+  });
+});

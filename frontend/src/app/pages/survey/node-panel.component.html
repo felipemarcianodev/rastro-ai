@@ -144,13 +144,13 @@
             <li>
               <span class="db-op is-{{ dbSlug[a.operation] }}">{{ dbShort[a.operation] }}</span>
               @if (repository()) {
-                <a class="code" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="{ tabela: a.target }" [title]="'Ver ' + a.target + ' no mapa do banco'">{{ a.target }}</a>
+                <a class="code" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="withOrigin({ tabela: a.target })" [title]="'Ver ' + a.target + ' no mapa do banco'">{{ a.target }}</a>
               } @else {
                 <span class="code">{{ a.target }}</span>
               }
               <span class="muted">linha {{ a.line }}</span>
               @if (a.sql && repository()) {
-                <a class="db-sql-link" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="{ aba: queryTab, consulta: a.sql, origem: node.label }" title="Abrir a consulta deste passo na análise de consulta" [attr.aria-label]="'Analisar a consulta de ' + a.target + ', linha ' + a.line">Analisar a consulta</a>
+                <a class="db-sql-link" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="withOrigin({ aba: queryTab, consulta: a.sql, origem: node.label })" title="Abrir a consulta deste passo na análise de consulta" [attr.aria-label]="'Analisar a consulta de ' + a.target + ', linha ' + a.line">Analisar a consulta</a>
               }
             </li>
           }
@@ -168,7 +168,7 @@
     @if (hasFindings(node.id)) {
       <div class="block">
         <h3>Melhorias neste passo</h3>
-        <app-findings-list [graph]="graph()" [nodeId]="node.id" [repository]="repository()" (prompt)="refactorPrompt.emit($event)" />
+        <app-findings-list [graph]="graph()" [surveyId]="surveyId()" [nodeId]="node.id" [repository]="repository()" (prompt)="refactorPrompt.emit($event)" />
       </div>
     }
 
@@ -300,6 +300,22 @@
   <section class="panel" aria-labelledby="overview-title">
     <h2 id="overview-title">Visão geral</h2>
     <p class="muted">Clique num nó para ver o código e o caminho da entrada até ele.</p>
+    @if (unresolved().length > 0 || crossFlow().length > 0 || findingCount() > 0) {
+      <nav class="counters" aria-label="Ir para a seção">
+        @if (unresolved().length > 0) {
+          <button type="button" class="btn btn-g btn-small" (click)="jumpTo(sectionHoles)">{{ unresolved().length }} {{ unresolved().length === 1 ? 'buraco' : 'buracos' }}</button>
+        }
+        @if (crossFlow().length > 0) {
+          <button type="button" class="btn btn-g btn-small" (click)="jumpTo(sectionCrossFlow)">{{ crossFlow().length }} entre fluxos</button>
+        }
+        @if (findingCount() > 0) {
+          <button type="button" class="btn btn-g btn-small" (click)="jumpTo(sectionFindings)">{{ findingCount() }} {{ findingCount() === 1 ? 'melhoria' : 'melhorias' }}</button>
+        }
+      </nav>
+    }
+    @if (!editing()) {
+      <button type="button" class="btn btn-g btn-small ask-shortcut" (click)="openQuestions.emit()" title="Abre o mapa do fluxo na aba Perguntas">Perguntas sobre o fluxo</button>
+    }
     @if (summary(); as s) {
       <details class="section" open>
         <summary><h3>Resumo do fluxo</h3></summary>
@@ -307,8 +323,27 @@
       </details>
     }
 
+    @if (dbTables().length > 0) {
+      <details class="section" open id="section-db">
+        <summary><h3>Banco neste fluxo <span class="muted">({{ dbTables().length }} {{ dbTables().length === 1 ? 'tabela' : 'tabelas' }})</span></h3></summary>
+        <ul class="db-access">
+          @for (table of dbTables(); track table.name) {
+            <li>
+              <span class="code">{{ table.name }}</span>&ngsp;
+              @for (effect of table.effects; track effect) {
+                <span class="db-op is-{{ effectSlug[effect] }}">{{ effectLabel[effect] }}</span>&ngsp;
+              }
+            </li>
+          }
+        </ul>
+        @if (repository()) {
+          <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="withOrigin(dbQuery())">Abrir no mapa do banco</a>
+        }
+      </details>
+    }
+
     @if (unresolved().length > 0) {
-      <details class="section" open>
+      <details class="section" open [id]="sectionHoles">
         <summary><h3>Buracos para completar <span class="muted">({{ unresolved().length }})</span></h3></summary>
         <p class="muted">Chamadas que o compilador não ligou sozinho. Um agente conectado (MCP) ou a IA, se ligada, propõe o destino; você confirma.</p>
         @if (!aiActive()) {
@@ -373,7 +408,7 @@
     </details>
 
     @if (crossFlow().length > 0) {
-      <details class="section" open>
+      <details class="section" open [id]="sectionCrossFlow">
         <summary><h3>Entre fluxos <span class="muted">({{ crossFlow().length }})</span></h3></summary>
         <p class="muted">Este fluxo salva dados sem uma verificação que outros fluxos do repositório fazem antes de salvar. Confira se é de propósito.</p>
         <ul class="cross-flow">
@@ -387,9 +422,9 @@
       </details>
     }
 
-    <details class="section" open>
+    <details class="section" open [id]="sectionFindings">
       <summary><h3>Melhorias e dívida técnica <span class="muted">({{ findingCount() }})</span></h3></summary>
-      <app-findings-list [graph]="graph()" [repository]="repository()" (selectNode)="selectNode.emit($event)" (prompt)="refactorPrompt.emit($event)" />
+      <app-findings-list [graph]="graph()" [surveyId]="surveyId()" [repository]="repository()" (selectNode)="selectNode.emit($event)" (prompt)="refactorPrompt.emit($event)" />
     </details>
 
     @if (unresolved().length === 0) {

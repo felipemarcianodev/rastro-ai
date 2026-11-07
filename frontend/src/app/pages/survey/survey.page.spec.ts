@@ -78,7 +78,7 @@ describe('SurveyPage', () => {
 
       const link = Array.from(el.querySelectorAll<HTMLAnchorElement>('.page-bar a.btn')).find((a) => a.textContent?.trim() === 'Mapa do banco');
       expect(link).withContext(`status ${status}`).toBeDefined();
-      expect(link!.getAttribute('href')).toBe('/repositorios/LojaBanco/banco');
+      expect(link!.getAttribute('href')).toBe('/repositorios/LojaBanco/banco?levantamento=s1');
       expect(link!.classList.contains('btn-small')).toBeTrue();
       expect(el.querySelector('.page-bar-meta a')).toBeNull();
     }

@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DB_SURVEY_ORIGIN_PARAM } from '../../core/database/query-analysis';
 import {
   EFMarkerType,
   F_CONNECTION_BUILDERS,
@@ -130,6 +131,11 @@ export class FlowCanvasComponent {
   readonly graph = input.required<FlowGraph>();
   // Repositório do levantamento: nomeia o primeiro sistema no Mermaid exportado (Fase 25).
   readonly repository = input<string | undefined>(undefined);
+  readonly surveyId = input<string>('');
+
+  protected dbOriginQuery(): Record<string, string> | null {
+    return this.surveyId() ? { [DB_SURVEY_ORIGIN_PARAM]: this.surveyId() } : null;
+  }
   // Sistemas do levantamento (Fase 26): dão a linguagem de cada moldura.
   readonly systems = input<readonly SystemInfo[]>([]);
   readonly selectedId = input<string | null>(null);

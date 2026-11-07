@@ -21,7 +21,7 @@
               <button type="button" class="btn btn-g btn-small" (click)="selectNode.emit(item.finding.nodeId)" [title]="'Ir para ' + item.nodeLabel" [attr.aria-label]="'Ver no fluxo: ' + item.nodeLabel">Ver no fluxo</button>
             }
             @if (group.category === FindingCategory.Database && repository()) {
-              <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="item.finding.target ? { tabela: item.finding.target } : null"
+              <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="dbQuery(item.finding.target)"
                 [attr.aria-label]="'Ver no mapa do banco' + (item.finding.target ? ': ' + item.finding.target : '')">Ver no mapa do banco</a>
             }
             <button type="button" class="btn btn-g btn-small" (click)="prompt.emit(item.index)" [attr.aria-label]="'Prompt de refatoração: ' + kindLabel[item.finding.kind] + ' em ' + item.nodeLabel">Prompt de refatoração</button>

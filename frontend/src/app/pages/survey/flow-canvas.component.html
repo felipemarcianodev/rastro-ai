@@ -200,7 +200,7 @@
   <div><dt><span class="flow-node-step is-legend" aria-hidden="true">2.1</span></dt><dd>Ordem de leitura: o passo 2.1 vem dentro do passo 2</dd></div>
   <div><dt><span class="flow-node-effect is-legend" aria-hidden="true">banco</span></dt><dd>O que o passo faz no mundo: banco, mensagem, cache, arquivo ou fila
     @if (repository(); as repo) {
-      <a class="legend-link" [routerLink]="['/repositorios', repo, 'banco']" title="O mapa do banco deste repositório, lido do código">Ver o mapa do banco</a>
+      <a class="legend-link" [routerLink]="['/repositorios', repo, 'banco']" [queryParams]="dbOriginQuery()" title="O mapa do banco deste repositório, lido do código">Ver o mapa do banco</a>
     }</dd></div>
   <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-main" /></svg></dt><dd>Linha mais grossa: o código do método de entrada; os passos mais claros estão mais fundo nas chamadas</dd></div>
   <div><dt><svg class="swatch-line" viewBox="0 0 28 8" aria-hidden="true"><line x1="0" y1="4" x2="28" y2="4" class="is-exit" /></svg></dt><dd>Vermelha tracejada: o fluxo para com erro</dd></div>

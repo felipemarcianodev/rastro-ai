@@ -3,7 +3,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { DbSchema, DbUsageReport } from '../../core/database/db-schema';
-import { DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
+import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { DbOperation, FindingKind, FindingSeverity } from '../../core/models';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
 import { DatabasePage } from './database.page';
@@ -236,5 +236,56 @@ describe('DatabasePage (Fase 38)', () => {
     expect(el.querySelector('[role="tab"]')).toBeNull();
     expect([...el.querySelectorAll('button')].some((b) => b.textContent!.includes('banco vivo'))).toBeFalse();
     expect(el.querySelector('a[href="/configuracoes"]')!.textContent).toContain('configurações');
+  });
+
+  // WEB-DBV-014 (B04)
+  it('o "←" volta ao levantamento de origem; sem origem, à tela inicial', () => {
+    const none = render();
+    const back = none.el.querySelector<HTMLAnchorElement>('.page-back')!;
+    expect(back.getAttribute('href')).toBe('/');
+    expect(back.getAttribute('aria-label')).toBe('Voltar aos levantamentos');
+    TestBed.resetTestingModule();
+
+    const withOrigin = render();
+    withOrigin.fixture.componentRef.setInput(DB_SURVEY_ORIGIN_PARAM, 's42');
+    withOrigin.fixture.detectChanges();
+    const link = withOrigin.el.querySelector<HTMLAnchorElement>('.page-back')!;
+    expect(link.getAttribute('href')).toBe('/surveys/s42');
+    expect(link.getAttribute('aria-label')).toBe('Voltar ao levantamento de origem');
+  });
+
+  // WEB-DBV-015 (B26)
+  it('o bloco mostra o tipo curto, com o tipo completo no title', () => {
+    const schema = lojaSchema();
+    schema.tables[0].columns[1].type = 'character varying(120)';
+    schema.tables[0].columns[2].type = 'timestamp with time zone';
+    const { el } = render(schema);
+
+    const types = [...card(el, 'clientes').querySelectorAll<HTMLElement>('.db-row-type')];
+    expect(types[1].textContent!.trim()).toBe('varchar(120)');
+    expect(types[1].title).toBe('character varying(120)');
+    expect(types[2].textContent!.trim()).toBe('timestamptz');
+    expect(types[2].title).toBe('timestamp with time zone');
+  });
+
+  // WEB-DBV-016
+  it('com repositório inexistente na URL, o seletor não mostra outro repositório', () => {
+    TestBed.configureTestingModule({
+      imports: [DatabasePage],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
+    });
+    const fixture = TestBed.createComponent(DatabasePage);
+    fixture.componentRef.setInput('nome', 'fantasma');
+    const http = TestBed.inject(HttpTestingController);
+    fixture.detectChanges();
+    http.expectOne('/api/repositories').flush([{ name: 'loja', path: 'C:/loja' }, { name: 'blog', path: 'C:/blog' }]);
+    http.expectOne('/api/repositories/fantasma/connection').flush(null, { status: 404, statusText: 'Not Found' });
+    http.expectOne('/api/repositories/fantasma/schema').flush({ code: 'REPOSITORY_NOT_FOUND' }, { status: 404, statusText: 'Not Found' });
+    http.expectOne('/api/repositories/fantasma/schema/usage').flush({ code: 'X' }, { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+
+    const el = fixture.nativeElement as HTMLElement;
+    expect(el.querySelector('#db-repo')).toBeNull();
+    expect(el.querySelector('.page-bar-meta')!.textContent).toContain('fantasma');
   });
 });

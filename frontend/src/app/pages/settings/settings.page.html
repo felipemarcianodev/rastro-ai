@@ -5,6 +5,12 @@
     <p class="muted">O Rastro funciona sem IA. Com IA, ela completa os buracos do grafo e escreve as regras; tudo o que ela propõe passa pelo compilador antes de entrar.</p>
   </header>
 
+  <nav class="toc" aria-label="Nesta página">
+    <a href="#editor" (click)="goTo($event, 'editor')">Repositórios</a>
+    <a href="#agente" (click)="goTo($event, 'agente')">Modo agente (MCP)</a>
+    <a href="#ia" (click)="goTo($event, 'ia')">Inteligência artificial</a>
+  </nav>
+
   <section id="editor" class="card" aria-labelledby="repos-title">
     <h2 id="repos-title">Repositórios</h2>
     <p>As pastas de código que o Rastro pode ler. A pasta cadastrada também serve ao botão "Abrir no VS Code", que vai direto ao arquivo e à linha.</p>
@@ -87,7 +93,7 @@
   } @else if (!loaded()) {
     <p class="muted" aria-live="polite">Carregando a configuração…</p>
   } @else {
-    <section class="card" aria-labelledby="agent-title">
+    <section id="agente" class="card" aria-labelledby="agent-title">
       <h2 id="agent-title">Modo agente (MCP)</h2>
       <p>Um agente de código, como o Claude Code, usa o Rastro pelas ferramentas MCP e faz o papel da IA, com a assinatura dele. Não precisa de chave aqui.</p>
       <div class="command">
@@ -98,7 +104,7 @@
       <p class="muted small">O agente usa os mesmos levantamentos e repositórios desta tela (veja a seção Repositórios). Tudo o que ele propõe aparece como inferido e espera você confirmar no fluxo.</p>
     </section>
 
-    <form class="card" (ngSubmit)="save()" novalidate aria-labelledby="provider-title">
+    <form id="ia" class="card" (ngSubmit)="save()" novalidate aria-labelledby="provider-title">
       <div class="card-head">
         <h2 id="provider-title">Modo provedor</h2>
         <label class="switch">

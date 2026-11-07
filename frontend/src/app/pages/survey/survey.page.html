@@ -48,7 +48,7 @@
           </button>
         }
         @if (!editing()) {
-          <a class="btn btn-g btn-small" [routerLink]="['/repositorios', d.survey.repository, 'banco']" title="O mapa do banco deste repositório, lido do código">Mapa do banco</a>
+          <a class="btn btn-g btn-small" [routerLink]="['/repositorios', d.survey.repository, 'banco']" [queryParams]="dbOriginQuery(d.survey.id)" title="O mapa do banco deste repositório, lido do código">Mapa do banco</a>
         }
         @if (d.survey.status === SurveyStatus.Completed && !editing()) {
           <button type="button" class="btn btn-g btn-small" (click)="toggleConsolidated()" [attr.aria-pressed]="consolidated()"
@@ -273,9 +273,9 @@
         @if (showConsolidated()) {
           <app-consolidated-view [detail]="d" [focus]="focusId() ? g : null" [selectedId]="selectedId()" (selectNode)="pickInDrawing($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
         } @else if (showMap()) {
-          <app-flow-map-view [detail]="d" [selectedId]="selectedId()" (selectNode)="pickInDrawing($event)" (focusFlow)="focusOnNode($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
+          <app-flow-map-view [detail]="d" [selectedId]="selectedId()" [tabRequest]="mapTabRequest()" (selectNode)="pickInDrawing($event)" (focusFlow)="focusOnNode($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
         } @else {
-        <app-flow-canvas [graph]="g" [repository]="d.survey.repository" [systems]="systems()"[selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
+        <app-flow-canvas [graph]="g" [repository]="d.survey.repository" [surveyId]="d.survey.id" [systems]="systems()"[selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
           [showFramework]="showFramework()" [editing]="editing()" [focusId]="focusId()" [layoutKey]="layoutKey()" [comparing]="!!comparison()" [matchIds]="matchIds()" [noteIds]="notes()" [currentMatch]="currentMatch()" (openSearch)="openSearch()" (selectNode)="select($event)" (toggleFramework)="toggleFramework()"
           (nodeMenu)="openMenu($event)" (jumpTo)="select($event, false)" (toggleFold)="toggleCollapse($event)" (summaryChange)="summary.set($event)"
           (createEdge)="onCreateEdge($event)" (reassignEdge)="onReassignEdge($event)" (directionChange)="onDirection($event)" />
@@ -288,7 +288,7 @@
           [canDescribe]="canDescribe()" [describing]="describing()" [describeMessage]="describeMessage()"
           [editing]="editing()" [focusId]="focusId()" [aiActive]="aiActive()"
           [notes]="notes()" [crossFlow]="crossFlow()" [savingNote]="savingNote()" [noteMessage]="noteMessage()" [noteUndo]="noteUndo()" (saveNote)="saveNote($event)"
-          (focusFlow)="focusOnNode($event)" (showAll)="showAll()"
+          (focusFlow)="focusOnNode($event)" (showAll)="showAll()" (openQuestions)="openQuestions()"
           (selectNode)="select($event)" (closePanel)="closePanel($event)" (decideEdge)="decide($event)" (fillHole)="fillHole($event)" (describe)="describe($event)"
           (removeEdge)="onRemoveEdge($event)" (removeStep)="onRemoveStep($event)" (restoreStep)="onRestoreStep($event)"
           (setIntent)="onSetIntent($event)" (connectTo)="onConnectTo($event)" (refactorPrompt)="openRefactorPrompt($event)" />

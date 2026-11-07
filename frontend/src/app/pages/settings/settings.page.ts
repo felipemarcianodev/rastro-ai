@@ -22,6 +22,8 @@ import { ConfirmDialogComponent } from '../survey/confirm-dialog.component';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 // Sem caminho de máquina: o usuário troca o marcador pela pasta onde o Rastro está.
+// Seções que o fragmento da URL leva (o selo da IA aponta para #ia).
+const SCROLL_SECTIONS = ['agente', 'ia'];
 const MCP_COMMAND = 'claude mcp add rastro -- rastro mcp';
 
 interface ProviderForm {
@@ -262,7 +264,13 @@ export class SettingsPage implements OnInit {
   private fragmentDone = false;
 
   private focusFromFragment(): void {
-    if (this.fragmentDone || this.route.snapshot.fragment !== 'editor') return;
+    if (this.fragmentDone) return;
+    const fragment = this.route.snapshot.fragment;
+    if (fragment === 'editor') this.focusEditor();
+    else if (fragment && SCROLL_SECTIONS.includes(fragment)) this.scrollToSection(fragment);
+  }
+
+  private focusEditor(): void {
     setTimeout(() => {
       const input = document.querySelector<HTMLElement>('#editor input');
       if (!input) return;
@@ -270,6 +278,23 @@ export class SettingsPage implements OnInit {
       document.getElementById('editor')?.scrollIntoView({ block: 'start' });
       input.focus({ preventScroll: true });
     });
+  }
+
+  // #ia e #agente: as seções só existem depois que a configuração chega.
+  private scrollToSection(id: string): void {
+    setTimeout(() => {
+      const section = document.getElementById(id);
+      if (!section) return;
+      this.fragmentDone = true;
+      section.scrollIntoView({ block: 'start' });
+    });
+  }
+
+  // Índice no topo: rola até a seção e põe o fragmento na URL sem recarregar.
+  protected goTo(event: Event, id: string): void {
+    event.preventDefault();
+    document.getElementById(id)?.scrollIntoView({ block: 'start' });
+    void this.router.navigate([], { fragment: id, replaceUrl: true });
   }
 
   protected copyCommand(): void {

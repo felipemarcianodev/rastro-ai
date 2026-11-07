@@ -1,4 +1,4 @@
-import { dbMapGeometry, dbMapSvg } from './db-map';
+import { dbMapGeometry, dbMapSvg, shortType } from './db-map';
 import { Cardinality, findingText, linkTableOf, matches, neighborhood, relationsOf, toErMermaid } from './db-schema';
 import { lojaSchema } from './loja-schema.spec';
 
@@ -87,5 +87,22 @@ describe('esquema do banco (Fase 38)', () => {
   // WEB-DB-008
   it('explica o achado com a fonte que criou a FK', () => {
     expect(findingText(lojaSchema().findings[1])).toContain('migration Loja.Api/Migrations/20261020_Pagamentos.cs:24 cria a FK pedido_id sem índice');
+  });
+
+  // CORE-DBM-020 (B26)
+  it('shortType abrevia os tipos longos do PostgreSQL e mantém os outros', () => {
+    expect(shortType('character varying(120)')).toBe('varchar(120)');
+    expect(shortType('timestamp with time zone')).toBe('timestamptz');
+    expect(shortType('numeric(10, 2)')).toBe('numeric(10,2)');
+    expect(shortType('nvarchar(max)')).toBe('nvarchar(max)');
+  });
+
+  // CORE-DBM-021 (B27)
+  it('sem chave estrangeira, o mapa distribui os blocos em grade', () => {
+    const tables = lojaSchema().tables.map((t) => ({ ...t, foreignKeys: [] }));
+    const geometry = dbMapGeometry(tables, [])!;
+
+    expect(new Set(geometry.cards.map((c) => c.x)).size).toBe(3);
+    expect(geometry.cards.length).toBe(6);
   });
 });

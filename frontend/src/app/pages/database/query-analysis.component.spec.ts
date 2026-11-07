@@ -1,10 +1,10 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { SqlDialect } from '../../core/database/db-schema';
 import { lojaSchema } from '../../core/database/loja-schema.spec';
-import { QueryAnalysis, QueryFindingKind, QuerySeverity } from '../../core/database/query-analysis';
+import { QueryAnalysis, QueryFindingKind, QuerySeverity, exampleQuery } from '../../core/database/query-analysis';
 import { DatabasePage } from './database.page';
 import { QueryAnalysisComponent } from './query-analysis.component';
 
@@ -311,4 +311,40 @@ describe('QueryAnalysisComponent no PostgreSQL (Fase 42)', () => {
     expect(ctx.el.querySelector('mark')!.classList).toContain('is-high');
     expect(ctx.el.textContent).toContain('Leitura sem limite, filtrada só por igualdade');
   });
+
+  // WEB-DBQ-030 (B11)
+  it('"Usar um exemplo" preenche um SELECT no dialeto, com uma tabela do esquema, e o Analisar desabilitado tem ajuda ligada', () => {
+    const ctx = render();
+    const analyzeButton = ctx.el.querySelector<HTMLButtonElement>('.qa-actions .btn-p')!;
+    expect(analyzeButton.disabled).toBeTrue();
+    const help = ctx.el.querySelector(`#${analyzeButton.getAttribute('aria-describedby')}`)!;
+    expect(help.textContent).toContain('Escreva ou cole uma consulta');
+
+    [...ctx.el.querySelectorAll<HTMLButtonElement>('.qa-actions button')].find((b) => b.textContent!.includes('Usar um exemplo'))!.click();
+    ctx.fixture.detectChanges();
+
+    expect(ctx.el.querySelector<HTMLTextAreaElement>('#qa-sql')!.value).toBe('SELECT TOP 10 id, nome, email\nFROM clientes;');
+    expect(analyzeButton.disabled).toBeFalse();
+    expect(ctx.el.textContent).not.toContain('Usar um exemplo');
+  });
+
+  // WEB-DBQ-031 (B11)
+  it('o exemplo do PostgreSQL usa LIMIT, e sem esquema usa nomes genéricos', () => {
+    TestBed.configureTestingModule({ providers: [provideHttpClient(), provideHttpClientTesting()] });
+    expect(exampleQuery(SqlDialect.PostgreSql, lojaSchema())).toBe('SELECT id, nome, email\nFROM clientes\nLIMIT 10;');
+    expect(exampleQuery(SqlDialect.SqlServer, null)).toBe('SELECT TOP 10 id, nome\nFROM clientes;');
+  });
+
+  // WEB-DBQ-032 (B12)
+  it('depois de analisar, o foco vai ao título do resultado e a contagem é anunciada', fakeAsync(() => {
+    const ctx = render();
+    analyze(ctx, analysis());
+    tick();
+
+    const title = ctx.el.querySelector<HTMLElement>('#qa-result-title')!;
+    expect(title.textContent).toContain('Consulta analisada');
+    expect(title.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(title);
+    expect(ctx.el.querySelector('.qa-count')!.getAttribute('role')).toBe('status');
+  }));
 });

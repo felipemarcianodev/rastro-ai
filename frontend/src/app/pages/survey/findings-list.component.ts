@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DB_SURVEY_ORIGIN_PARAM } from '../../core/database/query-analysis';
 import {
   FINDING_CATEGORY_LABEL,
   FINDING_CATEGORY_OF,
@@ -34,6 +35,15 @@ export class FindingsListComponent {
   readonly nodeId = input<string | null>(null);
   // Nome do repositório no catálogo: é o que leva o achado de banco ao mapa do banco.
   readonly repository = input<string>('');
+  // Levantamento de onde se sai para o banco: o "←" da tela do banco volta a ele.
+  readonly surveyId = input<string>('');
+
+  protected dbQuery(target: string | null | undefined): Record<string, string> | null {
+    const query: Record<string, string> = {};
+    if (target) query['tabela'] = target;
+    if (this.surveyId()) query[DB_SURVEY_ORIGIN_PARAM] = this.surveyId();
+    return Object.keys(query).length ? query : null;
+  }
   protected readonly FindingCategory = FindingCategory;
   readonly selectNode = output<string>();
   readonly prompt = output<number>();
