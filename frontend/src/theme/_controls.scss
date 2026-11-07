@@ -92,6 +92,17 @@
   color: var(--ink-soft);
 }
 
+// Campo com um botão ao lado (o "Procurar…" da pasta, na janela própria): o campo ocupa o resto da linha.
+.field-row {
+  display: flex;
+  gap: var(--space-2);
+
+  .input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 // Nome do campo com o botão "i", que abre a explicação do campo logo abaixo.
 .field-head {
   display: flex;

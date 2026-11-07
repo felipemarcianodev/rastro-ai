@@ -29,8 +29,16 @@ Requer o SDK do .NET 10 (o Rastro carrega a sua solution com o MSBuild dele). O 
 
 ```bash
 dotnet tool install -g rastro-ai
-rastro                      # tela em http://127.0.0.1:7450 (só nesta máquina; --porta troca)
+rastro                      # abre a janela do Rastro; a tela também fica em http://127.0.0.1:7450 (só nesta máquina; --porta troca)
+rastro --sem-janela         # só o console e o endereço, para abrir no navegador
 ```
+
+O `rastro` abre numa janela própria, como um app ([ADR-007](docs/adr/adr-007-janela-propria.md)). Fechar a janela encerra o Rastro. A tela continua no navegador, no mesmo endereço, ao mesmo tempo. Na janela, o campo da pasta do repositório ganha o botão "Procurar…", que abre a caixa "Escolher pasta" do sistema. A janela usa o WebView do sistema:
+- **Windows:** o WebView2 Runtime, que já vem no Windows 11 e nas versões atuais do Windows 10 (senão, [baixe da Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/));
+- **Linux:** a `libwebkit2gtk-4.1` (no Ubuntu e no Debian, `sudo apt install libwebkit2gtk-4.1-0`) e uma sessão com tela;
+- **macOS:** nada a instalar.
+
+Sem isso, o Rastro avisa no console, continua no ar e mostra o endereço para abrir no navegador.
 
 Se o Rastro já estiver aberto nessa porta, o comando só mostra o endereço e termina. Se outro programa estiver nela, ele pede que você escolha outra com `--porta`.
 
@@ -49,11 +57,12 @@ rastro repo add minha-api C:\codigo\minha-api --build "dotnet build MinhaApi.sln
 
 | Comando | O que faz |
 |---|---|
-| `rastro` | Sobe a tela (API e front embutidos), só em `127.0.0.1` |
+| `rastro` | Sobe a tela (API e front embutidos), só em `127.0.0.1`, e abre a janela própria |
+| `rastro --sem-janela` | Sobe a tela sem abrir a janela (só o navegador) |
 | `rastro repo add/remove/list` | Repositórios que o Rastro pode ler (`~/.rastro/config.json`) |
 | `rastro mcp` | Servidor MCP para o seu agente de IA |
 
-Os dados ficam em `~/.rastro` (banco SQLite `rastro.db` e `config.json`); a variável `RASTRO_HOME` troca a pasta.
+Os dados ficam em `~/.rastro` (banco SQLite `rastro.db`, `config.json` e, depois da primeira janela, `janela/` com o cache do WebView); a variável `RASTRO_HOME` troca a pasta.
 
 ## IA opcional e plugável
 
@@ -167,6 +176,7 @@ Limites: configuração montada em tempo de execução não é lida. No PostgreS
 - **Extrator Angular (Node e TypeScript):** um script (`extractor-ts`, que vai dentro do pacote) roda no Node com o compilador do TypeScript do repositório analisado e devolve o mesmo grafo. É determinístico e não usa IA ([ADR-005](docs/adr/adr-005-extrator-angular.md)).
 - **Grafo como visão:** o código é a fonte da verdade. Cada levantamento guarda o hash do commit, e o grafo é refeito a cada análise.
 - **Desenho próprio:** a linha do tempo é calculada pelo Rastro (sem ELK), na ordem do código, e desenhada com o Foblex Flow.
+- **Janela própria:** o Photino.NET abre uma janela nativa com o WebView do sistema, apontando para a API local. A tela fala com a janela só para escolher pasta, por mensagens de formato fixo ([ADR-007](docs/adr/adr-007-janela-propria.md)).
 - **Segurança:** a API só escuta em `127.0.0.1`, recusa pedido de outro site e só lê pastas cadastradas. Build e testes da validação rodam sem shell, com o comando da configuração.
 
 Visão e decisões em [`docs/arquitetura/visao.md`](docs/arquitetura/visao.md) e nas [ADRs](docs/adr/).
@@ -219,4 +229,6 @@ Construído em par com o Claude (Claude Code), fase a fase, com plano, testes e 
 
 ## Licença
 
-[MIT](LICENSE). Falhas de segurança: veja [SECURITY.md](SECURITY.md).
+[MIT](LICENSE).
+
+Componentes de terceiros que vão no pacote com licença diferente da MIT: [Photino.NET e Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), a janela própria. Falhas de segurança: veja [SECURITY.md](SECURITY.md).
