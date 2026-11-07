@@ -57,4 +57,4 @@ O problema e a sugestão de cada item estão no plano de origem; aqui fica só o
 
 - [x] Documentação: `visao.md`, ADR, `SECURITY.md`, READMEs, `design-system.md`, `plano-mvp.md` e os planos de origem com os itens fechados.
 - [x] Prints das telas tocadas em `docs/telas/ux-acrescimos/` (índice em `docs/telas/README.md`), com clique de verdade no Chrome: "Editar build e testes", "Salvar comandos", "Conectar banco vivo" e o Esc, o passo do grafo e a chegada pela consulta do passo.
-- [ ] Levantamento de UX completo do frontend (pedido pela skill no fim de cada plano): fica para uma passada própria, depois do merge, para olhar a tela inteira com estes acréscimos.
+- [x] Levantamento de UX completo do frontend (pedido pela skill no fim de cada plano): feito em 2026-11-07, depois do merge, no [plano do levantamento completo](plano-ux-2026-11-07-levantamento-completo.md).
