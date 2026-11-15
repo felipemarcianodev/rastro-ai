@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 using Rastro.Core.Prompts;
 using Rastro.Core.Surveys;
@@ -18,6 +19,14 @@ public enum ValidationRequestError
     SurveyNotFound = 0,
     DraftRequired = 1,
     AlreadyRunning = 2
+}
+
+// Falha da validação que o usuário pode ler: o código e os parâmetros vão para a tela.
+public class ValidationFailureException(ValidationFailure failure, IReadOnlyList<string>? args = null, Exception? inner = null)
+    : Exception(FailureText.Of(failure, args), inner)
+{
+    public ValidationFailure Failure { get; } = failure;
+    public IReadOnlyList<string> Args { get; } = args ?? [];
 }
 
 public record ValidationRequestOutcome(SurveyValidation? Validation, ValidationRequestError? Error);
@@ -70,20 +79,25 @@ public class ChangeValidationService(
         {
             var survey = await db.Surveys.AsNoTracking().FirstAsync(s => s.Id == validation.SurveyId, ct);
             var draft = await db.SurveyDrafts.AsNoTracking().FirstOrDefaultAsync(d => d.SurveyId == survey.Id, ct)
-                        ?? throw new AnalysisException("O rascunho foi apagado antes da validação.");
+                        ?? throw new ValidationFailureException(ValidationFailure.DraftDeleted);
             var (newSurvey, result) = await ValidateAsync(survey, survey.ReadGraph()!, draft.ReadGraph(), ct);
 
             validation.Complete(newSurvey.Id, result, clock.GetUtcNow());
             logger.LogInformation("Validação {ValidationId} concluída: {Verdict}, nota {Score}.", validationId, result.Verdict, result.Score);
         }
+        catch (ValidationFailureException ex)
+        {
+            validation.Fail(ex.Failure, ex.Args, clock.GetUtcNow());
+            logger.LogWarning(ex, "Validação {ValidationId} falhou.", validationId);
+        }
         catch (AnalysisException ex)
         {
-            validation.Fail(ex.Message, clock.GetUtcNow());
+            validation.Fail(ValidationFailure.Analysis, FailureText.Nest(ex.Failure, ex.Args), clock.GetUtcNow());
             logger.LogWarning(ex, "Validação {ValidationId} falhou.", validationId);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            validation.Fail("Falha inesperada na validação. Detalhes no log.", clock.GetUtcNow());
+            validation.Fail(ValidationFailure.Unexpected, null, clock.GetUtcNow());
             logger.LogError(ex, "Validação {ValidationId} falhou com erro inesperado.", validationId);
         }
 
@@ -93,9 +107,9 @@ public class ChangeValidationService(
     private async Task<(Survey NewSurvey, ChangeValidationResult Result)> ValidateAsync(Survey survey, FlowGraph original, FlowGraph draft, CancellationToken ct)
     {
         var target = catalog.Resolve(survey.Repository, survey.SolutionPath).Target
-                     ?? throw new AnalysisException("O repositório ou a solution não estão mais disponíveis na configuração.");
+                     ?? throw new ValidationFailureException(ValidationFailure.TargetUnavailable);
         if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet)
-            throw new AnalysisException("A validação de mudança ainda não lê código Angular.");
+            throw new ValidationFailureException(ValidationFailure.AngularUnsupported);
 
         var head = await git.HeadAsync(target.RepositoryRoot, ct);
         var handle = await solutions.OpenAsync(target, fresh: true, ct);
@@ -107,7 +121,7 @@ public class ChangeValidationService(
         }
         catch (FlowEntryNotFoundException ex)
         {
-            throw new AnalysisException($"O ponto de entrada não existe mais no código: {ex.Message}", ex);
+            throw new ValidationFailureException(ValidationFailure.EntryGone, [survey.EntryPoint], ex);
         }
         after = ChangeValidator.CarryRules(original, draft, after);
 

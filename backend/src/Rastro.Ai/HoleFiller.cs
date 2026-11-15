@@ -15,7 +15,11 @@ using Rastro.Infrastructure.Repositories;
 
 namespace Rastro.Ai;
 
-public record FillHoleResult(int Proposed, int Accepted, IReadOnlyList<string> Messages);
+// Um destino proposto pela IA e o que o validador decidiu. Quando recusado, Refusal e RefusalArgs dizem
+// o motivo em código (a tela traduz); Message é o texto em português de sempre.
+public record FillHoleItem(string Target, bool Accepted, string Message, int? Refusal, IReadOnlyList<string> RefusalArgs);
+
+public record FillHoleResult(int Proposed, int Accepted, IReadOnlyList<string> Messages, IReadOnlyList<FillHoleItem>? Items = null);
 
 // Modo provedor: a IA propõe destinos para um nó não resolvido. Ela vê só o buraco, o código em
 // volta e candidatos achados pelo compilador; cada proposta passa pelo mesmo ProposalService (e
@@ -118,6 +122,7 @@ public partial class HoleFiller(
         var items = Parse(result.Json);
 
         var messages = new List<string>();
+        var outcomes = new List<FillHoleItem>();
         var accepted = 0;
         foreach (var item in items.Take(MaxProposals))
         {
@@ -125,10 +130,11 @@ public partial class HoleFiller(
                 item.Reason, ProposalOrigin.Provider, ct, item.When, isHttp ? item.System : null);
             if (outcome.Accepted) accepted++;
             messages.Add($"{item.Target}: {(outcome.Accepted ? "aceita" : "recusada")}. {outcome.Message}");
+            outcomes.Add(new FillHoleItem(item.Target, outcome.Accepted, outcome.Message, (int?)outcome.Refusal, outcome.RefusalArgs ?? []));
         }
 
         if (items.Count == 0) messages.Add("A IA não achou no código um destino que pudesse provar.");
-        return new FillHoleResult(Math.Min(items.Count, MaxProposals), accepted, messages);
+        return new FillHoleResult(Math.Min(items.Count, MaxProposals), accepted, messages, outcomes);
     }
 
     private async Task<IReadOnlyList<(int Line, string Text)>> SnippetAsync(string repository, FlowNode hole, CancellationToken ct)

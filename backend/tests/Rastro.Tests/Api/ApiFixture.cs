@@ -132,6 +132,13 @@ public sealed class ApiFixture : IAsyncLifetime
 // Ancorado num tipo da API (não em Program, que também existe no Rastro.Mcp).
 public class RastroApiFactory(string connectionString) : WebApplicationFactory<Rastro.Api.Controllers.HealthController>
 {
+    // Os testes que conferem texto do servidor em português continuam valendo: o cliente pede pt-BR (ADR-009).
+    protected override void ConfigureClient(HttpClient client)
+    {
+        base.ConfigureClient(client);
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("pt-BR");
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseSetting("ConnectionStrings:Rastro", connectionString);

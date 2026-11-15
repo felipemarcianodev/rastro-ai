@@ -16,7 +16,7 @@
           <span class="muted">{{ 'validation.runningHint' | translate }}</span>
         </p>
       } @else if (v.status === ValidationStatus.Failed) {
-        <p class="notice is-error" role="alert">{{ v.error }}</p>
+        <p class="notice is-error" role="alert">{{ failureText(v.failure, v.failureArgs, v.error) }}</p>
       } @else if (v.result; as r) {
         <div [class]="'score is-' + verdictSlug[r.verdict]">
           <span class="score-value">{{ r.score }}</span>

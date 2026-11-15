@@ -14,6 +14,8 @@ public record ValidationView(
     Guid? NewSurveyId,
     ValidationStatus Status,
     string? Error,
+    int? Failure,
+    IReadOnlyList<string> FailureArgs,
     ChangeValidationResult? Result,
     DateTimeOffset CreatedAt,
     DateTimeOffset? CompletedAt,
@@ -21,7 +23,7 @@ public record ValidationView(
     bool HasDocument)
 {
     public static ValidationView From(SurveyValidation v) => new(
-        v.Id, v.SurveyId, v.NewSurveyId, v.Status, v.Error, v.ReadResult(), v.CreatedAt, v.CompletedAt, v.ApprovedAt, v.DocumentMarkdown is not null);
+        v.Id, v.SurveyId, v.NewSurveyId, v.Status, v.Error, (int?)v.Failure, v.ReadFailureArgs(), v.ReadResult(), v.CreatedAt, v.CompletedAt, v.ApprovedAt, v.DocumentMarkdown is not null);
 }
 
 // Validação da mudança (Fase 9): pedir, acompanhar, aprovar e baixar a documentação do fluxo.

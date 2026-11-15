@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Rastro.Api.Analysis;
 using Rastro.Core.Architecture;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 using Rastro.Core.Prompts;
 using Rastro.Core.Surveys;
@@ -217,12 +218,14 @@ public class SurveysController(
         if (survey.ReadGraph() is not { } original)
             return Error(ErrorCodes.DraftInvalid, "O levantamento ainda não tem grafo para editar.");
 
-        var errors = DraftValidator.Validate(original, draft).Concat(ForeignSystemEdits(original, draft)).ToList();
+        var errors = DraftValidator.ValidateCoded(original, draft).Concat(ForeignSystemEdits(original, draft)).ToList();
         if (errors.Count > 0)
         {
             var problem = new ProblemDetails { Status = StatusCodes.Status400BadRequest, Title = "Rascunho inválido." };
             problem.Extensions["code"] = ErrorCodes.DraftInvalid;
-            problem.Extensions["errors"] = errors;
+            // "errors": o texto em português (clientes antigos); "issues": código e parâmetros, que a tela traduz.
+            problem.Extensions["errors"] = errors.Select(e => e.Text).ToList();
+            problem.Extensions["issues"] = errors.Select(e => new FailureInfo((int)e.Code, e.Args)).ToList();
             return BadRequest(problem);
         }
 
@@ -235,14 +238,14 @@ public class SurveysController(
 
     // Edição só no primeiro sistema do fluxo (decisão do dono, Fase 25): marcar, mexer ou ligar um passo de
     // outro sistema não vale, porque o rascunho, o prompt e a validação enxergam um repositório só.
-    private static IEnumerable<string> ForeignSystemEdits(FlowGraph original, FlowGraph draft)
+    private static IEnumerable<DraftIssue> ForeignSystemEdits(FlowGraph original, FlowGraph draft)
     {
         var foreign = original.Nodes.Where(n => n.System is not null).Select(n => n.Id).ToHashSet(StringComparer.Ordinal);
         if (foreign.Count == 0) yield break;
 
         var touched = draft.Nodes.Any(n => foreign.Contains(n.Id) && (n.Change is not null || n.Intent is not null))
                       || draft.Edges.Any(e => e.Change is not null && (foreign.Contains(e.From) || foreign.Contains(e.To)));
-        if (touched) yield return "Edição só no primeiro sistema do fluxo.";
+        if (touched) yield return new DraftIssue(DraftError.ForeignSystem);
     }
 
     [HttpDelete("{id:guid}/draft")]

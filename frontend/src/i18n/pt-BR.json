@@ -36,12 +36,13 @@
   "settings": {
     "appearance": {
       "title": "Aparência",
-      "hint": "A escolha fica neste navegador.",
+      "hint": "O idioma vale para a tela, a CLI e o MCP (fica no config.json da sua máquina). A paleta e o tema ficam neste navegador.",
       "language": "Idioma",
       "languageApplied": "Idioma aplicado: {name}.",
       "palette": "Paleta de cores",
       "paletteApplied": "Paleta aplicada: {name}.",
-      "theme": "Tema"
+      "theme": "Tema",
+      "languageNotSaved": "O idioma mudou na tela, mas não foi gravado no config.json. A CLI e o MCP seguem o idioma anterior."
     },
     "title": "Configurações",
     "intro": "O Rastro funciona sem IA. Com IA, ela completa os buracos do grafo e escreve as regras; tudo o que ela propõe passa pelo compilador antes de entrar.",
@@ -309,7 +310,8 @@
     "ORIGIN_NOT_ALLOWED": "Pedido recusado: só a tela do próprio Rastro pode alterar dados.",
     "noResponse": "O Rastro não respondeu. Confira se o comando rastro continua aberto no terminal e tente de novo.",
     "notFound": "Não encontrado.",
-    "generic": "Algo deu errado no Rastro. Tente de novo."
+    "generic": "Algo deu errado no Rastro. Tente de novo.",
+    "LANGUAGE_INVALID": "Idioma inválido. Escolha português, inglês ou espanhol."
   },
   "flowCanvas": {
     "mark": {
@@ -1602,5 +1604,75 @@
       "mergeJoin": "Junção por mesclagem",
       "keyLookup": "Busca da chave"
     }
+  },
+  "failure": {
+    "survey": {
+      "unexpected": "Falha inesperada na análise. Detalhes no log da API.",
+      "interrupted": "Análise interrompida: a API reiniciou durante o processamento.",
+      "targetUnavailable": "O repositório ou a solution não estão mais disponíveis na configuração.",
+      "entryInvalid": "Ponto de entrada inválido: \"{a0}\". Use Tipo.Metodo ou Namespace.Tipo.Metodo.",
+      "entryNotFound": "Método \"{a0}\" não encontrado na solution: nenhum método chamado {a1}, com corpo, existe nela.",
+      "entryNotFoundSuggest": "Método \"{a0}\" não encontrado na solution. Com o nome {a1} existe: {a2}. Use Tipo.Metodo ou Namespace.Tipo.Metodo.",
+      "entryNotFoundSuggestMore": "Método \"{a0}\" não encontrado na solution. Com o nome {a1} existe: {a2} e mais {a3}. Use Tipo.Metodo ou Namespace.Tipo.Metodo.",
+      "entryAmbiguous": "\"{a0}\" é ambíguo. Use o nome completo: {a1}.",
+      "angularScriptMissing": "O extrator Angular não veio no pacote desta instalação. Reinstale o Rastro.",
+      "angularTimeout": "A leitura do Angular passou de {a0} s. Aumente Rastro:Analysis:TypeScriptTimeoutSeconds ou reduza a profundidade.",
+      "nodeMissing": "O Node não foi encontrado nesta máquina. Instale o Node para levantar fluxos Angular.",
+      "angularUnreadable": "Não foi possível ler o código Angular. Veja o log da API para o detalhe.",
+      "angularScriptError": "{a0}",
+      "restoreFailed": "O dotnet restore da solution falhou. Confira se ela compila na máquina."
+    },
+    "validation": {
+      "unexpected": "Falha inesperada na validação. Detalhes no log.",
+      "interrupted": "Validação interrompida: a API reiniciou durante o processamento.",
+      "draftDeleted": "O rascunho foi apagado antes da validação.",
+      "targetUnavailable": "O repositório ou a solution não estão mais disponíveis na configuração.",
+      "angularUnsupported": "A validação de mudança ainda não lê código Angular.",
+      "entryGone": "O ponto de entrada \"{a0}\" não existe mais no código.",
+      "analysis": "{reason}"
+    }
+  },
+  "refusal": {
+    "outcome": "{target}: recusada. {reason}",
+    "surveyNotFound": "Levantamento não encontrado ou ainda sem grafo.",
+    "nodeNotFound": "Nó não encontrado neste levantamento.",
+    "ruleLength": "A regra precisa ter de {a0} a {a1} caracteres.",
+    "notUnresolved": "Só nós não resolvidos recebem proposta de destino; este já foi resolvido pelo compilador.",
+    "targetUnavailable": "O repositório ou a solution não estão mais disponíveis na configuração.",
+    "angularUnsupported": "A prova de proposta ainda não lê código Angular: só nós .NET recebem proposta de destino.",
+    "codeChanged": "O código mudou desde este levantamento. Levante o fluxo de novo antes de propor.",
+    "analysisFailed": "{reason}",
+    "duplicateTarget": "Esse destino já foi proposto para este nó. Para trocar, descarte o atual na tela.",
+    "httpNeedsSystemNoCross": "Este nó é uma chamada HTTP sem destino. Informe o repositório de destino (system); este levantamento não segue chamadas HTTP para outros repositórios.",
+    "httpNeedsSystem": "Este nó é uma chamada HTTP sem destino. Informe o repositório de destino (system); repositórios da costura: {a0}.",
+    "httpCallMissing": "A chamada HTTP deste nó não está registrada no grafo; levante o fluxo de novo.",
+    "destinationUnavailable": "O repositório {a0} não está disponível ou não tem solution na configuração.",
+    "destinationCodeChanged": "O código de {a0} mudou desde este levantamento. Levante o fluxo de novo antes de propor.",
+    "proofIncomplete": "Prova incompleta: informe o método de destino, o arquivo e a linha.",
+    "proofTargetInvalid": "O método de destino não confere: {reason}",
+    "proofNoBody": "{a0} não tem corpo no código (abstrato, externo ou gerado).",
+    "proofWrongFile": "A prova não confere: {a0} está em {a1}:{a2}, não em {a3}.",
+    "proofLineOutside": "A prova não confere: {a0} vai da linha {a1} à {a2} de {a3}; a linha {a4} está fora.",
+    "routeNotIndexed": "{a0} não atende nenhuma rota HTTP do repositório (não está no índice de rotas).",
+    "verbMismatch": "{a0} não atende {a1}: o verbo da chamada não confere com o do destino.",
+    "routeMismatch": "{a0} atende {a1}, que não casa com a rota chamada ({a2} {a3})."
+  },
+  "draftError": {
+    "entryChanged": "O rascunho precisa manter a mesma entrada do levantamento.",
+    "duplicateNodes": "Nós repetidos no rascunho: {a0}.",
+    "codeStepMissing": "O passo \"{a0}\" do código sumiu do rascunho. Para tirá-lo, marque como removido.",
+    "codeStepAltered": "O passo \"{a0}\" do código foi alterado. Só dá para marcá-lo como removido ou modificado.",
+    "codeStepMarkedNew": "O passo \"{a0}\" já existe no código; não pode ser marcado como novo.",
+    "codeStepModifiedNoIntent": "O passo \"{a0}\" foi marcado como modificado sem dizer o que muda.",
+    "tooManyAdded": "No máximo {a0} passos novos por rascunho.",
+    "newStepBadId": "O passo novo \"{a0}\" precisa de id iniciado por \"{a1}\" e marca de novo.",
+    "newStepNoName": "Passo novo sem nome (ou com mais de {a0} caracteres).",
+    "newStepNoIntent": "O passo novo \"{a0}\" precisa dizer o que deve fazer.",
+    "newStepBadKind": "O passo novo \"{a0}\" só pode ser um método ou uma decisão.",
+    "intentTooLong": "A intenção de \"{a0}\" passa de {a1} caracteres.",
+    "edgeMissing": "Uma ligação do código ({a0} → {a1}) sumiu. Para tirá-la, marque como removida.",
+    "edgeMarkedNew": "A ligação {a0} → {a1} já existe no código; não pode ser marcada como nova.",
+    "edgeDangling": "Uma ligação nova aponta para um passo que não está no rascunho.",
+    "foreignSystem": "Edição só no primeiro sistema do fluxo."
   }
 }

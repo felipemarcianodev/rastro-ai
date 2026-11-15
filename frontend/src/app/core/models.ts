@@ -199,6 +199,9 @@ export interface SurveySummary {
   branch?: string;
   status: SurveyStatus;
   error?: string;
+  // Código e parâmetros da falha (a tela traduz por eles); nulos nas falhas gravadas antes da Fase 49.
+  failure?: SurveyFailure | null;
+  failureArgs?: string[];
   schemaVersion: number;
   nodeCount: number;
   edgeCount: number;
@@ -383,8 +386,156 @@ export const SURVEY_STATUS_LABEL_KEY: Record<SurveyStatus, string> = {
   [SurveyStatus.Failed]: 'enum.surveyStatus.failed',
 };
 
+// Falha do levantamento, da validação, motivo de recusa de proposta e erro do rascunho (Fase 49): o servidor manda
+// o código (int) e os parâmetros, e a tela traduz. Os valores são os mesmos dos enums do servidor.
+export enum SurveyFailure {
+  Unexpected = 0,
+  Interrupted = 1,
+  TargetUnavailable = 2,
+  EntryInvalid = 3,
+  EntryNotFound = 4,
+  EntryNotFoundSuggest = 5,
+  EntryNotFoundSuggestMore = 6,
+  EntryAmbiguous = 7,
+  AngularScriptMissing = 8,
+  AngularTimeout = 9,
+  NodeMissing = 10,
+  AngularUnreadable = 11,
+  AngularScriptError = 12,
+  RestoreFailed = 13,
+}
+
+export enum ValidationFailure {
+  Unexpected = 0,
+  Interrupted = 1,
+  DraftDeleted = 2,
+  TargetUnavailable = 3,
+  AngularUnsupported = 4,
+  EntryGone = 5,
+  Analysis = 6,
+}
+
+export enum ProposalRefusal {
+  SurveyNotFound = 0,
+  NodeNotFound = 1,
+  RuleLength = 2,
+  NotUnresolved = 3,
+  TargetUnavailable = 4,
+  AngularUnsupported = 5,
+  CodeChanged = 6,
+  AnalysisFailed = 7,
+  DuplicateTarget = 8,
+  HttpNeedsSystemNoCross = 9,
+  HttpNeedsSystem = 10,
+  HttpCallMissing = 11,
+  DestinationUnavailable = 12,
+  DestinationCodeChanged = 13,
+  ProofIncomplete = 14,
+  ProofTargetInvalid = 15,
+  ProofNoBody = 16,
+  ProofWrongFile = 17,
+  ProofLineOutside = 18,
+  RouteNotIndexed = 19,
+  VerbMismatch = 20,
+  RouteMismatch = 21,
+}
+
+export enum DraftError {
+  EntryChanged = 0,
+  DuplicateNodes = 1,
+  CodeStepMissing = 2,
+  CodeStepAltered = 3,
+  CodeStepMarkedNew = 4,
+  CodeStepModifiedNoIntent = 5,
+  TooManyAdded = 6,
+  NewStepBadId = 7,
+  NewStepNoName = 8,
+  NewStepNoIntent = 9,
+  NewStepBadKind = 10,
+  IntentTooLong = 11,
+  EdgeMissing = 12,
+  EdgeMarkedNew = 13,
+  EdgeDangling = 14,
+  ForeignSystem = 15,
+}
+
+// Os marcadores dos textos são a0, a1... entre chaves (os parâmetros na ordem em que o servidor manda).
+export const SURVEY_FAILURE_LABEL_KEY: Record<SurveyFailure, string> = {
+  [SurveyFailure.Unexpected]: 'failure.survey.unexpected',
+  [SurveyFailure.Interrupted]: 'failure.survey.interrupted',
+  [SurveyFailure.TargetUnavailable]: 'failure.survey.targetUnavailable',
+  [SurveyFailure.EntryInvalid]: 'failure.survey.entryInvalid',
+  [SurveyFailure.EntryNotFound]: 'failure.survey.entryNotFound',
+  [SurveyFailure.EntryNotFoundSuggest]: 'failure.survey.entryNotFoundSuggest',
+  [SurveyFailure.EntryNotFoundSuggestMore]: 'failure.survey.entryNotFoundSuggestMore',
+  [SurveyFailure.EntryAmbiguous]: 'failure.survey.entryAmbiguous',
+  [SurveyFailure.AngularScriptMissing]: 'failure.survey.angularScriptMissing',
+  [SurveyFailure.AngularTimeout]: 'failure.survey.angularTimeout',
+  [SurveyFailure.NodeMissing]: 'failure.survey.nodeMissing',
+  [SurveyFailure.AngularUnreadable]: 'failure.survey.angularUnreadable',
+  [SurveyFailure.AngularScriptError]: 'failure.survey.angularScriptError',
+  [SurveyFailure.RestoreFailed]: 'failure.survey.restoreFailed',
+};
+
+// Analysis leva a causa aninhada: o primeiro parâmetro é o código do SurveyFailure (o marcador é reason).
+export const VALIDATION_FAILURE_LABEL_KEY: Record<ValidationFailure, string> = {
+  [ValidationFailure.Unexpected]: 'failure.validation.unexpected',
+  [ValidationFailure.Interrupted]: 'failure.validation.interrupted',
+  [ValidationFailure.DraftDeleted]: 'failure.validation.draftDeleted',
+  [ValidationFailure.TargetUnavailable]: 'failure.validation.targetUnavailable',
+  [ValidationFailure.AngularUnsupported]: 'failure.validation.angularUnsupported',
+  [ValidationFailure.EntryGone]: 'failure.validation.entryGone',
+  [ValidationFailure.Analysis]: 'failure.validation.analysis',
+};
+
+// AnalysisFailed e ProofTargetInvalid levam a causa aninhada (marcador reason).
+export const PROPOSAL_REFUSAL_LABEL_KEY: Record<ProposalRefusal, string> = {
+  [ProposalRefusal.SurveyNotFound]: 'refusal.surveyNotFound',
+  [ProposalRefusal.NodeNotFound]: 'refusal.nodeNotFound',
+  [ProposalRefusal.RuleLength]: 'refusal.ruleLength',
+  [ProposalRefusal.NotUnresolved]: 'refusal.notUnresolved',
+  [ProposalRefusal.TargetUnavailable]: 'refusal.targetUnavailable',
+  [ProposalRefusal.AngularUnsupported]: 'refusal.angularUnsupported',
+  [ProposalRefusal.CodeChanged]: 'refusal.codeChanged',
+  [ProposalRefusal.AnalysisFailed]: 'refusal.analysisFailed',
+  [ProposalRefusal.DuplicateTarget]: 'refusal.duplicateTarget',
+  [ProposalRefusal.HttpNeedsSystemNoCross]: 'refusal.httpNeedsSystemNoCross',
+  [ProposalRefusal.HttpNeedsSystem]: 'refusal.httpNeedsSystem',
+  [ProposalRefusal.HttpCallMissing]: 'refusal.httpCallMissing',
+  [ProposalRefusal.DestinationUnavailable]: 'refusal.destinationUnavailable',
+  [ProposalRefusal.DestinationCodeChanged]: 'refusal.destinationCodeChanged',
+  [ProposalRefusal.ProofIncomplete]: 'refusal.proofIncomplete',
+  [ProposalRefusal.ProofTargetInvalid]: 'refusal.proofTargetInvalid',
+  [ProposalRefusal.ProofNoBody]: 'refusal.proofNoBody',
+  [ProposalRefusal.ProofWrongFile]: 'refusal.proofWrongFile',
+  [ProposalRefusal.ProofLineOutside]: 'refusal.proofLineOutside',
+  [ProposalRefusal.RouteNotIndexed]: 'refusal.routeNotIndexed',
+  [ProposalRefusal.VerbMismatch]: 'refusal.verbMismatch',
+  [ProposalRefusal.RouteMismatch]: 'refusal.routeMismatch',
+};
+
+export const DRAFT_ERROR_LABEL_KEY: Record<DraftError, string> = {
+  [DraftError.EntryChanged]: 'draftError.entryChanged',
+  [DraftError.DuplicateNodes]: 'draftError.duplicateNodes',
+  [DraftError.CodeStepMissing]: 'draftError.codeStepMissing',
+  [DraftError.CodeStepAltered]: 'draftError.codeStepAltered',
+  [DraftError.CodeStepMarkedNew]: 'draftError.codeStepMarkedNew',
+  [DraftError.CodeStepModifiedNoIntent]: 'draftError.codeStepModifiedNoIntent',
+  [DraftError.TooManyAdded]: 'draftError.tooManyAdded',
+  [DraftError.NewStepBadId]: 'draftError.newStepBadId',
+  [DraftError.NewStepNoName]: 'draftError.newStepNoName',
+  [DraftError.NewStepNoIntent]: 'draftError.newStepNoIntent',
+  [DraftError.NewStepBadKind]: 'draftError.newStepBadKind',
+  [DraftError.IntentTooLong]: 'draftError.intentTooLong',
+  [DraftError.EdgeMissing]: 'draftError.edgeMissing',
+  [DraftError.EdgeMarkedNew]: 'draftError.edgeMarkedNew',
+  [DraftError.EdgeDangling]: 'draftError.edgeDangling',
+  [DraftError.ForeignSystem]: 'draftError.foreignSystem',
+};
+
 export const API_ERROR_MESSAGE_KEY: Record<string, string> = {
   REPOSITORY_COMMAND_INVALID: 'error.REPOSITORY_COMMAND_INVALID',
+  LANGUAGE_INVALID: 'error.LANGUAGE_INVALID',
   REPOSITORY_NOT_ALLOWED: 'error.REPOSITORY_NOT_ALLOWED',
   SOLUTION_PATH_INVALID: 'error.SOLUTION_PATH_INVALID',
   ANGULAR_UNAVAILABLE: 'error.ANGULAR_UNAVAILABLE',
@@ -497,10 +648,20 @@ export interface AiStatus {
   dailyTokenBudget: number;
 }
 
+// Um destino proposto pela IA e o que o validador decidiu; recusado traz o motivo em código.
+export interface FillHoleItem {
+  target: string;
+  accepted: boolean;
+  message: string;
+  refusal?: ProposalRefusal | null;
+  refusalArgs: string[];
+}
+
 export interface FillHoleResult {
   proposed: number;
   accepted: number;
   messages: string[];
+  items?: FillHoleItem[];
 }
 
 export interface FillHoleResponse {
@@ -595,6 +756,8 @@ export interface ValidationView {
   newSurveyId?: string;
   status: ValidationStatus;
   error?: string;
+  failure?: ValidationFailure | null;
+  failureArgs?: string[];
   result?: ChangeValidationResult;
   createdAt: string;
   completedAt?: string;

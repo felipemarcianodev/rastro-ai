@@ -41,6 +41,7 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             survey.Property(s => s.CommitHash).HasMaxLength(64);
             survey.Property(s => s.Branch).HasMaxLength(200);
             survey.Property(s => s.Error).HasMaxLength(2000);
+            survey.Property(s => s.FailureArgsJson).HasMaxLength(2000);
             survey.Property(s => s.CrossRepositoriesJson).HasMaxLength(2000);
             survey.HasIndex(s => s.CreatedAt);
             survey.HasIndex(s => new { s.Repository, s.EntryPoint });
@@ -57,6 +58,7 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             proposal.Property(p => p.When).HasMaxLength(200);
             proposal.Property(p => p.Text).HasMaxLength(2000).IsRequired();
             proposal.Property(p => p.RejectionReason).HasMaxLength(1000);
+            proposal.Property(p => p.RefusalArgsJson).HasMaxLength(2000);
             proposal.HasIndex(p => new { p.SurveyId, p.CreatedAt });
         });
 
@@ -117,6 +119,7 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             validation.HasOne<Survey>().WithMany().HasForeignKey(v => v.SurveyId).OnDelete(DeleteBehavior.Cascade);
             validation.HasOne<Survey>().WithMany().HasForeignKey(v => v.NewSurveyId).OnDelete(DeleteBehavior.SetNull);
             validation.Property(v => v.Error).HasMaxLength(2000);
+            validation.Property(v => v.FailureArgsJson).HasMaxLength(2000);
             validation.HasIndex(v => new { v.SurveyId, v.CreatedAt });
         });
     }

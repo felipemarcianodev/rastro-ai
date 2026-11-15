@@ -23,6 +23,8 @@ public record SurveySummary(
     string? Branch,
     SurveyStatus Status,
     string? Error,
+    int? Failure,
+    IReadOnlyList<string> FailureArgs,
     int SchemaVersion,
     int NodeCount,
     int EdgeCount,
@@ -36,6 +38,7 @@ public record SurveySummary(
 {
     public static SurveySummary From(Survey s, IEnumerable<SurveySegment>? segments = null) => new(
         s.Id, s.Repository, s.SolutionPath, s.EntryPoint, s.MaxDepth, s.CommitHash, s.Branch, s.Status, s.Error,
+        (int?)s.Failure, s.ReadFailureArgs(),
         s.SchemaVersion, s.NodeCount, s.EdgeCount, s.UnresolvedCount, s.CreatedAt, s.StartedAt, s.CompletedAt,
         s.ReadCrossRepositories(),
         (segments ?? []).OrderBy(x => x.Order).Select(SurveySegmentView.From).ToList(),
@@ -118,4 +121,5 @@ public static class ErrorCodes
     public const string ConnectionMissing = "CONNECTION_MISSING";
     public const string PlanNotAllowed = "PLAN_NOT_ALLOWED";
     public const string LiveDatabaseError = "LIVE_DATABASE_ERROR";
+    public const string LanguageInvalid = "LANGUAGE_INVALID";
 }

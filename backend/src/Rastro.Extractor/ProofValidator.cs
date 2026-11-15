@@ -1,5 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Globalization;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 using Rastro.Core.Http;
 
@@ -8,9 +10,12 @@ namespace Rastro.Extractor;
 // Prova de uma proposta: o método de destino e onde ele está declarado.
 public record EdgeProof(string Target, string File, int Line);
 
-public record ProofVerdict(bool Accepted, string Message, string? TargetDisplay = null)
+// Refusal e RefusalArgs dizem o motivo da recusa em código (a tela traduz); Message é o texto em português.
+public record ProofVerdict(bool Accepted, string Message, string? TargetDisplay = null,
+    ProposalRefusal? Refusal = null, IReadOnlyList<string>? RefusalArgs = null)
 {
-    public static ProofVerdict Reject(string message) => new(false, message);
+    public static ProofVerdict Reject(ProposalRefusal refusal, params string[] args) =>
+        new(false, FailureText.Of(refusal, args), null, refusal, args);
 }
 
 // O compilador confere a prova (ADR-001). Sem isso, nada que veio de IA entra no grafo.
@@ -21,7 +26,7 @@ public static class ProofValidator
     public static async Task<ProofVerdict> ValidateAsync(Solution solution, string baseDirectory, EdgeProof proof, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(proof.Target) || string.IsNullOrWhiteSpace(proof.File) || proof.Line < 1)
-            return ProofVerdict.Reject("Prova incompleta: informe o método de destino, o arquivo e a linha.");
+            return ProofVerdict.Reject(ProposalRefusal.ProofIncomplete);
 
         IMethodSymbol method;
         try
@@ -30,14 +35,14 @@ public static class ProofValidator
         }
         catch (FlowEntryNotFoundException ex)
         {
-            return ProofVerdict.Reject($"O método de destino não confere: {ex.Message}");
+            return ProofVerdict.Reject(ProposalRefusal.ProofTargetInvalid, [.. FailureText.Nest(ex.Failure, ex.Args)]);
         }
 
         var declaration = method.DeclaringSyntaxReferences
             .Select(r => r.GetSyntax(ct))
             .FirstOrDefault(s => s is BaseMethodDeclarationSyntax { Body: not null } or BaseMethodDeclarationSyntax { ExpressionBody: not null } or LocalFunctionStatementSyntax);
         if (declaration is null)
-            return ProofVerdict.Reject($"{method.ToDisplayString()} não tem corpo no código (abstrato, externo ou gerado).");
+            return ProofVerdict.Reject(ProposalRefusal.ProofNoBody, method.ToDisplayString());
 
         var span = declaration.GetLocation().GetLineSpan();
         var actualFile = Relative(baseDirectory, span.Path);
@@ -46,13 +51,15 @@ public static class ProofValidator
 
         var claimedFile = proof.File.Replace('\\', '/').TrimStart('/');
         if (!string.Equals(actualFile, claimedFile, StringComparison.OrdinalIgnoreCase))
-            return ProofVerdict.Reject($"A prova não confere: {method.ToDisplayString()} está em {actualFile}:{firstLine}, não em {claimedFile}.");
+            return ProofVerdict.Reject(ProposalRefusal.ProofWrongFile, method.ToDisplayString(), actualFile, Number(firstLine), claimedFile);
 
         if (proof.Line < firstLine || proof.Line > lastLine)
-            return ProofVerdict.Reject($"A prova não confere: {method.ToDisplayString()} vai da linha {firstLine} à {lastLine} de {actualFile}; a linha {proof.Line} está fora.");
+            return ProofVerdict.Reject(ProposalRefusal.ProofLineOutside, method.ToDisplayString(), Number(firstLine), Number(lastLine), actualFile, Number(proof.Line));
 
         return new ProofVerdict(true, $"Prova conferida: {method.ToDisplayString()} em {actualFile}:{firstLine}.", method.ToDisplayString());
     }
+
+    private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);
 
     // Prova de uma ligação HTTP entre sistemas (Fase 25): além de o método existir no arquivo e na linha,
     // ele precisa ser um destino HTTP de verdade, ou seja, estar no índice de rotas do repositório com o
@@ -69,20 +76,20 @@ public static class ProofValidator
 
         var routes = index.Where(e => e.Target == target).ToList();
         if (routes.Count == 0)
-            return ProofVerdict.Reject($"{target} não atende nenhuma rota HTTP do repositório (não está no índice de rotas).");
+            return ProofVerdict.Reject(ProposalRefusal.RouteNotIndexed, target);
 
         if (call.Method is "GET" or "POST" or "PUT" or "PATCH" or "DELETE")
         {
             routes = routes.Where(e => string.Equals(e.Method, call.Method, StringComparison.OrdinalIgnoreCase)).ToList();
             if (routes.Count == 0)
-                return ProofVerdict.Reject($"{target} não atende {call.Method}: o verbo da chamada não confere com o do destino.");
+                return ProofVerdict.Reject(ProposalRefusal.VerbMismatch, target, call.Method);
         }
 
         if (!string.IsNullOrWhiteSpace(call.Route)
             && !routes.Any(e => RouteTemplate.Matches(e.Template, call.Route) || RouteTemplate.MatchesSuffix(e.Template, call.Route)))
         {
             var served = string.Join(", ", routes.Select(e => $"{e.Method} {e.Template}"));
-            return ProofVerdict.Reject($"{target} atende {served}, que não casa com a rota chamada ({call.Method} {call.Route}).");
+            return ProofVerdict.Reject(ProposalRefusal.RouteMismatch, target, served, call.Method, call.Route);
         }
 
         return verdict;

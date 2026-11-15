@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Rastro.Core.Failures;
 using Rastro.Core.Validation;
 using Rastro.Infrastructure;
 using Rastro.Infrastructure.Validation;
@@ -36,7 +37,7 @@ public class ValidationWorker(
 
         var interrupted = await db.SurveyValidations.Where(v => v.Status == ValidationStatus.Running).ToListAsync(ct);
         foreach (var validation in interrupted)
-            validation.Fail("Validação interrompida: a API reiniciou durante o processamento.", clock.GetUtcNow());
+            validation.Fail(ValidationFailure.Interrupted, null, clock.GetUtcNow());
         if (interrupted.Count > 0)
         {
             await db.SaveChangesAsync(ct);

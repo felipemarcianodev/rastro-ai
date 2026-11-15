@@ -11,6 +11,9 @@ public class RastroOptions
     public AnalysisOptions Analysis { get; set; } = new();
 
     public bool MigrateOnStartup { get; set; } = true;
+
+    // Idioma gravado no config.json ("pt-BR", "en-US" ou "es"). Ausente = segue o sistema operacional (ADR-009).
+    public string? Language { get; set; }
 }
 
 public class RepositoryOptions

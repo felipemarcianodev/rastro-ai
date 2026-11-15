@@ -64,6 +64,10 @@ rastro repo add minha-api C:\codigo\minha-api --build "dotnet build MinhaApi.sln
 
 Os dados ficam em `~/.rastro` (banco SQLite `rastro.db`, `config.json` e, depois da primeira janela, `janela/` com o cache do WebView); a variável `RASTRO_HOME` troca a pasta.
 
+### Idioma
+
+O Rastro fala inglês, português do Brasil e espanhol. O idioma vale para a tela, a API, a CLI e o MCP, e se escolhe em Configurações, em Aparência. A escolha fica no `config.json` (`Rastro:Language`, com `en-US`, `pt-BR` ou `es`); sem ela, vale o idioma do sistema operacional, com o inglês de reserva quando o sistema está em outro idioma. A tela manda o idioma em cada chamada (`Accept-Language`); sem o cabeçalho (curl, agente), a API usa o do `config.json`. A paleta e o tema continuam só no navegador.
+
 ## IA opcional e plugável
 
 O Rastro **funciona sem IA**. A IA entra por dois modos, e os dois passam pela mesma porta, o validador de prova do núcleo ([ADR-001](docs/adr/adr-001-ia-opcional-e-plugavel.md)):

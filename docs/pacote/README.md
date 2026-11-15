@@ -94,6 +94,10 @@ Tudo o que a IA propõe chega marcado como inferido e só entra no fluxo quando 
 
 Código aberto, licença MIT: <https://github.com/felipemarcianodev/rastro-ai>.
 
+## Idioma
+
+O Rastro fala inglês, português do Brasil e espanhol, na tela, na API, na CLI e no MCP. Escolha em Configurações, em Aparência: a escolha fica no `config.json` (`Rastro:Language`, com `en-US`, `pt-BR` ou `es`). Sem ela, vale o idioma do sistema operacional, com o inglês de reserva. A paleta e o tema ficam só no navegador.
+
 ## Seus dados
 
 Ficam em `~/.rastro` (banco SQLite e repositórios cadastrados). Para usar outra pasta, defina a variável `RASTRO_HOME`.

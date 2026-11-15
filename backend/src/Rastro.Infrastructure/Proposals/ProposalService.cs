@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Globalization;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 using Rastro.Core.Surveys;
 using Rastro.Extractor;
@@ -9,7 +11,20 @@ using Rastro.Infrastructure.Repositories;
 
 namespace Rastro.Infrastructure.Proposals;
 
-public record ProposalOutcome(bool Accepted, string Message, Guid? ProposalId = null);
+// Refusal e RefusalArgs: o motivo da recusa em código (a tela traduz); Message é o texto em português.
+public record ProposalOutcome(bool Accepted, string Message, Guid? ProposalId = null,
+    ProposalRefusal? Refusal = null, IReadOnlyList<string>? RefusalArgs = null)
+{
+    public static ProposalOutcome Refuse(ProposalRefusal refusal, params string[] args) =>
+        new(false, FailureText.Of(refusal, args), null, refusal, args);
+
+    public static ProposalOutcome Refuse(ProofVerdict verdict) =>
+        new(false, verdict.Message, null, verdict.Refusal, verdict.RefusalArgs);
+
+    // A solution não abriu: o motivo é o da análise.
+    public static ProposalOutcome Refuse(AnalysisException ex) =>
+        Refuse(ProposalRefusal.AnalysisFailed, [.. FailureText.Nest(ex.Failure, ex.Args)]);
+}
 
 // Porta única para propostas de agentes (MCP) e provedores de IA (ADR-001): toda proposta
 // passa pelas mesmas regras e pelo validador de prova antes de mexer no grafo, e fica
@@ -34,14 +49,14 @@ public class ProposalService(
     {
         var survey = await db.Surveys.FirstOrDefaultAsync(s => s.Id == surveyId, ct);
         if (survey?.ReadGraph() is not { } graph)
-            return new ProposalOutcome(false, "Levantamento não encontrado ou ainda sem grafo.");
+            return ProposalOutcome.Refuse(ProposalRefusal.SurveyNotFound);
 
         var proposal = SurveyProposal.ForEdge(surveyId, origin, nodeId, target, evidenceFile, evidenceLine,
             Truncate(reason, MaxReasonLength), clock.GetUtcNow(), string.IsNullOrWhiteSpace(when) ? null : Truncate(when, MaxWhenLength));
         db.SurveyProposals.Add(proposal);
 
         var outcome = await EvaluateEdgeAsync(survey, graph, proposal, system, ct);
-        if (!outcome.Accepted) proposal.Reject(outcome.Message);
+        if (!outcome.Accepted) proposal.Reject(outcome.Message, outcome.Refusal, outcome.RefusalArgs);
 
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Proposta de aresta {ProposalId} no levantamento {SurveyId}: {Status} (origem {Origin}).",
@@ -53,13 +68,13 @@ public class ProposalService(
     {
         var survey = await db.Surveys.FirstOrDefaultAsync(s => s.Id == surveyId, ct);
         if (survey?.ReadGraph() is not { } graph)
-            return new ProposalOutcome(false, "Levantamento não encontrado ou ainda sem grafo.");
+            return ProposalOutcome.Refuse(ProposalRefusal.SurveyNotFound);
 
         var clean = text.Trim();
         if (clean.Length < MinRuleLength || clean.Length > MaxRuleLength)
-            return new ProposalOutcome(false, $"A regra precisa ter de {MinRuleLength} a {MaxRuleLength} caracteres.");
+            return ProposalOutcome.Refuse(ProposalRefusal.RuleLength, MinRuleLength.ToString(CultureInfo.InvariantCulture), MaxRuleLength.ToString(CultureInfo.InvariantCulture));
         if (graph.Nodes.All(n => n.Id != nodeId))
-            return new ProposalOutcome(false, "Nó não encontrado neste levantamento.");
+            return ProposalOutcome.Refuse(ProposalRefusal.NodeNotFound);
 
         survey.ReplaceGraph(GraphEditor.WithRule(graph, nodeId, new NodeRule(clean, origin)));
         var proposal = SurveyProposal.ForRule(surveyId, origin, nodeId, clean, clock.GetUtcNow());
@@ -73,7 +88,7 @@ public class ProposalService(
     {
         var survey = await db.Surveys.FirstOrDefaultAsync(s => s.Id == surveyId, ct);
         if (survey?.ReadGraph() is not { } graph)
-            return new ProposalOutcome(false, "Levantamento não encontrado ou ainda sem grafo.");
+            return ProposalOutcome.Refuse(ProposalRefusal.SurveyNotFound);
 
         if (!graph.Edges.Any(e => e.From == from && e.To == to && e.Confidence != EdgeConfidence.Extracted))
             return new ProposalOutcome(false, "Não há aresta proposta entre esses nós.");
@@ -94,20 +109,20 @@ public class ProposalService(
     private async Task<ProposalOutcome> EvaluateEdgeAsync(Survey survey, FlowGraph graph, SurveyProposal proposal, string? system, CancellationToken ct)
     {
         var node = graph.Nodes.FirstOrDefault(n => n.Id == proposal.NodeId);
-        if (node is null) return new ProposalOutcome(false, "Nó não encontrado neste levantamento.");
+        if (node is null) return ProposalOutcome.Refuse(ProposalRefusal.NodeNotFound);
         if (node.Kind != NodeKind.Unresolved)
-            return new ProposalOutcome(false, "Só nós não resolvidos recebem proposta de destino; este já foi resolvido pelo compilador.");
+            return ProposalOutcome.Refuse(ProposalRefusal.NotUnresolved);
         if (node.Reason is UnresolvedReason.RouteNotResolved or UnresolvedReason.NoMatchingEndpoint or UnresolvedReason.MultipleEndpoints)
             return await EvaluateHttpEdgeAsync(survey, graph, proposal, node, system, ct);
         var resolved = catalog.Resolve(survey.Repository, survey.SolutionPath);
         if (resolved.Target is not { } target)
-            return new ProposalOutcome(false, "O repositório ou a solution não estão mais disponíveis na configuração.");
+            return ProposalOutcome.Refuse(ProposalRefusal.TargetUnavailable);
         if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet)
-            return new ProposalOutcome(false, "A prova de proposta ainda não lê código Angular: só nós .NET recebem proposta de destino.");
+            return ProposalOutcome.Refuse(ProposalRefusal.AngularUnsupported);
 
         // Prova conferida contra código diferente do levantado não vale.
         if (survey.CommitHash is not null && await git.HeadAsync(target.RepositoryRoot, ct) is { } head && head.Commit != survey.CommitHash)
-            return new ProposalOutcome(false, "O código mudou desde este levantamento. Levante o fluxo de novo antes de propor.");
+            return ProposalOutcome.Refuse(ProposalRefusal.CodeChanged);
 
         SolutionHandle handle;
         try
@@ -116,17 +131,17 @@ public class ProposalService(
         }
         catch (AnalysisException ex)
         {
-            return new ProposalOutcome(false, ex.Message);
+            return ProposalOutcome.Refuse(ex);
         }
 
         var verdict = await ProofValidator.ValidateAsync(handle.Solution, handle.BaseDirectory,
             new EdgeProof(proposal.Target!, proposal.EvidenceFile!, proposal.EvidenceLine!.Value), ct);
-        if (!verdict.Accepted) return new ProposalOutcome(false, verdict.Message);
+        if (!verdict.Accepted) return ProposalOutcome.Refuse(verdict);
 
         // Vários destinos por buraco valem (despacho por tipo, por exemplo); o mesmo destino duas vezes, não.
         var branchEntryId = await FlowExtractor.ExtractAsync(handle.Solution, proposal.Target!, new ExtractionOptions { MaxDepth = 0, BaseDirectory = handle.BaseDirectory }, ct);
         if (graph.Edges.Any(e => e.From == node.Id && e.To == branchEntryId.EntryNodeId))
-            return new ProposalOutcome(false, "Esse destino já foi proposto para este nó. Para trocar, descarte o atual na tela.");
+            return ProposalOutcome.Refuse(ProposalRefusal.DuplicateTarget);
 
         // O rastro continua a partir do destino, com a mesma profundidade do levantamento.
         var branch = await FlowExtractor.ExtractAsync(handle.Solution, proposal.Target!,
@@ -146,28 +161,29 @@ public class ProposalService(
         var destination = string.IsNullOrWhiteSpace(system) ? null : allowed.FirstOrDefault(r => string.Equals(r, system.Trim(), StringComparison.OrdinalIgnoreCase));
         if (destination is null)
         {
-            var options = allowed.Count == 0 ? "este levantamento não segue chamadas HTTP para outros repositórios" : $"repositórios da costura: {string.Join(", ", allowed)}";
-            return new ProposalOutcome(false, $"Este nó é uma chamada HTTP sem destino. Informe o repositório de destino (system); {options}.");
+            return allowed.Count == 0
+                ? ProposalOutcome.Refuse(ProposalRefusal.HttpNeedsSystemNoCross)
+                : ProposalOutcome.Refuse(ProposalRefusal.HttpNeedsSystem, string.Join(", ", allowed));
         }
 
         var call = graph.Edges.FirstOrDefault(e => e.To == node.Id && e.Http is not null)?.Http;
         if (call is null)
-            return new ProposalOutcome(false, "A chamada HTTP deste nó não está registrada no grafo; levante o fluxo de novo.");
+            return ProposalOutcome.Refuse(ProposalRefusal.HttpCallMissing);
 
         var firstSolution = catalog.DotNetSolutions(destination)?.FirstOrDefault();
         var resolved = firstSolution is null ? null : catalog.Resolve(destination, firstSolution).Target;
         if (resolved is null)
-            return new ProposalOutcome(false, $"O repositório {destination} não está disponível ou não tem solution na configuração.");
+            return ProposalOutcome.Refuse(ProposalRefusal.DestinationUnavailable, destination);
 
         // Prova conferida contra código diferente do levantado não vale, no repositório do levantamento nem no do destino.
         var ownTarget = catalog.Resolve(survey.Repository, survey.SolutionPath);
         if (ownTarget.Target is { } own && survey.CommitHash is not null && await git.HeadAsync(own.RepositoryRoot, ct) is { } ownHead && ownHead.Commit != survey.CommitHash)
-            return new ProposalOutcome(false, "O código mudou desde este levantamento. Levante o fluxo de novo antes de propor.");
+            return ProposalOutcome.Refuse(ProposalRefusal.CodeChanged);
 
         var segment = await db.SurveySegments.AsNoTracking().FirstOrDefaultAsync(s => s.SurveyId == survey.Id && s.Repository == destination, ct);
         var basis = string.Equals(destination, survey.Repository, StringComparison.OrdinalIgnoreCase) ? survey.CommitHash : segment?.CommitHash;
         if (basis is not null && await git.HeadAsync(resolved.RepositoryRoot, ct) is { } destinationHead && destinationHead.Commit != basis)
-            return new ProposalOutcome(false, $"O código de {destination} mudou desde este levantamento. Levante o fluxo de novo antes de propor.");
+            return ProposalOutcome.Refuse(ProposalRefusal.DestinationCodeChanged, destination);
 
         SolutionHandle handle;
         try
@@ -176,18 +192,18 @@ public class ProposalService(
         }
         catch (AnalysisException ex)
         {
-            return new ProposalOutcome(false, ex.Message);
+            return ProposalOutcome.Refuse(ex);
         }
 
         var index = await routeIndexes.GetAsync(destination, ct);
         var verdict = await ProofValidator.ValidateHttpAsync(handle.Solution, handle.BaseDirectory,
             new EdgeProof(proposal.Target!, proposal.EvidenceFile!, proposal.EvidenceLine!.Value), call, index, ct);
-        if (!verdict.Accepted) return new ProposalOutcome(false, verdict.Message);
+        if (!verdict.Accepted) return ProposalOutcome.Refuse(verdict);
 
         var branchOptions = new ExtractionOptions { MaxDepth = survey.MaxDepth, BaseDirectory = handle.BaseDirectory, HttpCalls = true };
         var branch = SystemIds.InSystem(await FlowExtractor.ExtractAsync(handle.Solution, proposal.Target!, branchOptions, ct), destination);
         if (graph.Edges.Any(e => e.From == node.Id && e.To == branch.EntryNodeId))
-            return new ProposalOutcome(false, "Esse destino já foi proposto para este nó. Para trocar, descarte o atual na tela.");
+            return ProposalOutcome.Refuse(ProposalRefusal.DuplicateTarget);
 
         var merged = GraphEditor.WithInferredBranch(graph, node.Id, branch, proposal.Origin, proposal.When);
         // A aresta inferida leva a chamada HTTP, como a extraída leva.

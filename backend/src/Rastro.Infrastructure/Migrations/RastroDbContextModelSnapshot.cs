@@ -128,6 +128,15 @@ namespace Rastro.Infrastructure.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("error");
 
+                    b.Property<int?>("Failure")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("failure");
+
+                    b.Property<string>("FailureArgsJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("failure_args_json");
+
                     b.Property<string>("GraphJson")
                         .HasColumnType("TEXT")
                         .HasColumnName("graph_json");
@@ -286,6 +295,15 @@ namespace Rastro.Infrastructure.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("origin");
 
+                    b.Property<int?>("Refusal")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("refusal");
+
+                    b.Property<string>("RefusalArgsJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("refusal_args_json");
+
                     b.Property<string>("RejectionReason")
                         .HasMaxLength(1000)
                         .HasColumnType("TEXT")
@@ -408,6 +426,15 @@ namespace Rastro.Infrastructure.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("TEXT")
                         .HasColumnName("error");
+
+                    b.Property<int?>("Failure")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("failure");
+
+                    b.Property<string>("FailureArgsJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("failure_args_json");
 
                     b.Property<Guid?>("NewSurveyId")
                         .HasColumnType("TEXT")

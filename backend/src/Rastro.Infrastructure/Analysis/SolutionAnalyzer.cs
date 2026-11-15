@@ -25,7 +25,7 @@ public class SolutionAnalyzer(ISolutionSource solutions, DbSchemaService? schema
         }
         catch (FlowEntryNotFoundException ex)
         {
-            throw new AnalysisException(ex.Message, ex);
+            throw AnalysisException.From(ex);
         }
     }
 }

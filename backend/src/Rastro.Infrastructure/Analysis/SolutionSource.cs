@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Rastro.Core.Failures;
 using Rastro.Extractor;
 using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Processes;
@@ -22,8 +23,17 @@ public interface ISolutionSource
     void Release(ResolvedTarget target);
 }
 
-// Erro com mensagem que pode ir para o usuário (sem caminho do disco nem stack).
-public class AnalysisException(string message, Exception? inner = null) : Exception(message, inner);
+// Erro que pode ir para o usuário (sem caminho do disco nem stack): leva o código e os parâmetros,
+// que a tela traduz, e a mensagem em português de FailureText, para o log.
+public class AnalysisException(SurveyFailure failure, IReadOnlyList<string>? args = null, Exception? inner = null)
+    : Exception(FailureText.Of(failure, args), inner)
+{
+    public SurveyFailure Failure { get; } = failure;
+    public IReadOnlyList<string> Args { get; } = args ?? [];
+
+    // Quando a causa é o ponto de entrada (a análise passa o código dele adiante).
+    public static AnalysisException From(FlowEntryNotFoundException ex) => new(ex.Failure, ex.Args, ex);
+}
 
 // Abre solutions com o MSBuild e guarda as abertas por alguns minutos: um agente faz várias
 // perguntas seguidas sobre a mesma solution, e cada carga de uma solution grande leva dezenas
@@ -89,7 +99,7 @@ public sealed class MsBuildSolutionSource(IOptions<RastroOptions> options, ILogg
             if (restore.ExitCode != 0)
             {
                 logger.LogWarning("dotnet restore falhou com código {ExitCode}", restore.ExitCode);
-                throw new AnalysisException("O dotnet restore da solution falhou. Confira se ela compila na máquina.");
+                throw new AnalysisException(SurveyFailure.RestoreFailed);
             }
 
             return new Entry(await LoadSolutionAsync(solution, ct), workRoot, workRoot, DateTimeOffset.UtcNow);
