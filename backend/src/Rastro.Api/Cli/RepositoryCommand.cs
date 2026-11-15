@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Infrastructure.Repositories;
 
 namespace Rastro.Api.Cli;
@@ -7,58 +8,60 @@ namespace Rastro.Api.Cli;
 // A leitura e a gravação do arquivo são do RepositoryConfigFile, o mesmo que a API usa.
 public static class RepositoryCommand
 {
-    public static int Run(string[] args, string configPath, TextWriter output, TextWriter error)
+    // language nulo: o do config.json (e, sem ele, o do sistema). Os nomes dos comandos e das opções não mudam com o idioma.
+    public static int Run(string[] args, string configPath, TextWriter output, TextWriter error, UiLanguage? language = null)
     {
         var config = new RepositoryConfigFile(configPath);
+        var lang = language ?? config.GetLanguage() ?? UiLanguages.FromSystem();
         return args switch
         {
-            ["add", var name, var folder, .. var rest] => Add(config, name, folder, rest, output, error),
-            ["remove", var name] => Remove(config, name, output, error),
-            ["list"] or [] => List(config, output),
-            _ => Usage(error)
+            ["add", var name, var folder, .. var rest] => Add(config, name, folder, rest, output, error, lang),
+            ["remove", var name] => Remove(config, name, output, error, lang),
+            ["list"] or [] => List(config, output, lang),
+            _ => Usage(error, lang)
         };
     }
 
-    private static int Add(RepositoryConfigFile config, string name, string folder, string[] rest, TextWriter output, TextWriter error)
+    private static int Add(RepositoryConfigFile config, string name, string folder, string[] rest, TextWriter output, TextWriter error, UiLanguage lang)
     {
-        var result = config.AddWithCommands(name, folder, Option(rest, "--build"), Option(rest, "--testes"));
+        var result = config.AddWithCommands(name, folder, Option(rest, "--build"), Option(rest, "--testes", "--tests"));
         switch (result.Outcome)
         {
             case RepositoryConfigOutcome.InvalidName:
-                error.WriteLine("Nome inválido: use letras, números, ponto, hífen ou sublinhado (até 100), começando por letra ou número.");
+                error.WriteLine(ApiText.Get("Cli.Repo.InvalidName", lang));
                 return 1;
             case RepositoryConfigOutcome.FolderNotFound:
-                error.WriteLine($"A pasta {result.Path} não existe.");
+                error.WriteLine(ApiText.Get("Cli.Repo.FolderNotFound", lang, result.Path ?? string.Empty));
                 return 1;
             case RepositoryConfigOutcome.Exists:
-                error.WriteLine($"Já existe um repositório chamado {name}. Remova antes com: rastro repo remove {name}");
+                error.WriteLine(ApiText.Get("Cli.Repo.Exists", lang, name));
                 return 1;
         }
 
-        output.WriteLine($"Repositório {name} cadastrado: {result.Path}");
+        output.WriteLine(ApiText.Get("Cli.Repo.Added", lang, name, result.Path ?? string.Empty));
         if (!result.HasGit)
-            output.WriteLine("Aviso: a pasta não tem .git; o levantamento fica sem o commit, e o aviso de código mudado não funciona.");
+            output.WriteLine(ApiText.Get("Cli.Repo.NoGit", lang));
         return 0;
     }
 
-    private static int Remove(RepositoryConfigFile config, string name, TextWriter output, TextWriter error)
+    private static int Remove(RepositoryConfigFile config, string name, TextWriter output, TextWriter error, UiLanguage lang)
     {
         if (config.Remove(name).Outcome == RepositoryConfigOutcome.NotFound)
         {
-            error.WriteLine($"Nenhum repositório chamado {name}.");
+            error.WriteLine(ApiText.Get("Cli.Repo.NotFound", lang, name));
             return 1;
         }
 
-        output.WriteLine($"Repositório {name} removido. Os levantamentos dele continuam no banco.");
+        output.WriteLine(ApiText.Get("Cli.Repo.Removed", lang, name));
         return 0;
     }
 
-    private static int List(RepositoryConfigFile config, TextWriter output)
+    private static int List(RepositoryConfigFile config, TextWriter output, UiLanguage lang)
     {
         var repositories = config.List();
         if (repositories.Count == 0)
         {
-            output.WriteLine("Nenhum repositório cadastrado. Cadastre com: rastro repo add <nome> <pasta>");
+            output.WriteLine(ApiText.Get("Cli.Repo.ListEmpty", lang));
             return 0;
         }
 
@@ -67,18 +70,19 @@ public static class RepositoryCommand
         return 0;
     }
 
-    private static int Usage(TextWriter error)
+    private static int Usage(TextWriter error, UiLanguage lang)
     {
-        error.WriteLine("Uso:");
-        error.WriteLine("  rastro repo add <nome> <pasta> [--build \"comando\"] [--testes \"comando\"]");
-        error.WriteLine("  rastro repo remove <nome>");
+        error.WriteLine(ApiText.Get("Cli.Usage.Header", lang));
+        error.WriteLine("  " + ApiText.Get("Cli.Usage.RepoAdd", lang));
+        error.WriteLine("  " + ApiText.Get("Cli.Usage.RepoRemove", lang));
         error.WriteLine("  rastro repo list");
         return 1;
     }
 
-    private static string? Option(string[] args, string name)
+    // Aceita o nome estável em português e o apelido em inglês (--testes e --tests).
+    private static string? Option(string[] args, params string[] names)
     {
-        var index = Array.IndexOf(args, name);
+        var index = Array.FindIndex(args, a => names.Contains(a));
         return index >= 0 && index + 1 < args.Length ? args[index + 1] : null;
     }
 }

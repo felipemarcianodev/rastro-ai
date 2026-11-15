@@ -11,8 +11,9 @@ namespace Rastro.Extractor;
 public record EdgeProof(string Target, string File, int Line);
 
 // Refusal e RefusalArgs dizem o motivo da recusa em código (a tela traduz); Message é o texto em português.
+// File e Line (só na prova aceita): onde o compilador achou o método, para quem monta a resposta no idioma de quem usa.
 public record ProofVerdict(bool Accepted, string Message, string? TargetDisplay = null,
-    ProposalRefusal? Refusal = null, IReadOnlyList<string>? RefusalArgs = null)
+    ProposalRefusal? Refusal = null, IReadOnlyList<string>? RefusalArgs = null, string? File = null, int? Line = null)
 {
     public static ProofVerdict Reject(ProposalRefusal refusal, params string[] args) =>
         new(false, FailureText.Of(refusal, args), null, refusal, args);
@@ -56,7 +57,7 @@ public static class ProofValidator
         if (proof.Line < firstLine || proof.Line > lastLine)
             return ProofVerdict.Reject(ProposalRefusal.ProofLineOutside, method.ToDisplayString(), Number(firstLine), Number(lastLine), actualFile, Number(proof.Line));
 
-        return new ProofVerdict(true, $"Prova conferida: {method.ToDisplayString()} em {actualFile}:{firstLine}.", method.ToDisplayString());
+        return new ProofVerdict(true, $"Prova conferida: {method.ToDisplayString()} em {actualFile}:{firstLine}.", method.ToDisplayString(), File: actualFile, Line: firstLine);
     }
 
     private static string Number(int value) => value.ToString(CultureInfo.InvariantCulture);

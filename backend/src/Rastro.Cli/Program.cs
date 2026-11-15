@@ -3,6 +3,7 @@ using Microsoft.Build.Locator;
 using Rastro.Core;
 using Rastro.Core.Architecture;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 using Rastro.Core.Prompts;
 using Rastro.Extractor;
 
@@ -25,8 +26,9 @@ static int PrintVersion()
 
 static int PrintUsage(int exitCode)
 {
+    var language = CliText.Language();
     Console.Error.WriteLine($"rastro {RastroVersion.Current}");
-    Console.Error.WriteLine("Uso:");
+    Console.Error.WriteLine(CliText.Get("Usage.Header", language));
     Console.Error.WriteLine("  rastro --version");
     Console.Error.WriteLine("  rastro analyze <solution|csproj> <Tipo.Metodo> [--out arquivo.json] [--depth N]");
     Console.Error.WriteLine("  rastro c4 <fluxo.json> [--out workspace.dsl] [--name repositorio]");
@@ -67,12 +69,12 @@ static async Task<int> ExportC4(string graphFile, string[] rest)
     }
     if (!File.Exists(graphFile))
     {
-        Console.Error.WriteLine($"erro: {graphFile} não existe.");
+        Console.Error.WriteLine(CliText.Get("Error.FileMissing", CliText.Language(), graphFile));
         return 2;
     }
 
     var graph = FlowGraphJson.Deserialize(await File.ReadAllTextAsync(graphFile));
-    var dsl = C4WorkspaceBuilder.Build(new PromptContext(name, Path.GetFileName(graphFile), graph.EntryPoint, null), Rastro.Core.Localization.UiLanguages.FromSystem(), graph, []);
+    var dsl = C4WorkspaceBuilder.Build(new PromptContext(name, Path.GetFileName(graphFile), graph.EntryPoint, null), CliText.Language(), graph, []);
     if (outPath is null) Console.WriteLine(dsl);
     else await File.WriteAllTextAsync(outPath, dsl);
     return 0;
@@ -81,11 +83,12 @@ static async Task<int> ExportC4(string graphFile, string[] rest)
 [MethodImpl(MethodImplOptions.NoInlining)]
 static async Task<int> RunAnalysis(string solutionPath, string entryPoint, string? outPath, int depth)
 {
+    var language = CliText.Language();
     try
     {
         using var loaded = await SolutionLoader.LoadAsync(solutionPath);
         foreach (var warning in loaded.Warnings.Take(10))
-            Console.Error.WriteLine($"aviso: {warning}");
+            Console.Error.WriteLine(CliText.Get("Warning.Prefix", language, warning));
 
         var graph = await FlowExtractor.ExtractAsync(loaded.Solution, entryPoint, new ExtractionOptions { MaxDepth = depth });
         var json = FlowGraphJson.Serialize(graph);
@@ -94,12 +97,12 @@ static async Task<int> RunAnalysis(string solutionPath, string entryPoint, strin
         else await File.WriteAllTextAsync(outPath, json);
 
         var unresolved = graph.Nodes.Count(n => n.Kind == NodeKind.Unresolved);
-        Console.Error.WriteLine($"{graph.Nodes.Count} nós, {graph.Edges.Count} arestas, {unresolved} não resolvidos.");
+        Console.Error.WriteLine(CliText.Get("Result.Counts", language, graph.Nodes.Count, graph.Edges.Count, unresolved));
         return 0;
     }
     catch (Exception ex) when (ex is FlowEntryNotFoundException or FileNotFoundException)
     {
-        Console.Error.WriteLine($"erro: {ex.Message}");
+        Console.Error.WriteLine(CliText.Get("Error.Prefix", language, ex.Message));
         return 2;
     }
 }

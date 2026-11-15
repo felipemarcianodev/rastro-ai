@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using Rastro.Core.Architecture;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 using Rastro.Core.Localization;
 using Rastro.Core.Prompts;
@@ -26,6 +27,8 @@ namespace Rastro.Mcp;
 // mesmo ProposalService do modo provedor (validador de prova incluso). Confirmar ou descartar é
 // sempre do usuário, na tela; não há ferramenta para o agente confirmar a própria proposta.
 // Nós são citados por apelido curto (n1, n2...), a posição no grafo, ou pelo id completo.
+// As descrições das ferramentas ficam em inglês fixo (o agente as lê uma vez, ao conectar); o texto que elas
+// devolvem sai no idioma do config.json (ADR-009), lido a cada chamada.
 [McpServerToolType]
 public class RastroTools(
     RastroDbContext db,
@@ -35,7 +38,7 @@ public class RastroTools(
     ISolutionAnalyzer analyzer,
     ProposalService proposals,
     ChangeValidationService validations,
-    IOptions<RastroOptions> options,
+    IOptionsMonitor<RastroOptions> options,
     TimeProvider clock,
     Rastro.Infrastructure.Architecture.DeploymentReader deployments,
     Rastro.Infrastructure.Database.DbSchemaService schemas,
@@ -46,36 +49,39 @@ public class RastroTools(
 {
     private const int MaxOutlineLines = 400;
 
-    // Idioma da prosa que o núcleo gera para o agente (prompts, resumo da validação, esquema): o do config.json ou
-    // o do sistema. O texto próprio do MCP segue em português até a Fase 51.
-    private UiLanguage Language => EffectiveLanguage.Of(options.Value);
+    // Idioma do que as ferramentas devolvem (texto próprio, prompts, resumo da validação, esquema): o do config.json
+    // ou o do sistema. Lido ao vivo (IOptionsMonitor): o MCP é um processo longo e a pessoa pode trocar o idioma na
+    // tela com ele aberto.
+    private UiLanguage Language => EffectiveLanguage.Of(options.CurrentValue);
 
-    [McpServerTool(Name = "list_repositories"), Description("Lista os repositórios que o Rastro pode ler e as solutions de cada um.")]
+    private string T(string key, params object[] args) => McpText.Get(key, Language, args);
+
+    [McpServerTool(Name = "list_repositories"), Description("Lists the repositories Rastro can read and the solutions of each one.")]
     public string ListRepositories()
     {
         var text = new StringBuilder();
         foreach (var name in catalog.Names())
         {
             var found = catalog.Solutions(name) ?? [];
-            text.AppendLine($"- {name}: {(found.Count == 0 ? "nenhuma solution encontrada" : string.Join(", ", found.Take(5)))}");
+            text.AppendLine($"- {name}: {(found.Count == 0 ? T("Repos.NoSolution") : string.Join(", ", found.Take(5)))}");
         }
-        return text.Length == 0 ? "Nenhum repositório configurado (Rastro:Repositories)." : text.ToString();
+        return text.Length == 0 ? T("Repos.None") : text.ToString();
     }
 
-    [McpServerTool(Name = "analyze_flow"), Description("Levanta o fluxo de um método (Tipo.Metodo) numa solution e salva o levantamento. Demora: carrega a solution com o compilador.")]
+    [McpServerTool(Name = "analyze_flow"), Description("Traces the flow of a method (Type.Method) in a solution and saves the trace. It takes a while: it loads the solution with the compiler.")]
     public async Task<string> AnalyzeFlow(
-        [Description("Nome do repositório (list_repositories).")] string repository,
-        [Description("Caminho da solution relativo ao repositório, ex.: backend/MeuSistema.slnx.")] string solutionPath,
-        [Description("Ponto de entrada: Tipo.Metodo ou Namespace.Tipo.Metodo.")] string entryPoint,
-        [Description("Níveis de chamada a seguir (1 a 40).")] int maxDepth = 15,
+        [Description("Repository name (list_repositories).")] string repository,
+        [Description("Solution path relative to the repository, e.g. backend/MySystem.slnx.")] string solutionPath,
+        [Description("Entry point: Type.Method or Namespace.Type.Method.")] string entryPoint,
+        [Description("Call levels to follow (1 to 40).")] int maxDepth = 15,
         CancellationToken ct = default)
     {
-        var limit = options.Value.Analysis.MaxDepthLimit;
-        if (maxDepth < 1 || maxDepth > limit) return $"maxDepth precisa ficar entre 1 e {limit}.";
+        var limit = options.CurrentValue.Analysis.MaxDepthLimit;
+        if (maxDepth < 1 || maxDepth > limit) return T("Analyze.DepthRange", limit);
 
         var resolved = catalog.Resolve(repository, solutionPath);
-        if (resolved.Target is not { } target) return $"Não consegui usar essa solution: {resolved.Error}.";
-        if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet) return "O levantamento de código Angular é feito pela tela do Rastro, não por esta ferramenta.";
+        if (resolved.Target is not { } target) return T("Analyze.SolutionError", resolved.Error!);
+        if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet) return T("Analyze.AngularNotHere");
 
         var head = await git.HeadAsync(target.RepositoryRoot, ct);
         var survey = Survey.Create(target.RepositoryName, target.SolutionRelativePath, entryPoint.Trim(), maxDepth, head?.Commit, head?.Branch, clock.GetUtcNow());
@@ -92,32 +98,33 @@ public class RastroTools(
         }
 
         await db.SaveChangesAsync(ct);
-        if (survey.Status == SurveyStatus.Failed) return $"A análise falhou: {survey.Error}";
+        // A falha vem em código e parâmetros: o texto sai no idioma de quem usa (a coluna Error guarda o português).
+        if (survey.Status == SurveyStatus.Failed)
+            return T("Analyze.Failed", survey.Failure is { } failure ? FailureText.Of(failure, survey.ReadFailureArgs(), Language) : survey.Error ?? string.Empty);
 
-        return $"Levantamento {survey.Id} pronto: {survey.NodeCount} nós, {survey.UnresolvedCount} não resolvidos.\n"
-               + "Use list_unresolved para ver os buracos e get_flow para o fluxo inteiro.";
+        return T("Analyze.Done", survey.Id, survey.NodeCount, survey.UnresolvedCount);
     }
 
-    [McpServerTool(Name = "list_surveys"), Description("Lista os levantamentos mais recentes.")]
-    public async Task<string> ListSurveys([Description("Quantos listar (até 50).")] int limit = 10, CancellationToken ct = default)
+    [McpServerTool(Name = "list_surveys"), Description("Lists the most recent traces.")]
+    public async Task<string> ListSurveys([Description("How many to list (up to 50).")] int limit = 10, CancellationToken ct = default)
     {
         var surveys = await db.Surveys.AsNoTracking().OrderByDescending(s => s.CreatedAt).Take(Math.Clamp(limit, 1, 50)).ToListAsync(ct);
-        if (surveys.Count == 0) return "Nenhum levantamento ainda. Use analyze_flow.";
+        if (surveys.Count == 0) return T("Surveys.None");
 
         return string.Join('\n', surveys.Select(s =>
-            $"- {s.Id} | {s.EntryPoint} | {s.Repository}/{s.SolutionPath} | {s.Status} | {s.NodeCount} nós, {s.UnresolvedCount} não resolvidos"));
+            T("Surveys.Row", s.Id, s.EntryPoint, s.Repository, s.SolutionPath, s.Status, s.NodeCount, s.UnresolvedCount)));
     }
 
-    [McpServerTool(Name = "get_flow"), Description("Mostra o fluxo como um sumário indentado a partir da entrada, com o apelido de cada nó (n1, n2...).")]
-    public async Task<string> GetFlow([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "get_flow"), Description("Shows the flow as an indented outline from the entry, with the handle of each node (n1, n2...).")]
+    public async Task<string> GetFlow([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
 
         var handles = Handles(graph);
         var byId = graph.Nodes.ToDictionary(n => n.Id);
         var outgoing = graph.Edges.ToLookup(e => e.From);
         var printed = new HashSet<string>();
-        var lines = new List<string> { $"Fluxo de {graph.EntryPoint} ({graph.Nodes.Count} nós). Legenda: [inferida] = proposta aguardando o usuário; [confirmada]." };
+        var lines = new List<string> { T("Flow.Header", graph.EntryPoint, graph.Nodes.Count) };
 
         void Walk(string id, int depth, string? via)
         {
@@ -127,7 +134,7 @@ public class RastroTools(
             var prefix = via is null ? string.Empty : $"({via}) ";
             if (!printed.Add(id))
             {
-                lines.Add($"{indent}{prefix}→ {handles[id]} {node.Label} (já listado acima)");
+                lines.Add($"{indent}{prefix}→ {handles[id]} {node.Label} ({T("Flow.AlreadyListed")})");
                 return;
             }
             lines.Add($"{indent}{prefix}{handles[id]} {Describe(node)}");
@@ -136,83 +143,83 @@ public class RastroTools(
         }
 
         Walk(graph.EntryNodeId, 0, null);
-        if (lines.Count >= MaxOutlineLines) lines.Add($"… sumário cortado em {MaxOutlineLines} linhas.");
+        if (lines.Count >= MaxOutlineLines) lines.Add(T("Flow.Cut", MaxOutlineLines));
         return string.Join('\n', lines);
     }
 
-    [McpServerTool(Name = "get_flow_map"), Description("Mostra o mapa do fluxo, no nível de um diagrama C2: faixas por sistema, blocos (entrada, passo, decisão, fora do código) com o apelido do nó que dá nome a cada um, ligações (sequência, desfecho, chamada com verbo e rota) e os caminhos de ponta a ponta. Somente leitura. Use para responder perguntas sobre o fluxo citando os nós.")]
-    public async Task<string> GetFlowMap([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "get_flow_map"), Description("Shows the flow map, at the level of a C2 diagram: lanes per system, blocks (entry, step, decision, outside the code) with the handle of the node that names each one, links (sequence, outcome, call with verb and route) and the end-to-end paths. Read-only. Use it to answer questions about the flow, citing the nodes.")]
+    public async Task<string> GetFlowMap([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
 
         var handles = Handles(graph);
         var map = FlowMapBuilder.Build(graph);
         var text = new StringBuilder();
         foreach (var lane in map.Lanes)
         {
-            text.AppendLine($"Faixa {lane.Id}{(lane.System is null ? string.Empty : $" ({lane.System})")}:");
+            text.AppendLine(T("Map.Lane", lane.Id, lane.System is null ? string.Empty : $" ({lane.System})"));
             foreach (var block in map.Blocks.Where(b => b.Lane == lane.Id))
             {
-                text.AppendLine($"  {block.Id} {block.Kind} {handles.GetValueOrDefault(block.NodeId, block.NodeId)} {block.Title} ({block.NodeIds.Count} nós)");
+                text.AppendLine(T("Map.Block", block.Id, block.Kind, handles.GetValueOrDefault(block.NodeId, block.NodeId), block.Title, block.NodeIds.Count));
                 foreach (var outcome in block.Outcomes ?? [])
-                    text.AppendLine($"    desfecho {outcome.Label} -> {outcome.To ?? "segue"}{(outcome.Fails ? " [exceção]" : outcome.Ends ? " [encerra]" : string.Empty)}");
+                    text.AppendLine(T("Map.Outcome", outcome.Label, outcome.To ?? T("Map.Continues"), outcome.Fails ? " " + T("Map.Fails") : outcome.Ends ? " " + T("Map.Ends") : string.Empty));
             }
         }
-        text.AppendLine("Ligações:");
+        text.AppendLine(T("Map.Links"));
         foreach (var link in map.Links)
             text.AppendLine($"  {link.From} -> {link.To} {link.Kind}{(link.Label is null ? string.Empty : $" ({link.Label})")}{(link.Http is null ? string.Empty : $" {link.Http.Method} {link.Http.Route ?? "?"}")}");
-        text.AppendLine($"Caminhos{(map.PathsTruncated ? $" (os {map.Paths.Count} primeiros; há mais)" : string.Empty)}:");
+        text.AppendLine(T("Map.Paths", map.PathsTruncated ? T("Map.PathsMore", map.Paths.Count) : string.Empty));
         foreach (var path in map.Paths)
-            text.AppendLine($"  {path.Id}{(path.Fails ? " [exceção]" : string.Empty)}: {string.Join(" > ", path.Blocks)}");
+            text.AppendLine($"  {path.Id}{(path.Fails ? " " + T("Map.Fails") : string.Empty)}: {string.Join(" > ", path.Blocks)}");
         return text.ToString();
     }
 
-    [McpServerTool(Name = "get_flow_rules"), Description("Lista as regras do fluxo tiradas das decisões do código, sem IA: efeito (Blocks encerra o fluxo, SideEffect chama outro sistema ou fora, Allows só escolhe o caminho), a frase da regra e as fontes (apelido do nó e arquivo:linha). Regra marcada [duplicada] está implementada em mais de um sistema. Somente leitura.")]
-    public async Task<string> GetFlowRules([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "get_flow_rules"), Description("Lists the flow rules taken from the decisions in the code, without AI: effect (Blocks ends the flow, SideEffect calls another system or outside, Allows only chooses the path), the rule sentence and the sources (node handle and file:line). A rule marked [duplicated] is implemented in more than one system. Read-only.")]
+    public async Task<string> GetFlowRules([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
 
         var handles = Handles(graph);
-        var rules = FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph));
-        if (rules.Count == 0) return "Nenhuma decisão do fluxo muda o desfecho: não há regras para listar.";
+        var rules = FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph), Language);
+        if (rules.Count == 0) return T("Rules.None");
 
         var text = new StringBuilder();
         foreach (var rule in rules)
         {
-            text.AppendLine($"- {rule.Id} {rule.Effect}{(rule.Duplicated ? " [duplicada]" : string.Empty)}{(rule.FromUser ? " [escrita pelo usuário]" : string.Empty)}: {rule.Text}");
+            text.AppendLine($"- {rule.Id} {rule.Effect}{(rule.Duplicated ? " " + T("Rules.Duplicated") : string.Empty)}{(rule.FromUser ? " " + T("Rules.FromUser") : string.Empty)}: {rule.Text}");
             foreach (var source in rule.Sources)
-                text.AppendLine($"  fonte: {handles.GetValueOrDefault(source.NodeId, source.NodeId)} em {source.Lane}{(source.Location is null ? string.Empty : $", {source.Location.File}:{source.Location.Line}")}");
+                text.AppendLine(T("Rules.Source", handles.GetValueOrDefault(source.NodeId, source.NodeId), source.Lane, source.Location is null ? string.Empty : $", {source.Location.File}:{source.Location.Line}"));
         }
         return text.ToString();
     }
 
-    [McpServerTool(Name = "list_unresolved"), Description("Lista as chamadas que o compilador não resolveu (os buracos a completar), com o motivo e onde estão.")]
-    public async Task<string> ListUnresolved([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "list_unresolved"), Description("Lists the calls the compiler did not resolve (the gaps to fill), with the reason and where they are.")]
+    public async Task<string> ListUnresolved([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
 
         var handles = Handles(graph);
         var holes = graph.Nodes.Where(n => n.Kind == NodeKind.Unresolved).ToList();
-        if (holes.Count == 0) return "Nenhum buraco: o compilador resolveu todas as chamadas deste fluxo.";
+        if (holes.Count == 0) return T("Unresolved.None");
 
         var text = new StringBuilder();
         foreach (var hole in holes)
         {
-            text.AppendLine($"- {handles[hole.Id]} chamada `{hole.Label}` em {Where(hole)}");
-            text.AppendLine($"  motivo: {ReasonText(hole.Reason)}{(hole.Detail is null ? string.Empty : $" ({hole.Detail})")}");
+            text.AppendLine(T("Unresolved.Call", handles[hole.Id], hole.Label, Where(hole)));
+            text.AppendLine(T("Unresolved.Reason", ReasonText(hole.Reason), hole.Detail is null ? string.Empty : $" ({hole.Detail})"));
             var proposed = graph.Edges.Where(e => e.From == hole.Id).Select(e => graph.Nodes.First(n => n.Id == e.To).Label).ToList();
             if (proposed.Count > 0)
-                text.AppendLine($"  destinos já propostos: {string.Join(", ", proposed)}. Proponha outros só se também podem rodar aqui.");
+                text.AppendLine(T("Unresolved.Proposed", string.Join(", ", proposed)));
         }
-        text.AppendLine("Para completar: veja o código (get_node_code), ache o destino (search_methods) e proponha com prova (propose_edge).");
+        text.AppendLine(T("Unresolved.Next"));
         return text.ToString();
     }
 
-    [McpServerTool(Name = "list_cross_edges"), Description("Lista as ligações HTTP entre sistemas do levantamento (de, para, verbo, rota, sistema de origem e de destino, confiança) e as chamadas HTTP que ainda estão sem destino (nó, motivo, verbo, rota). Somente leitura. Para fechar uma chamada sem destino: search_methods com o system do destino e propose_edge com o mesmo system.")]
-    public async Task<string> ListCrossEdges([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "list_cross_edges"), Description("Lists the HTTP links between systems of the trace (from, to, verb, route, source and target system, confidence) and the HTTP calls that still have no target (node, reason, verb, route). Read-only. To close a call with no target: search_methods with the target's system and propose_edge with the same system.")]
+    public async Task<string> ListCrossEdges([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
-        if (survey?.ReadGraph() is not { } graph) return NotFound;
+        if (survey?.ReadGraph() is not { } graph) return T("Surveys.NotFound");
 
         var handles = Handles(graph);
         var byId = graph.Nodes.ToDictionary(n => n.Id);
@@ -228,7 +235,7 @@ public class RastroTools(
             .ToList();
 
         var text = new StringBuilder();
-        text.AppendLine($"Ligações HTTP entre sistemas: {links.Count}.");
+        text.AppendLine(T("Cross.Links", links.Count));
         foreach (var edge in links)
         {
             var from = byId[edge.From];
@@ -236,34 +243,34 @@ public class RastroTools(
             text.AppendLine($"- {handles[from.Id]} {from.Label} → {handles[to.Id]} {to.Label}: {HttpText(edge.Http!)} ({SystemOf(from)} → {SystemOf(to)}), {ConfidenceText(edge.Confidence)}");
         }
 
-        text.AppendLine($"Chamadas HTTP sem destino: {open.Count}.");
+        text.AppendLine(T("Cross.Open", open.Count));
         foreach (var edge in open)
         {
             var hole = byId[edge.To];
             var place = hole.Location ?? edge.Location;
-            text.AppendLine($"- {handles[hole.Id]} em {SystemOf(byId[edge.From])}, {(place is null ? "posição desconhecida" : $"{place.File}:{place.Line}")}: {HttpText(edge.Http!)}");
-            text.AppendLine($"  motivo: {ReasonText(hole.Reason)}{(hole.Detail is null ? string.Empty : $" ({hole.Detail})")}");
+            text.AppendLine(T("Cross.OpenRow", handles[hole.Id], SystemOf(byId[edge.From]), place is null ? T("Where.Unknown") : $"{place.File}:{place.Line}", HttpText(edge.Http!)));
+            text.AppendLine(T("Unresolved.Reason", ReasonText(hole.Reason), hole.Detail is null ? string.Empty : $" ({hole.Detail})"));
         }
 
         if (survey.ReadCrossRepositories().Count == 0)
-            text.AppendLine("Este levantamento não segue chamadas HTTP para outros repositórios (nenhum repositório na costura).");
+            text.AppendLine(T("Cross.NoBridge"));
         return text.ToString();
     }
 
-    [McpServerTool(Name = "get_node_code"), Description("Mostra o código em volta de um nó (arquivo do repositório, numerado).")]
+    [McpServerTool(Name = "get_node_code"), Description("Shows the code around a node (a repository file, with line numbers).")]
     public async Task<string> GetNodeCode(
-        [Description("Id do levantamento.")] Guid surveyId,
-        [Description("Apelido (n12) ou id do nó.")] string node,
-        [Description("Linhas antes e depois (até 40).")] int context = 15,
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Handle (n12) or node id.")] string node,
+        [Description("Lines before and after (up to 40).")] int context = 15,
         CancellationToken ct = default)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
-        if (survey?.ReadGraph() is not { } graph) return NotFound;
-        if (FindNode(graph, node) is not { } found) return $"Nó {node} não encontrado.";
-        if (found.Location is null) return $"{found.Label} não tem posição no código (externo ou estrutural).";
+        if (survey?.ReadGraph() is not { } graph) return T("Surveys.NotFound");
+        if (FindNode(graph, node) is not { } found) return T("Node.NotFound", node);
+        if (found.Location is null) return T("Node.NoLocation", found.Label);
 
         var path = catalog.SourceFile(found.System ?? survey.Repository, found.Location.File);
-        if (path is null || !File.Exists(path)) return "Arquivo não encontrado no repositório.";
+        if (path is null || !File.Exists(path)) return T("Node.FileMissing");
 
         var all = await File.ReadAllLinesAsync(path, ct);
         context = Math.Clamp(context, 0, 40);
@@ -275,15 +282,15 @@ public class RastroTools(
         return text.ToString();
     }
 
-    [McpServerTool(Name = "search_methods"), Description("Procura métodos com corpo na solution do levantamento, por nome ou Tipo.Metodo. Devolve arquivo:linha, que serve de prova no propose_edge.")]
+    [McpServerTool(Name = "search_methods"), Description("Searches methods with a body in the solution of the trace, by name or Type.Method. Returns file:line, which serves as the evidence in propose_edge.")]
     public async Task<string> SearchMethods(
-        [Description("Id do levantamento.")] Guid surveyId,
-        [Description("Parte do nome, ex.: Notify ou EmailNotifier.Notify.")] string query,
-        [Description("Opcional: repositório da costura em que procurar (para o destino de uma chamada HTTP). Sem ele, procura no repositório do levantamento.")] string? system = null,
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Part of the name, e.g. Notify or EmailNotifier.Notify.")] string query,
+        [Description("Optional: bridge repository to search in (for the target of an HTTP call). Without it, searches the repository of the trace.")] string? system = null,
         CancellationToken ct = default)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
-        if (survey is null) return NotFound;
+        if (survey is null) return T("Surveys.NotFound");
 
         CatalogResult resolved;
         if (string.IsNullOrWhiteSpace(system) || string.Equals(system.Trim(), survey.Repository, StringComparison.OrdinalIgnoreCase))
@@ -293,116 +300,116 @@ public class RastroTools(
         else
         {
             var cross = survey.ReadCrossRepositories().FirstOrDefault(r => string.Equals(r, system.Trim(), StringComparison.OrdinalIgnoreCase));
-            if (cross is null) return $"{system} não está na costura deste levantamento. Repositórios da costura: {(survey.ReadCrossRepositories().Count == 0 ? "nenhum" : string.Join(", ", survey.ReadCrossRepositories()))}.";
+            if (cross is null) return T("Search.NotInBridge", system, survey.ReadCrossRepositories().Count == 0 ? T("Common.None") : string.Join(", ", survey.ReadCrossRepositories()));
             var solution = catalog.DotNetSolutions(cross)?.FirstOrDefault();
             resolved = solution is null ? CatalogResult.Fail(CatalogError.SolutionNotFound) : catalog.Resolve(cross, solution);
         }
-        if (resolved.Target is not { } target) return "O repositório ou a solution não estão mais disponíveis.";
-        if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet) return "A busca de métodos ainda não lê código Angular.";
+        if (resolved.Target is not { } target) return T("Search.Unavailable");
+        if (target.Language != Rastro.Core.Graph.SourceLanguage.DotNet) return T("Search.Angular");
 
         var handle = await solutions.OpenAsync(target, fresh: false, ct);
         var found = await ProofValidator.SearchMethodsAsync(handle.Solution, handle.BaseDirectory, query, 30, ct);
         return found.Count == 0
-            ? $"Nenhum método com corpo contém \"{query}\"."
+            ? T("Search.NoMethod", query)
             : string.Join('\n', found.Select(f => $"- {f.Name} ({f.File}:{f.Line})"));
     }
 
-    [McpServerTool(Name = "propose_edge"), Description("Propõe o destino de um nó não resolvido, com prova: o método de destino e o arquivo:linha onde ele está declarado. O compilador confere; se valer, entra como aresta inferida e o usuário confirma na tela. Chamada HTTP sem destino (list_cross_edges) também entra aqui, com o parâmetro system.")]
+    [McpServerTool(Name = "propose_edge"), Description("Proposes the target of an unresolved node, with evidence: the target method and the file:line where it is declared. The compiler checks it; if it holds, it enters as an inferred edge and the user confirms it on the screen. An HTTP call with no target (list_cross_edges) also goes through here, with the system parameter.")]
     public async Task<string> ProposeEdge(
-        [Description("Id do levantamento.")] Guid surveyId,
-        [Description("Apelido (n12) ou id do nó não resolvido.")] string node,
-        [Description("Método de destino: Tipo.Metodo ou Namespace.Tipo.Metodo.")] string target,
-        [Description("Arquivo da declaração do destino, relativo ao repositório (como aparece em search_methods).")] string evidenceFile,
-        [Description("Linha dentro da declaração do método de destino.")] int evidenceLine,
-        [Description("Por que este é o destino (o que no código indica isso).")] string reason,
-        [Description("Opcional: quando este destino roda, se o buraco tem vários (ex.: \"evento CheckoutCompleted\"). Vira o rótulo da aresta.")] string? when = null,
-        [Description("Repositório de destino, obrigatório quando o nó é uma chamada HTTP sem destino. Precisa estar entre os repositórios da costura do levantamento. O arquivo da prova é relativo a ele, e o verbo e a rota da chamada precisam casar com os do método.")] string? system = null,
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Handle (n12) or id of the unresolved node.")] string node,
+        [Description("Target method: Type.Method or Namespace.Type.Method.")] string target,
+        [Description("File of the target declaration, relative to the repository (as it appears in search_methods).")] string evidenceFile,
+        [Description("Line inside the declaration of the target method.")] int evidenceLine,
+        [Description("Why this is the target (what in the code points to it).")] string reason,
+        [Description("Optional: when this target runs, if the gap has several (e.g. \"CheckoutCompleted event\"). It becomes the edge label.")] string? when = null,
+        [Description("Target repository, required when the node is an HTTP call with no target. It must be among the bridge repositories of the trace. The evidence file is relative to it, and the verb and the route of the call must match those of the method.")] string? system = null,
         CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
-        if (FindNode(graph, node) is not { } found) return $"Nó {node} não encontrado.";
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
+        if (FindNode(graph, node) is not { } found) return T("Node.NotFound", node);
 
         var outcome = await proposals.ProposeEdgeAsync(surveyId, found.Id, target, evidenceFile, evidenceLine, reason, ProposalOrigin.Agent, ct, when, system);
-        return (outcome.Accepted ? "Aceita. " : "Recusada. ") + outcome.Message;
+        return T(outcome.Accepted ? "Propose.Accepted" : "Propose.Refused") + " " + OutcomeText(outcome);
     }
 
-    [McpServerTool(Name = "describe_node"), Description("Escreve a regra de um nó em português, para quem lê o fluxo: o que ele faz e, nas bifurcações, quando cada ramo acontece. Aparece na tela marcada como escrita por um agente.")]
+    [McpServerTool(Name = "describe_node"), Description("Writes the rule of a node, in the user's language, for whoever reads the flow: what it does and, at branches, when each branch happens. It shows on the screen marked as written by an agent.")]
     public async Task<string> DescribeNode(
-        [Description("Id do levantamento.")] Guid surveyId,
-        [Description("Apelido (n12) ou id do nó.")] string node,
-        [Description("A regra, em linguagem de negócio, de 10 a 2000 caracteres. Sem inventar o que o código não mostra.")] string rule,
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Handle (n12) or node id.")] string node,
+        [Description("The rule, in business language, from 10 to 2000 characters. Do not invent what the code does not show.")] string rule,
         CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
-        if (FindNode(graph, node) is not { } found) return $"Nó {node} não encontrado.";
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
+        if (FindNode(graph, node) is not { } found) return T("Node.NotFound", node);
 
         var outcome = await proposals.ProposeRuleAsync(surveyId, found.Id, rule, ProposalOrigin.Agent, ct);
-        return (outcome.Accepted ? "Gravada. " : "Recusada. ") + outcome.Message;
+        return T(outcome.Accepted ? "Propose.Written" : "Propose.Refused") + " " + OutcomeText(outcome);
     }
 
-    [McpServerTool(Name = "impact_of"), Description("Antes de alterar um método do fluxo: mostra de onde se chega até ele (caminhos desde a entrada) e o que roda depois dele (o que pode quebrar).")]
+    [McpServerTool(Name = "impact_of"), Description("Before changing a method of the flow: shows how it is reached (paths from the entry) and what runs after it (what may break).")]
     public async Task<string> ImpactOf(
-        [Description("Id do levantamento.")] Guid surveyId,
-        [Description("Apelido (n12) ou id do nó.")] string node,
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Handle (n12) or node id.")] string node,
         CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
-        if (FindNode(graph, node) is not { } found) return $"Nó {node} não encontrado.";
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
+        if (FindNode(graph, node) is not { } found) return T("Node.NotFound", node);
 
         var handles = Handles(graph);
         var text = new StringBuilder();
-        text.AppendLine($"Impacto de {found.Label}{(found.Location is null ? "" : $" [{found.Location.File}:{found.Location.Line}]")}");
+        text.AppendLine(T("Impact.Title", found.Label, found.Location is null ? "" : $" [{found.Location.File}:{found.Location.Line}]"));
         var paths = GraphQueries.PathsTo(graph, found.Id);
-        text.AppendLine(paths.Count == 0 ? "Não é alcançável a partir da entrada." : $"Chega-se a ele por {paths.Count} caminho(s):");
+        text.AppendLine(paths.Count == 0 ? T("Impact.NoPath") : T("Impact.Paths", paths.Count));
         foreach (var path in paths)
             text.AppendLine("- " + string.Join(" → ", path.Select(n => $"{handles[n.Id]} {n.Label}")));
         var downstream = GraphQueries.Downstream(graph, found.Id);
-        text.AppendLine(downstream.Count == 0 ? "Nada roda depois dele neste fluxo." : $"Depois dele rodam {downstream.Count} passo(s), que podem ser afetados:");
+        text.AppendLine(downstream.Count == 0 ? T("Impact.NoDown") : T("Impact.Down", downstream.Count));
         foreach (var next in downstream.Take(40))
             text.AppendLine($"- {handles[next.Id]} {Describe(next)}");
         return text.ToString();
     }
 
-    [McpServerTool(Name = "get_change_prompt"), Description("Prompt da mudança que o usuário desenhou no rascunho do levantamento: o que mudar, com arquivo:linha, o que não mexer e os critérios de aceite. Use-o como especificação.")]
-    public async Task<string> GetChangePrompt([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "get_change_prompt"), Description("The prompt of the change the user designed in the draft of the trace: what to change, with file:line, what not to touch and the acceptance criteria. Use it as the specification.")]
+    public async Task<string> GetChangePrompt([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
         var draft = await db.SurveyDrafts.AsNoTracking().FirstOrDefaultAsync(d => d.SurveyId == surveyId, ct);
-        if (survey?.ReadGraph() is not { } original) return NotFound;
-        if (draft is null) return "Este levantamento não tem rascunho de mudança. O usuário desenha a mudança no modo \"Editar fluxo\" da tela.";
+        if (survey?.ReadGraph() is not { } original) return T("Surveys.NotFound");
+        if (draft is null) return T("Change.NoDraft");
 
         return ChangePromptBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), Language, original, draft.ReadGraph());
     }
 
-    [McpServerTool(Name = "check_change"), Description("Depois de aplicar a mudança do get_change_prompt: levanta o fluxo de novo no código atual, confere os critérios do rascunho, procura mudanças fora do pedido e roda o build e os testes configurados do repositório. Devolve a nota. Demora: carrega a solution e compila.")]
-    public async Task<string> CheckChange([Description("Id do levantamento ORIGINAL (o que tem o rascunho).")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "check_change"), Description("After applying the change from get_change_prompt: traces the flow again on the current code, checks the criteria of the draft, looks for changes outside the request and runs the configured build and tests of the repository. Returns the score. It takes a while: it loads the solution and compiles.")]
+    public async Task<string> CheckChange([Description("Id of the ORIGINAL trace (the one that has the draft).")] Guid surveyId, CancellationToken ct = default)
     {
         var request = await validations.RequestAsync(surveyId, ct);
         if (request.Validation is not { } validation)
             return request.Error switch
             {
-                ValidationRequestError.DraftRequired => "Este levantamento não tem rascunho com mudanças. O usuário desenha a mudança no modo \"Editar fluxo\" da tela.",
-                ValidationRequestError.AlreadyRunning => "Já existe uma validação em andamento para este levantamento. Aguarde e consulte de novo.",
-                _ => NotFound
+                ValidationRequestError.DraftRequired => T("Check.NoDraft"),
+                ValidationRequestError.AlreadyRunning => T("Check.Running"),
+                _ => T("Surveys.NotFound")
             };
 
         await validations.RunAsync(validation.Id, ct);
         var done = await db.SurveyValidations.AsNoTracking().FirstAsync(v => v.Id == validation.Id, ct);
-        if (done.ReadResult() is not { } result) return $"A validação falhou: {done.Error}";
+        if (done.ReadResult() is not { } result)
+            return T("Check.Failed", done.Failure is { } failure ? FailureText.Of(failure, done.ReadFailureArgs(), Language) : done.Error ?? string.Empty);
 
-        return FlowDocumentBuilder.Summary(result, Language) +
-               $"\nLevantamento novo: {done.NewSurveyId}. A aprovação (que gera a documentação) é do usuário, na tela.";
+        return FlowDocumentBuilder.Summary(result, Language) + T("Check.Done", done.NewSurveyId!);
     }
 
-    [McpServerTool(Name = "list_findings"), Description("Achados de qualidade do fluxo: métricas acima do limiar (complexidade, tamanho, aninhamento, dependências), catch que engole a falha, service locator e violações de DDD (entidade alterada ou gravada fora do domínio, setter público). Cada um com o índice para o get_refactor_prompt.")]
-    public async Task<string> ListFindings([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "list_findings"), Description("Quality findings of the flow: metrics above the threshold (complexity, size, nesting, dependencies), a catch that swallows the failure, service locator and DDD violations (entity changed or saved outside the domain, public setter). Each one with the index for get_refactor_prompt.")]
+    public async Task<string> ListFindings([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph) return NotFound;
-        if (graph.Findings is null) return "Este levantamento é anterior à inspeção de qualidade. Levante o fluxo de novo (analyze_flow).";
-        if (graph.Findings.Count == 0) return "Nenhum achado de qualidade neste fluxo.";
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
+        if (graph.Findings is null) return T("Findings.OldSurvey");
+        if (graph.Findings.Count == 0) return T("Findings.None");
 
         var handles = Handles(graph);
-        var text = new StringBuilder($"{graph.Findings.Count} achado(s):\n");
+        var text = new StringBuilder(T("Findings.Count", graph.Findings.Count));
         foreach (var (finding, index) in graph.Findings.Select((f, i) => (f, i)))
         {
             var where = finding.Location is null ? "" : $"  [{finding.Location.File}:{finding.Location.Line}]";
@@ -411,123 +418,124 @@ public class RastroTools(
         return text.ToString();
     }
 
-    [McpServerTool(Name = "get_refactor_prompt"), Description("Prompt de refatoração de um achado do list_findings: o problema com arquivo:linha, o caminho do fluxo até ele, o que fazer, o que não mexer e os critérios de aceite.")]
+    [McpServerTool(Name = "get_refactor_prompt"), Description("Refactoring prompt for a finding from list_findings: the problem with file:line, the flow path to it, what to do, what not to touch and the acceptance criteria.")]
     public async Task<string> GetRefactorPrompt(
-        [Description("Id do levantamento.")] Guid surveyId,
-        [Description("Índice do achado no list_findings.")] int index,
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Index of the finding in list_findings.")] int index,
         CancellationToken ct = default)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
-        if (survey?.ReadGraph() is not { } graph) return NotFound;
-        if (graph.Findings is not { } findings || index < 0 || index >= findings.Count) return "Índice fora da lista. Use list_findings.";
+        if (survey?.ReadGraph() is not { } graph) return T("Surveys.NotFound");
+        if (graph.Findings is not { } findings || index < 0 || index >= findings.Count) return T("Findings.OutOfList");
 
         return RefactorPromptBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), Language, graph, findings[index]);
     }
 
-    [McpServerTool(Name = "get_db_schema"), Description("Esquema do banco de um repositório, lido do código (modelo do EF Core, migrations e arquivos .sql; SQL Server ou PostgreSQL, conforme o repositório): tabelas, colunas, chaves, índices, views e procedures, com arquivo:linha de cada item e as divergências entre fontes. Só lê arquivos: nenhum banco é consultado e nenhum dado das tabelas é lido.")]
+    [McpServerTool(Name = "get_db_schema"), Description("Database schema of a repository, read from the code (EF Core model, migrations and .sql files; SQL Server or PostgreSQL, according to the repository): tables, columns, keys, indexes, views and procedures, with the file:line of each item and the divergences between sources. It only reads files: no database is queried and no table data is read.")]
     public async Task<string> GetDbSchema(
-        [Description("Nome do repositório (list_repositories).")] string repository,
-        [Description("Opcional: só uma tabela (ex.: pedidos ou dbo.pedidos). Sem ela, o esquema inteiro.")] string? table = null,
+        [Description("Repository name (list_repositories).")] string repository,
+        [Description("Optional: only one table (e.g. orders or dbo.orders). Without it, the whole schema.")] string? table = null,
         CancellationToken ct = default)
     {
-        var schema = await schemas.ReadAsync(repository, Language, ct);
-        if (schema is null) return "Repositório não cadastrado. Use list_repositories.";
+        var language = Language;
+        var schema = await schemas.ReadAsync(repository, language, ct);
+        if (schema is null) return McpText.Get("Db.NotRegistered", language);
         if (schema.Tables.Count == 0 && schema.Views.Count == 0 && schema.Procedures.Count == 0)
-            return "Nenhuma tabela encontrada no código deste repositório (DbContext do EF Core, migrations ou arquivos .sql).";
-        return DbSchemaText.Format(schema, string.IsNullOrWhiteSpace(table) ? null : table.Trim());
+            return McpText.Get("Db.NoTables", language);
+        return DbSchemaText.Format(schema, string.IsNullOrWhiteSpace(table) ? null : table.Trim(), language);
     }
 
-    [McpServerTool(Name = "analyze_query"), Description("Analisa uma consulta SQL (SQL Server ou PostgreSQL, o dialeto do repositório) sem executá-la e sem IA: os achados de gargalo pelo leitor de SQL do dialeto, cruzados com o esquema lido do código do repositório (SELECT *, função na coluna do filtro, LIKE ou ILIKE com curinga no começo, conversão com :: no filtro, OR entre colunas, coluna sem índice no filtro ou na junção (índice composto conta), leitura sem limite filtrada só por igualdade, junção sem condição, DISTINCT sobre junção, subconsulta correlacionada, ORDER BY sem limite, NOT IN com coluna que aceita nulo, UPDATE ou DELETE sem WHERE), cada um com a gravidade (alta, média ou baixa), o trecho e o motivo, as tabelas que a consulta usa e o esquema só dessas tabelas (colunas, tipos e índices), para propor a melhora com propose_query_rewrite. Nenhum banco é consultado.")]
+    [McpServerTool(Name = "analyze_query"), Description("Analyzes a SQL query (SQL Server or PostgreSQL, the dialect of the repository) without executing it and without AI: the bottleneck findings from the SQL reader of the dialect, crossed with the schema read from the repository code (SELECT *, function on the filter column, LIKE or ILIKE with a leading wildcard, :: cast in the filter, OR across columns, column without an index in the filter or the join (a composite index counts), unbounded read filtered only by equality, join without a condition, DISTINCT over a join, correlated subquery, ORDER BY without a limit, NOT IN with a nullable column, UPDATE or DELETE without WHERE), each with the severity (high, medium or low), the snippet and the reason, the tables the query uses and the schema of only those tables (columns, types and indexes), to propose the improvement with propose_query_rewrite. No database is queried.")]
     public async Task<string> AnalyzeQuery(
-        [Description("Nome do repositório (list_repositories), para cruzar com o esquema.")] string repository,
-        [Description("A consulta SQL (no dialeto do repositório), como o usuário escreveu.")] string sql,
+        [Description("Repository name (list_repositories), to cross with the schema.")] string repository,
+        [Description("The SQL query (in the dialect of the repository), as the user wrote it.")] string sql,
         CancellationToken ct = default)
     {
+        var language = Language;
         if (string.IsNullOrWhiteSpace(sql) || sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
-            return "Informe uma consulta de até 100 mil caracteres.";
-        var context = await queryProposals.ContextAsync(repository, sql, Language, ct);
-        return context is null ? "Repositório não cadastrado. Use list_repositories." : QueryAnalysisText.Format(context.Analysis, Language, context.Schema);
+            return McpText.Get("Query.TooLong", language);
+        var context = await queryProposals.ContextAsync(repository, sql, language, ct);
+        return context is null ? McpText.Get("Db.NotRegistered", language) : QueryAnalysisText.Format(context.Analysis, language, context.Schema);
     }
 
-    [McpServerTool(Name = "propose_query_rewrite"), Description("Propõe a melhora de uma consulta SQL (SQL Server ou PostgreSQL) já vista no analyze_query: a consulta reescrita e os índices sugeridos, com o motivo de cada mudança. O Rastro confere antes de aceitar, sem IA: a reescrita precisa ser lida pelo leitor de SQL do dialeto, ser uma instrução só da mesma operação na mesma tabela (sem SET, EXEC, COPY, CALL nem DDL), citar só tabelas e colunas que existem e devolver as mesmas colunas, com os mesmos nomes e na mesma ordem, sem acrescentar TOP, LIMIT, OFFSET nem FETCH; o índice só usa colunas que existem e não repete um índice nem a chave primária que já começa pelas mesmas colunas. O que não passa volta recusado com o motivo: corrija e proponha de novo. Nada é aplicado nem executado: quem copia e aplica é o usuário.")]
+    [McpServerTool(Name = "propose_query_rewrite"), Description("Proposes the improvement of a SQL query (SQL Server or PostgreSQL) already seen in analyze_query: the rewritten query and the suggested indexes, with the reason for each change. Rastro checks it before accepting, without AI: the rewrite must be read by the SQL reader of the dialect, be a single statement of the same operation on the same table (no SET, EXEC, COPY, CALL or DDL), cite only tables and columns that exist and return the same columns, with the same names and in the same order, without adding TOP, LIMIT, OFFSET or FETCH; the index only uses columns that exist and does not repeat an index or a primary key that already starts with the same columns. What does not pass comes back refused with the reason: fix it and propose again. Nothing is applied or executed: the user copies and applies it.")]
     public async Task<string> ProposeQueryRewrite(
-        [Description("Nome do repositório (list_repositories).")] string repository,
-        [Description("A consulta original, exatamente como foi analisada.")] string sql,
-        [Description("A consulta reescrita, no dialeto do repositório. Vazio quando a proposta é só de índice.")] string? rewrittenSql = null,
-        [Description("Cada mudança da reescrita, com o motivo (até 8).")] QueryChangeInput[]? changes = null,
-        [Description("Índices sugeridos (até 5).")] QueryIndexInput[]? indexes = null,
+        [Description("Repository name (list_repositories).")] string repository,
+        [Description("The original query, exactly as it was analyzed.")] string sql,
+        [Description("The rewritten query, in the dialect of the repository. Empty when the proposal is only about indexes.")] string? rewrittenSql = null,
+        [Description("Each change of the rewrite, with the reason (up to 8).")] QueryChangeInput[]? changes = null,
+        [Description("Suggested indexes (up to 5).")] QueryIndexInput[]? indexes = null,
         CancellationToken ct = default)
     {
+        var language = Language;
         if (string.IsNullOrWhiteSpace(sql) || sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
-            return "Informe a consulta original, de até 100 mil caracteres.";
+            return McpText.Get("Rewrite.TooLong", language);
         if (string.IsNullOrWhiteSpace(rewrittenSql) && (indexes is null || indexes.Length == 0))
-            return "Nada para conferir: informe a consulta reescrita, os índices ou os dois.";
+            return McpText.Get("Rewrite.Nothing", language);
 
         var proposal = new Rastro.Core.Database.QueryProposal(rewrittenSql,
             (changes ?? []).Select(c => new Rastro.Core.Database.QueryChange(c.What ?? string.Empty, c.Why ?? string.Empty)).ToList(),
             (indexes ?? []).Select(i => new Rastro.Core.Database.IndexSuggestion(i.Table ?? string.Empty, i.Columns ?? [], i.Include ?? [], i.Unique, i.Reason ?? string.Empty)).ToList(),
             ProposalOrigin.Agent);
-        var context = await queryProposals.ContextAsync(repository, sql, Language, ct);
-        if (context is null) return "Repositório não cadastrado. Use list_repositories.";
-        if (context.Analysis.Error is not null) return QueryAnalysisText.Format(context.Analysis, Language);
-        var review = queryProposals.Review(repository, context, sql, proposal, Language);
+        var context = await queryProposals.ContextAsync(repository, sql, language, ct);
+        if (context is null) return McpText.Get("Db.NotRegistered", language);
+        if (context.Analysis.Error is not null) return QueryAnalysisText.Format(context.Analysis, language);
+        var review = queryProposals.Review(repository, context, sql, proposal, language);
         // Com banco vivo, o custo estimado do plano da original e da reescrita aceita, como a tela mostra.
         if (review.Rewrite is { Accepted: true } rewrite && (await liveConnections.ViewAsync(repository, ct)).Configured)
         {
             try
             {
-                review = review with { Plan = await liveDatabase.ComparePlansAsync(repository, sql, rewrite.Sql, Language, ct) };
+                review = review with { Plan = await liveDatabase.ComparePlansAsync(repository, sql, rewrite.Sql, language, ct) };
             }
             catch (CryptographicException ex)
             {
                 logger.LogWarning(ex, "A conexão com o banco vivo do repositório {Repository} não pôde ser decifrada pelo servidor MCP.", repository);
-                review = review with { Plan = new Rastro.Core.Database.PlanComparison(null, null, UndecipherableConnection) };
+                review = review with { Plan = new Rastro.Core.Database.PlanComparison(null, null, McpText.Get("Plan.Undecipherable", language)) };
             }
         }
-        return QueryProposalText.Format(review, Language);
+        return QueryProposalText.Format(review, language);
     }
 
-    private const string NoLiveDatabase = "Este repositório não tem banco vivo cadastrado. O usuário cadastra a conexão na tela do banco do Rastro (o cadastro e a string de conexão são só pela tela); depois o plano estimado vem por aqui. Sem o banco vivo, use analyze_query, que lê só o código.";
-    private const string UndecipherableConnection = "o servidor MCP não conseguiu abrir a conexão cadastrada (a chave de cifra é da API do Rastro). Peça ao usuário para abrir o Rastro uma vez e cadastrar a conexão de novo na tela do banco.";
-
-    [McpServerTool(Name = "get_query_plan"), Description("Plano estimado de uma consulta SQL no banco vivo que o usuário cadastrou para o repositório (SQL Server ou PostgreSQL), sem executá-la: o custo total estimado, os operadores mais caros (com a tabela, o peso e se é varredura), os índices que o próprio banco aponta como faltando e os avisos. A consulta passa antes pelo leitor de SQL do Rastro, que recusa o que não for uma instrução única de consulta ou de alteração de dados, sem script nem comando. O banco só devolve o plano: nenhum dado das tabelas é lido, e a string de conexão nunca aparece. Sem banco vivo cadastrado, a resposta diz isso: o cadastro é só pela tela do Rastro.")]
+    [McpServerTool(Name = "get_query_plan"), Description("Estimated plan of a SQL query on the live database the user registered for the repository (SQL Server or PostgreSQL), without executing it: the estimated total cost, the most expensive operators (with the table, the weight and whether it is a scan), the indexes the database itself says are missing and the warnings. The query first goes through the Rastro SQL reader, which refuses anything that is not a single query or data-change statement, with no script or command. The database only returns the plan: no table data is read, and the connection string never appears. Without a registered live database, the answer says so: the registration is screen-only.")]
     public async Task<string> GetQueryPlan(
-        [Description("Nome do repositório (list_repositories).")] string repository,
-        [Description("A consulta SQL (no dialeto do banco vivo), como o usuário escreveu.")] string sql,
+        [Description("Repository name (list_repositories).")] string repository,
+        [Description("The SQL query (in the dialect of the live database), as the user wrote it.")] string sql,
         CancellationToken ct = default)
     {
+        var language = Language;
         if (string.IsNullOrWhiteSpace(sql) || sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
-            return "Informe uma consulta de até 100 mil caracteres.";
-        if (catalog.RootOf(repository) is null) return "Repositório não cadastrado. Use list_repositories.";
+            return McpText.Get("Query.TooLong", language);
+        if (catalog.RootOf(repository) is null) return McpText.Get("Db.NotRegistered", language);
 
         var connection = await liveConnections.ViewAsync(repository, ct);
-        if (!connection.Configured) return NoLiveDatabase;
+        if (!connection.Configured) return McpText.Get("Plan.NoLive", language);
 
         Rastro.Infrastructure.Database.Live.LivePlanResult result;
         try
         {
-            result = await liveDatabase.PlanAsync(repository, sql, Language, ct);
+            result = await liveDatabase.PlanAsync(repository, sql, language, ct);
         }
         catch (CryptographicException ex)
         {
             logger.LogWarning(ex, "A conexão com o banco vivo do repositório {Repository} não pôde ser decifrada pelo servidor MCP.", repository);
-            return $"Não foi possível pedir o plano: {UndecipherableConnection}";
+            return McpText.Get("Plan.CannotPlan", language, McpText.Get("Plan.Undecipherable", language));
         }
 
         return result.Outcome switch
         {
-            Rastro.Infrastructure.Database.Live.LivePlanOutcome.Ok when result.Plan is { } plan => QueryPlanText.Format(plan, connection),
-            Rastro.Infrastructure.Database.Live.LivePlanOutcome.NoConnection => NoLiveDatabase,
-            Rastro.Infrastructure.Database.Live.LivePlanOutcome.NotAllowed => $"O Rastro recusou a consulta antes de pedir o plano: {(result.Reason ?? "consulta não permitida").TrimEnd('.')}. Nada foi enviado ao banco.",
-            _ => $"O plano não veio do banco vivo: {(result.Reason ?? "o banco não respondeu").TrimEnd('.')}."
+            Rastro.Infrastructure.Database.Live.LivePlanOutcome.Ok when result.Plan is { } plan => QueryPlanText.Format(plan, connection, language),
+            Rastro.Infrastructure.Database.Live.LivePlanOutcome.NoConnection => McpText.Get("Plan.NoLive", language),
+            Rastro.Infrastructure.Database.Live.LivePlanOutcome.NotAllowed => McpText.Get("Plan.NotAllowed", language, (result.Reason ?? McpText.Get("Plan.NotAllowedDefault", language)).TrimEnd('.')),
+            _ => McpText.Get("Plan.NoAnswer", language, (result.Reason ?? McpText.Get("Plan.NoAnswerDefault", language)).TrimEnd('.'))
         };
     }
 
-    [McpServerTool(Name = "get_c4"), Description("Diagramas C4 do fluxo em Structurizr DSL (C1 contexto, C2 containers, C3 componentes, C4 visão dinâmica do fluxo). As pessoas do C1 são as que o usuário cadastrou na tela.")]
-    public async Task<string> GetC4([Description("Id do levantamento.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "get_c4"), Description("C4 diagrams of the flow in Structurizr DSL (C1 context, C2 containers, C3 components, C4 dynamic view of the flow). The people in C1 are the ones the user registered on the screen.")]
+    public async Task<string> GetC4([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
-        if (survey?.ReadGraph() is not { } graph) return NotFound;
+        if (survey?.ReadGraph() is not { } graph) return T("Surveys.NotFound");
 
         var people = (await db.SurveyArchitectures.AsNoTracking().FirstOrDefaultAsync(a => a.SurveyId == surveyId, ct))?.ReadPeople() ?? [];
         // C2 pelos serviços do docker-compose do repositório, quando ele existe (Fase 13).
@@ -536,10 +544,19 @@ public class RastroTools(
         return C4WorkspaceBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), Language, graph, people, deployment);
     }
 
-    private const string NotFound = "Levantamento não encontrado ou ainda sem grafo. Use list_surveys.";
-
     private async Task<FlowGraph?> GraphAsync(Guid surveyId, CancellationToken ct) =>
         (await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct))?.ReadGraph();
+
+    // A recusa vem em código e parâmetros e sai no idioma de quem usa; a aceita, dos dados que a proposta trouxe.
+    private string OutcomeText(ProposalOutcome outcome)
+    {
+        if (outcome.Refusal is { } refusal) return FailureText.Of(refusal, outcome.RefusalArgs, Language);
+        if (outcome.Edge is { } edge)
+            return edge.Destination is null
+                ? T("Propose.EdgeAccepted", edge.Target, edge.File, edge.Line, edge.Nodes)
+                : T("Propose.HttpEdgeAccepted", edge.Target, edge.File, edge.Line, edge.Nodes, edge.Destination);
+        return outcome.Accepted ? T("Propose.RuleSaved") : outcome.Message;
+    }
 
     private static Dictionary<string, string> Handles(FlowGraph graph) =>
         graph.Nodes.Select((n, i) => (n.Id, Handle: $"n{i + 1}")).ToDictionary(x => x.Id, x => x.Handle);
@@ -552,64 +569,64 @@ public class RastroTools(
         return graph.Nodes.FirstOrDefault(n => n.Id == text);
     }
 
-    private static string Describe(FlowNode node)
+    private string Describe(FlowNode node)
     {
         var text = $"{KindText(node.Kind)}: {node.Label}";
         if (node.Location is not null) text += $"  [{node.Location.File}:{node.Location.Line}]";
-        if (node.System is not null) text += $"  (sistema {node.System})";
-        if (node.Kind == NodeKind.Unresolved) text += $"  ← não resolvido: {ReasonText(node.Reason)}";
-        if (node.Rule is not null) text += $"\n    regra: {node.Rule.Text}";
+        if (node.System is not null) text += T("Node.System", node.System);
+        if (node.Kind == NodeKind.Unresolved) text += T("Node.UnresolvedTag", ReasonText(node.Reason));
+        if (node.Rule is not null) text += T("Node.RuleLine", node.Rule.Text);
         return text;
     }
 
-    private static string Where(FlowNode node) =>
-        node.Location is null ? "posição desconhecida" : $"{node.Location.File}:{node.Location.Line}";
+    private string Where(FlowNode node) =>
+        node.Location is null ? T("Where.Unknown") : $"{node.Location.File}:{node.Location.Line}";
 
-    private static string? EdgeTag(FlowEdge edge)
+    private string? EdgeTag(FlowEdge edge)
     {
         var parts = new List<string>();
         if (edge.Label is not null) parts.Add(edge.Label);
-        if (edge.Confidence == EdgeConfidence.Inferred) parts.Add("inferida");
-        if (edge.Confidence == EdgeConfidence.Confirmed) parts.Add("confirmada");
+        if (edge.Confidence == EdgeConfidence.Inferred) parts.Add(T("Edge.Inferred"));
+        if (edge.Confidence == EdgeConfidence.Confirmed) parts.Add(T("Edge.Confirmed"));
         return parts.Count == 0 ? null : string.Join(", ", parts);
     }
 
     private static string HttpText(HttpCall call) => $"{call.Method} {call.Route ?? "?"}";
 
-    private static string ConfidenceText(EdgeConfidence confidence) => confidence switch
+    private string ConfidenceText(EdgeConfidence confidence) => confidence switch
     {
-        EdgeConfidence.Extracted => "extraída",
-        EdgeConfidence.Inferred => "inferida",
-        _ => "confirmada"
+        EdgeConfidence.Extracted => T("Edge.Extracted"),
+        EdgeConfidence.Inferred => T("Edge.Inferred"),
+        _ => T("Edge.Confirmed")
     };
 
-    private static string KindText(NodeKind kind) => kind switch
+    private string KindText(NodeKind kind) => kind switch
     {
-        NodeKind.Entry => "entrada",
-        NodeKind.Method => "método",
-        NodeKind.Decision => "decisão",
-        NodeKind.Loop => "laço",
-        NodeKind.Try => "try",
-        NodeKind.Return => "retorno",
-        NodeKind.Throw => "exceção",
-        NodeKind.External => "externo",
-        NodeKind.Unresolved => "não resolvido",
-        NodeKind.Jump => "desvio",
+        NodeKind.Entry => T("Kind.Entry"),
+        NodeKind.Method => T("Kind.Method"),
+        NodeKind.Decision => T("Kind.Decision"),
+        NodeKind.Loop => T("Kind.Loop"),
+        NodeKind.Try => T("Kind.Try"),
+        NodeKind.Return => T("Kind.Return"),
+        NodeKind.Throw => T("Kind.Throw"),
+        NodeKind.External => T("Kind.External"),
+        NodeKind.Unresolved => T("Kind.Unresolved"),
+        NodeKind.Jump => T("Kind.Jump"),
         _ => kind.ToString()
     };
 
-    private static string ReasonText(UnresolvedReason? reason) => reason switch
+    private string ReasonText(UnresolvedReason? reason) => reason switch
     {
-        UnresolvedReason.MultipleImplementations => "mais de uma implementação e nenhum registro de DI decide",
-        UnresolvedReason.NoImplementation => "nenhuma implementação na solution",
-        UnresolvedReason.DynamicDispatch => "chamada dinâmica ou que não compilou",
-        UnresolvedReason.Delegate => "delegate ou evento",
-        UnresolvedReason.MessageDispatch => "mensagem para mediator ou barramento (o detalhe é o tipo da mensagem)",
-        UnresolvedReason.Reflection => "reflection",
-        UnresolvedReason.DepthLimit => "limite de profundidade",
-        UnresolvedReason.RouteNotResolved => "chamada HTTP com rota montada em tempo de execução",
-        UnresolvedReason.NoMatchingEndpoint => "chamada HTTP sem destino em nenhum repositório da costura",
-        UnresolvedReason.MultipleEndpoints => "chamada HTTP que casa com mais de um destino",
-        _ => "desconhecido"
+        UnresolvedReason.MultipleImplementations => T("Reason.MultipleImplementations"),
+        UnresolvedReason.NoImplementation => T("Reason.NoImplementation"),
+        UnresolvedReason.DynamicDispatch => T("Reason.DynamicDispatch"),
+        UnresolvedReason.Delegate => T("Reason.Delegate"),
+        UnresolvedReason.MessageDispatch => T("Reason.MessageDispatch"),
+        UnresolvedReason.Reflection => T("Reason.Reflection"),
+        UnresolvedReason.DepthLimit => T("Reason.DepthLimit"),
+        UnresolvedReason.RouteNotResolved => T("Reason.RouteNotResolved"),
+        UnresolvedReason.NoMatchingEndpoint => T("Reason.NoMatchingEndpoint"),
+        UnresolvedReason.MultipleEndpoints => T("Reason.MultipleEndpoints"),
+        _ => T("Reason.Unknown")
     };
 }

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Fill.SurveyNotFound" xml:space="preserve"><value>Trace not found or still without a graph.</value></data>
+  <data name="Fill.OnlyUnresolved" xml:space="preserve"><value>Only unresolved steps receive a target proposal.</value></data>
+  <data name="Fill.RepositoryUnavailable" xml:space="preserve"><value>The repository or the solution is no longer available.</value></data>
+  <data name="Fill.Accepted" xml:space="preserve"><value>accepted</value></data>
+  <data name="Fill.Refused" xml:space="preserve"><value>refused</value></data>
+  <data name="Fill.ItemLine" xml:space="preserve"><value>{0}: {1}. {2}</value></data>
+  <data name="Fill.NoProof" xml:space="preserve"><value>The AI found no target in the code that it could prove.</value></data>
+  <data name="Rules.SurveyNotFound" xml:space="preserve"><value>Trace not found or still without a graph.</value></data>
+  <data name="Rules.NothingToWrite" xml:space="preserve"><value>No step without a rule to write.</value></data>
+  <data name="Rules.NotRequested" xml:space="preserve"><value>Rule for a step that was not requested ({0}) ignored.</value></data>
+  <data name="Rules.Refused" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="Rules.Summary" xml:space="preserve"><value>{0} rule(s) written by the AI, {1} reused from the cache.</value></data>
+</root>

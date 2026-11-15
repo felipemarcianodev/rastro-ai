@@ -57,7 +57,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
 
         return await RunAsync(async () =>
         {
-            var result = await filler.FillAsync(id, request.NodeId, ct);
+            var result = await filler.FillAsync(id, request.NodeId, RequestLanguage.Current, ct);
             return new FillHoleResponse(result, await DetailAsync(db, id, ct));
         });
     }
@@ -70,7 +70,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
 
         return await RunAsync(async () =>
         {
-            var result = await writer.DescribeAsync(id, request.NodeIds, request.Overwrite, ct);
+            var result = await writer.DescribeAsync(id, request.NodeIds, request.Overwrite, RequestLanguage.Current, ct);
             return new DescribeResponse(result, await DetailAsync(db, id, ct));
         });
     }
@@ -81,7 +81,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
     {
         try
         {
-            return await RunAsync(() => advisor.SuggestAsync(id, index, ct));
+            return await RunAsync(() => advisor.SuggestAsync(id, index, RequestLanguage.Current, ct));
         }
         catch (FindingNotFoundException)
         {
@@ -95,7 +95,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
     {
         try
         {
-            return await RunAsync(() => advisor.SuggestPeopleAsync(id, ct));
+            return await RunAsync(() => advisor.SuggestPeopleAsync(id, RequestLanguage.Current, ct));
         }
         catch (FindingNotFoundException)
         {

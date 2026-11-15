@@ -1176,7 +1176,7 @@ Regras da tradução:
 - [x] Prompt da mudança e da refatoração, documentação do fluxo, relatório da validação, perguntas, C4, achados do extrator e do acesso ao banco, motivos do extrator TypeScript.
 - [x] Cultura como parâmetro explícito no núcleo, sem referência à API nem à IA; teste de determinismo por idioma.
 - [x] Erro do banco em inglês original quando o idioma é inglês.
-- [ ] Texto das regras do `FlowRuleExtractor` ("encerra o fluxo com exceção" e afins), que aparece dentro das respostas das perguntas: continua só em português.
+- [x] Texto das regras do `FlowRuleExtractor` ("encerra o fluxo com exceção" e afins), que aparece dentro das respostas das perguntas (resolvido na Fase 51, com `Rastro.Core/Resources/Rules`).
 - **Registro (2026-11-15):**
   - **Como foi feito:** três agentes em paralelo, cada um com o seu conjunto de recursos: prosa do núcleo (`Rastro.Core/Resources/Messages`, 254 chaves), achados do fluxo (`Rastro.Extractor/Resources/Messages` e `Rastro.Infrastructure/Resources/Messages`) e visão do banco (`Database` no Extractor, 142 chaves, e na Infrastructure, 47). O teste de paridade passou a varrer todo conjunto `Resources/<Nome>.resx`.
   - **Idioma de cada texto:** o que nasce de um pedido (prompt, documentação, perguntas, C4, análise de consulta, esquema, plano, banco vivo) sai no idioma do pedido, por `RequestLanguage.Current`, o único ponto que lê a cultura da thread. O que nasce fora de pedido (achados gravados pelo levantamento, relatório da validação, MCP, CLI) sai no idioma efetivo (`EffectiveLanguage.Of`: o `config.json`, senão o do sistema). O texto gravado fica no idioma em que nasceu.
@@ -1188,11 +1188,19 @@ Regras da tradução:
   - **Navegador:** a tela do banco, que na Fase 48 ainda mostrava os avisos do leitor de esquema em português, sai inteira em inglês e em espanhol. Prints em `docs/telas/fase-50/`.
   - **Testes:** backend 848/848, frontend 590/590, extrator Angular 72/72. Os testes de banco vivo com Testcontainers rodam no CI.
 
-## Fase 51: MCP, provedores de IA e CLI `[ ]` (depende da Fase 50)
+## Fase 51: MCP, provedores de IA e CLI `[x]` (depende da Fase 50)
 
-- [ ] Instruções e descrições das ferramentas do MCP em inglês, pedindo a resposta no idioma do usuário; saída das ferramentas no idioma do `config.json`.
-- [ ] Os prompts dos provedores recebem o idioma; o validador de prova não muda.
-- [ ] CLI no idioma do `config.json` ou do sistema.
+- [x] Instruções e descrições das ferramentas do MCP em inglês, pedindo a resposta no idioma do usuário; saída das ferramentas no idioma do `config.json`.
+- [x] Os prompts dos provedores recebem o idioma; o validador de prova não muda.
+- [x] CLI no idioma do `config.json` ou do sistema.
+- **Registro (2026-11-15):**
+  - **MCP:** `McpInstructions` e todas as descrições das ferramentas em inglês fixo, com o mesmo sentido de cada regra; o agente responde no idioma em que o usuário escreve, e os resultados vêm no idioma do Rastro. O texto que as ferramentas devolvem sai do `Rastro.Mcp/Resources/Messages` (177 chaves), no idioma do `config.json` relido a cada chamada (`IOptionsMonitor`): trocar o idioma na tela vale na resposta seguinte, sem reiniciar o MCP. As falhas com código da Fase 49 são traduzidas pelo código (`Rastro.Core/Resources/Failures`, 57 chaves; o `FailureText` em português continua igual para o log e a coluna antiga). A aceitação de proposta passou a viajar com os dados da aresta (`ProposalOutcome.Edge`, `ProofVerdict.File` e `Line`), para o MCP montar a frase no idioma.
+  - **Provedores de IA:** os seis prompts (completar buraco, regras, refatoração, perguntas, consulta e C4) vão em inglês fixo para o modelo, com a ordem de responder no idioma do pedido; o contexto da consulta que alimenta o prompt vai no mesmo idioma. As mensagens de volta para a tela saem do `Rastro.Ai/Resources/Messages`. O cache da regra escrita pela IA inclui o idioma na chave (em português, a chave antiga, para o cache já gravado continuar valendo). O validador de prova e o formato JSON não mudaram, e o teste de arquitetura da ADR-001 segue verde.
+  - **Regras do fluxo:** o texto gerado pelo `FlowRuleExtractor` sai no idioma do pedido (`Rastro.Core/Resources/Rules`).
+  - **CLI:** ajuda e mensagens no idioma do `config.json` (ou do sistema), inclusive os avisos de porta e de janela do `rastro`. Os nomes de comando e de opção não mudaram; entraram os apelidos em inglês `--tests`, `--no-window` e `--port`.
+  - **Ficou em português:** os motivos de `DesktopEnvironment.WhyUnavailable`, as exceções `AiProviderException` e `FindingNotFoundException` (a tela traduz pelo código) e os logs (regra de observabilidade).
+  - **Documentação:** README e README do pacote (MCP em inglês com resposta no idioma de quem usa, CLI seguindo o `config.json`, apelidos da CLI).
+  - **Testes:** backend 872/876 nesta máquina; as 4 falhas são do banco vivo no SQL Server, porque a imagem do SQL Server 2022 não sobe no Docker local ("The file archive sqlservr.sfp is invalid", defeito conhecido da imagem com núcleos Linux novos) e rodam no job de banco vivo do CI. Na integração, três testes ainda esperavam o prompt da IA em português e um teste novo usava regras falsas curtas demais (menos de 10 caracteres): corrigidos. Testes novos `MCP-LANG-001` a `006`, `CLI-LANG-001` a `005` e `AI-LANG-001` a `005`.
 
 ## Fase 52: documentação em três idiomas, inglês na frente `[ ]` (depende da Fase 51)
 

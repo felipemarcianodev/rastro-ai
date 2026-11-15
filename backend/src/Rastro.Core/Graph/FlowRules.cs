@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rastro.Core.Localization;
 
 namespace Rastro.Core.Graph;
 
@@ -35,7 +36,8 @@ public record FlowRule(
 
 public static partial class FlowRuleExtractor
 {
-    public static IReadOnlyList<FlowRule> Extract(FlowGraph graph, FlowMap map)
+    // language: o idioma do texto gerado das regras (ADR-009). A regra escrita pelo usuário ou pela IA fica como foi escrita.
+    public static IReadOnlyList<FlowRule> Extract(FlowGraph graph, FlowMap map, UiLanguage language)
     {
         var nodes = graph.Nodes.ToDictionary(n => n.Id, StringComparer.Ordinal);
         var blocks = map.Blocks.ToDictionary(b => b.Id, StringComparer.Ordinal);
@@ -48,7 +50,7 @@ public static partial class FlowRuleExtractor
             var condition = block.Condition ?? node?.Condition;
             var effect = EffectOf(block, map, blocks, calls);
             var userText = node?.Rule?.Text;
-            var text = string.IsNullOrWhiteSpace(userText) ? Generate(block, condition, effect, blocks, map, calls) : userText!.Trim();
+            var text = string.IsNullOrWhiteSpace(userText) ? Generate(block, condition, effect, blocks, map, calls, language) : userText!.Trim();
             var key = condition is null ? block.Id : Normalize(condition);
             drafts.Add((key, effect, text, condition, !string.IsNullOrWhiteSpace(userText),
                 new RuleSource(block.NodeId, block.Id, block.Lane, block.Location ?? node?.Location)));
@@ -123,7 +125,7 @@ public static partial class FlowRuleExtractor
             : blocks.TryGetValue(link.To, out var target) ? target.Title : link.To;
 
     private static string Generate(MapBlock decision, string? condition, RuleEffect effect,
-        Dictionary<string, MapBlock> blocks, FlowMap map, ILookup<string, MapLink> calls)
+        Dictionary<string, MapBlock> blocks, FlowMap map, ILookup<string, MapLink> calls, UiLanguage language)
     {
         var subject = string.IsNullOrWhiteSpace(condition) ? decision.Title : condition!;
         var outcomes = decision.Outcomes!;
@@ -131,27 +133,27 @@ public static partial class FlowRuleExtractor
         {
             case RuleEffect.Blocks:
                 var parts = outcomes.Where(o => o.Ends)
-                    .Select(o => $"{When(subject, o.Label)}, encerra o fluxo{(o.Fails ? " com exceção" : string.Empty)}");
+                    .Select(o => RuleText.Get(o.Fails ? "Rule.EndsWithException" : "Rule.Ends", language, When(subject, o.Label, language)));
                 return string.Join("; ", parts) + ".";
 
             case RuleEffect.SideEffect:
                 var effects = outcomes
                     .Select(o => (o, Calls: OutcomeCalls(decision, o, map, blocks, calls)))
                     .Where(x => x.Calls.Count > 0)
-                    .Select(x => $"{When(subject, x.o.Label)}, chama {string.Join(", ", x.Calls)}");
+                    .Select(x => RuleText.Get("Rule.Calls", language, When(subject, x.o.Label, language), string.Join(", ", x.Calls)));
                 return string.Join("; ", effects) + ".";
 
             default:
-                return $"{subject} decide o caminho entre {string.Join(", ", outcomes.Select(o => o.Label))}.";
+                return RuleText.Get("Rule.Decides", language, subject, string.Join(", ", outcomes.Select(o => o.Label)));
         }
     }
 
-    private static string When(string condition, string label) => label switch
+    private static string When(string condition, string label, UiLanguage language) => label switch
     {
-        "then" => $"Se {condition}",
-        "else" => $"Se não ({condition})",
-        _ when label.StartsWith("case ", StringComparison.Ordinal) => $"Quando {condition} é {label[5..]}",
-        _ => $"Em {label}"
+        "then" => RuleText.Get("Rule.WhenThen", language, condition),
+        "else" => RuleText.Get("Rule.WhenElse", language, condition),
+        _ when label.StartsWith("case ", StringComparison.Ordinal) => RuleText.Get("Rule.WhenCase", language, condition, label[5..]),
+        _ => RuleText.Get("Rule.WhenOther", language, label)
     };
 
     // "this.pedido.Enviado " e "pedido.Enviado" são a mesma condição; maiúsculas e espaços não contam.

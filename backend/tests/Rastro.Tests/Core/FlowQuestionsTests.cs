@@ -10,7 +10,7 @@ public class FlowQuestionsTests
     private static IReadOnlyList<FlowQuestion> Questions(FlowGraph graph)
     {
         var map = FlowMapBuilder.Build(graph);
-        return FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map), UiLanguage.Portuguese);
+        return FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map, UiLanguage.Portuguese), UiLanguage.Portuguese);
     }
 
     [Fact] // CORE-ASK-001

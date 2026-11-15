@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Cli.Usage.Title" xml:space="preserve"><value>rastro {0}: el rastro de cada funcionalidad en tu código .NET.</value></data>
+  <data name="Cli.Usage.Header" xml:space="preserve"><value>Uso:</value></data>
+  <data name="Cli.Usage.Open" xml:space="preserve"><value>abre Rastro en su propia ventana; la pantalla también queda en http://127.0.0.1:{0} (solo en esta máquina)</value></data>
+  <data name="Cli.Usage.NoWindow" xml:space="preserve"><value>solo la consola y la dirección, para abrir en el navegador</value></data>
+  <data name="Cli.Usage.Mcp" xml:space="preserve"><value>servidor MCP para tu agente (p. ej., Claude Code)</value></data>
+  <data name="Cli.Usage.Aliases" xml:space="preserve"><value>Alias en inglés: --port (--porta), --no-window (--sem-janela), --tests (--testes). Los nombres en portugués siguen funcionando.</value></data>
+  <data name="Cli.Usage.RepoAdd" xml:space="preserve"><value>rastro repo add &lt;nombre&gt; &lt;carpeta&gt; [--build "comando"] [--testes "comando"]</value></data>
+  <data name="Cli.Usage.RepoRemove" xml:space="preserve"><value>rastro repo remove &lt;nombre&gt;</value></data>
+  <data name="Cli.Usage.Data" xml:space="preserve"><value>Datos en {0} (cámbialo con la variable {1}).</value></data>
+  <data name="Cli.Repo.InvalidName" xml:space="preserve"><value>Nombre no válido: usa letras, números, punto, guion o guion bajo (hasta 100), empezando por letra o número.</value></data>
+  <data name="Cli.Repo.FolderNotFound" xml:space="preserve"><value>La carpeta {0} no existe.</value></data>
+  <data name="Cli.Repo.Exists" xml:space="preserve"><value>Ya existe un repositorio llamado {0}. Quítalo antes con: rastro repo remove {0}</value></data>
+  <data name="Cli.Repo.Added" xml:space="preserve"><value>Repositorio {0} registrado: {1}</value></data>
+  <data name="Cli.Repo.NoGit" xml:space="preserve"><value>Aviso: la carpeta no tiene .git; el análisis queda sin el commit y el aviso de código cambiado no funciona.</value></data>
+  <data name="Cli.Repo.NotFound" xml:space="preserve"><value>Ningún repositorio llamado {0}.</value></data>
+  <data name="Cli.Repo.Removed" xml:space="preserve"><value>Repositorio {0} quitado. Sus análisis siguen en la base de datos.</value></data>
+  <data name="Cli.Repo.ListEmpty" xml:space="preserve"><value>Ningún repositorio registrado. Regístralo con: rastro repo add &lt;nombre&gt; &lt;carpeta&gt;</value></data>
+  <data name="Cli.Port.RastroOpen" xml:space="preserve"><value>Rastro {0} ya está abierto en http://127.0.0.1:{1}. Abre esa dirección en el navegador.</value></data>
+  <data name="Cli.Port.InUse" xml:space="preserve"><value>El puerto {0} ya está en uso por otro programa. Elige otro: rastro --porta N</value></data>
+  <data name="Cli.Run.Opened" xml:space="preserve"><value>Rastro {0} abierto en {1}</value></data>
+  <data name="Cli.Run.DataFolder" xml:space="preserve"><value>Datos en {0}. Ctrl+C para salir.</value></data>
+  <data name="Cli.Run.AddressInUse" xml:space="preserve"><value>La dirección de Rastro ya está en uso. Si es otro Rastro, usa su pantalla; si no, elige otro puerto: rastro --porta N</value></data>
+  <data name="Cli.Run.Detail" xml:space="preserve"><value>Detalle: {0}</value></data>
+  <data name="Cli.Window.Opened" xml:space="preserve"><value>Ventana de Rastro abierta. Cerrar la ventana termina Rastro.</value></data>
+  <data name="Cli.Window.Failed" xml:space="preserve"><value>La ventana propia no se abrió: {0}.</value></data>
+  <data name="Cli.Window.StillUp" xml:space="preserve"><value>Rastro sigue en marcha: abre {0} en el navegador. Ctrl+C para salir.</value></data>
+  <data name="Cli.Window.FailedReason" xml:space="preserve"><value>la ventana no se pudo abrir (detalle en el registro)</value></data>
+</root>
