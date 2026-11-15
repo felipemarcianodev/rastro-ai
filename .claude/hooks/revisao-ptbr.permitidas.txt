@@ -1,2 +1,4 @@
 licenca
 avaliacao
+repositorio
+sugerencia

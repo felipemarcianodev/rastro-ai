@@ -40,7 +40,16 @@ Vale só para perguntas. Na execução de código, o rigor e a verificação nor
 - Os dois modos só **propõem**. Toda proposta passa pelo validador de prova do núcleo (Roslyn), e confirmar ou descartar é sempre do usuário, na tela. Nenhuma ferramenta deixa o agente confirmar a própria proposta.
 - Toda aresta mostra a origem (`extracted`, `inferred` por agente ou provedor, `confirmed`). Nunca esconder.
 - Sem IA ligada, a tela não mostra botão de IA morto.
-- Validação de mudança, prompt da mudança e documentação são **determinísticos** (sem IA): o mesmo código e o mesmo rascunho dão o mesmo resultado.
+- Validação de mudança, prompt da mudança e documentação são **determinísticos** (sem IA): o mesmo código, o mesmo rascunho e o mesmo idioma dão o mesmo resultado.
+
+## Idiomas do produto (bloqueante) ([ADR-009](docs/adr/adr-009-multilingue.md))
+
+- O Rastro existe em inglês (`en-US`), português (`pt-BR`) e espanhol (`es`). Toda tradução parte do [glossário](docs/i18n/glossario.md); termo novo do produto entra nele primeiro.
+- **Texto novo de tela** entra nos três JSON de tradução no mesmo PR, pela skill `traduzir-texto`. Nada de texto fixo no template ou no `.ts`: o teste de paridade e a varredura de texto fixo quebram o CI.
+- **Texto novo do servidor** (mensagem da API, prosa gerada, saída do MCP, CLI) entra nos três `.resx` no mesmo PR. Dado estruturado vai como código e parâmetros, e a tela traduz.
+- A cultura que gera prompt, documentação e relatório entra como **parâmetro explícito**, nunca como a cultura da thread.
+- Texto gravado (regra da IA, nota do usuário, prosa já gerada) fica no idioma em que nasceu. Código do cliente nunca se traduz.
+- **Documentação para quem usa** (README da raiz, README do pacote, `SECURITY.md`) existe nos três idiomas, com o inglês no arquivo principal (`README.md`) e as traduções ao lado (`README.pt-BR.md`, `README.es.md`). Mudou um, mudam os três no mesmo PR. O resto da documentação (plano, ADR, planos de UX, telas, este arquivo, skills), os commits e os PRs ficam em português.
 
 ## Execução
 
@@ -182,6 +191,6 @@ Todo texto que a IA escreve neste repositório, seja criação do zero, seja rev
 
 - **Método:** skill `revisar-texto-ptbr` (`.claude/skills/revisar-texto-ptbr/SKILL.md`): delimita o trecho escrito, passa pela lista de conferência (acentuação pelo acordo de 1990, crase, concordância, regência, pontuação e hífen), corrige sem mudar sentido nem tom e fecha com uma linha dizendo o que corrigiu.
 - **Automático:** `.claude/hooks/revisao-ptbr.mjs`, ligado em `.claude/settings.json`. Depois de cada Edit/Write em `.md`, `.mdx`, `.txt`, `.adoc` e `.rst`, aponta na hora palavra sem acento, cedilha ou til; antes de `git commit`, recusa mensagem com palavra sem acento; no fim do turno, se algum texto tocado na sessão (prosa ou texto visível de template `.html`, `.ftl`, `.hbs`) mudou desde a última revisão, bloqueia o encerramento uma vez e pede a revisão completa.
-- **Fora da revisão:** código, identificadores, caminhos, URLs, placeholders, citação literal e texto em outro idioma.
+- **Fora da revisão:** código, identificadores, caminhos, URLs, placeholders, citação literal e texto em outro idioma. Arquivo com outro idioma no nome (`README.es.md`) não passa pela varredura do hook, e os JSON de tradução não são prosa; o `pt-BR.json` passa pela leitura da skill quando muda.
 - **Falso positivo do hook:** acrescentar a palavra em `.claude/hooks/revisao-ptbr.permitidas.txt` (uma por linha, em minúsculas).
 - **Fonte:** replicada do `meu-portfolio` (`C:Projetosmeu-portfolio`), onde a governança nasceu. Não altere o hook nem a skill só aqui: mude lá e replique nos repositórios irmãos.
