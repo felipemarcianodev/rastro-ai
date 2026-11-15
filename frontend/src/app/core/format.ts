@@ -1,7 +1,9 @@
-// Data curta em pt-BR (dia/mês hora:minuto).
+import { currentLocale } from './i18n/locale';
+
+// Data curta no idioma ativo (dia/mês hora:minuto).
 export function shortDate(iso: string | undefined): string {
   if (!iso) return '';
-  return new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleString(currentLocale(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
 export function shortCommit(hash: string | undefined): string {

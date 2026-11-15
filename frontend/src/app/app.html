@@ -1,7 +1,7 @@
-<a class="skip-link" href="#conteudo" (click)="skipToContent($event, content)">Ir para o conteúdo</a>
+<a class="skip-link" href="#conteudo" (click)="skipToContent($event, content)">{{ 'shell.skipToContent' | translate }}</a>
 
 <header class="topbar">
-  <a class="brand" routerLink="/" aria-label="Rastro AI, ir para os levantamentos">
+  <a class="brand" routerLink="/" [attr.aria-label]="'shell.brandLabel' | translate">
     <svg class="brand-mark" viewBox="0 0 28 20" aria-hidden="true">
       <path d="M2 16 C 8 16, 8 4, 14 4 S 20 16, 26 16" />
       <circle cx="2" cy="16" r="2" />
@@ -10,14 +10,14 @@
     <span class="brand-name">{{ title }}</span>
   </a>
 
-  <nav class="nav" aria-label="Principal">
-    <a class="nav-link" routerLink="/" [class.is-current]="area() === Area.Surveys" [attr.aria-current]="area() === Area.Surveys ? 'page' : null">Levantamentos</a>
-    <a class="nav-link" [routerLink]="bancoTarget().commands" [fragment]="bancoTarget().fragment" [attr.aria-label]="bancoLabel()" [class.is-current]="area() === Area.Database" [attr.aria-current]="area() === Area.Database ? 'page' : null">Banco</a>
-    <a class="nav-link" routerLink="/configuracoes" [class.is-current]="area() === Area.Settings" [attr.aria-current]="area() === Area.Settings ? 'page' : null">Configurações</a>
+  <nav class="nav" [attr.aria-label]="'shell.nav.label' | translate">
+    <a class="nav-link" routerLink="/" [class.is-current]="area() === Area.Surveys" [attr.aria-current]="area() === Area.Surveys ? 'page' : null">{{ 'shell.nav.surveys' | translate }}</a>
+    <a class="nav-link" [routerLink]="bancoTarget().commands" [fragment]="bancoTarget().fragment" [attr.aria-label]="bancoLabel()" [class.is-current]="area() === Area.Database" [attr.aria-current]="area() === Area.Database ? 'page' : null">{{ 'shell.nav.database' | translate }}</a>
+    <a class="nav-link" routerLink="/configuracoes" [class.is-current]="area() === Area.Settings" [attr.aria-current]="area() === Area.Settings ? 'page' : null">{{ 'shell.nav.settings' | translate }}</a>
   </nav>
 
-  <a class="ai-state" routerLink="/configuracoes" [fragment]="aiFragment" [class.is-on]="ai.active()" title="Configuração da IA e do modo agente"
-    [attr.aria-label]="ai.label() + ', abrir as configurações da IA'">
+  <a class="ai-state" routerLink="/configuracoes" [fragment]="aiFragment" [class.is-on]="ai.active()" [title]="'shell.aiState.title' | translate"
+    [attr.aria-label]="'shell.aiState.label' | translate: { state: ai.label() }">
     {{ ai.label() }}
   </a>
 </header>

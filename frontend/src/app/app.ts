@@ -1,7 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
+import { TranslatePipe } from '@ngx-translate/core';
 import { AiStatusService } from './core/ai-status.service';
+import { LanguageService } from './core/i18n/i18n';
 import { LastRepositoryService } from './core/last-repository.service';
 import { RepositoryItem } from './core/models';
 import { RastroApi } from './core/rastro-api.service';
@@ -19,7 +21,7 @@ const SURVEY_PREFIX = '/surveys/';
 const MAIN_ID = 'conteudo';
 const HOME_PATH = '/';
 export const FRAGMENT_AI = 'ia';
-const BANCO_FAILED_LABEL = 'Banco (não foi possível ler os repositórios)';
+const BANCO_FAILED_LABEL_KEY = 'shell.nav.databaseFailed';
 
 interface BancoTarget {
   commands: string[];
@@ -36,7 +38,7 @@ export function areaOf(url: string): NavArea | null {
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink],
+  imports: [RouterOutlet, RouterLink, TranslatePipe],
   templateUrl: './app.html',
   styleUrl: './app.scss',
 })
@@ -56,7 +58,8 @@ export class App {
 
   // UX-G-L12: a leitura dos repositórios falhou (a rota segue segura e o link avisa; a próxima navegação tenta de novo).
   protected readonly repositoriesFailed = signal(false);
-  protected readonly bancoLabel = computed(() => (this.repositoriesFailed() ? BANCO_FAILED_LABEL : null));
+  private readonly i18n = inject(LanguageService);
+  protected readonly bancoLabel = computed(() => (this.repositoriesFailed() ? this.i18n.t(BANCO_FAILED_LABEL_KEY) : null));
 
   // Último repositório usado se ainda existe; senão o único; senão o primeiro. Sem nenhum, a tela inicial (primeiro uso).
   protected readonly bancoTarget = computed<BancoTarget>(() => {

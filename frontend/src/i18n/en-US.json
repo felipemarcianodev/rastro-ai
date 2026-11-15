@@ -1,0 +1,54 @@
+{
+  "common": {
+    "cancel": "Cancel"
+  },
+  "shell": {
+    "skipToContent": "Skip to content",
+    "brandLabel": "Rastro AI, go to traces",
+    "nav": {
+      "label": "Main",
+      "surveys": "Traces",
+      "database": "Database",
+      "databaseFailed": "Database (could not read the repositories)",
+      "settings": "Settings"
+    },
+    "aiState": {
+      "title": "AI and agent mode settings",
+      "label": "{state}, open AI settings"
+    }
+  },
+  "ai": {
+    "status": {
+      "off": "AI off",
+      "noKey": "AI without key",
+      "on": "AI: {provider}"
+    }
+  },
+  "settings": {
+    "appearance": {
+      "title": "Appearance",
+      "hint": "Your choice is saved in this browser.",
+      "language": "Language",
+      "languageApplied": "Language set to {name}.",
+      "palette": "Color palette",
+      "paletteApplied": "Palette set to {name}.",
+      "theme": "Theme"
+    }
+  },
+  "theme": {
+    "system": "System",
+    "light": "Light",
+    "dark": "Dark"
+  },
+  "palette": {
+    "papel": "Paper",
+    "nautica": "Nautical chart",
+    "planta": "Blueprint",
+    "grafite": "Graphite and indigo",
+    "cobalto": "Cobalt and orange",
+    "vinho": "Wine and stone",
+    "monocromo": "Monochrome and blue",
+    "rosa": "Rose and charcoal",
+    "artico": "Arctic"
+  }
+}

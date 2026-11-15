@@ -1,4 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { LanguageService } from './i18n/i18n';
 import { AI_PROVIDER_LABEL, AiStatus } from './models';
 import { RastroApi } from './rastro-api.service';
 
@@ -7,14 +8,15 @@ import { RastroApi } from './rastro-api.service';
 @Injectable({ providedIn: 'root' })
 export class AiStatusService {
   private readonly api = inject(RastroApi);
+  private readonly i18n = inject(LanguageService);
 
   readonly status = signal<AiStatus | null>(null);
 
   readonly label = computed(() => {
     const status = this.status();
-    if (!status || !status.enabled) return 'IA desligada';
-    if (!status.configured) return 'IA sem chave';
-    return `IA: ${AI_PROVIDER_LABEL[status.provider]}`;
+    if (!status || !status.enabled) return this.i18n.t('ai.status.off');
+    if (!status.configured) return this.i18n.t('ai.status.noKey');
+    return this.i18n.t('ai.status.on', { provider: AI_PROVIDER_LABEL[status.provider] });
   });
 
   readonly active = computed(() => !!this.status()?.enabled && !!this.status()?.configured);

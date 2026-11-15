@@ -74,3 +74,15 @@ Um único movimento automático: a trilha tracejada "andando" enquanto a anális
 ## Orçamento de CSS por componente
 
 Aviso a partir de 6 kB e erro a partir de 10 kB por componente (o padrão do Angular é 4 kB). Decidido na Fase 6: o painel do nó é a área mais densa da ferramenta de desktop. Antes de subir de novo, mover para o tema o que for padrão repetido (como foi feito com `.kind`, `.conf`, `.btn-small` e `.steps`).
+
+A carga inicial avisa a partir de 550 kB (antes, 500 kB). Subiu na Fase 46 com as bibliotecas de tradução (ngx-translate e MessageFormat), que a tela precisa desde o primeiro desenho; os textos de cada idioma ficam fora, num pedaço carregado sob demanda.
+
+## Tradução ([ADR-009](../adr/adr-009-multilingue.md))
+
+- Texto de tela nunca fica fixo no template nem no `.ts`: vai para `src/i18n/pt-BR.json`, `en-US.json` e `es.json`, com a mesma chave e a mesma ordem nos três (skill `traduzir-texto`, termos do [glossário](../i18n/glossario.md)).
+- No template, o pipe: `{{ 'settings.appearance.title' | translate }}`; com marcador, `{{ 'ai.status.on' | translate: { provider: nome } }}`; em atributo, `[attr.aria-label]="'shell.brandLabel' | translate"`. O componente importa o `TranslatePipe`.
+- No TypeScript, `LanguageService.t(chave, parâmetros)`. Dentro de `computed`, o texto se refaz quando o idioma muda; fora dele, vale o idioma do momento da chamada.
+- Rótulo de enum: o `Record` guarda a chave (`PALETTE_LABEL_KEY`), nunca o texto.
+- Plural e variação vão em ICU no próprio texto: `{count, plural, one {# passo} other {# passos}}`. Nada de `count === 1 ? ... : ...` no código.
+- Data e número: `currentLocale()` (`core/i18n/locale.ts`) no `toLocaleString` e no `Intl`, nunca `'pt-BR'` fixo.
+- Testes: todo spec roda com o `pt-BR.json` de verdade (`i18n-test-setup.spec.ts`), então o texto em português que o teste confere continua valendo, e chave sem tradução aparece como a própria chave. O teste de paridade (`core/i18n/i18n.spec.ts`) confere chaves e marcadores nos três idiomas.

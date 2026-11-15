@@ -1,5 +1,6 @@
-import { AfterViewInit, Component, ElementRef, computed, input, output, viewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, computed, inject, input, output, viewChild } from '@angular/core';
 import { DialogDirective } from '../../core/dialog.directive';
+import { LanguageService } from '../../core/i18n/i18n';
 
 // Tom da confirmação: Danger para ação destrutiva (padrão), Primary para ação segura.
 export enum ConfirmTone {
@@ -22,7 +23,7 @@ export const CONFIRM_TONE_BUTTON: Record<ConfirmTone, string> = {
         <h2 id="confirm-title">{{ title() }}</h2>
         <p id="confirm-text">{{ text() }}</p>
         <footer class="dialog-foot">
-          <button #cancelButton type="button" class="btn btn-g" (click)="cancel.emit()" [disabled]="busy()">{{ cancelLabel() }}</button>
+          <button #cancelButton type="button" class="btn btn-g" (click)="cancel.emit()" [disabled]="busy()">{{ cancelText() }}</button>
           <button type="button" [class]="'btn ' + toneClass()" (click)="confirm.emit()" [disabled]="busy()">{{ confirmLabel() }}</button>
         </footer>
       </section>
@@ -34,8 +35,10 @@ export class ConfirmDialogComponent implements AfterViewInit {
   readonly title = input.required<string>();
   readonly text = input.required<string>();
   readonly confirmLabel = input.required<string>();
-  // Rótulo do caminho seguro; "Cancelar" salvo quando a pergunta pede outro (ex.: "Ficar").
-  readonly cancelLabel = input('Cancelar');
+  // Rótulo do caminho seguro; "Cancelar" (traduzido) salvo quando a pergunta pede outro (ex.: "Ficar").
+  readonly cancelLabel = input<string | null>(null);
+  private readonly i18n = inject(LanguageService);
+  protected readonly cancelText = computed(() => this.cancelLabel() ?? this.i18n.t('common.cancel'));
   // Ação em andamento: os botões ficam parados até a resposta.
   readonly busy = input(false);
   readonly tone = input<ConfirmTone>(ConfirmTone.Danger);
