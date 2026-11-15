@@ -118,6 +118,16 @@ describe('linha do tempo (Fase 20)', () => {
     expect(send.y + send.height).toBeLessThan(frame.y + frame.height);
   });
 
+  // WEB-I18N-201
+  it('laço que já começa com o verbo, em qualquer idioma, não repete o verbo na moldura', () => {
+    for (const label of ['Repete enquanto pending', 'Repeats while pending', 'Repite mientras pending']) {
+      const g = alertJob();
+      g.nodes.find((n) => n.id === 'loop')!.label = label;
+      const frame = timelineDrawing(g).blocks.find((b) => b.label?.startsWith('↻'))!;
+      expect(frame.label).withContext(label).toBe(`↻ ${label}`);
+    }
+  });
+
   it('método chamado em dois lugares: a segunda chamada vira passo repetido onde acontece', () => {
     const g = alertJob();
     g.edges.push(edge('if', 'success', 1, 'then'));

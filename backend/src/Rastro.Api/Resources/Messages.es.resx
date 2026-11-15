@@ -17,9 +17,9 @@
   <data name="Cli.Repo.FolderNotFound" xml:space="preserve"><value>La carpeta {0} no existe.</value></data>
   <data name="Cli.Repo.Exists" xml:space="preserve"><value>Ya existe un repositorio llamado {0}. Quítalo antes con: rastro repo remove {0}</value></data>
   <data name="Cli.Repo.Added" xml:space="preserve"><value>Repositorio {0} registrado: {1}</value></data>
-  <data name="Cli.Repo.NoGit" xml:space="preserve"><value>Aviso: la carpeta no tiene .git; el análisis queda sin el commit y el aviso de código cambiado no funciona.</value></data>
+  <data name="Cli.Repo.NoGit" xml:space="preserve"><value>Aviso: la carpeta no tiene .git; el rastreo queda sin el commit y el aviso de código cambiado no funciona.</value></data>
   <data name="Cli.Repo.NotFound" xml:space="preserve"><value>Ningún repositorio llamado {0}.</value></data>
-  <data name="Cli.Repo.Removed" xml:space="preserve"><value>Repositorio {0} quitado. Sus análisis siguen en la base de datos.</value></data>
+  <data name="Cli.Repo.Removed" xml:space="preserve"><value>Repositorio {0} eliminado. Sus rastreos siguen en la base de datos.</value></data>
   <data name="Cli.Repo.ListEmpty" xml:space="preserve"><value>Ningún repositorio registrado. Regístralo con: rastro repo add &lt;nombre&gt; &lt;carpeta&gt;</value></data>
   <data name="Cli.Port.RastroOpen" xml:space="preserve"><value>Rastro {0} ya está abierto en http://127.0.0.1:{1}. Abre esa dirección en el navegador.</value></data>
   <data name="Cli.Port.InUse" xml:space="preserve"><value>El puerto {0} ya está en uso por otro programa. Elige otro: rastro --porta N</value></data>
