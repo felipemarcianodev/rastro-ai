@@ -1,3 +1,5 @@
+import { registerStaticTranslator } from '../i18n/i18n.testing';
+import { UiLanguage } from '../i18n/language';
 import { fieldsText, filterBy } from './flow-insight';
 
 describe('flow-insight (Fases 32 a 34)', () => {
@@ -16,5 +18,15 @@ describe('flow-insight (Fases 32 a 34)', () => {
     expect(fieldsText({ fields: null, moreFields: true })).toBe('outros campos');
     expect(fieldsText({ fields: [] })).toBeNull();
     expect(fieldsText(null)).toBeNull();
+  });
+
+  // WEB-INS-003
+  it('fieldsText_traduzOAvisoDeMaisCamposNoIdiomaAtivo', () => {
+    registerStaticTranslator(UiLanguage.English);
+    expect(fieldsText({ fields: ['orderId'], moreFields: true })).toBe('orderId and other fields');
+    expect(fieldsText({ fields: null, moreFields: true })).toBe('other fields');
+
+    registerStaticTranslator(UiLanguage.Spanish);
+    expect(fieldsText({ fields: ['pedidoId'], moreFields: true })).toBe('pedidoId y otros campos');
   });
 });

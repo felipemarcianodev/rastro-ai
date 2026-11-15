@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageService } from '../../core/i18n/i18n';
 import { flowSummaryOf } from '../../core/graph/consolidated';
 import {
   MAP_BLOCK_GLYPH,
-  MAP_BLOCK_LABEL,
+  MAP_BLOCK_LABEL_KEY,
   MAP_BLOCK_SLUG,
   MAP_BOX,
   blockTitle,
@@ -21,7 +23,7 @@ import {
   visibleMap,
 } from '../../core/graph/flow-map';
 import { fieldsText } from '../../core/graph/flow-insight';
-import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
+import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL_KEY, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
 import { plainBranch } from '../../core/graph/plain';
 import { FlowSummary, readingLabel } from '../../core/graph/summary';
 import { AiStatusService } from '../../core/ai-status.service';
@@ -48,10 +50,10 @@ export enum MapTab {
   Questions = 2,
 }
 
-const MAP_TABS: { tab: MapTab; label: string }[] = [
-  { tab: MapTab.Block, label: 'Bloco' },
-  { tab: MapTab.Rules, label: 'Regras' },
-  { tab: MapTab.Questions, label: 'Perguntas' },
+const MAP_TABS: { tab: MapTab; labelKey: string }[] = [
+  { tab: MapTab.Block, labelKey: 'flowMap.tab.block' },
+  { tab: MapTab.Rules, labelKey: 'flowMap.tab.rules' },
+  { tab: MapTab.Questions, labelKey: 'flowMap.tab.questions' },
 ];
 
 // O quinto desenho do fluxo (Fase 31): o mapa da Fase 30, com uma faixa por sistema, os blocos na
@@ -60,7 +62,7 @@ const MAP_TABS: { tab: MapTab; label: string }[] = [
 // recolhidos, e o clique num desfecho acende o caminho dele (Fase 35).
 @Component({
   selector: 'app-flow-map-view',
-  imports: [FlowMapRulesComponent, FlowMapQuestionsComponent],
+  imports: [FlowMapRulesComponent, FlowMapQuestionsComponent, TranslatePipe],
   templateUrl: './flow-map-view.component.html',
   styleUrl: './flow-map-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -70,6 +72,7 @@ export class FlowMapViewComponent {
   private readonly api = inject(RastroApi);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly ai = inject(AiStatusService);
+  private readonly i18n = inject(LanguageService);
   private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
 
   protected readonly zoom = signal(1);
@@ -107,11 +110,11 @@ export class FlowMapViewComponent {
 
   protected readonly LayoutDirection = LayoutDirection;
   protected readonly next = NEXT_LAYOUT_DIRECTION[LayoutDirection.Map];
-  protected readonly directionLabel = LAYOUT_DIRECTION_LABEL;
+  protected readonly directionLabel = LAYOUT_DIRECTION_LABEL_KEY;
   protected readonly directionGlyph = LAYOUT_DIRECTION_GLYPH;
   protected readonly slug = MAP_BLOCK_SLUG;
   protected readonly glyph = MAP_BLOCK_GLYPH;
-  protected readonly kindLabel = MAP_BLOCK_LABEL;
+  protected readonly kindLabel = MAP_BLOCK_LABEL_KEY;
   protected readonly box = MAP_BOX;
   protected readonly MapLinkKind = MapLinkKind;
   protected readonly MapLaneKind = MapLaneKind;
@@ -357,7 +360,7 @@ export class FlowMapViewComponent {
   protected callTitle(link: MapLink): string | null {
     const text = callText(link);
     const fields = fieldsText(link.http);
-    return text && fields ? `${text}. Campos: ${fields}` : text;
+    return text && fields ? this.i18n.t('flowMap.callTitle', { text, fields }) : text;
   }
 
   protected pickBlockId(id: string, open = true): void {
@@ -421,8 +424,8 @@ export class FlowMapViewComponent {
   }
 
   protected blockLabel(block: MapBlock): string {
-    const label = `${MAP_BLOCK_LABEL[block.kind]}: ${this.titleOf(block)}`;
+    const label = this.i18n.t('flowMap.blockAria', { kind: this.i18n.t(MAP_BLOCK_LABEL_KEY[block.kind]), title: this.titleOf(block) });
     const hidden = this.collapsed().get(block.id);
-    return hidden ? `${label}. Recolhido, com mais ${hidden} ${hidden === 1 ? 'bloco' : 'blocos'}: clique para abrir` : label;
+    return hidden ? this.i18n.t('flowMap.blockAriaCollapsed', { label, count: hidden }) : label;
   }
 }

@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
-import { ANSWER_SEAL_GLYPH, ANSWER_SEAL_LABEL, ANSWER_SEAL_SLUG, QUESTION_ROLE_LABEL, filterBy } from '../../core/graph/flow-insight';
+import { TranslatePipe } from '@ngx-translate/core';
+import { ANSWER_SEAL_GLYPH, ANSWER_SEAL_LABEL_KEY, ANSWER_SEAL_SLUG, QUESTION_ROLE_LABEL_KEY, filterBy } from '../../core/graph/flow-insight';
 import { readingLabel } from '../../core/graph/summary';
 import { AI_PROVIDER_LABEL, AiProvider, FlowAnswer, FlowNode, FlowQuestion, QuestionRole } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
@@ -17,7 +18,7 @@ interface Shown {
 // e a pergunta livre, que só existe com a IA ligada e o uso Sugestões habilitado (ADR-001).
 @Component({
   selector: 'app-flow-map-questions',
-  imports: [FormsModule, AiDisclosureComponent],
+  imports: [FormsModule, AiDisclosureComponent, TranslatePipe],
   templateUrl: './flow-map-questions.component.html',
   styleUrl: './flow-map-questions.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -40,12 +41,12 @@ export class FlowMapQuestionsComponent {
   protected readonly asking = signal(false);
   protected readonly askError = signal<string | null>(null);
   protected text = '';
-  protected readonly filters: { value: QuestionRole | null; label: string }[] = [
-    { value: null, label: 'Todos' },
-    ...[QuestionRole.TechLead, QuestionRole.Staff, QuestionRole.Manager].map((value) => ({ value, label: QUESTION_ROLE_LABEL[value] })),
+  protected readonly filters: { value: QuestionRole | null; labelKey: string }[] = [
+    { value: null, labelKey: 'flowMap.questions.all' },
+    ...[QuestionRole.TechLead, QuestionRole.Staff, QuestionRole.Manager].map((value) => ({ value, labelKey: QUESTION_ROLE_LABEL_KEY[value] })),
   ];
-  protected readonly roleLabel = QUESTION_ROLE_LABEL;
-  protected readonly sealLabel = ANSWER_SEAL_LABEL;
+  protected readonly roleLabel = QUESTION_ROLE_LABEL_KEY;
+  protected readonly sealLabel = ANSWER_SEAL_LABEL_KEY;
   protected readonly sealGlyph = ANSWER_SEAL_GLYPH;
   protected readonly sealSlug = ANSWER_SEAL_SLUG;
   protected readonly providerLabel = AI_PROVIDER_LABEL;

@@ -1125,10 +1125,20 @@ Regras da tradução:
   - **Testes:** todo spec roda com o `pt-BR.json`, inclusive depois de `TestBed.resetTestingModule()` (nove specs reiniciam o TestBed); testes `WEB-I18N-001` a `009`. Na primeira rodada da Fase 45, três testes do frontend falharam rodando junto com a suíte do backend e passaram sozinhos (erros de tempo, não de texto).
   - **Navegador:** a extensão do Chrome não estava conectada; a conferência usou o Chrome sem janela pelo protocolo de depuração, com clique e teclado de verdade (o `elementFromPoint` no centro do seletor acerta o próprio seletor), a API numa pasta de dados temporária e em modo `Production` (o de desenvolvimento lê os user-secrets do dono). A troca vale na hora nos três idiomas e sobrevive à recarga. Prints em `docs/telas/fase-46/`.
 
-## Fase 47: telas do levantamento e do grafo `[ ]` (depende da Fase 46)
+## Fase 47: telas do levantamento e do grafo `[x]` (depende da Fase 46)
 
-- [ ] Lista de levantamentos, tela do levantamento, painel do passo, canvas, mapa do fluxo, regras e perguntas.
-- [ ] `models.ts`, `API_ERROR_MESSAGE` e títulos das rotas viram chaves; frases com plural e concordância passam para ICU.
+- [x] Lista de levantamentos, tela do levantamento, painel do passo, canvas, mapa do fluxo, regras e perguntas.
+- [x] `models.ts`, `API_ERROR_MESSAGE` e títulos das rotas viram chaves; frases com plural e concordância passam para ICU.
+- **Registro (2026-11-15):**
+  - **Como foi feito:** um agente converteu primeiro os rótulos de enum e os códigos de erro do `models.ts` (15 registros de enum e o de erro viraram `*_KEY`, com 123 chaves por idioma), para os três agentes seguintes, em paralelo e com arquivos exclusivos, não quebrarem o build uns dos outros. Cada um gravou as chaves num arquivo de parte, juntado depois nos três JSON. Ao todo, cerca de 820 chaves por idioma.
+  - **Função pura:** `tr()` (`core/i18n/locale.ts`) traduz sem injeção e, dentro de `computed`, acompanha a troca de idioma; `translatedRecord()` (`core/graph/translated.ts`) dá um `Record` que traduz na leitura. Os testes de função pura rodam com um tradutor estático em português.
+  - **Plural no português:** `=1` no lugar de `one`, porque o `one` do pt inclui o zero ("0 passo"). Regra no `design-system.md` e na skill `traduzir-texto`.
+  - **Português corrigido no caminho:** "Regra escrita por o provedor de IA" e "proposta de o provedor de IA" viraram "pelo provedor" e "do provedor", com escolha ICU (`select`) pela origem nos três idiomas; "achado(s)" virou plural de verdade.
+  - **Título da aba:** a rota guarda a chave, e o título se refaz na troca de idioma.
+  - **Fica sem tradução de propósito:** o texto do código analisado (nomes, condições e as mensagens entre aspas do código do cliente), o texto que vem da API e o que a IA escreveu (entram nas Fases 49 a 51), os nomes de arquivo exportado e os exemplos de identificador.
+  - **Navegador:** a lista e a tela de um levantamento do próprio Rastro (`RepositoriesController.Add`) nos três idiomas, com a API numa pasta temporária: nenhuma chave aparece no lugar do texto, e o único português no inglês e no espanhol é o do código analisado. Prints em `docs/telas/fase-47/`.
+  - **Glossário:** entraram buraco (*gap*, *hueco*), entre fluxos, desfecho e recolhido.
+  - **Ficou para a Fase 48:** o aviso de IA (`ai-disclosure`), o rótulo e o "Passo:" do palco do diagrama, e a tela da visão consolidada passar a chave do título (`route.consolidated`).
 
 ## Fase 48: banco, diagrama e o resto da tela `[ ]` (depende da Fase 46)
 

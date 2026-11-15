@@ -75,7 +75,7 @@ Um único movimento automático: a trilha tracejada "andando" enquanto a anális
 
 Aviso a partir de 6 kB e erro a partir de 10 kB por componente (o padrão do Angular é 4 kB). Decidido na Fase 6: o painel do nó é a área mais densa da ferramenta de desktop. Antes de subir de novo, mover para o tema o que for padrão repetido (como foi feito com `.kind`, `.conf`, `.btn-small` e `.steps`).
 
-A carga inicial avisa a partir de 550 kB (antes, 500 kB). Subiu na Fase 46 com as bibliotecas de tradução (ngx-translate e MessageFormat), que a tela precisa desde o primeiro desenho; os textos de cada idioma ficam fora, num pedaço carregado sob demanda.
+A carga inicial avisa a partir de 550 kB (antes, 500 kB). Subiu na Fase 46 com as bibliotecas de tradução (ngx-translate e MessageFormat), de que a tela precisa desde o primeiro desenho; os textos de cada idioma ficam fora, num pedaço carregado sob demanda.
 
 ## Tradução ([ADR-009](../adr/adr-009-multilingue.md))
 
@@ -83,6 +83,6 @@ A carga inicial avisa a partir de 550 kB (antes, 500 kB). Subiu na Fase 46 com a
 - No template, o pipe: `{{ 'settings.appearance.title' | translate }}`; com marcador, `{{ 'ai.status.on' | translate: { provider: nome } }}`; em atributo, `[attr.aria-label]="'shell.brandLabel' | translate"`. O componente importa o `TranslatePipe`.
 - No TypeScript, `LanguageService.t(chave, parâmetros)`. Dentro de `computed`, o texto se refaz quando o idioma muda; fora dele, vale o idioma do momento da chamada.
 - Rótulo de enum: o `Record` guarda a chave (`PALETTE_LABEL_KEY`), nunca o texto.
-- Plural e variação vão em ICU no próprio texto: `{count, plural, one {# passo} other {# passos}}`. Nada de `count === 1 ? ... : ...` no código.
+- Plural e variação vão em ICU no próprio texto. Nada de `count === 1 ? ... : ...` no código. No português, use `=1` (`{count, plural, =1 {# passo} other {# passos}}`): a categoria `one` do pt inclui o zero e daria "0 passo". No inglês e no espanhol, `one` e `other`.
 - Data e número: `currentLocale()` (`core/i18n/locale.ts`) no `toLocaleString` e no `Intl`, nunca `'pt-BR'` fixo.
 - Testes: todo spec roda com o `pt-BR.json` de verdade (`i18n-test-setup.spec.ts`), então o texto em português que o teste confere continua valendo, e chave sem tradução aparece como a própria chave. O teste de paridade (`core/i18n/i18n.spec.ts`) confere chaves e marcadores nos três idiomas.

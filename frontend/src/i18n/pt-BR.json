@@ -1,6 +1,11 @@
 {
   "common": {
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "retry": "Tentar de novo",
+    "close": "Fechar",
+    "sending": "Enviando…",
+    "copied": "Copiado",
+    "copyFailed": "Não deu para copiar"
   },
   "shell": {
     "skipToContent": "Ir para o conteúdo",
@@ -50,5 +55,984 @@
     "monocromo": "Monocromo e azul",
     "rosa": "Rosa e carvão",
     "artico": "Ártico"
+  },
+  "enum": {
+    "changeKind": {
+      "added": "Passo novo",
+      "removed": "Sai do fluxo",
+      "modified": "Muda"
+    },
+    "dbOperation": {
+      "read": "lê",
+      "insert": "inclui em",
+      "update": "altera",
+      "delete": "exclui de",
+      "execute": "executa"
+    },
+    "dbOperationShort": {
+      "read": "lê",
+      "insert": "inclui",
+      "update": "altera",
+      "delete": "exclui",
+      "execute": "executa"
+    },
+    "nodeKind": {
+      "entry": "Entrada",
+      "method": "Método",
+      "decision": "Decisão",
+      "loop": "Laço",
+      "try": "Tratamento de erro",
+      "return": "Retorno antecipado",
+      "throw": "Exceção",
+      "external": "Chamada externa",
+      "unresolved": "Não resolvido",
+      "jump": "Desvio do laço"
+    },
+    "edgeConfidence": {
+      "extracted": "Extraída do código",
+      "inferred": "Inferida (a conferir)",
+      "confirmed": "Confirmada por você"
+    },
+    "proposalOrigin": {
+      "manual": "Você",
+      "agent": "Agente",
+      "provider": "IA"
+    },
+    "unresolvedReason": {
+      "multipleImplementations": "Mais de uma implementação",
+      "noImplementation": "Sem implementação no código",
+      "dynamicDispatch": "Chamada dinâmica",
+      "delegate": "Delegate ou evento",
+      "messageDispatch": "Mensagem para mediator ou barramento",
+      "reflection": "Reflection",
+      "depthLimit": "Limite de profundidade",
+      "routeNotResolved": "Rota da chamada HTTP não resolvida",
+      "noMatchingEndpoint": "Nenhum endpoint atende a chamada",
+      "multipleEndpoints": "Mais de um endpoint atende a chamada"
+    },
+    "unresolvedReasonHint": {
+      "multipleImplementations": "A interface tem várias implementações e nenhum registro de DI decide qual roda aqui.",
+      "noImplementation": "A interface não tem implementação nesta solution. Ela pode vir de um pacote ou de outro repositório.",
+      "dynamicDispatch": "O compilador não ligou a chamada a um método (dynamic ou código que não compilou).",
+      "delegate": "Quem roda depende de quem atribuiu o delegate ou assinou o evento.",
+      "messageDispatch": "O handler da mensagem é escolhido em tempo de execução pelo mediator ou barramento.",
+      "reflection": "O método é chamado por reflection, então o destino só existe em tempo de execução.",
+      "depthLimit": "O caminho continua, mas parou no limite de profundidade escolhido.",
+      "routeNotResolved": "A rota da chamada HTTP é montada em tempo de execução, então não dá para saber qual endpoint ela alcança.",
+      "noMatchingEndpoint": "A rota foi resolvida, mas nenhum dos repositórios escolhidos tem um endpoint que a atenda.",
+      "multipleEndpoints": "A rota casa com mais de um endpoint. Escolha qual deles recebe a chamada."
+    },
+    "surveyStatus": {
+      "pending": "Na fila",
+      "running": "Analisando",
+      "completed": "Pronto",
+      "failed": "Falhou"
+    },
+    "validationVerdict": {
+      "approved": "Aprovada",
+      "partial": "Parcial",
+      "rejected": "Reprovada"
+    },
+    "checkStatus": {
+      "passed": "passou",
+      "failed": "falhou",
+      "skipped": "não configurado"
+    },
+    "findingCategory": {
+      "ddd": "Regras de DDD",
+      "cleanCode": "Código limpo",
+      "metric": "Métricas",
+      "database": "Banco de dados"
+    },
+    "findingKind": {
+      "highComplexity": "Complexidade alta",
+      "longMethod": "Método longo",
+      "deepNesting": "Aninhamento fundo",
+      "tooManyDependencies": "Dependências demais",
+      "silentCatch": "Catch que engole a falha",
+      "serviceLocator": "Service locator",
+      "entityChangedOutsideDomain": "Entidade alterada fora do domínio",
+      "publicSetterOnEntity": "Setter público na entidade",
+      "persistenceOutsideDomain": "Gravação fora do domínio",
+      "queryInLoop": "Consulta dentro de laço (N+1)",
+      "materializeBeforeFilter": "ToList antes do filtro",
+      "readWithoutNoTracking": "Leitura sem AsNoTracking",
+      "procedureByRawSql": "Procedure por SQL cru",
+      "loadToDelete": "Carrega para apagar",
+      "leadingWildcardLike": "LIKE com curinga no começo"
+    },
+    "findingSeverity": {
+      "info": "Informativo",
+      "warning": "Atenção",
+      "critical": "Crítico"
+    }
+  },
+  "error": {
+    "REPOSITORY_COMMAND_INVALID": "O comando precisa caber numa linha, com até 500 caracteres.",
+    "REPOSITORY_NOT_ALLOWED": "Esse repositório não está cadastrado. Cadastre a pasta em Configurações.",
+    "SOLUTION_PATH_INVALID": "Use um .sln, .slnx, .csproj ou tsconfig relativo à raiz do repositório.",
+    "ANGULAR_UNAVAILABLE": "O Node não foi encontrado nesta máquina. Instale o Node para levantar fluxos Angular.",
+    "SOLUTION_NOT_FOUND": "Não há solution nesse caminho.",
+    "ENTRY_POINT_REQUIRED": "Informe o ponto de entrada, por exemplo PedidosController.Criar.",
+    "DEPTH_OUT_OF_RANGE": "A profundidade precisa ficar entre 1 e 40.",
+    "SOURCE_PATH_INVALID": "Esse arquivo não pode ser lido.",
+    "EDGE_NOT_PROPOSED": "Essa aresta não é uma proposta (ou já foi decidida).",
+    "DRAFT_INVALID": "O rascunho não passou na validação.",
+    "DRAFT_REQUIRED": "Desenhe e salve ao menos uma mudança antes de validar.",
+    "VALIDATION_RUNNING": "Já existe uma validação em andamento para este levantamento.",
+    "VALIDATION_NOT_APPROVABLE": "Só uma validação concluída e não reprovada pode ser aprovada.",
+    "C4_PEOPLE_INVALID": "Confira as pessoas: cada uma precisa de nome, sem repetir.",
+    "NOTE_INVALID": "A anotação precisa ser de um passo deste fluxo e ter até 500 caracteres.",
+    "DIAGRAM_INVALID": "O diagrama está vazio ou grande demais.",
+    "SURVEY_RUNNING": "O levantamento ainda está em análise. Espere terminar para excluir.",
+    "AI_SETTINGS_INVALID": "Configuração inválida: confira modelos, chaves e orçamento.",
+    "AI_DISABLED": "A IA está desligada na configuração.",
+    "AI_USE_DISABLED": "Este uso da IA está desligado na configuração.",
+    "AI_NOT_CONFIGURED": "Falta a chave de API do provedor escolhido.",
+    "AI_BUDGET_EXCEEDED": "O orçamento diário de tokens acabou.",
+    "AI_PROVIDER_ERROR": "O provedor de IA não respondeu. Tente de novo em instantes.",
+    "AI_QUESTION_INVALID": "Escreva uma pergunta de até alguns parágrafos sobre este fluxo.",
+    "REPOSITORY_NAME_INVALID": "Nome inválido: use letras, números, ponto, hífen ou sublinhado, começando por letra ou número.",
+    "REPOSITORY_PATH_INVALID": "Use o caminho completo da pasta, como C:\\codigo\\meu-sistema (Windows) ou /home/voce/meu-sistema (Linux e macOS).",
+    "REPOSITORY_FOLDER_NOT_FOUND": "Essa pasta não existe neste computador.",
+    "REPOSITORY_EXISTS": "Já existe um repositório com esse nome.",
+    "REPOSITORY_NOT_FOUND": "Esse repositório não está mais cadastrado.",
+    "CROSS_REPOSITORIES_INVALID": "Escolha no máximo 10 repositórios para seguir as chamadas HTTP.",
+    "QUERY_INVALID": "Cole uma consulta de até 100 mil caracteres.",
+    "CONNECTION_INVALID": "String de conexão inválida: confira o servidor (Data Source) e o formato, com até 2.000 caracteres.",
+    "CONNECTION_MISSING": "Cadastre a conexão com o banco vivo antes.",
+    "PLAN_NOT_ALLOWED": "O plano só sai para uma instrução SELECT, INSERT, UPDATE, DELETE ou MERGE, sem SET, EXEC nem DDL.",
+    "LIVE_DATABASE_ERROR": "O banco vivo não respondeu. Confira a conexão e tente de novo.",
+    "ORIGIN_NOT_ALLOWED": "Pedido recusado: só a tela do próprio Rastro pode alterar dados.",
+    "noResponse": "O Rastro não respondeu. Confira se o comando rastro continua aberto no terminal e tente de novo.",
+    "notFound": "Não encontrado.",
+    "generic": "Algo deu errado no Rastro. Tente de novo."
+  },
+  "flowCanvas": {
+    "mark": {
+      "confirmed": "Confirmada por você",
+      "inferred": "Inferida, a conferir"
+    },
+    "noteTitle": "Sua anotação: {note}",
+    "outcomeTitle": "Se a condição vale: {outcome}",
+    "drawing": "Desenhando o grafo…",
+    "keysHelp": "Setas andam pelos passos seguindo as ligações; Alt+setas move o passo; Enter escolhe; as teclas + e − abrem e recolhem o detalhe do passo; Ctrl+clique ou Shift+arrastar no fundo marca vários para mover juntos.",
+    "toolsLabel": "Navegação do grafo",
+    "zoomIn": "Aproximar",
+    "zoomOut": "Afastar",
+    "fit": "Enquadrar o grafo na tela",
+    "search": "Buscar",
+    "searchAria": "Buscar passo no grafo (Ctrl+F)",
+    "filtersLabel": "Filtros do grafo",
+    "nextHoleTitle": "Ir para o próximo não resolvido",
+    "holes": "Não resolvidos ({count})",
+    "brief": {
+      "label": "Só o método de entrada",
+      "showAll": "Mostrar também o que cada método chama",
+      "showEntry": "Mostrar só o código do método de entrada, com os métodos chamados fechados"
+    },
+    "reset": "Reorganizar",
+    "resetTitle": "Volta os passos que você arrastou para a organização automática",
+    "framework": {
+      "show": "Mostrar as chamadas do .NET (LINQ, EF Core, cache, DI, HttpClient)",
+      "hide": "Esconder as chamadas do .NET (LINQ, EF Core, cache, DI, HttpClient)",
+      "label": "Chamadas do .NET ({count})"
+    },
+    "undo": "Desfazer",
+    "moved": "Passo movido.",
+    "positionsReset": "Posições redefinidas.",
+    "shortcuts": {
+      "hint": "Setas: andar · Alt+setas: mover · Ctrl+F: buscar · Esc: limpar",
+      "close": "Fechar a dica de atalhos"
+    },
+    "legend": {
+      "title": "Legenda",
+      "hide": "Esconder legenda",
+      "trail": "Caminho até o passo escolhido",
+      "nextRight": "Linha para a direita: o passo seguinte, na ordem do código",
+      "callDown": "Seta para baixo: o que o passo chama, ou o que acontece quando a condição vale",
+      "nextDown": "Linha para baixo: o passo seguinte, na ordem do código",
+      "callRight": "Seta para a direita: o que o passo chama, ou o que acontece quando a condição vale",
+      "order": "Ordem de leitura: o passo 2.1 vem dentro do passo 2",
+      "effect": "O que o passo faz no mundo: banco, mensagem, cache, arquivo ou fila",
+      "dbMap": "Ver o mapa do banco",
+      "dbMapTitle": "O mapa do banco deste repositório, lido do código",
+      "main": "Linha mais grossa: o código do método de entrada; os passos mais claros estão mais fundo nas chamadas",
+      "exit": "Vermelha tracejada: o fluxo para com erro",
+      "unresolved": "Não resolvido",
+      "http": "Chamada HTTP para outro sistema (verbo e rota)",
+      "drag": "Arraste um passo para reorganizar (ou Alt+setas); setas andam pelos passos",
+      "pan": "Arraste no fundo para mover a visão; Shift+arrastar ou Ctrl+clique marca vários passos para mover juntos",
+      "added": "Passo novo na comparação",
+      "removed": "Saiu do fluxo",
+      "match": "Resultado da busca",
+      "collapsed": "Passos recolhidos (clique para abrir)",
+      "note": "Sua anotação"
+    },
+    "walkEnd": {
+      "forward": "Fim do caminho: este passo não chama nenhum outro.",
+      "back": "Este é o começo do caminho.",
+      "siblings": "Este passo não tem irmãos."
+    },
+    "dbTitle": "{text}. Clique no passo para ver a tabela no banco",
+    "findingTitle": "{count, plural, =1 {# achado} other {# achados}} de qualidade; o pior: {severity}",
+    "worst": {
+      "info": "informativo",
+      "warning": "atenção",
+      "critical": "crítico"
+    },
+    "meta": {
+      "expand": "Clique para expandir",
+      "repeat": "Já aparece acima: clique para ir"
+    },
+    "aria": {
+      "collapsed": "Recolhido: {label}. Enter para expandir",
+      "repeat": "{kind} de novo: {label}. Enter vai até o original",
+      "node": "{kind}: {label}",
+      "nodeThen": "{kind}: {label}, então {outcome}",
+      "note": "com anotação sua",
+      "match": "resultado da busca",
+      "foldOpen": "detalhe aberto, tecla − fecha",
+      "foldClosed": "detalhe fechado, tecla + abre"
+    },
+    "dbEffect": {
+      "read": "lê",
+      "write": "grava",
+      "execute": "executa"
+    }
+  },
+  "flowMap": {
+    "tab": {
+      "block": "Bloco",
+      "rules": "Regras",
+      "questions": "Perguntas"
+    },
+    "barLabel": "Desenho do mapa",
+    "zoomLabel": "Zoom do mapa",
+    "zoomActualAria": "Zoom em {percent}%. Voltar para 100%",
+    "zoomActualTitle": "Voltar para 100%",
+    "fit": "Enquadrar o mapa na tela",
+    "collapsedBar": "{count, plural, =1 {Um sistema recolhido} other {# sistemas recolhidos}}: clique no bloco com + para abrir.",
+    "clearPath": "Limpar o destaque",
+    "loading": "Montando o mapa do fluxo…",
+    "empty": "O mapa deste fluxo está vazio: o levantamento não tem passos para desenhar.",
+    "outcomeAria": "Acender o caminho do desfecho: {text}",
+    "callAria": "Chamada: {text}",
+    "panelLabel": "Painel do mapa",
+    "blockPanelLabel": "Bloco escolhido",
+    "closeBlockTitle": "Fechar o painel do bloco (Esc)",
+    "steps": "Passos deste bloco",
+    "outcomes": "Desfechos",
+    "leadsTo": "leva a {target}",
+    "fails": "falha",
+    "ends": "encerra",
+    "calls": "Chamadas que saem daqui",
+    "call": "Chama",
+    "fields": "campos: {fields}",
+    "callTitle": "{text}. Campos: {fields}",
+    "previous": "Anterior",
+    "next": "Seguinte",
+    "previousTitle": "Anterior: {title} (seta para a esquerda)",
+    "noPrevious": "Não há bloco anterior neste caminho",
+    "nextTitle": "Seguinte: {title} (seta para a direita)",
+    "noNext": "Não há bloco seguinte neste caminho",
+    "focusSection": "Ver só este trecho",
+    "focusSectionTitle": "Recorta o fluxo no passo deste bloco",
+    "closeSystem": "Recolher este sistema",
+    "openSystem": "Abrir este sistema",
+    "hint": "Escolha um bloco no mapa para ver os passos dele, os desfechos e as chamadas que saem dele.",
+    "blockAria": "{kind}: {title}",
+    "blockAriaCollapsed": "{label}. Recolhido, com mais {count, plural, =1 {# bloco} other {# blocos}}: clique para abrir",
+    "rules": {
+      "filterLabel": "Filtrar regras por efeito",
+      "all": "Todas",
+      "loading": "Procurando as regras do fluxo…",
+      "byYou": "escrita por você",
+      "duplicated": "{count, plural, =1 {implementada em # sistema} other {implementada em # sistemas}}",
+      "duplicatedTitle": "A mesma condição aparece em mais de um sistema",
+      "pickBlockTitle": "Escolher o bloco no mapa",
+      "empty": "Nenhuma regra com este efeito."
+    },
+    "questions": {
+      "filterLabel": "Filtrar perguntas por papel",
+      "all": "Todos",
+      "loading": "Montando as perguntas do fluxo…",
+      "empty": "Nenhuma pergunta pronta para este papel.",
+      "freeLabel": "Pergunta livre sobre o fluxo",
+      "placeholder": "Por exemplo: o que acontece se o pagamento for recusado?",
+      "asking": "Perguntando à IA…",
+      "ask": "Perguntar à IA",
+      "goes": "a sua pergunta, o mapa do fluxo (nomes de métodos e arquivo:linha), as regras e até 8 trechos de código em volta das entradas e das decisões",
+      "answerLabel": "Resposta",
+      "providerAnswer": "resposta da IA ({provider})",
+      "gap": "Lacuna:",
+      "sources": "Fontes:",
+      "pickStepTitle": "Escolher o passo no fluxo"
+    }
+  },
+  "graph": {
+    "layout": {
+      "horizontal": "da esquerda para a direita",
+      "timeline": "em linha do tempo",
+      "tree": "em árvore",
+      "consolidated": "consolidado, num desenho só",
+      "map": "em mapa, por sistema",
+      "directionAria": "Desenho {current}. Trocar para {next}",
+      "directionTitle": "Desenhar {next}"
+    },
+    "flowMap": {
+      "outsideLane": "Fora do código",
+      "conditionTitle": "Se {condition}",
+      "blockKind": {
+        "entry": "Entrada",
+        "step": "Passo",
+        "decision": "Decisão",
+        "outside": "Fora do código"
+      }
+    },
+    "flowInsight": {
+      "ruleEffect": {
+        "blocks": "Bloqueia",
+        "allows": "Permite",
+        "sideEffect": "Efeito colateral"
+      },
+      "questionRole": {
+        "techLead": "TL",
+        "staff": "Staff",
+        "manager": "Gerente"
+      },
+      "answerSeal": {
+        "extracted": "Extraída do código",
+        "inferred": "Inferida pela IA",
+        "outside": "Fora do código levantado",
+        "none": "Sem resposta"
+      },
+      "fieldsAndMore": "{fields} e outros campos",
+      "moreFields": "outros campos"
+    },
+    "timeline": {
+      "repeatFrame": "↻ Repete {label}"
+    },
+    "collapse": {
+      "steps": "{count, plural, =1 {+# passo} other {+# passos}}",
+      "hint": "Recolhido. Clique para expandir."
+    },
+    "reading": {
+      "effect": {
+        "database": "banco",
+        "message": "mensagem",
+        "cache": "cache",
+        "file": "arquivo",
+        "queue": "fila"
+      },
+      "hint": {
+        "database": "Lê ou grava no banco de dados",
+        "message": "Envia mensagem ou chama outro sistema (HTTP, e-mail, Telegram)",
+        "cache": "Lê ou grava no cache",
+        "file": "Lê ou grava arquivo",
+        "queue": "Publica ou consome uma fila"
+      }
+    },
+    "plain": {
+      "if": "Se {condition}",
+      "switch": "Conforme {condition}",
+      "foreach": "Para cada {item} em {collection}",
+      "while": "Enquanto {condition}",
+      "repeatWhile": "Repete enquanto {condition}",
+      "repeat": "Repete",
+      "rethrow": "Repassa o erro",
+      "throwNew": "Para com erro {error}",
+      "throw": "Para com erro: {error}",
+      "end": "Encerra",
+      "endReturning": "Encerra e devolve {value}",
+      "jump": {
+        "break": "Sai da repetição",
+        "continue": "Pula para o próximo"
+      },
+      "branchThen": "Se sim",
+      "branchElse": "Se não",
+      "branchDefault": "Nos outros casos",
+      "branchCase": "Caso {value}",
+      "branchOr": "{text} ou {part}",
+      "branchOtherCases": "outros casos"
+    },
+    "origin": {
+      "manual": "Ligação feita por você",
+      "agent": "Proposta por um agente (MCP)",
+      "provider": "Proposta pelo provedor de IA"
+    },
+    "branches": {
+      "foldOpen": "Fechar o detalhe deste método (tecla −)",
+      "foldClosed": "Abrir o detalhe deste método (tecla +)"
+    },
+    "consolidated": {
+      "firstSystem": "Primeiro sistema"
+    },
+    "foreignEdit": "Edição só no primeiro sistema do fluxo",
+    "firstSystem": "Primeiro sistema",
+    "image": {
+      "noCanvas": "Sem canvas 2D neste navegador.",
+      "tooLarge": "A imagem ficou grande demais.",
+      "drawFailed": "Não deu para desenhar a imagem."
+    }
+  },
+  "nodePanel": {
+    "closeAria": "Fechar o passo e voltar à visão geral",
+    "closeTitle": "Fechar (Esc)",
+    "showWholeGraph": "Mostrar o grafo inteiro",
+    "focusFlow": "Ver somente este fluxo",
+    "focusHelp": "Esconde os outros caminhos: fica o que leva a este passo e o que roda depois",
+    "focusHelpText": "Esconde os outros caminhos: fica o que leva a este passo e o que roda depois.",
+    "origin": "Sistema {system} · {language}",
+    "originCommit": "Sistema {system} · {language} · commit {commit}",
+    "editGroup": "Editar este passo",
+    "removedInDraft": "Este passo sai do fluxo no rascunho.",
+    "restoreStep": "Restaurar passo",
+    "intentLabelAdded": "O que este passo deve fazer",
+    "intentLabelChanged": "O que deve mudar neste passo",
+    "intentPlaceholder": "Ex.: só confirmar quando houver estoque",
+    "apply": "Aplicar",
+    "applied": "Aplicado ao rascunho",
+    "removeStep": "Remover passo",
+    "connectLabel": "Seguir para outro passo",
+    "connectChoose": "Escolha o passo",
+    "connect": "Ligar",
+    "draftChange": "Mudança pedida no rascunho",
+    "ruleWrittenBy": "Regra escrita {origin, select, manual {por você} agent {por um agente (MCP)} other {pelo provedor de IA}}",
+    "ruleWrittenByTitle": "Escrita {origin, select, manual {por você} agent {por um agente (MCP)} other {pelo provedor de IA}}",
+    "noRule": "Sem regra escrita para este passo. Um agente conectado (MCP) pode escrever.",
+    "noRuleAi": "Sem regra escrita para este passo. Um agente conectado (MCP) pode escrever, ou peça à IA abaixo.",
+    "aiOff": "IA desligada.",
+    "aiOffLink": "Ligar em Configurações",
+    "needUseWriteRules": "Para a IA escrever a regra, ligue o uso \"Escrever regras\" em",
+    "needUseFillHoles": "Para a IA propor destinos, ligue o uso \"Completar buracos\" em",
+    "describing": "Escrevendo…",
+    "rewriteRule": "Reescrever regra com a IA",
+    "writeRule": "Escrever regra com a IA",
+    "writeMissingRules": "Escrever as regras que faltam com a IA",
+    "disclosure": {
+      "stepCode": "o código deste passo",
+      "noRepeat": "Código já descrito antes não vai de novo.",
+      "hole": "a chamada sem destino, o código em volta dela e os candidatos que o compilador achou",
+      "missingRules": "o código dos passos sem regra, em lotes"
+    },
+    "noteLabel": "Sua anotação neste passo",
+    "notePlaceholder": "Ex.: cuidado, também é chamado pelo webhook",
+    "noteHelp": "Aparece em todo fluxo deste repositório que passa por este passo e na documentação. {used}/{max}",
+    "saving": "Salvando…",
+    "saveNote": "Salvar anotação",
+    "deleteNote": "Excluir anotação",
+    "editNote": "Editar anotação",
+    "addNote": "Anotar este passo",
+    "undo": "Desfazer",
+    "calledAt": "Chamado em",
+    "calledAtMany": "Chamado em (1 de {count} chamadas; as outras estão em Ligações)",
+    "openInEditor": "Abrir no VS Code",
+    "openInEditorTitle": "Abre no VS Code, na pasta {folder}",
+    "copyLocation": "Copiar arquivo:linha",
+    "editorOpening": "Abrindo no VS Code… Se não abrir, confira a pasta em Configurações.",
+    "editorHint": "Para abrir no VS Code, o repositório precisa estar cadastrado, com a pasta, em",
+    "editorHintDismiss": "Não mostrar de novo",
+    "db": {
+      "title": "No banco",
+      "line": "linha {line}",
+      "noSql": "sem consulta no código",
+      "viewTable": "Ver {table} no mapa do banco",
+      "analyzeTitle": "Abrir a consulta deste passo na análise de consulta",
+      "analyzeAria": "Analisar a consulta de {table}, linha {line}",
+      "analyze": "Analisar a consulta"
+    },
+    "metricsTitle": "Métricas do método",
+    "metrics": "Complexidade {cyclomatic}, {lines, plural, =1 {# linha} other {# linhas}}, {nesting, plural, =1 {# nível} other {# níveis}} de aninhamento e {deps, plural, =1 {# dependência injetada} other {# dependências injetadas}}.",
+    "improvementsHere": "Melhorias neste passo",
+    "condition": "Condição",
+    "fillAsking": "Perguntando à IA…",
+    "fillWithAi": "Propor destinos com a IA",
+    "links": {
+      "title": "Ligações",
+      "from": "vem de",
+      "to": "segue para",
+      "removeAria": "Remover a ligação com {name}",
+      "remove": "Remover ligação",
+      "leaves": "Ligação sai do fluxo",
+      "confirmAria": "Confirmar a ligação com {name}",
+      "dismissAria": "Descartar a ligação com {name}",
+      "confirm": "Confirmar",
+      "dismiss": "Descartar",
+      "proposal": "{base}; proposta {origin, select, manual {sua} agent {de um agente (MCP)} other {do provedor de IA}}"
+    },
+    "pathFromEntry": "Caminho desde a entrada",
+    "pathFrom": "Caminho a partir de {label}",
+    "code": "Código",
+    "snippetAria": "Trecho do código",
+    "loadingSnippet": "Carregando o trecho…",
+    "externalNoCode": "Chamada para fora da solution: o código não está no repositório.",
+    "noPosition": "Este passo não tem posição própria no código.",
+    "overview": {
+      "title": "Visão geral",
+      "hint": "Clique num passo para ver o código e o caminho da entrada até ele.",
+      "jumpTo": "Ir para a seção",
+      "holesCount": "{count, plural, =1 {# buraco} other {# buracos}}",
+      "crossFlowCount": "{count} entre fluxos",
+      "improvementsCount": "{count, plural, =1 {# melhoria} other {# melhorias}}",
+      "shortcuts": "O que dá para fazer aqui",
+      "dbMap": "Mapa do banco",
+      "dbMapTitle": "O mapa do banco deste repositório, lido do código",
+      "exportFlow": "Exportar o fluxo",
+      "exportTitle": "PNG, SVG, Mermaid e C4",
+      "editFlow": "Editar fluxo",
+      "editFlowTitle": "Desenhar uma mudança no fluxo e gerar o prompt para o agente",
+      "questions": "Perguntas sobre o fluxo",
+      "questionsTitle": "Abre o mapa do fluxo na aba Perguntas",
+      "summary": "Resumo do fluxo",
+      "dbInFlow": "Banco neste fluxo",
+      "tablesCount": "{count, plural, =1 {# tabela} other {# tabelas}}",
+      "openDbMap": "Abrir no mapa do banco",
+      "holesTitle": "Buracos para completar",
+      "holesHint": "Chamadas que o compilador não ligou sozinho. Um agente conectado (MCP) ou a IA, se ligada, propõe o destino; você confirma.",
+      "proposedTarget": "Destino proposto, aguardando você",
+      "stepTypes": "Tipos de passo",
+      "rulesTitle": "Regras do fluxo",
+      "noRules": "Nenhuma regra escrita ainda. Elas aparecem aqui na ordem em que o fluxo passa pelos passos.",
+      "crossFlowTitle": "Entre fluxos",
+      "crossFlowHint": "Este fluxo salva dados sem uma verificação que outros fluxos do repositório fazem antes de salvar. Confira se é de propósito.",
+      "crossFlowItem": "Salva {entity} sem a verificação {guard}, que {count, plural, =1 {o fluxo} other {os fluxos}} {flows} {count, plural, =1 {faz} other {fazem}} antes de salvar.",
+      "seeInFlow": "Ver no fluxo",
+      "seeInFlowAria": "Ver no fluxo: {label}",
+      "improvementsDebt": "Melhorias e dívida técnica",
+      "noHoles": "Sem buracos: o compilador resolveu todas as chamadas deste fluxo.",
+      "deleteSurvey": "Excluir levantamento…"
+    }
+  },
+  "findings": {
+    "legacy": "Levantamento anterior à inspeção de qualidade. Levante o fluxo de novo para ver as melhorias.",
+    "noneStep": "Nenhum achado neste passo.",
+    "noneFlow": "Nenhum achado de qualidade neste fluxo.",
+    "seeInFlow": "Ver no fluxo",
+    "seeInFlowAria": "Ver no fluxo: {label}",
+    "goTo": "Ir para {label}",
+    "seeInDbMap": "Ver no mapa do banco",
+    "seeInDbMapAria": "Ver no mapa do banco",
+    "seeInDbMapAriaTarget": "Ver no mapa do banco: {target}",
+    "refactorPrompt": "Prompt de refatoração",
+    "refactorPromptAria": "Prompt de refatoração: {kind} em {label}"
+  },
+  "flowSummary": {
+    "showMain": "Mostrar só a linha principal",
+    "showAll": "Mostrar todos os passos"
+  },
+  "validation": {
+    "title": "Validação da mudança",
+    "intro": "O Rastro levanta o fluxo de novo no código atual e confere o que o rascunho pediu. Um agente conectado ao Rastro (MCP) obtém o mesmo resultado.",
+    "queued": "Na fila para validar.",
+    "running": "Levantando o fluxo de novo e rodando o build e os testes do repositório.",
+    "runningHint": "Pode levar alguns minutos. Esta janela atualiza sozinha. Se fechar, a validação continua e o botão Última validação, no topo da página, mostra o resultado.",
+    "scoreLine": "{score}% dos critérios do rascunho cumpridos. Pontos de decisão do fluxo: de {before} para {after}.",
+    "failedCriteria": "{count, plural, =1 {# critério falhou} other {# critérios falharam}}",
+    "unexpectedChanges": "{count, plural, =1 {# mudança fora do pedido} other {# mudanças fora do pedido}}",
+    "buildFailed": "o build falhou",
+    "testsFailed": "os testes falharam",
+    "criteriaTitle": "Critérios do rascunho",
+    "noCriteria": "Nenhum critério conferível.",
+    "outOfScope": "Fora do pedido",
+    "buildTests": "Build e testes do repositório",
+    "viewOutput": "Ver a saída",
+    "docTitle": "Documentação do fluxo",
+    "openNew": "Abrir o fluxo novo comparado",
+    "openNewTitle": "Abre o fluxo novo com o original por cima: o que entrou em azul, o que saiu em vermelho (dá para parar de comparar lá)",
+    "revalidate": "Validar de novo",
+    "download": "Baixar documentação",
+    "downloadTitle": "Baixa {name} (Markdown com regras, diagrama e histórico)",
+    "partialTitle": "Nem todos os critérios passaram; aprovar registra assim mesmo e gera a documentação",
+    "generateTitle": "Gera a documentação do fluxo",
+    "generating": "Gerando…",
+    "approveAnyway": "Aprovar mesmo assim",
+    "approve": "Aprovar e documentar"
+  },
+  "c4": {
+    "title": "Diagramas C4",
+    "intro": "Structurizr DSL com os quatro níveis: C1 contexto, C2 containers, C3 componentes e C4 a ordem das chamadas do fluxo. Um agente conectado ao Rastro (MCP) obtém o mesmo resultado.",
+    "peopleTitle": "Quem usa o sistema (C1)",
+    "peopleHint": "O compilador não sabe quem usa o sistema. Diga aqui; as pessoas ficam salvas com o levantamento.",
+    "nobody": "Ninguém cadastrado ainda.",
+    "nameLabel": "Nome da pessoa",
+    "descLabel": "O que ela faz",
+    "namePlaceholder": "Operador",
+    "descPlaceholder": "Acompanha os pedidos do dia",
+    "aiBadgeTitle": "Sugerida pela IA. Some quando você editar; no C1 ela sai como inferida.",
+    "aiBadgeHidden": ", sugerida; some quando você editar",
+    "remove": "Remover",
+    "removeAria": "Remover {name}",
+    "removeAriaAnon": "Remover esta pessoa",
+    "nameError": "Dê um nome a esta pessoa.",
+    "nameErrorAll": "Dê um nome a cada pessoa com descrição.",
+    "suggestionsAria": "Pessoas sugeridas pela IA",
+    "suggestedCount": "{count, plural, =1 {A IA sugeriu # pessoa.} other {A IA sugeriu # pessoas.}}",
+    "suggestionsHead": "Sugestões de {provider}, para conferir",
+    "add": "Acrescentar",
+    "allAdded": "Todas as sugestões foram acrescentadas. Salve as pessoas para entrarem no C1.",
+    "noOther": "A IA não achou outra pessoa além das já cadastradas.",
+    "addPerson": "Acrescentar pessoa",
+    "asking": "Perguntando à IA…",
+    "suggest": "Sugerir pessoas com a IA",
+    "disclosure": {
+      "goes": "o nome do repositório, o ponto de entrada, as classes do fluxo, os sistemas externos e as pessoas já cadastradas",
+      "never": "O código das classes não vai."
+    },
+    "needUse": "Para a IA sugerir pessoas, ligue a IA e o uso \"Contexto do C4\" em",
+    "savePeople": "Salvar pessoas",
+    "saving": "Salvando…",
+    "saved": "Pessoas salvas. O C1 já mostra quem usa o sistema.",
+    "unsavedPending": "Pessoas alteradas e não salvas: o DSL abaixo ainda não as inclui.",
+    "retry": "Tentar de novo",
+    "building": "Montando os diagramas…",
+    "hintIntro": "Para ver os diagramas sem o código sair da máquina, rode o Structurizr local na pasta onde salvou o arquivo:",
+    "hintWindows": "No cmd do Windows:",
+    "hintUnix": "No macOS e no Linux:",
+    "hintOpen": "Depois abra http://localhost:8080.",
+    "saveBeforeDownload": "Salve as pessoas antes de baixar.",
+    "copyDsl": "Copiar DSL",
+    "download": "Baixar workspace.dsl",
+    "downloadTitle": "Baixa o arquivo workspace.dsl para abrir no Structurizr"
+  },
+  "consolidated": {
+    "stageLabel": "Visão consolidada do fluxo",
+    "directionAria": "Desenho {current}. Trocar para {next}",
+    "directionTitle": "Desenhar {next}",
+    "barLabel": "Visão consolidada",
+    "hintEdited": "Com as suas cores e textos. Clique num passo para ver o contexto.",
+    "hintGenerated": "Gerada do fluxo. Clique num passo para ver o contexto.",
+    "editMermaid": "Editar o Mermaid (texto e cores)",
+    "renderError": "O texto salvo da visão não desenha.",
+    "fixInEdit": "Corrigir na edição",
+    "drawing": "Desenhando a visão consolidada…",
+    "hidden": "O passo escolhido não aparece neste desenho (ele só repassa a chamada). O painel mostra o contexto dele."
+  },
+  "route": {
+    "surveys": "Levantamentos",
+    "survey": "Fluxo",
+    "consolidated": "Visão consolidada",
+    "database": "Banco de {nome}",
+    "settings": "Configurações"
+  },
+  "surveys": {
+    "title": "Levantamentos",
+    "welcomeTitle": "Boas-vindas ao Rastro",
+    "subtitle": "O Rastro lê o código com o compilador: siga um fluxo, veja o banco ou analise uma consulta.",
+    "newSurvey": "Novo levantamento",
+    "deleted": "Levantamento de {entryPoint} excluído.",
+    "welcome": {
+      "steps": "Dois passos até o primeiro fluxo:",
+      "step1": "Cadastre a pasta do código que o Rastro vai ler.",
+      "step2": "Escolha o método de entrada e levante o primeiro fluxo.",
+      "aiNote": "A IA é opcional: o Rastro funciona sem ela. Para ligar, abra as",
+      "settingsLink": "Configurações"
+    },
+    "registerRepository": "Cadastrar repositório",
+    "loadingRepos": "Carregando repositórios",
+    "repositories": "Repositórios",
+    "traceFlow": "Levantar fluxo",
+    "card": {
+      "database": "Mapa do banco",
+      "analyzeQuery": "Analisar consulta"
+    },
+    "repoCount": "{count, plural, =0 {Nenhum levantamento} =1 {# levantamento} other {# levantamentos}}",
+    "recent": "Levantamentos recentes",
+    "loadingList": "Carregando levantamentos…",
+    "empty": {
+      "none": "Nenhum levantamento ainda.",
+      "hint": "Use \"Levantar fluxo\" em um repositório para seguir o primeiro rastro."
+    },
+    "searchLabel": "Buscar levantamento",
+    "searchPlaceholder": "Buscar por ponto de entrada, repositório ou projeto",
+    "filterGroup": "Filtrar por estado",
+    "filter": {
+      "all": "Todos",
+      "completed": "Prontos",
+      "inProgress": "Em andamento",
+      "failed": "Com falha"
+    },
+    "noMatch": "Nenhum levantamento com esse filtro.",
+    "clearFilters": "Limpar a busca e o filtro",
+    "open": "Abrir",
+    "openLabel": "Abrir o levantamento {entryPoint}",
+    "finished": "{entryPoint}: {status}",
+    "registered": "Repositório \"{name}\" cadastrado.",
+    "form": {
+      "intro": "O Rastro lê a solution com o compilador e segue cada chamada a partir do método escolhido.",
+      "backToDb": "Voltar ao banco",
+      "loadingRepos": "Carregando repositórios…",
+      "chooseRepository": "Escolha um repositório",
+      "noRepositories": "Nenhum repositório cadastrado.",
+      "dbMapOf": "Ver o mapa do banco de {name}",
+      "searchingSolutions": "Procurando solutions…",
+      "noSolutions": "Nenhuma solution encontrada neste repositório",
+      "entryHelpTs": "Componente.metodo: o método que o clique da tela chama.",
+      "entryHelp": "Classe.Metodo ou Namespace.Classe.Metodo: uma action, um job, um handler.",
+      "nodeNotice": "Fluxos Angular precisam do Node instalado nesta máquina.",
+      "crossSelf": "Seguir as chamadas HTTP dentro do próprio repositório",
+      "crossFollow": "Seguir chamadas HTTP para",
+      "crossOwn": "o próprio repositório",
+      "crossHelp": "Quando o método chama outro serviço por HTTP, o fluxo continua no endpoint que atende a chamada. Desligado, a chamada fica como chamada externa.",
+      "repository": {
+        "label": "Repositório",
+        "info": "O que é Repositório",
+        "summary": "A pasta do código que o Rastro vai ler.",
+        "text1": "A pasta do código que o Rastro vai ler, cadastrada em Configurações. O Rastro só lê o código: não executa nada nem precisa do sistema no ar."
+      },
+      "solution": {
+        "label": "Solution ou tsconfig",
+        "info": "O que é Solution",
+        "summary": "O arquivo .sln ou .slnx que reúne os projetos.",
+        "text1": "O arquivo .sln ou .slnx que reúne os projetos do sistema. O Rastro compila por ele para saber quem chama quem, inclusive a implementação real atrás de cada interface.",
+        "text2": "Se houver mais de uma, escolha a que contém o projeto onde está o ponto de entrada.",
+        "text3": "Num projeto Angular, a lista traz o tsconfig (como tsconfig.app.json) e o ponto de entrada é Componente.metodo."
+      },
+      "entry": {
+        "label": "Ponto de entrada",
+        "info": "O que é Ponto de entrada",
+        "summary": "O método onde a funcionalidade começa, como Classe.Metodo.",
+        "text1": "O método onde a funcionalidade começa: a action do controller que recebe a requisição, o Execute do job ou o Handle do handler da mensagem.",
+        "text2": "Escreva a classe e o método: PedidosController.Criar. Se houver duas classes com esse nome, inclua o namespace: Loja.Api.Controllers.PedidosController.Criar.",
+        "text3": "Não serve a rota (/api/pedidos), nem o namespace sem a classe."
+      },
+      "depth": {
+        "label": "Profundidade",
+        "info": "O que é Profundidade",
+        "summary": "Quantos níveis de chamada seguir a partir do ponto de entrada.",
+        "text1": "Quantos níveis de chamada o Rastro segue a partir do ponto de entrada. 15 serve para a maioria dos fluxos.",
+        "text2": "Onde o limite corta, o caminho fica marcado no grafo, e dá para continuar dali depois.",
+        "help": "Quantos níveis de chamada seguir. Além disso, o caminho fica marcado para continuar depois."
+      }
+    },
+    "errors": {
+      "repository": "Escolha um repositório.",
+      "solution": "Escolha uma solution.",
+      "entry": "Informe o método de entrada, por exemplo PedidosController.Criar.",
+      "depth": "Use um número inteiro de {min} a {max}."
+    }
+  },
+  "survey": {
+    "heading": "Levantamento",
+    "backToList": "Voltar aos levantamentos",
+    "commit": "commit",
+    "details": "Detalhes",
+    "branch": "Branch",
+    "stepCount": "{count, plural, =1 {# passo} other {# passos}}",
+    "unresolvedCount": "{count, plural, =1 {# não resolvido} other {# não resolvidos}}",
+    "nextUnresolved": "Ir para o próximo não resolvido no grafo",
+    "stale": {
+      "changed": "O código mudou",
+      "changedIn": "O código mudou em {systems}",
+      "titleIn": "Commits novos desde este levantamento em: {systems}.",
+      "title": "O repositório tem commits novos desde este levantamento."
+    },
+    "resurvey": "Levantar de novo",
+    "lastValidation": {
+      "title": "Abrir o resultado da última validação",
+      "label": "Última validação:",
+      "score": "{verdict}, nota {score} de 100",
+      "failed": "falhou",
+      "running": "em andamento"
+    },
+    "group": {
+      "view": "Ver",
+      "share": "Compartilhar",
+      "change": "Alterar",
+      "drawing": "Desenho do fluxo",
+      "editing": "Edição do fluxo",
+      "promptToCode": "Da mudança ao código"
+    },
+    "view": {
+      "graph": {
+        "label": "Grafo",
+        "title": "O grafo do fluxo, passo a passo"
+      },
+      "map": {
+        "label": "Mapa por sistemas",
+        "title": "Um mapa por sistema, com os caminhos de ponta a ponta"
+      },
+      "consolidated": {
+        "label": "Visão consolidada",
+        "title": "O fluxo todo num desenho só, com as suas cores"
+      }
+    },
+    "databaseMap": "Mapa do banco",
+    "databaseMapTitle": "O mapa do banco deste repositório, lido do código",
+    "compare": {
+      "button": "Comparar",
+      "menu": "Comparar com outro levantamento deste método",
+      "searching": "Procurando levantamentos…",
+      "listFailed": "Não deu para listar os levantamentos.",
+      "item": "{date}, commit {commit}, {count, plural, =1 {# passo} other {# passos}}",
+      "unknownCommit": "desconhecido",
+      "empty": "Nenhum outro levantamento pronto deste método."
+    },
+    "export": {
+      "button": "Exportar",
+      "title": "PNG, SVG, Mermaid e C4",
+      "group": "Exportar o que está na tela",
+      "png": "Imagem PNG",
+      "svg": "Imagem SVG",
+      "copyMermaid": "Copiar como Mermaid",
+      "downloadMermaid": "Baixar como Mermaid (.mmd)",
+      "c4": "Diagramas C4 (Structurizr DSL)",
+      "notDrawn": "O grafo ainda não está desenhado. Espere ele aparecer e tente de novo.",
+      "started": "Download iniciado: {file}",
+      "imageFailed": "Não exportou a imagem: {message} Tente o SVG."
+    },
+    "edit": {
+      "button": "Editar fluxo",
+      "newStep": "Novo passo",
+      "undo": "Desfazer",
+      "undoTitle": "Desfazer (Ctrl+Z)",
+      "redo": "Refazer",
+      "redoTitle": "Refazer (Ctrl+Y ou Ctrl+Shift+Z)",
+      "changes": "{count, plural, =1 {# mudança} other {# mudanças}}",
+      "changesUnsaved": "{count, plural, =1 {# mudança} other {# mudanças}}, não salvas",
+      "howItWorks": "Como funciona",
+      "howItWorksTitle": "Como ligar e mover passos",
+      "generatePrompt": "Gerar prompt",
+      "generating": "Gerando…",
+      "validate": "Validar mudança",
+      "validateTitle": "Depois de aplicar a mudança no código: levanta o fluxo de novo e confere",
+      "saveDraft": "Salvar rascunho",
+      "saving": "Salvando…",
+      "saveAndExit": "Salvar e sair",
+      "exit": "Sair da edição",
+      "discard": "Descartar rascunho…",
+      "hint": "Arraste de uma bolinha de saída até a de entrada de outro passo para ligar; arraste a ponta de uma ligação para mover o passo. O caminho é: desenhar a mudança, gerar o prompt, deixar o agente aplicar no código e validar. Pelo teclado: escolha o passo e use \"Seguir para outro passo\" no painel."
+    },
+    "newStep": {
+      "nameLabel": "Nome do passo",
+      "nameHelp": "Tipo.Metodo. Se houver sobrecarga, inclua os tipos: Tipo.Metodo(string, int).",
+      "kindLabel": "Tipo",
+      "intentLabel": "O que deve fazer",
+      "intentPlaceholder": "Conferir o estoque antes de confirmar o pedido",
+      "after": "Entra depois de",
+      "loose": "Entra solto no grafo; escolha um passo antes para ligar a ele.",
+      "createAfter": "Criar depois do passo escolhido",
+      "create": "Criar passo",
+      "errorName": "Dê um nome ao passo.",
+      "errorIntent": "Diga o que o passo deve fazer."
+    },
+    "draft": {
+      "loaded": "Rascunho salvo carregado.",
+      "saved": "Rascunho salvo.",
+      "discarded": "Rascunho descartado.",
+      "needChangeForPrompt": "Desenhe ao menos uma mudança para gerar o prompt.",
+      "needChangeForValidation": "Desenhe ao menos uma mudança para validar.",
+      "discardFailed": "Não descartou: {message}"
+    },
+    "filters": {
+      "region": "Filtros ativos no grafo",
+      "title": "No grafo:",
+      "focusTitle": "Mostrando só o fluxo de {label}: os caminhos até ele e o que roda depois.",
+      "focusText": "Só o fluxo de",
+      "showWhole": "Mostrar o grafo inteiro",
+      "compareTitle": "Comparando com o levantamento de {date}, commit {commit}",
+      "compareText": "Comparando com {date}:",
+      "compareAdded": "+{count, plural, =1 {# passo novo} other {# passos novos}}",
+      "compareRemoved": "−{count, plural, =1 {# saiu} other {# saíram}}",
+      "compareFailed": "Não deu para comparar: {message}",
+      "compareLoading": "Carregando a comparação…",
+      "compareStop": "Parar de comparar",
+      "pathFrom": "Caminhos a partir de",
+      "pathPickTarget": ": clique no destino",
+      "pathShortest": "O mais curto tem {count, plural, =1 {# passo} other {# passos}}",
+      "pathBetween": "Caminhos",
+      "pathCount": "({count, plural, =1 {# passo} other {# passos}})",
+      "pathUnreachable": "não é alcançado a partir de",
+      "pathClear": "Limpar o caminho",
+      "pathCancel": "Cancelar o caminho",
+      "collapsed": "{count, plural, =1 {# passo recolhido} other {# passos recolhidos}}",
+      "collapsedTitle": "Clique no \"+N passos\" no grafo para abrir um deles",
+      "expandAll": "Expandir tudo"
+    },
+    "search": {
+      "label": "Buscar passo no grafo",
+      "placeholder": "Buscar passo (nome do método, condição…)",
+      "escHint": "Esc fecha",
+      "none": "Nenhum passo na tela",
+      "position": "{index} de {total}",
+      "hidden": "({count, plural, =1 {# outro escondido} other {# outros escondidos}} pelo recorte, recolhidos ou chamadas do .NET)",
+      "everywhere": "Buscar em tudo",
+      "previous": "Passo anterior",
+      "next": "Próximo passo",
+      "close": "Fechar busca",
+      "results": "Ocorrências da busca"
+    },
+    "retryNow": "Tentar agora",
+    "failed": {
+      "title": "A análise falhou",
+      "fix": "Corrigir e levantar de novo",
+      "delete": "Excluir levantamento…"
+    },
+    "pending": {
+      "queued": "Na fila para analisar.",
+      "reading": "Lendo a solution e seguindo as chamadas.",
+      "wait": "Solutions grandes levam até um minuto. Esta tela atualiza sozinha."
+    },
+    "loading": "Carregando o levantamento…",
+    "panel": {
+      "showLabel": "Mostrar o painel do passo",
+      "hideLabel": "Recolher o painel do passo para ver mais do grafo",
+      "showTitle": "Mostrar o painel",
+      "hideTitle": "Recolher o painel",
+      "label": "Painel"
+    },
+    "prompt": {
+      "refactorTitle": "Prompt de refatoração",
+      "refactorHint": "Cole no seu agente de código; ele também pega este texto pelo MCP (get_refactor_prompt).",
+      "changeTitle": "Prompt da mudança",
+      "changeHint": "{count, plural, =1 {# mudança} other {# mudanças}}. Cole no seu agente de código; ele também pega este texto pelo MCP (get_change_prompt).",
+      "building": "Montando o prompt…",
+      "nextChange": "Depois: cole no agente de código, deixe ele aplicar a mudança e volte aqui em Validar mudança.",
+      "nextRefactor": "Depois que o agente aplicar, use Levantar de novo para conferir o fluxo sem o achado.",
+      "suggestionRegion": "Sugestão da IA",
+      "suggestionReady": "Sugestão de refatoração da IA pronta.",
+      "suggestionAppendedStatus": "Sugestão da IA acrescentada ao fim do prompt.",
+      "aiBadge": "IA",
+      "suggestionAppended": "Sugestão acrescentada ao fim do prompt.",
+      "suggestionHead": "Sugestão de {provider}, para conferir antes de aplicar",
+      "append": "Acrescentar ao prompt",
+      "asking": "Perguntando à IA…",
+      "ask": "Sugerir refatoração com a IA",
+      "disclosureGoes": "o achado, o nome e as métricas do método e o trecho de código dele",
+      "turnOnAi": "Para a IA sugerir a refatoração, ligue a IA e o uso \"Sugestões de melhoria\" em",
+      "settingsLink": "Configurações",
+      "appendedText": "Sugestão da IA ({provider}), para conferir antes de aplicar:",
+      "regenerate": "Regerar",
+      "copy": "Copiar prompt"
+    },
+    "menu": {
+      "actionsOf": "Ações de {label}",
+      "focusOnly": "Ver somente este fluxo",
+      "pathsTo": "Caminhos de {from} até aqui",
+      "pathsFrom": "Caminhos a partir daqui",
+      "openVsCode": "Abrir no VS Code",
+      "copyLocation": "Copiar arquivo:linha",
+      "expand": "Expandir o que vem depois",
+      "collapse": "Recolher o que vem depois"
+    },
+    "toast": {
+      "copied": "Copiado."
+    },
+    "confirm": {
+      "discardTitle": "Descartar o rascunho?",
+      "discardTextWithChanges": "Apaga {count, plural, =1 {# mudança} other {# mudanças}} do rascunho salvo e da tela. Não dá para desfazer.",
+      "discardText": "Apaga o rascunho salvo deste levantamento. Não dá para desfazer.",
+      "discardWithChanges": "Descartar {count, plural, =1 {# mudança} other {# mudanças}}",
+      "discard": "Descartar",
+      "deleteTitle": "Excluir o levantamento?",
+      "deleteText": "Apaga o levantamento de {entryPoint}, com o rascunho, as validações e as propostas. As anotações dos passos ficam, porque são do repositório. Não dá para desfazer.",
+      "deleting": "Excluindo…",
+      "delete": "Excluir levantamento"
+    },
+    "deleteFailed": "Não excluiu: {message}",
+    "note": {
+      "saved": "Anotação salva.",
+      "deleted": "Anotação apagada."
+    }
   }
 }

@@ -4,7 +4,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { LanguageService } from './i18n';
 import { TRANSLATIONS, provideRastroI18nTesting } from './i18n.testing';
 import { UI_LANGUAGES, UI_LANGUAGE_CODE, UiLanguage, languageFromCode, languageFromSystem } from './language';
-import { currentLocale, setCurrentLocale } from './locale';
+import { currentLocale, setCurrentLocale, tr } from './locale';
 
 type Tree = { [key: string]: string | Tree };
 
@@ -116,6 +116,17 @@ describe('LanguageService', () => {
     expect(service.t('theme.dark')).toBe('Dark');
     expect(document.documentElement.lang).toBe('en-US');
     expect(currentLocale()).toBe('en-US');
+    void service.set(UiLanguage.Portuguese);
+    localStorage.removeItem('rastro.language');
+  });
+
+  // WEB-I18N-010
+  it('tr() traduz em função pura e acompanha a troca de idioma', () => {
+    TestBed.configureTestingModule({ providers: [provideRastroI18nTesting()] });
+    const service = TestBed.inject(LanguageService);
+    expect(tr('theme.dark')).toBe('Escuro');
+    void service.set(UiLanguage.Spanish);
+    expect(tr('theme.dark')).toBe('Oscuro');
     void service.set(UiLanguage.Portuguese);
     localStorage.removeItem('rastro.language');
   });

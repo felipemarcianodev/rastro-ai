@@ -1,6 +1,11 @@
 {
   "common": {
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "retry": "Try again",
+    "close": "Close",
+    "sending": "Sending…",
+    "copied": "Copied",
+    "copyFailed": "Could not copy"
   },
   "shell": {
     "skipToContent": "Skip to content",
@@ -50,5 +55,984 @@
     "monocromo": "Monochrome and blue",
     "rosa": "Rose and charcoal",
     "artico": "Arctic"
+  },
+  "enum": {
+    "changeKind": {
+      "added": "New step",
+      "removed": "Leaves the flow",
+      "modified": "Changes"
+    },
+    "dbOperation": {
+      "read": "reads",
+      "insert": "inserts into",
+      "update": "updates",
+      "delete": "deletes from",
+      "execute": "runs"
+    },
+    "dbOperationShort": {
+      "read": "reads",
+      "insert": "inserts",
+      "update": "updates",
+      "delete": "deletes",
+      "execute": "runs"
+    },
+    "nodeKind": {
+      "entry": "Entry",
+      "method": "Method",
+      "decision": "Decision",
+      "loop": "Loop",
+      "try": "Error handling",
+      "return": "Early return",
+      "throw": "Exception",
+      "external": "External call",
+      "unresolved": "Unresolved",
+      "jump": "Loop jump"
+    },
+    "edgeConfidence": {
+      "extracted": "Extracted from the code",
+      "inferred": "Inferred (to review)",
+      "confirmed": "Confirmed by you"
+    },
+    "proposalOrigin": {
+      "manual": "You",
+      "agent": "Agent",
+      "provider": "AI"
+    },
+    "unresolvedReason": {
+      "multipleImplementations": "More than one implementation",
+      "noImplementation": "No implementation in the code",
+      "dynamicDispatch": "Dynamic call",
+      "delegate": "Delegate or event",
+      "messageDispatch": "Message to mediator or bus",
+      "reflection": "Reflection",
+      "depthLimit": "Depth limit",
+      "routeNotResolved": "HTTP call route not resolved",
+      "noMatchingEndpoint": "No endpoint handles the call",
+      "multipleEndpoints": "More than one endpoint handles the call"
+    },
+    "unresolvedReasonHint": {
+      "multipleImplementations": "The interface has several implementations and no DI registration decides which one runs here.",
+      "noImplementation": "The interface has no implementation in this solution. It may come from a package or from another repository.",
+      "dynamicDispatch": "The compiler did not link the call to a method (dynamic, or code that did not compile).",
+      "delegate": "What runs depends on who assigned the delegate or subscribed to the event.",
+      "messageDispatch": "The message handler is chosen at runtime by the mediator or bus.",
+      "reflection": "The method is called through reflection, so the target only exists at runtime.",
+      "depthLimit": "The path continues, but it stopped at the chosen depth limit.",
+      "routeNotResolved": "The HTTP call route is built at runtime, so there is no way to know which endpoint it reaches.",
+      "noMatchingEndpoint": "The route was resolved, but none of the chosen repositories has an endpoint that handles it.",
+      "multipleEndpoints": "The route matches more than one endpoint. Choose which one receives the call."
+    },
+    "surveyStatus": {
+      "pending": "Queued",
+      "running": "Analyzing",
+      "completed": "Done",
+      "failed": "Failed"
+    },
+    "validationVerdict": {
+      "approved": "Approved",
+      "partial": "Partial",
+      "rejected": "Rejected"
+    },
+    "checkStatus": {
+      "passed": "passed",
+      "failed": "failed",
+      "skipped": "not configured"
+    },
+    "findingCategory": {
+      "ddd": "DDD rules",
+      "cleanCode": "Clean code",
+      "metric": "Metrics",
+      "database": "Database"
+    },
+    "findingKind": {
+      "highComplexity": "High complexity",
+      "longMethod": "Long method",
+      "deepNesting": "Deep nesting",
+      "tooManyDependencies": "Too many dependencies",
+      "silentCatch": "Catch that swallows the failure",
+      "serviceLocator": "Service locator",
+      "entityChangedOutsideDomain": "Entity changed outside the domain",
+      "publicSetterOnEntity": "Public setter on the entity",
+      "persistenceOutsideDomain": "Write outside the domain",
+      "queryInLoop": "Query inside a loop (N+1)",
+      "materializeBeforeFilter": "ToList before the filter",
+      "readWithoutNoTracking": "Read without AsNoTracking",
+      "procedureByRawSql": "Procedure through raw SQL",
+      "loadToDelete": "Loads in order to delete",
+      "leadingWildcardLike": "LIKE with a leading wildcard"
+    },
+    "findingSeverity": {
+      "info": "Informational",
+      "warning": "Warning",
+      "critical": "Critical"
+    }
+  },
+  "error": {
+    "REPOSITORY_COMMAND_INVALID": "The command must fit on one line, with up to 500 characters.",
+    "REPOSITORY_NOT_ALLOWED": "This repository is not registered. Register the folder in Settings.",
+    "SOLUTION_PATH_INVALID": "Use a .sln, .slnx, .csproj or tsconfig path relative to the repository root.",
+    "ANGULAR_UNAVAILABLE": "Node was not found on this machine. Install Node to trace Angular flows.",
+    "SOLUTION_NOT_FOUND": "There is no solution at that path.",
+    "ENTRY_POINT_REQUIRED": "Enter the entry point, for example OrdersController.Create.",
+    "DEPTH_OUT_OF_RANGE": "The depth must be between 1 and 40.",
+    "SOURCE_PATH_INVALID": "This file cannot be read.",
+    "EDGE_NOT_PROPOSED": "This edge is not a proposal (or it has already been decided).",
+    "DRAFT_INVALID": "The draft did not pass validation.",
+    "DRAFT_REQUIRED": "Draw and save at least one change before validating.",
+    "VALIDATION_RUNNING": "A validation is already running for this trace.",
+    "VALIDATION_NOT_APPROVABLE": "Only a completed validation that was not rejected can be approved.",
+    "C4_PEOPLE_INVALID": "Check the people: each one needs a name, with no repeats.",
+    "NOTE_INVALID": "The note must belong to a step of this flow and have up to 500 characters.",
+    "DIAGRAM_INVALID": "The diagram is empty or too large.",
+    "SURVEY_RUNNING": "The trace is still being analyzed. Wait for it to finish before deleting.",
+    "AI_SETTINGS_INVALID": "Invalid settings: check the models, keys and budget.",
+    "AI_DISABLED": "AI is turned off in the settings.",
+    "AI_USE_DISABLED": "This use of AI is turned off in the settings.",
+    "AI_NOT_CONFIGURED": "The API key for the chosen provider is missing.",
+    "AI_BUDGET_EXCEEDED": "The daily token budget has run out.",
+    "AI_PROVIDER_ERROR": "The AI provider did not respond. Try again in a moment.",
+    "AI_QUESTION_INVALID": "Write a question of up to a few paragraphs about this flow.",
+    "REPOSITORY_NAME_INVALID": "Invalid name: use letters, numbers, dot, hyphen or underscore, starting with a letter or number.",
+    "REPOSITORY_PATH_INVALID": "Use the full folder path, such as C:\\code\\my-system (Windows) or /home/you/my-system (Linux and macOS).",
+    "REPOSITORY_FOLDER_NOT_FOUND": "This folder does not exist on this computer.",
+    "REPOSITORY_EXISTS": "A repository with this name already exists.",
+    "REPOSITORY_NOT_FOUND": "This repository is no longer registered.",
+    "CROSS_REPOSITORIES_INVALID": "Choose at most 10 repositories to follow HTTP calls.",
+    "QUERY_INVALID": "Paste a query of up to 100 thousand characters.",
+    "CONNECTION_INVALID": "Invalid connection string: check the server (Data Source) and the format, with up to 2,000 characters.",
+    "CONNECTION_MISSING": "Register the live database connection first.",
+    "PLAN_NOT_ALLOWED": "The plan is only available for a SELECT, INSERT, UPDATE, DELETE or MERGE statement, with no SET, EXEC or DDL.",
+    "LIVE_DATABASE_ERROR": "The live database did not respond. Check the connection and try again.",
+    "ORIGIN_NOT_ALLOWED": "Request refused: only Rastro's own screen can change data.",
+    "noResponse": "Rastro did not respond. Check that the rastro command is still open in the terminal and try again.",
+    "notFound": "Not found.",
+    "generic": "Something went wrong in Rastro. Try again."
+  },
+  "flowCanvas": {
+    "mark": {
+      "confirmed": "Confirmed by you",
+      "inferred": "Inferred, to review"
+    },
+    "noteTitle": "Your note: {note}",
+    "outcomeTitle": "If the condition holds: {outcome}",
+    "drawing": "Drawing the graph…",
+    "keysHelp": "Arrow keys move through the steps following the links; Alt+arrow keys move the step; Enter selects; the + and − keys open and close the step detail; Ctrl+click or Shift+drag on the background selects several steps to move together.",
+    "toolsLabel": "Graph navigation",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Fit the graph to the screen",
+    "search": "Search",
+    "searchAria": "Search for a step in the graph (Ctrl+F)",
+    "filtersLabel": "Graph filters",
+    "nextHoleTitle": "Go to the next unresolved step",
+    "holes": "Unresolved ({count})",
+    "brief": {
+      "label": "Entry method only",
+      "showAll": "Also show what each method calls",
+      "showEntry": "Show only the entry method's code, with the called methods closed"
+    },
+    "reset": "Rearrange",
+    "resetTitle": "Puts the steps you dragged back into the automatic layout",
+    "framework": {
+      "show": "Show the .NET calls (LINQ, EF Core, cache, DI, HttpClient)",
+      "hide": "Hide the .NET calls (LINQ, EF Core, cache, DI, HttpClient)",
+      "label": ".NET calls ({count})"
+    },
+    "undo": "Undo",
+    "moved": "Step moved.",
+    "positionsReset": "Positions reset.",
+    "shortcuts": {
+      "hint": "Arrows: walk · Alt+arrows: move · Ctrl+F: search · Esc: clear",
+      "close": "Close the shortcuts tip"
+    },
+    "legend": {
+      "title": "Legend",
+      "hide": "Hide legend",
+      "trail": "Path to the chosen step",
+      "nextRight": "Line to the right: the next step, in code order",
+      "callDown": "Arrow down: what the step calls, or what happens when the condition holds",
+      "nextDown": "Line going down: the next step, in code order",
+      "callRight": "Arrow to the right: what the step calls, or what happens when the condition holds",
+      "order": "Reading order: step 2.1 comes inside step 2",
+      "effect": "What the step does in the world: database, message, cache, file or queue",
+      "dbMap": "See the database map",
+      "dbMapTitle": "The database map of this repository, read from the code",
+      "main": "Thicker line: the entry method's code; lighter steps are deeper in the calls",
+      "exit": "Red dashed: the flow stops with an error",
+      "unresolved": "Unresolved",
+      "http": "HTTP call to another system (verb and route)",
+      "drag": "Drag a step to rearrange (or Alt+arrows); arrow keys move through the steps",
+      "pan": "Drag the background to move the view; Shift+drag or Ctrl+click selects several steps to move together",
+      "added": "New step in the comparison",
+      "removed": "Left the flow",
+      "match": "Search result",
+      "collapsed": "Collapsed steps (click to open)",
+      "note": "Your note"
+    },
+    "walkEnd": {
+      "forward": "End of the path: this step doesn't call any other.",
+      "back": "This is the start of the path.",
+      "siblings": "This step has no siblings."
+    },
+    "dbTitle": "{text}. Click the step to see the table in the database",
+    "findingTitle": "{count, plural, one {# quality finding} other {# quality findings}}; the worst: {severity}",
+    "worst": {
+      "info": "informational",
+      "warning": "warning",
+      "critical": "critical"
+    },
+    "meta": {
+      "expand": "Click to expand",
+      "repeat": "Already shown above: click to go there"
+    },
+    "aria": {
+      "collapsed": "Collapsed: {label}. Press Enter to expand",
+      "repeat": "{kind} again: {label}. Press Enter to go to the original",
+      "node": "{kind}: {label}",
+      "nodeThen": "{kind}: {label}, then {outcome}",
+      "note": "with your note",
+      "match": "search result",
+      "foldOpen": "detail open, press − to close",
+      "foldClosed": "detail closed, press + to open"
+    },
+    "dbEffect": {
+      "read": "reads",
+      "write": "writes",
+      "execute": "executes"
+    }
+  },
+  "flowMap": {
+    "tab": {
+      "block": "Block",
+      "rules": "Rules",
+      "questions": "Questions"
+    },
+    "barLabel": "Map layout",
+    "zoomLabel": "Map zoom",
+    "zoomActualAria": "Zoom at {percent}%. Back to 100%",
+    "zoomActualTitle": "Back to 100%",
+    "fit": "Fit the map to the screen",
+    "collapsedBar": "{count, plural, one {One system collapsed} other {# systems collapsed}}: click the block with + to open it.",
+    "clearPath": "Clear the highlight",
+    "loading": "Building the flow map…",
+    "empty": "This flow's map is empty: the trace has no steps to draw.",
+    "outcomeAria": "Highlight the path of the outcome: {text}",
+    "callAria": "Call: {text}",
+    "panelLabel": "Map panel",
+    "blockPanelLabel": "Chosen block",
+    "closeBlockTitle": "Close the block panel (Esc)",
+    "steps": "Steps in this block",
+    "outcomes": "Outcomes",
+    "leadsTo": "leads to {target}",
+    "fails": "fails",
+    "ends": "ends",
+    "calls": "Calls leaving from here",
+    "call": "Calls",
+    "fields": "fields: {fields}",
+    "callTitle": "{text}. Fields: {fields}",
+    "previous": "Previous",
+    "next": "Next",
+    "previousTitle": "Previous: {title} (left arrow)",
+    "noPrevious": "There is no previous block on this path",
+    "nextTitle": "Next: {title} (right arrow)",
+    "noNext": "There is no next block on this path",
+    "focusSection": "See only this section",
+    "focusSectionTitle": "Cuts the flow at this block's step",
+    "closeSystem": "Collapse this system",
+    "openSystem": "Open this system",
+    "hint": "Choose a block on the map to see its steps, outcomes and the calls leaving it.",
+    "blockAria": "{kind}: {title}",
+    "blockAriaCollapsed": "{label}. Collapsed, with {count, plural, one {# more block} other {# more blocks}}: click to open",
+    "rules": {
+      "filterLabel": "Filter rules by effect",
+      "all": "All",
+      "loading": "Looking for the flow rules…",
+      "byYou": "written by you",
+      "duplicated": "{count, plural, one {implemented in # system} other {implemented in # systems}}",
+      "duplicatedTitle": "The same condition appears in more than one system",
+      "pickBlockTitle": "Choose the block on the map",
+      "empty": "No rule with this effect."
+    },
+    "questions": {
+      "filterLabel": "Filter questions by role",
+      "all": "All",
+      "loading": "Building the flow questions…",
+      "empty": "No ready-made question for this role.",
+      "freeLabel": "Free question about the flow",
+      "placeholder": "For example: what happens if the payment is declined?",
+      "asking": "Asking the AI…",
+      "ask": "Ask the AI",
+      "goes": "your question, the flow map (method names and file:line), the rules and up to 8 code snippets around the entry points and decisions",
+      "answerLabel": "Answer",
+      "providerAnswer": "answer from the AI ({provider})",
+      "gap": "Gap:",
+      "sources": "Sources:",
+      "pickStepTitle": "Choose the step in the flow"
+    }
+  },
+  "graph": {
+    "layout": {
+      "horizontal": "left to right",
+      "timeline": "as a timeline",
+      "tree": "as a tree",
+      "consolidated": "consolidated, in a single drawing",
+      "map": "as a map, by system",
+      "directionAria": "Drawing {current}. Switch to drawing {next}",
+      "directionTitle": "Draw {next}"
+    },
+    "flowMap": {
+      "outsideLane": "Outside the code",
+      "conditionTitle": "If {condition}",
+      "blockKind": {
+        "entry": "Entry",
+        "step": "Step",
+        "decision": "Decision",
+        "outside": "Outside the code"
+      }
+    },
+    "flowInsight": {
+      "ruleEffect": {
+        "blocks": "Blocks",
+        "allows": "Allows",
+        "sideEffect": "Side effect"
+      },
+      "questionRole": {
+        "techLead": "TL",
+        "staff": "Staff",
+        "manager": "Manager"
+      },
+      "answerSeal": {
+        "extracted": "Extracted from code",
+        "inferred": "Inferred by the AI",
+        "outside": "Outside the traced code",
+        "none": "No answer"
+      },
+      "fieldsAndMore": "{fields} and other fields",
+      "moreFields": "other fields"
+    },
+    "timeline": {
+      "repeatFrame": "↻ Repeats {label}"
+    },
+    "collapse": {
+      "steps": "{count, plural, one {+# step} other {+# steps}}",
+      "hint": "Collapsed. Click to expand."
+    },
+    "reading": {
+      "effect": {
+        "database": "database",
+        "message": "message",
+        "cache": "cache",
+        "file": "file",
+        "queue": "queue"
+      },
+      "hint": {
+        "database": "Reads or writes the database",
+        "message": "Sends a message or calls another system (HTTP, email, Telegram)",
+        "cache": "Reads or writes the cache",
+        "file": "Reads or writes a file",
+        "queue": "Publishes to or consumes a queue"
+      }
+    },
+    "plain": {
+      "if": "If {condition}",
+      "switch": "Depending on {condition}",
+      "foreach": "For each {item} in {collection}",
+      "while": "While {condition}",
+      "repeatWhile": "Repeats while {condition}",
+      "repeat": "Repeats",
+      "rethrow": "Rethrows the error",
+      "throwNew": "Stops with error {error}",
+      "throw": "Stops with error: {error}",
+      "end": "Ends",
+      "endReturning": "Ends and returns {value}",
+      "jump": {
+        "break": "Leaves the loop",
+        "continue": "Skips to the next one"
+      },
+      "branchThen": "If yes",
+      "branchElse": "If not",
+      "branchDefault": "In the other cases",
+      "branchCase": "Case {value}",
+      "branchOr": "{text} or {part}",
+      "branchOtherCases": "other cases"
+    },
+    "origin": {
+      "manual": "Link made by you",
+      "agent": "Proposed by an agent (MCP)",
+      "provider": "Proposed by the AI provider"
+    },
+    "branches": {
+      "foldOpen": "Close the detail of this method (key −)",
+      "foldClosed": "Open the detail of this method (key +)"
+    },
+    "consolidated": {
+      "firstSystem": "First system"
+    },
+    "foreignEdit": "Editing is only available in the first system of the flow",
+    "firstSystem": "First system",
+    "image": {
+      "noCanvas": "This browser has no 2D canvas.",
+      "tooLarge": "The image is too large.",
+      "drawFailed": "Could not draw the image."
+    }
+  },
+  "nodePanel": {
+    "closeAria": "Close the step and go back to the overview",
+    "closeTitle": "Close (Esc)",
+    "showWholeGraph": "Show the whole graph",
+    "focusFlow": "See only this flow",
+    "focusHelp": "Hides the other paths: what leads to this step and what runs after it stays",
+    "focusHelpText": "Hides the other paths: what leads to this step and what runs after it stays.",
+    "origin": "System {system} · {language}",
+    "originCommit": "System {system} · {language} · commit {commit}",
+    "editGroup": "Edit this step",
+    "removedInDraft": "This step leaves the flow in the draft.",
+    "restoreStep": "Restore step",
+    "intentLabelAdded": "What this step should do",
+    "intentLabelChanged": "What should change in this step",
+    "intentPlaceholder": "E.g.: only confirm when there is stock",
+    "apply": "Apply",
+    "applied": "Applied to the draft",
+    "removeStep": "Remove step",
+    "connectLabel": "Continue to another step",
+    "connectChoose": "Choose the step",
+    "connect": "Link",
+    "draftChange": "Change requested in the draft",
+    "ruleWrittenBy": "Rule written by {origin, select, manual {you} agent {an agent (MCP)} other {the AI provider}}",
+    "ruleWrittenByTitle": "Written by {origin, select, manual {you} agent {an agent (MCP)} other {the AI provider}}",
+    "noRule": "No rule written for this step. A connected agent (MCP) can write one.",
+    "noRuleAi": "No rule written for this step. A connected agent (MCP) can write one, or ask the AI below.",
+    "aiOff": "AI is off.",
+    "aiOffLink": "Turn on in Settings",
+    "needUseWriteRules": "For the AI to write the rule, turn on the \"Write rules\" use in",
+    "needUseFillHoles": "For the AI to propose targets, turn on the \"Fill gaps\" use in",
+    "describing": "Writing…",
+    "rewriteRule": "Rewrite rule with AI",
+    "writeRule": "Write rule with AI",
+    "writeMissingRules": "Write the missing rules with AI",
+    "disclosure": {
+      "stepCode": "the code of this step",
+      "noRepeat": "Code already described before is not sent again.",
+      "hole": "the call without a target, the code around it and the candidates the compiler found",
+      "missingRules": "the code of the steps without a rule, in batches"
+    },
+    "noteLabel": "Your note on this step",
+    "notePlaceholder": "E.g.: careful, the webhook also calls it",
+    "noteHelp": "Shows up in every flow of this repository that goes through this step and in the documentation. {used}/{max}",
+    "saving": "Saving…",
+    "saveNote": "Save note",
+    "deleteNote": "Delete note",
+    "editNote": "Edit note",
+    "addNote": "Add a note to this step",
+    "undo": "Undo",
+    "calledAt": "Called at",
+    "calledAtMany": "Called at (1 of {count} calls; the others are under Links)",
+    "openInEditor": "Open in VS Code",
+    "openInEditorTitle": "Opens in VS Code, in the folder {folder}",
+    "copyLocation": "Copy file:line",
+    "editorOpening": "Opening in VS Code… If it does not open, check the folder in Settings.",
+    "editorHint": "To open in VS Code, the repository must be registered, with its folder, in",
+    "editorHintDismiss": "Do not show again",
+    "db": {
+      "title": "In the database",
+      "line": "line {line}",
+      "noSql": "no query in the code",
+      "viewTable": "See {table} in the database map",
+      "analyzeTitle": "Open this step's query in the query analysis",
+      "analyzeAria": "Analyze the query on {table}, line {line}",
+      "analyze": "Analyze the query"
+    },
+    "metricsTitle": "Method metrics",
+    "metrics": "Complexity {cyclomatic}, {lines, plural, one {# line} other {# lines}}, {nesting, plural, one {# nesting level} other {# nesting levels}} and {deps, plural, one {# injected dependency} other {# injected dependencies}}.",
+    "improvementsHere": "Improvements in this step",
+    "condition": "Condition",
+    "fillAsking": "Asking the AI…",
+    "fillWithAi": "Propose targets with AI",
+    "links": {
+      "title": "Links",
+      "from": "comes from",
+      "to": "goes to",
+      "removeAria": "Remove the link with {name}",
+      "remove": "Remove link",
+      "leaves": "Link leaves the flow",
+      "confirmAria": "Confirm the link with {name}",
+      "dismissAria": "Dismiss the link with {name}",
+      "confirm": "Confirm",
+      "dismiss": "Dismiss",
+      "proposal": "{base}; proposed by {origin, select, manual {you} agent {an agent (MCP)} other {the AI provider}}"
+    },
+    "pathFromEntry": "Path from the entry",
+    "pathFrom": "Path from {label}",
+    "code": "Code",
+    "snippetAria": "Code snippet",
+    "loadingSnippet": "Loading the snippet…",
+    "externalNoCode": "Call outside the solution: the code is not in the repository.",
+    "noPosition": "This step has no position of its own in the code.",
+    "overview": {
+      "title": "Overview",
+      "hint": "Click a step to see its code and the path from the entry to it.",
+      "jumpTo": "Go to the section",
+      "holesCount": "{count, plural, one {# gap} other {# gaps}}",
+      "crossFlowCount": "{count} cross-flow",
+      "improvementsCount": "{count, plural, one {# improvement} other {# improvements}}",
+      "shortcuts": "What you can do here",
+      "dbMap": "Database map",
+      "dbMapTitle": "The database map of this repository, read from the code",
+      "exportFlow": "Export the flow",
+      "exportTitle": "PNG, SVG, Mermaid and C4",
+      "editFlow": "Edit flow",
+      "editFlowTitle": "Draw a change in the flow and generate the prompt for the agent",
+      "questions": "Flow questions",
+      "questionsTitle": "Opens the flow map on the Questions tab",
+      "summary": "Flow summary",
+      "dbInFlow": "Database in this flow",
+      "tablesCount": "{count, plural, one {# table} other {# tables}}",
+      "openDbMap": "Open in the database map",
+      "holesTitle": "Gaps to fill",
+      "holesHint": "Calls the compiler did not link on its own. A connected agent (MCP) or the AI, if on, proposes the target; you confirm.",
+      "proposedTarget": "Target proposed, waiting for you",
+      "stepTypes": "Step types",
+      "rulesTitle": "Flow rules",
+      "noRules": "No rule written yet. They show up here in the order the flow goes through the steps.",
+      "crossFlowTitle": "Cross-flow",
+      "crossFlowHint": "This flow saves data without a check that other flows in the repository do before saving. Check whether it is on purpose.",
+      "crossFlowItem": "Saves {entity} without the {guard} check, which {count, plural, one {the flow} other {the flows}} {flows} {count, plural, one {does} other {do}} before saving.",
+      "seeInFlow": "See in the flow",
+      "seeInFlowAria": "See in the flow: {label}",
+      "improvementsDebt": "Improvements and technical debt",
+      "noHoles": "No gaps: the compiler resolved every call in this flow.",
+      "deleteSurvey": "Delete trace…"
+    }
+  },
+  "findings": {
+    "legacy": "This trace predates the quality inspection. Trace the flow again to see the improvements.",
+    "noneStep": "No findings in this step.",
+    "noneFlow": "No quality findings in this flow.",
+    "seeInFlow": "See in the flow",
+    "seeInFlowAria": "See in the flow: {label}",
+    "goTo": "Go to {label}",
+    "seeInDbMap": "See in the database map",
+    "seeInDbMapAria": "See in the database map",
+    "seeInDbMapAriaTarget": "See in the database map: {target}",
+    "refactorPrompt": "Refactoring prompt",
+    "refactorPromptAria": "Refactoring prompt: {kind} in {label}"
+  },
+  "flowSummary": {
+    "showMain": "Show only the main line",
+    "showAll": "Show all steps"
+  },
+  "validation": {
+    "title": "Change validation",
+    "intro": "Rastro traces the flow again in the current code and checks what the draft asked for. An agent connected to Rastro (MCP) gets the same result.",
+    "queued": "Queued for validation.",
+    "running": "Tracing the flow again and running the repository build and tests.",
+    "runningHint": "It can take a few minutes. This window updates on its own. If you close it, the validation keeps running and the Last validation button, at the top of the page, shows the result.",
+    "scoreLine": "{score}% of the draft criteria met. Flow decision points: from {before} to {after}.",
+    "failedCriteria": "{count, plural, one {# criterion failed} other {# criteria failed}}",
+    "unexpectedChanges": "{count, plural, one {# change outside the request} other {# changes outside the request}}",
+    "buildFailed": "the build failed",
+    "testsFailed": "the tests failed",
+    "criteriaTitle": "Draft criteria",
+    "noCriteria": "No checkable criterion.",
+    "outOfScope": "Outside the request",
+    "buildTests": "Repository build and tests",
+    "viewOutput": "See the output",
+    "docTitle": "Flow documentation",
+    "openNew": "Open the new flow compared",
+    "openNewTitle": "Opens the new flow with the original on top: what came in is blue, what left is red (you can stop comparing there)",
+    "revalidate": "Validate again",
+    "download": "Download documentation",
+    "downloadTitle": "Downloads {name} (Markdown with rules, diagram and history)",
+    "partialTitle": "Not all criteria passed; approving records it anyway and generates the documentation",
+    "generateTitle": "Generates the flow documentation",
+    "generating": "Generating…",
+    "approveAnyway": "Approve anyway",
+    "approve": "Approve and document"
+  },
+  "c4": {
+    "title": "C4 diagrams",
+    "intro": "Structurizr DSL with the four levels: C1 context, C2 containers, C3 components and C4 the order of the flow calls. An agent connected to Rastro (MCP) gets the same result.",
+    "peopleTitle": "Who uses the system (C1)",
+    "peopleHint": "The compiler does not know who uses the system. Say it here; the people are saved with the trace.",
+    "nobody": "Nobody registered yet.",
+    "nameLabel": "Person name",
+    "descLabel": "What they do",
+    "namePlaceholder": "Operator",
+    "descPlaceholder": "Follows the orders of the day",
+    "aiBadgeTitle": "Suggested by the AI. Goes away when you edit it; in the C1 it comes out as inferred.",
+    "aiBadgeHidden": ", suggested; goes away when you edit it",
+    "remove": "Remove",
+    "removeAria": "Remove {name}",
+    "removeAriaAnon": "Remove this person",
+    "nameError": "Give this person a name.",
+    "nameErrorAll": "Give a name to every person with a description.",
+    "suggestionsAria": "People suggested by the AI",
+    "suggestedCount": "{count, plural, one {The AI suggested # person.} other {The AI suggested # people.}}",
+    "suggestionsHead": "Suggestions from {provider}, to review",
+    "add": "Add",
+    "allAdded": "All suggestions were added. Save the people so they get into the C1.",
+    "noOther": "The AI did not find anyone besides those already registered.",
+    "addPerson": "Add person",
+    "asking": "Asking the AI…",
+    "suggest": "Suggest people with AI",
+    "disclosure": {
+      "goes": "the repository name, the entry point, the flow classes, the external systems and the people already registered",
+      "never": "The code of the classes is not sent."
+    },
+    "needUse": "For the AI to suggest people, turn on the AI and the \"C4 context\" use in",
+    "savePeople": "Save people",
+    "saving": "Saving…",
+    "saved": "People saved. The C1 now shows who uses the system.",
+    "unsavedPending": "People changed and not saved: the DSL below does not include them yet.",
+    "retry": "Try again",
+    "building": "Building the diagrams…",
+    "hintIntro": "To see the diagrams without the code leaving your machine, run Structurizr locally in the folder where you saved the file:",
+    "hintWindows": "In the Windows cmd:",
+    "hintUnix": "On macOS and Linux:",
+    "hintOpen": "Then open http://localhost:8080.",
+    "saveBeforeDownload": "Save the people before downloading.",
+    "copyDsl": "Copy DSL",
+    "download": "Download workspace.dsl",
+    "downloadTitle": "Downloads the workspace.dsl file to open in Structurizr"
+  },
+  "consolidated": {
+    "stageLabel": "Consolidated view of the flow",
+    "directionAria": "Drawing {current}. Switch to {next}",
+    "directionTitle": "Draw {next}",
+    "barLabel": "Consolidated view",
+    "hintEdited": "With your colors and texts. Click a step to see the context.",
+    "hintGenerated": "Generated from the flow. Click a step to see the context.",
+    "editMermaid": "Edit the Mermaid (text and colors)",
+    "renderError": "The saved text of the view does not render.",
+    "fixInEdit": "Fix in the editor",
+    "drawing": "Drawing the consolidated view…",
+    "hidden": "The chosen step does not appear in this drawing (it only passes the call on). The panel shows its context."
+  },
+  "route": {
+    "surveys": "Traces",
+    "survey": "Flow",
+    "consolidated": "Consolidated view",
+    "database": "Database of {nome}",
+    "settings": "Settings"
+  },
+  "surveys": {
+    "title": "Traces",
+    "welcomeTitle": "Welcome to Rastro",
+    "subtitle": "Rastro reads your code with the compiler: follow a flow, see the database or analyze a query.",
+    "newSurvey": "New trace",
+    "deleted": "Trace of {entryPoint} deleted.",
+    "welcome": {
+      "steps": "Two steps to your first flow:",
+      "step1": "Register the folder with the code Rastro will read.",
+      "step2": "Pick the entry method and trace your first flow.",
+      "aiNote": "AI is optional: Rastro works without it. To turn it on, open the",
+      "settingsLink": "Settings"
+    },
+    "registerRepository": "Register repository",
+    "loadingRepos": "Loading repositories",
+    "repositories": "Repositories",
+    "traceFlow": "Trace flow",
+    "card": {
+      "database": "Database map",
+      "analyzeQuery": "Analyze query"
+    },
+    "repoCount": "{count, plural, =0 {No traces} one {# trace} other {# traces}}",
+    "recent": "Recent traces",
+    "loadingList": "Loading traces…",
+    "empty": {
+      "none": "No traces yet.",
+      "hint": "Use \"Trace flow\" on a repository to follow your first trace."
+    },
+    "searchLabel": "Search traces",
+    "searchPlaceholder": "Search by entry point, repository or project",
+    "filterGroup": "Filter by status",
+    "filter": {
+      "all": "All",
+      "completed": "Ready",
+      "inProgress": "In progress",
+      "failed": "Failed"
+    },
+    "noMatch": "No traces match this filter.",
+    "clearFilters": "Clear search and filter",
+    "open": "Open",
+    "openLabel": "Open trace {entryPoint}",
+    "finished": "{entryPoint}: {status}",
+    "registered": "Repository \"{name}\" registered.",
+    "form": {
+      "intro": "Rastro reads the solution with the compiler and follows every call from the chosen method.",
+      "backToDb": "Back to the database",
+      "loadingRepos": "Loading repositories…",
+      "chooseRepository": "Choose a repository",
+      "noRepositories": "No repository registered.",
+      "dbMapOf": "See the database map of {name}",
+      "searchingSolutions": "Looking for solutions…",
+      "noSolutions": "No solution found in this repository",
+      "entryHelpTs": "Component.method: the method the screen click calls.",
+      "entryHelp": "Class.Method or Namespace.Class.Method: an action, a job, a handler.",
+      "nodeNotice": "Angular flows need Node installed on this machine.",
+      "crossSelf": "Follow HTTP calls inside the repository itself",
+      "crossFollow": "Follow HTTP calls to",
+      "crossOwn": "the repository itself",
+      "crossHelp": "When the method calls another service over HTTP, the flow continues in the endpoint that serves the call. When off, the call stays as an external call.",
+      "repository": {
+        "label": "Repository",
+        "info": "What is a repository",
+        "summary": "The folder with the code Rastro will read.",
+        "text1": "The folder with the code Rastro will read, registered in Settings. Rastro only reads the code: it runs nothing and does not need the system to be up."
+      },
+      "solution": {
+        "label": "Solution or tsconfig",
+        "info": "What is a solution",
+        "summary": "The .sln or .slnx file that groups the projects.",
+        "text1": "The .sln or .slnx file that groups the system's projects. Rastro compiles through it to know who calls whom, including the real implementation behind each interface.",
+        "text2": "If there is more than one, pick the one that contains the project with the entry point.",
+        "text3": "In an Angular project, the list shows the tsconfig (such as tsconfig.app.json) and the entry point is Component.method."
+      },
+      "entry": {
+        "label": "Entry point",
+        "info": "What is an entry point",
+        "summary": "The method where the feature starts, such as Class.Method.",
+        "text1": "The method where the feature starts: the controller action that receives the request, the job's Execute or the message handler's Handle.",
+        "text2": "Write the class and the method: PedidosController.Criar. If two classes share that name, include the namespace: Loja.Api.Controllers.PedidosController.Criar.",
+        "text3": "A route (/api/pedidos) does not work, nor does a namespace without the class."
+      },
+      "depth": {
+        "label": "Depth",
+        "info": "What is depth",
+        "summary": "How many call levels to follow from the entry point.",
+        "text1": "How many call levels Rastro follows from the entry point. 15 works for most flows.",
+        "text2": "Where the limit cuts off, the path is marked in the graph, and you can continue from there later.",
+        "help": "How many call levels to follow. Beyond that, the path is marked so you can continue later."
+      }
+    },
+    "errors": {
+      "repository": "Choose a repository.",
+      "solution": "Choose a solution.",
+      "entry": "Enter the entry method, for example PedidosController.Criar.",
+      "depth": "Use a whole number from {min} to {max}."
+    }
+  },
+  "survey": {
+    "heading": "Trace",
+    "backToList": "Back to traces",
+    "commit": "commit",
+    "details": "Details",
+    "branch": "Branch",
+    "stepCount": "{count, plural, one {# step} other {# steps}}",
+    "unresolvedCount": "{count, plural, one {# unresolved} other {# unresolved}}",
+    "nextUnresolved": "Go to the next unresolved step in the graph",
+    "stale": {
+      "changed": "The code changed",
+      "changedIn": "The code changed in {systems}",
+      "titleIn": "New commits since this trace in: {systems}.",
+      "title": "The repository has new commits since this trace."
+    },
+    "resurvey": "Trace again",
+    "lastValidation": {
+      "title": "Open the result of the last validation",
+      "label": "Last validation:",
+      "score": "{verdict}, score {score} of 100",
+      "failed": "failed",
+      "running": "in progress"
+    },
+    "group": {
+      "view": "View",
+      "share": "Share",
+      "change": "Change",
+      "drawing": "Flow drawing",
+      "editing": "Flow editing",
+      "promptToCode": "From change to code"
+    },
+    "view": {
+      "graph": {
+        "label": "Graph",
+        "title": "The flow graph, step by step"
+      },
+      "map": {
+        "label": "Map by system",
+        "title": "One map per system, with the paths from end to end"
+      },
+      "consolidated": {
+        "label": "Consolidated view",
+        "title": "The whole flow in a single drawing, with its colors"
+      }
+    },
+    "databaseMap": "Database map",
+    "databaseMapTitle": "The database map of this repository, read from the code",
+    "compare": {
+      "button": "Compare",
+      "menu": "Compare with another trace of this method",
+      "searching": "Looking for traces…",
+      "listFailed": "Could not list the traces.",
+      "item": "{date}, commit {commit}, {count, plural, one {# step} other {# steps}}",
+      "unknownCommit": "unknown",
+      "empty": "No other ready trace of this method."
+    },
+    "export": {
+      "button": "Export",
+      "title": "PNG, SVG, Mermaid and C4",
+      "group": "Export what is on screen",
+      "png": "PNG image",
+      "svg": "SVG image",
+      "copyMermaid": "Copy as Mermaid",
+      "downloadMermaid": "Download as Mermaid (.mmd)",
+      "c4": "C4 diagrams (Structurizr DSL)",
+      "notDrawn": "The graph is not drawn yet. Wait for it to appear and try again.",
+      "started": "Download started: {file}",
+      "imageFailed": "Could not export the image: {message} Try the SVG."
+    },
+    "edit": {
+      "button": "Edit flow",
+      "newStep": "New step",
+      "undo": "Undo",
+      "undoTitle": "Undo (Ctrl+Z)",
+      "redo": "Redo",
+      "redoTitle": "Redo (Ctrl+Y or Ctrl+Shift+Z)",
+      "changes": "{count, plural, one {# change} other {# changes}}",
+      "changesUnsaved": "{count, plural, one {# change} other {# changes}}, not saved",
+      "howItWorks": "How it works",
+      "howItWorksTitle": "How to link and move steps",
+      "generatePrompt": "Generate prompt",
+      "generating": "Generating…",
+      "validate": "Validate change",
+      "validateTitle": "After applying the change to the code: traces the flow again and checks it",
+      "saveDraft": "Save draft",
+      "saving": "Saving…",
+      "saveAndExit": "Save and exit",
+      "exit": "Exit editing",
+      "discard": "Discard draft…",
+      "hint": "Drag from an output dot to the input dot of another step to link them; drag the end of a link to move the step. The path is: draw the change, generate the prompt, let the agent apply it to the code and validate. With the keyboard: pick the step and use \"Continue to another step\" in the panel."
+    },
+    "newStep": {
+      "nameLabel": "Step name",
+      "nameHelp": "Type.Method. If there is an overload, include the types: Type.Method(string, int).",
+      "kindLabel": "Type",
+      "intentLabel": "What it should do",
+      "intentPlaceholder": "Check the stock before confirming the order",
+      "after": "Comes after",
+      "loose": "It enters the graph unlinked; pick a step first to link it.",
+      "createAfter": "Create after the chosen step",
+      "create": "Create step",
+      "errorName": "Name the step.",
+      "errorIntent": "Say what the step should do."
+    },
+    "draft": {
+      "loaded": "Saved draft loaded.",
+      "saved": "Draft saved.",
+      "discarded": "Draft discarded.",
+      "needChangeForPrompt": "Draw at least one change to generate the prompt.",
+      "needChangeForValidation": "Draw at least one change to validate.",
+      "discardFailed": "Could not discard: {message}"
+    },
+    "filters": {
+      "region": "Active filters in the graph",
+      "title": "In the graph:",
+      "focusTitle": "Showing only the flow of {label}: the paths to it and what runs after it.",
+      "focusText": "Only the flow of",
+      "showWhole": "Show the whole graph",
+      "compareTitle": "Comparing with the trace of {date}, commit {commit}",
+      "compareText": "Comparing with {date}:",
+      "compareAdded": "+{count, plural, one {# new step} other {# new steps}}",
+      "compareRemoved": "−{count, plural, one {# removed} other {# removed}}",
+      "compareFailed": "Could not compare: {message}",
+      "compareLoading": "Loading the comparison…",
+      "compareStop": "Stop comparing",
+      "pathFrom": "Paths from",
+      "pathPickTarget": ": click the destination",
+      "pathShortest": "The shortest has {count, plural, one {# step} other {# steps}}",
+      "pathBetween": "Paths",
+      "pathCount": "({count, plural, one {# step} other {# steps}})",
+      "pathUnreachable": "is not reachable from",
+      "pathClear": "Clear the path",
+      "pathCancel": "Cancel the path",
+      "collapsed": "{count, plural, one {# step collapsed} other {# steps collapsed}}",
+      "collapsedTitle": "Click \"+N steps\" in the graph to open one of them",
+      "expandAll": "Expand all"
+    },
+    "search": {
+      "label": "Search a step in the graph",
+      "placeholder": "Search step (method name, condition…)",
+      "escHint": "Esc closes",
+      "none": "No steps on screen",
+      "position": "{index} of {total}",
+      "hidden": "({count, plural, one {# other hidden} other {# others hidden}} by the focus, collapsed steps or .NET calls)",
+      "everywhere": "Search everywhere",
+      "previous": "Previous step",
+      "next": "Next step",
+      "close": "Close search",
+      "results": "Search results"
+    },
+    "retryNow": "Try now",
+    "failed": {
+      "title": "The analysis failed",
+      "fix": "Fix and trace again",
+      "delete": "Delete trace…"
+    },
+    "pending": {
+      "queued": "Waiting in the queue to be analyzed.",
+      "reading": "Reading the solution and following the calls.",
+      "wait": "Large solutions take up to a minute. This screen updates by itself."
+    },
+    "loading": "Loading the trace…",
+    "panel": {
+      "showLabel": "Show the step panel",
+      "hideLabel": "Collapse the step panel to see more of the graph",
+      "showTitle": "Show the panel",
+      "hideTitle": "Collapse the panel",
+      "label": "Panel"
+    },
+    "prompt": {
+      "refactorTitle": "Refactoring prompt",
+      "refactorHint": "Paste it into your code agent; it can also fetch this text through MCP (get_refactor_prompt).",
+      "changeTitle": "Change prompt",
+      "changeHint": "{count, plural, one {# change} other {# changes}}. Paste it into your code agent; it can also fetch this text through MCP (get_change_prompt).",
+      "building": "Building the prompt…",
+      "nextChange": "Next: paste it into the code agent, let it apply the change and come back here to Validate change.",
+      "nextRefactor": "After the agent applies it, use Trace again to check the flow without the finding.",
+      "suggestionRegion": "AI suggestion",
+      "suggestionReady": "The AI refactoring suggestion is ready.",
+      "suggestionAppendedStatus": "AI suggestion added to the end of the prompt.",
+      "aiBadge": "AI",
+      "suggestionAppended": "Suggestion added to the end of the prompt.",
+      "suggestionHead": "Suggestion from {provider}, to review before applying",
+      "append": "Add to prompt",
+      "asking": "Asking the AI…",
+      "ask": "Suggest refactoring with AI",
+      "disclosureGoes": "the finding, the method name and metrics, and its code excerpt",
+      "turnOnAi": "To have the AI suggest the refactoring, turn on AI and the \"Improvement suggestions\" use in",
+      "settingsLink": "Settings",
+      "appendedText": "AI suggestion ({provider}), to review before applying:",
+      "regenerate": "Regenerate",
+      "copy": "Copy prompt"
+    },
+    "menu": {
+      "actionsOf": "Actions for {label}",
+      "focusOnly": "Show only this flow",
+      "pathsTo": "Paths from {from} to here",
+      "pathsFrom": "Paths from here",
+      "openVsCode": "Open in VS Code",
+      "copyLocation": "Copy file:line",
+      "expand": "Expand what comes next",
+      "collapse": "Collapse what comes next"
+    },
+    "toast": {
+      "copied": "Copied."
+    },
+    "confirm": {
+      "discardTitle": "Discard the draft?",
+      "discardTextWithChanges": "Deletes {count, plural, one {# change} other {# changes}} from the saved draft and the screen. This cannot be undone.",
+      "discardText": "Deletes the saved draft of this trace. This cannot be undone.",
+      "discardWithChanges": "Discard {count, plural, one {# change} other {# changes}}",
+      "discard": "Discard",
+      "deleteTitle": "Delete the trace?",
+      "deleteText": "Deletes the trace of {entryPoint}, with the draft, the validations and the proposals. Step notes stay, because they belong to the repository. This cannot be undone.",
+      "deleting": "Deleting…",
+      "delete": "Delete trace"
+    },
+    "deleteFailed": "Could not delete: {message}",
+    "note": {
+      "saved": "Note saved.",
+      "deleted": "Note deleted."
+    }
   }
 }

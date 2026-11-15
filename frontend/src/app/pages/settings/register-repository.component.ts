@@ -3,7 +3,8 @@ import { Component, ElementRef, booleanAttribute, inject, input, output, signal 
 import { FormsModule } from '@angular/forms';
 import { DesktopBridge } from '../../core/desktop-bridge.service';
 import { isAbsoluteFolder } from '../../core/editor-links';
-import { API_ERROR_MESSAGE, REPOSITORY_NAME_PATTERN, RepositoryItem } from '../../core/models';
+import { tr } from '../../core/i18n/locale';
+import { API_ERROR_MESSAGE_KEY, REPOSITORY_NAME_PATTERN, RepositoryItem } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 // Regra do nome na ajuda do campo (a mesma de REPOSITORY_NAME_PATTERN e do contrato da API).
@@ -99,8 +100,8 @@ export class RegisterRepositoryComponent {
     const path = this.newPath.trim();
     this.registerError.set(null);
     this.notice.set(null);
-    this.nameError.set(REPOSITORY_NAME_PATTERN.test(name) ? null : API_ERROR_MESSAGE['REPOSITORY_NAME_INVALID']);
-    this.pathError.set(isAbsoluteFolder(path) ? null : API_ERROR_MESSAGE['REPOSITORY_PATH_INVALID']);
+    this.nameError.set(REPOSITORY_NAME_PATTERN.test(name) ? null : tr(API_ERROR_MESSAGE_KEY['REPOSITORY_NAME_INVALID']));
+    this.pathError.set(isAbsoluteFolder(path) ? null : tr(API_ERROR_MESSAGE_KEY['REPOSITORY_PATH_INVALID']));
     if (this.nameError()) return this.focus('name');
     if (this.pathError()) return this.focus('path');
 

@@ -3,7 +3,7 @@
 }
 <ng-container [ngTemplateOutlet]="list" [ngTemplateOutletContext]="{ $implicit: summary().items, level: 0 }" />
 <button type="button" class="btn btn-g btn-small" (click)="showAll.set(!showAll())" [attr.aria-expanded]="showAll()">
-  {{ showAll() ? 'Mostrar só a linha principal' : 'Mostrar todos os passos' }}
+  {{ (showAll() ? 'flowSummary.showMain' : 'flowSummary.showAll') | translate }}
 </button>
 
 <ng-template #list let-items let-level="level">

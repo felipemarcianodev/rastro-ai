@@ -1,4 +1,5 @@
 import { FlowEdge, FlowGraph, NodeKind } from '../models';
+import { translatedRecord } from './translated';
 
 // Ramos do fluxo e o abrir e fechar do método, comuns às três visões (ver timeline-layout.ts).
 
@@ -34,10 +35,13 @@ export const FOLD_GLYPH: Record<FoldState, string> = {
   [FoldState.Closed]: '▸',
 };
 
-export const FOLD_ACTION: Record<FoldState, string> = {
-  [FoldState.Open]: 'Fechar o detalhe deste método (tecla −)',
-  [FoldState.Closed]: 'Abrir o detalhe deste método (tecla +)',
+export const FOLD_ACTION_KEY: Record<FoldState, string> = {
+  [FoldState.Open]: 'graph.branches.foldOpen',
+  [FoldState.Closed]: 'graph.branches.foldClosed',
 };
+
+// Já traduzido na leitura (quem importa este nome continua lendo texto).
+export const FOLD_ACTION = translatedRecord(FOLD_ACTION_KEY);
 
 // Quais métodos podem abrir e fechar: os que têm passos depois deles, menos a entrada (fechar a
 // entrada esconderia o fluxo inteiro). Fechado é quem já tem o "+N passos" no grafo.

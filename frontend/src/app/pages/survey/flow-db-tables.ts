@@ -1,3 +1,5 @@
+import { translatedRecord } from '../../core/graph/translated';
+import { tr } from '../../core/i18n/locale';
 import { DbOperation, FlowGraph, FlowNode } from '../../core/models';
 
 // O que o fluxo faz com uma tabela, em três grupos (gravar junta incluir, alterar e excluir).
@@ -7,11 +9,14 @@ export enum DbEffect {
   Execute = 2,
 }
 
-export const DB_EFFECT_LABEL: Record<DbEffect, string> = {
-  [DbEffect.Read]: 'lê',
-  [DbEffect.Write]: 'grava',
-  [DbEffect.Execute]: 'executa',
+export const DB_EFFECT_LABEL_KEY: Record<DbEffect, string> = {
+  [DbEffect.Read]: 'flowCanvas.dbEffect.read',
+  [DbEffect.Write]: 'flowCanvas.dbEffect.write',
+  [DbEffect.Execute]: 'flowCanvas.dbEffect.execute',
 };
+
+// O texto já traduzido, para quem lê o rótulo direto (traduz na hora da leitura).
+export const DB_EFFECT_LABEL = translatedRecord(DB_EFFECT_LABEL_KEY);
 
 export const DB_EFFECT_SLUG: Record<DbEffect, string> = {
   [DbEffect.Read]: 'read',
@@ -62,5 +67,5 @@ export function dbBadgeText(node: FlowNode, fallback: string): string {
   const first = accesses[0];
   const tables = new Set(accesses.map((a) => a.target.toLowerCase()));
   const more = tables.size - 1;
-  return `${DB_EFFECT_LABEL[EFFECT_OF_OPERATION[first.operation]]} ${first.target}${more > 0 ? ` +${more}` : ''}`;
+  return `${tr(DB_EFFECT_LABEL_KEY[EFFECT_OF_OPERATION[first.operation]])} ${first.target}${more > 0 ? ` +${more}` : ''}`;
 }

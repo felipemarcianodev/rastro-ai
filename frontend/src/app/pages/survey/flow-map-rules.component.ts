@@ -1,11 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
-import { RULE_EFFECT_GLYPH, RULE_EFFECT_LABEL, RULE_EFFECT_SLUG, filterBy } from '../../core/graph/flow-insight';
+import { TranslatePipe } from '@ngx-translate/core';
+import { RULE_EFFECT_GLYPH, RULE_EFFECT_LABEL_KEY, RULE_EFFECT_SLUG, filterBy } from '../../core/graph/flow-insight';
 import { FlowRule, RuleEffect, RuleSource } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 // Lista de regras do fluxo (Fase 32), com filtro por efeito. A fonte de cada regra escolhe o bloco no mapa.
 @Component({
   selector: 'app-flow-map-rules',
+  imports: [TranslatePipe],
   templateUrl: './flow-map-rules.component.html',
   styleUrl: './flow-map-rules.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -22,11 +24,11 @@ export class FlowMapRulesComponent {
   protected readonly error = signal<string | null>(null);
   protected readonly effect = signal<RuleEffect | null>(null);
   protected readonly shown = computed(() => filterBy(this.rules() ?? [], (rule) => rule.effect, this.effect()));
-  protected readonly filters: { value: RuleEffect | null; label: string }[] = [
-    { value: null, label: 'Todas' },
-    ...[RuleEffect.Blocks, RuleEffect.Allows, RuleEffect.SideEffect].map((value) => ({ value, label: RULE_EFFECT_LABEL[value] })),
+  protected readonly filters: { value: RuleEffect | null; labelKey: string }[] = [
+    { value: null, labelKey: 'flowMap.rules.all' },
+    ...[RuleEffect.Blocks, RuleEffect.Allows, RuleEffect.SideEffect].map((value) => ({ value, labelKey: RULE_EFFECT_LABEL_KEY[value] })),
   ];
-  protected readonly label = RULE_EFFECT_LABEL;
+  protected readonly label = RULE_EFFECT_LABEL_KEY;
   protected readonly glyph = RULE_EFFECT_GLYPH;
   protected readonly slug = RULE_EFFECT_SLUG;
   private readonly reload = signal(0);

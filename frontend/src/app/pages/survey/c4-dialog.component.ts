@@ -1,5 +1,7 @@
 import { Component, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageService } from '../../core/i18n/i18n';
 import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { DialogDirective } from '../../core/dialog.directive';
 import { RouterLink } from '@angular/router';
@@ -21,13 +23,14 @@ interface PersonRow {
 // o compilador não sabe, então o usuário informa aqui (ficam salvas com o levantamento).
 @Component({
   selector: 'app-c4-dialog',
-  imports: [FormsModule, DialogDirective, RouterLink, AiDisclosureComponent],
+  imports: [FormsModule, TranslatePipe, DialogDirective, RouterLink, AiDisclosureComponent],
   templateUrl: './c4-dialog.component.html',
   styleUrl: './c4-dialog.component.scss',
 })
 export class C4DialogComponent implements OnInit {
   private readonly api = inject(RastroApi);
   private readonly ai = inject(AiStatusService);
+  private readonly i18n = inject(LanguageService);
   protected readonly canSuggest = computed(() => aiCan(this.ai.status(), AiUse.ContextSuggestions));
   protected readonly suggested = signal<PeopleSuggestion | null>(null);
   protected readonly suggesting = signal(false);
@@ -75,7 +78,7 @@ export class C4DialogComponent implements OnInit {
     const missing = new Set(this.people().flatMap((p, i) => (!p.name.trim() && p.description.trim() ? [i] : [])));
     this.nameErrors.set(missing);
     if (missing.size > 0) {
-      this.message.set({ ok: false, text: 'Dê um nome a cada pessoa com descrição.' });
+      this.message.set({ ok: false, text: this.i18n.t('c4.nameErrorAll') });
       document.getElementById(`c4-name-${[...missing][0]}`)?.focus();
       return;
     }
@@ -87,7 +90,7 @@ export class C4DialogComponent implements OnInit {
       next: (result) => {
         this.saving.set(false);
         this.show(result);
-        this.message.set({ ok: true, text: 'Pessoas salvas. O C1 já mostra quem usa o sistema.' });
+        this.message.set({ ok: true, text: this.i18n.t('c4.saved') });
       },
       error: (error) => {
         this.saving.set(false);
@@ -127,7 +130,7 @@ export class C4DialogComponent implements OnInit {
     this.acceptedAll.set(this.suggested()?.people.length === 0);
     setTimeout(() => {
       const next = document.querySelector<HTMLElement>('.ai-suggestion button');
-      (next ?? Array.from(document.querySelectorAll<HTMLElement>('.people-actions button')).find((b) => b.textContent?.includes('Salvar')))?.focus();
+      (next ?? document.getElementById('c4-save-people'))?.focus();
     });
   }
 

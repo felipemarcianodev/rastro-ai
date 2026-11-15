@@ -1,4 +1,5 @@
 import { FlowGraph, FlowNode, NodeKind } from '../models';
+import { translatedRecord } from './translated';
 
 // Desenho do grafo: da esquerda para a direita (padrão), em linha do tempo (Fase 20, no lugar do
 // antigo "de cima para baixo"), em árvore (a mesma regra, com ligações retas), consolidado (Fase 28:
@@ -44,13 +45,17 @@ export function nextDrawing(direction: LayoutDirection, restricted: boolean): La
   return next;
 }
 
-export const LAYOUT_DIRECTION_LABEL: Record<LayoutDirection, string> = {
-  [LayoutDirection.Horizontal]: 'da esquerda para a direita',
-  [LayoutDirection.Timeline]: 'em linha do tempo',
-  [LayoutDirection.Tree]: 'em árvore',
-  [LayoutDirection.Consolidated]: 'consolidado, num desenho só',
-  [LayoutDirection.Map]: 'em mapa, por sistema',
+// Chaves de tradução do rótulo de cada desenho (traduzidas na hora de usar).
+export const LAYOUT_DIRECTION_LABEL_KEY: Record<LayoutDirection, string> = {
+  [LayoutDirection.Horizontal]: 'graph.layout.horizontal',
+  [LayoutDirection.Timeline]: 'graph.layout.timeline',
+  [LayoutDirection.Tree]: 'graph.layout.tree',
+  [LayoutDirection.Consolidated]: 'graph.layout.consolidated',
+  [LayoutDirection.Map]: 'graph.layout.map',
 };
+
+// O texto já traduzido, para quem lê o rótulo direto (traduz na hora da leitura).
+export const LAYOUT_DIRECTION_LABEL = translatedRecord(LAYOUT_DIRECTION_LABEL_KEY);
 
 export const LAYOUT_DIRECTION_GLYPH: Record<LayoutDirection, string> = {
   [LayoutDirection.Horizontal]: '⇉',

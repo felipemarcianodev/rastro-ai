@@ -1,4 +1,5 @@
 import { EdgeConfidence, FlowEdge, FlowGraph, FlowNode, NodeKind } from '../models';
+import { tr } from '../i18n/locale';
 import { LayoutDirection, NodeBox } from './layout';
 import { Port, TimelineHead, TimelineRepeat, timelineRoutes } from './timeline-layout';
 
@@ -28,7 +29,7 @@ export function mermaidSystems(graph: FlowGraph, firstName?: string): { id: stri
   names.sort((a, b) => (a === '' ? -1 : b === '' ? 1 : 0));
   return names.map((name, index) => ({
     id: `sys${index}`,
-    title: name === '' ? (firstName ?? 'Primeiro sistema') : name,
+    title: name === '' ? (firstName ?? tr('graph.firstSystem')) : name,
     nodes: graph.nodes.filter((n) => (n.system ?? '') === name),
   }));
 }

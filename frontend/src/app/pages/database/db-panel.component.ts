@@ -1,7 +1,8 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
-import { DB_OPERATION_SHORT, DB_OPERATION_SLUG, FINDING_KIND_LABEL, FINDING_SEVERITY_LABEL } from '../../core/models';
+import { TranslatePipe } from '@ngx-translate/core';
+import { DB_OPERATION_SHORT_KEY, DB_OPERATION_SLUG, FINDING_KIND_LABEL_KEY, FINDING_SEVERITY_LABEL_KEY } from '../../core/models';
 import {
   Cardinality,
   DELETE_ACTION_LABEL,
@@ -55,7 +56,7 @@ const CARDINALITY_BACK: Record<Cardinality, string> = {
 // sem IA da tabela; colunas e tabelas lidas da view; parâmetros e tabelas da procedure.
 @Component({
   selector: 'app-db-panel',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './db-panel.component.html',
   styleUrl: './db-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -96,10 +97,10 @@ export class DbPanelComponent {
   protected readonly findingTitle = SCHEMA_FINDING_TITLE;
   protected readonly sourceText = sourceText;
   protected readonly findingText = findingText;
-  protected readonly opShort = DB_OPERATION_SHORT;
+  protected readonly opShortKey = DB_OPERATION_SHORT_KEY;
   protected readonly opSlug = DB_OPERATION_SLUG;
-  protected readonly kindLabel = FINDING_KIND_LABEL;
-  protected readonly severityLabel = FINDING_SEVERITY_LABEL;
+  protected readonly kindKey = FINDING_KIND_LABEL_KEY;
+  protected readonly severityKey = FINDING_SEVERITY_LABEL_KEY;
 
   // Os passos dos fluxos que usam a tabela ou a procedure escolhida, e os achados deles (Fase 39).
   protected readonly flows = computed(() => {

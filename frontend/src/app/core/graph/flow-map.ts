@@ -1,3 +1,4 @@
+import { tr } from '../i18n/locale';
 import { FlowMap, FlowNode, MapBlock, MapBlockKind, MapLane, MapLaneKind, MapLink, MapLinkKind, MapPath } from '../models';
 import { plainBranch } from './plain';
 import { readingLabel } from './summary';
@@ -21,14 +22,12 @@ export const MAP_BLOCK_GLYPH: Record<MapBlockKind, string> = {
   [MapBlockKind.Outside]: '↗',
 };
 
-export const MAP_BLOCK_LABEL: Record<MapBlockKind, string> = {
-  [MapBlockKind.Entry]: 'Entrada',
-  [MapBlockKind.Step]: 'Passo',
-  [MapBlockKind.Decision]: 'Decisão',
-  [MapBlockKind.Outside]: 'Fora do código',
+export const MAP_BLOCK_LABEL_KEY: Record<MapBlockKind, string> = {
+  [MapBlockKind.Entry]: 'graph.flowMap.blockKind.entry',
+  [MapBlockKind.Step]: 'graph.flowMap.blockKind.step',
+  [MapBlockKind.Decision]: 'graph.flowMap.blockKind.decision',
+  [MapBlockKind.Outside]: 'graph.flowMap.blockKind.outside',
 };
-
-export const OUTSIDE_LANE_TITLE = 'Fora do código';
 
 // Medidas do desenho, em px.
 export const MAP_BOX = { width: 208, height: 64, gapX: 72, gapY: 32, header: 40, pad: 16, bow: 28 } as const;
@@ -38,7 +37,7 @@ const LABEL_HEIGHT_PX = 18;
 
 // O primeiro trecho (sistema nulo) é o repositório do levantamento; a faixa de fora tem nome próprio.
 export function laneTitle(lane: MapLane, repository: string): string {
-  return lane.kind === MapLaneKind.Outside ? OUTSIDE_LANE_TITLE : (lane.system ?? repository);
+  return lane.kind === MapLaneKind.Outside ? tr('graph.flowMap.outsideLane') : (lane.system ?? repository);
 }
 
 // Título do bloco: a condição legível na decisão, o nome legível da Fase 23 nos demais. Sem o nó
@@ -46,7 +45,7 @@ export function laneTitle(lane: MapLane, repository: string): string {
 export function blockTitle(block: MapBlock, nodes: ReadonlyMap<string, FlowNode>): string {
   const node = nodes.get(block.nodeId);
   if (node) return readingLabel(node);
-  return block.condition ? `Se ${block.condition}` : block.title;
+  return block.condition ? tr('graph.flowMap.conditionTitle', { condition: block.condition }) : block.title;
 }
 
 // "VERBO rota" da chamada entre sistemas; sem rota, só o verbo.

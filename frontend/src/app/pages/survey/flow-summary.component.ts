@@ -1,12 +1,13 @@
 import { NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { FlowSummary } from '../../core/graph/summary';
 
 // Resumo do fluxo na visão geral (Fase 23): a frase da linha principal e a lista numerada dos
 // passos, com a mesma numeração do grafo. Clicar num item leva ao passo.
 @Component({
   selector: 'app-flow-summary',
-  imports: [NgTemplateOutlet],
+  imports: [NgTemplateOutlet, TranslatePipe],
   templateUrl: './flow-summary.component.html',
   styleUrl: './flow-summary.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

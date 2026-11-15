@@ -1,10 +1,12 @@
-import { breakable, plural, shortCommit } from './format';
+import { breakable, shortCommit } from './format';
+import { tr } from './i18n/locale';
 
 describe('format', () => {
-  it('plural escolhe singular só para 1', () => {
-    expect(plural(1, 'nó', 'nós')).toBe('1 nó');
-    expect(plural(0, 'nó', 'nós')).toBe('0 nós');
-    expect(plural(58, 'nó', 'nós')).toBe('58 nós');
+  // WEB-I18N-021: em português o zero é plural ("0 passos"); o ICU `one` do CLDR o trataria como singular.
+  it('o plural em ICU escolhe o singular só para 1', () => {
+    expect(tr('survey.stepCount', { count: 1 })).toBe('1 passo');
+    expect(tr('survey.stepCount', { count: 0 })).toBe('0 passos');
+    expect(tr('survey.stepCount', { count: 58 })).toBe('58 passos');
   });
 
   it('shortCommit usa os 7 primeiros caracteres', () => {

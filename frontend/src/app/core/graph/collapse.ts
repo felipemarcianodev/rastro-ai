@@ -1,3 +1,4 @@
+import { tr } from '../i18n/locale';
 import { EdgeConfidence, FlowGraph, NodeKind } from '../models';
 
 // Nó que representa o que foi recolhido: o id carrega o passo de origem.
@@ -48,8 +49,8 @@ export function collapseAfter(graph: FlowGraph, collapsed: ReadonlySet<string>):
       ...placeholders.map((p) => ({
         id: COLLAPSED_PREFIX + p.root,
         kind: NodeKind.Jump,
-        label: `+${p.count} ${p.count === 1 ? 'passo' : 'passos'}`,
-        detail: 'Recolhido. Clique para expandir.',
+        label: tr('graph.collapse.steps', { count: p.count }),
+        detail: tr('graph.collapse.hint'),
       })),
     ],
     edges: [
