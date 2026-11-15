@@ -1202,11 +1202,16 @@ Regras da tradução:
   - **Documentação:** README e README do pacote (MCP em inglês com resposta no idioma de quem usa, CLI seguindo o `config.json`, apelidos da CLI).
   - **Testes:** backend 872/876 nesta máquina; as 4 falhas são do banco vivo no SQL Server, porque a imagem do SQL Server 2022 não sobe no Docker local ("The file archive sqlservr.sfp is invalid", defeito conhecido da imagem com núcleos Linux novos) e rodam no job de banco vivo do CI. Na integração, três testes ainda esperavam o prompt da IA em português e um teste novo usava regras falsas curtas demais (menos de 10 caracteres): corrigidos. Testes novos `MCP-LANG-001` a `006`, `CLI-LANG-001` a `005` e `AI-LANG-001` a `005`.
 
-## Fase 52: documentação em três idiomas, inglês na frente `[ ]` (depende da Fase 51)
+## Fase 52: documentação em três idiomas, inglês na frente `[x]` (depende da Fase 51)
 
-- [ ] `README.md` em inglês, com `README.pt-BR.md` e `README.es.md`; README do pacote e `<Description>` em inglês; `SECURITY.md` nos três.
-- [ ] Prints do README em inglês, de repositório público.
-- [ ] `scripts/verificar-traducoes.mjs` no workflow de PR (os três README com as mesmas seções); hook de ambiente do cliente aceitando os três.
+- [x] `README.md` em inglês, com `README.pt-BR.md` e `README.es.md`; README do pacote e `<Description>` em inglês; `SECURITY.md` nos três.
+- [x] Prints do README em inglês, de repositório público.
+- [x] `scripts/verificar-traducoes.mjs` no workflow de PR (os três README com as mesmas seções); hook de ambiente do cliente aceitando os três.
+- **Registro (2026-11-15):**
+  - **Documentos:** `README.md`, `docs/pacote/README.md` e `SECURITY.md` em inglês, cada um com `.pt-BR.md` (o texto em português de antes) e `.es.md` ao lado, e a linha de idiomas logo abaixo do título. O README do pacote aponta para as outras versões por URL absoluta do GitHub, porque o NuGet não segue link relativo. A seção Idioma diz, nos três, que o espanhol foi traduzido com ajuda de IA e aceita correção por PR.
+  - **Conferência:** `scripts/verificar-traducoes.mjs` exige as três versões de cada documento com os mesmos títulos, na mesma ordem e no mesmo nível; roda no job do frontend do workflow de PR. O hook de ambiente do cliente aceita as versões traduzidas como documentação.
+  - **Prints:** o README em inglês e o em espanhol mostram um levantamento do próprio Rastro (`SettingsController.SetLanguage`) na tela do idioma (`docs/telas/readme/`); o em português mantém o print da Fase 24.
+  - **Ficam em português:** ADR, visão, plano, planos de UX e telas; as versões em inglês e espanhol avisam isso entre parênteses.
 
 ## Fase 53: conferência visual e versão `[ ]` (depende das Fases 47 a 52)
 

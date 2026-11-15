@@ -17,7 +17,7 @@
     <PackageId>rastro-ai</PackageId>
     <Title>Rastro AI</Title>
     <Authors>Felipe Marciano</Authors>
-    <Description>Segue o rastro de uma funcionalidade no seu código .NET, da entrada ao fim, mostra o fluxo como grafo editável e gera o prompt exato para a IA alterar aquele ponto. Roda só na sua máquina.</Description>
+    <Description>Follows the trail of a feature through your .NET code, from the entry point to the end, shows the flow as an editable graph, and generates the exact prompt for an AI to change that spot. Runs only on your machine.</Description>
     <PackageTags>dotnet;roslyn;architecture;code-flow;c4;mcp;ai</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

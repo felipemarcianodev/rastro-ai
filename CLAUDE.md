@@ -79,7 +79,7 @@ Conta como mudança no ambiente do cliente:
 - Docker, workflow de CI e de release, processo de publicação.
 
 O que conferir e atualizar, conforme o caso:
-- `README.md` da raiz (o que é, requisitos, instalação, uso, IA, MCP, arquitetura) e `docs/pacote/README.md` (o README que vai no NuGet);
+- `README.md` da raiz (o que é, requisitos, instalação, uso, IA, MCP, arquitetura) e `docs/pacote/README.md` (o README que vai no NuGet), sempre com as traduções ao lado (`README.pt-BR.md`, `README.es.md`; o mesmo no pacote e no `SECURITY.md`), conferidas por `node scripts/verificar-traducoes.mjs`;
 - `docs/arquitetura/visao.md`, a ADR da decisão (nova, ou a que muda de status) e o `plano-mvp.md`;
 - `SECURITY.md` quando muda o que sai da máquina, o que é guardado ou a superfície da API;
 - as instruções do MCP (`McpInstructions`) e as descrições das ferramentas, quando mudam o que um agente pode fazer;

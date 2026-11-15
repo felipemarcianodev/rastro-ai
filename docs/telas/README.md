@@ -109,3 +109,5 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 50 | Rastro multilíngue: o mapa do banco em português, com os avisos do leitor de esquema no idioma da tela | [fase-50/banco-1-pt-BR.png](fase-50/banco-1-pt-BR.png) |
 | Fase 50 | Rastro multilíngue: o mapa do banco em inglês, com os avisos do leitor de esquema no idioma da tela | [fase-50/banco-1-en-US.png](fase-50/banco-1-en-US.png) |
 | Fase 50 | Rastro multilíngue: o mapa do banco em espanhol, com os avisos do leitor de esquema no idioma da tela | [fase-50/banco-1-es.png](fase-50/banco-1-es.png) |
+| Fase 52 | Print do README em inglês: um levantamento do próprio Rastro na tela em inglês | [readme/fluxo-en-US.png](readme/fluxo-en-US.png) |
+| Fase 52 | Print do README em espanhol: o mesmo fluxo na tela em espanhol | [readme/fluxo-es.png](readme/fluxo-es.png) |
