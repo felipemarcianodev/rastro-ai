@@ -6,16 +6,17 @@ export type ThemeChoice = 'system' | 'light' | 'dark';
 // comparar (Fase 13 e pesquisa de referências); a escolha definitiva segue com ele.
 export type PaletteChoice = 'papel' | 'nautica' | 'planta' | 'grafite' | 'cobalto' | 'vinho' | 'monocromo' | 'rosa' | 'artico';
 
-export const PALETTE_LABEL: Record<PaletteChoice, string> = {
-  papel: 'Papel',
-  nautica: 'Carta náutica',
-  planta: 'Planta técnica',
-  grafite: 'Grafite e índigo',
-  cobalto: 'Cobalto e laranja',
-  vinho: 'Vinho e pedra',
-  monocromo: 'Monocromo e azul',
-  rosa: 'Rosa e carvão',
-  artico: 'Ártico',
+// Chave do nome de cada paleta nos arquivos de tradução.
+export const PALETTE_LABEL_KEY: Record<PaletteChoice, string> = {
+  papel: 'palette.papel',
+  nautica: 'palette.nautica',
+  planta: 'palette.planta',
+  grafite: 'palette.grafite',
+  cobalto: 'palette.cobalto',
+  vinho: 'palette.vinho',
+  monocromo: 'palette.monocromo',
+  rosa: 'palette.rosa',
+  artico: 'palette.artico',
 };
 
 export const PALETTES: PaletteChoice[] = ['papel', 'nautica', 'planta', 'grafite', 'cobalto', 'vinho', 'monocromo', 'rosa', 'artico'];

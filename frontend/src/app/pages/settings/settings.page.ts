@@ -8,7 +8,11 @@ import { EditorLinks } from '../../core/editor-links';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { REPOSITORY_QUERY_PARAM } from '../surveys/surveys.page';
 import { shortDate } from '../../core/format';
-import { PALETTES, PALETTE_LABEL, PaletteChoice, ThemeChoice, ThemeService } from '../../core/theme.service';
+import { PALETTES, PALETTE_LABEL_KEY, PaletteChoice, ThemeChoice, ThemeService } from '../../core/theme.service';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { LanguageService } from '../../core/i18n/i18n';
+import { UI_LANGUAGES, UI_LANGUAGE_CODE, UI_LANGUAGE_LABEL, UiLanguage } from '../../core/i18n/language';
+import { currentLocale } from '../../core/i18n/locale';
 import {
   AI_PROVIDER_LABEL,
   AI_PROVIDER_SLUG,
@@ -34,15 +38,15 @@ interface ProviderForm {
   hasKey: boolean;
 }
 
-const THEME_OPTION_LABEL: Record<ThemeChoice, string> = {
-  system: 'Do sistema',
-  light: 'Claro',
-  dark: 'Escuro',
+const THEME_OPTION_LABEL_KEY: Record<ThemeChoice, string> = {
+  system: 'theme.system',
+  light: 'theme.light',
+  dark: 'theme.dark',
 };
 
 @Component({
   selector: 'app-settings-page',
-  imports: [FormsModule, RouterLink, ConfirmDialogComponent, RegisterRepositoryComponent],
+  imports: [FormsModule, RouterLink, ConfirmDialogComponent, RegisterRepositoryComponent, TranslatePipe],
   templateUrl: './settings.page.html',
   styleUrl: './settings.page.scss',
 })
@@ -51,10 +55,15 @@ export class SettingsPage implements OnInit {
   protected readonly ai = inject(AiStatusService);
   protected readonly theme = inject(ThemeService);
   protected readonly palettes = PALETTES;
-  protected readonly paletteLabel = PALETTE_LABEL;
+  protected readonly paletteLabelKey = PALETTE_LABEL_KEY;
   protected readonly themes: ThemeChoice[] = ['system', 'light', 'dark'];
-  protected readonly themeLabel = THEME_OPTION_LABEL;
-  // UX-G-L21: a troca de paleta é anunciada ao leitor de tela.
+  protected readonly themeLabelKey = THEME_OPTION_LABEL_KEY;
+  protected readonly languageService = inject(LanguageService);
+  private readonly translate = inject(TranslateService);
+  protected readonly languages = UI_LANGUAGES;
+  protected readonly languageLabel = UI_LANGUAGE_LABEL;
+  protected readonly languageCode = UI_LANGUAGE_CODE;
+  // UX-G-L21: a troca de paleta (e de idioma) é anunciada ao leitor de tela.
   protected readonly paletteNotice = signal('');
 
   protected readonly loaded = signal<AiSettingsView | null>(null);
@@ -111,9 +120,9 @@ export class SettingsPage implements OnInit {
   protected readonly usageText = computed(() => {
     const status = this.ai.status();
     if (!status) return '';
-    const used = status.tokensToday.toLocaleString('pt-BR');
+    const used = status.tokensToday.toLocaleString(currentLocale());
     return status.dailyTokenBudget > 0
-      ? `Hoje: ${used} de ${status.dailyTokenBudget.toLocaleString('pt-BR')} tokens.`
+      ? `Hoje: ${used} de ${status.dailyTokenBudget.toLocaleString(currentLocale())} tokens.`
       : `Hoje: ${used} tokens (sem limite).`;
   });
 
@@ -353,7 +362,15 @@ export class SettingsPage implements OnInit {
 
   protected choosePalette(value: string): void {
     this.theme.setPalette(value as PaletteChoice);
-    this.paletteNotice.set(`Paleta aplicada: ${PALETTE_LABEL[value as PaletteChoice]}.`);
+    const name = this.translate.instant(PALETTE_LABEL_KEY[value as PaletteChoice]);
+    this.paletteNotice.set(this.translate.instant('settings.appearance.paletteApplied', { name }));
+  }
+
+  protected chooseLanguage(value: string): void {
+    const language = Number(value) as UiLanguage;
+    void this.languageService.set(language).then(() =>
+      this.paletteNotice.set(this.languageService.t('settings.appearance.languageApplied', { name: UI_LANGUAGE_LABEL[language] })),
+    );
   }
 
   protected slug(provider: AiProvider): string {

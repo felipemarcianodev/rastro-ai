@@ -6,6 +6,8 @@ import { Router, provideRouter } from '@angular/router';
 import { DESKTOP_EXTERNAL } from '../../core/desktop-bridge.service';
 import { FakeDesktopExternal } from '../../core/desktop-bridge.service.spec';
 import { EditorLinks } from '../../core/editor-links';
+import { LanguageService } from '../../core/i18n/i18n';
+import { UiLanguage } from '../../core/i18n/language';
 import { RepositoryItem } from '../../core/models';
 import { SettingsPage } from './settings.page';
 
@@ -308,13 +310,39 @@ describe('SettingsPage: aparência', () => {
     fixture.detectChanges();
 
     expect(Array.from(el.querySelectorAll('.toc a')).map((a) => a.textContent?.trim())).toContain('Aparência');
-    const select = el.querySelector('#aparencia select') as HTMLSelectElement;
+    const select = el.querySelector('#palette-select') as HTMLSelectElement;
     select.value = 'nautica';
     select.dispatchEvent(new Event('change'));
     expect(document.documentElement.getAttribute('data-palette')).toBe('nautica');
     select.value = 'papel';
     select.dispatchEvent(new Event('change'));
     expect(document.documentElement.hasAttribute('data-palette')).toBeFalse();
+  });
+
+  // WEB-I18N-009
+  it('o seletor de idioma traduz a tela na hora e mostra cada idioma no próprio nome', () => {
+    const { fixture, http, el } = render();
+    answerInitial(http, []);
+    fixture.detectChanges();
+
+    const select = el.querySelector('#language-select') as HTMLSelectElement;
+    expect(Array.from(select.options).map((o) => [o.textContent?.trim(), o.lang])).toEqual([
+      ['English', 'en-US'],
+      ['Português', 'pt-BR'],
+      ['Español', 'es'],
+    ]);
+    expect(select.selectedOptions[0].textContent?.trim()).toBe('Português');
+
+    select.value = String(UiLanguage.English);
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(el.querySelector('#appearance-title')?.textContent?.trim()).toBe('Appearance');
+    expect(el.querySelector('#palette-select option')?.textContent?.trim()).toBe('Paper');
+    expect(document.documentElement.lang).toBe('en-US');
+
+    void TestBed.inject(LanguageService).set(UiLanguage.Portuguese);
+    localStorage.removeItem('rastro.language');
   });
 
   it('o tema tem três opções em grupo de rádio e a escolha vale na hora', () => {

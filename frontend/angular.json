@@ -27,6 +27,7 @@
             ],
             "tsConfig": "tsconfig.app.json",
             "allowedCommonJsDependencies": [
+              "@messageformat/core",
               "@braintree/sanitize-url",
               "cytoscape-cose-bilkent",
               "cytoscape-fcose",
@@ -60,7 +61,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "500kB",
+                  "maximumWarning": "550kB",
                   "maximumError": "1MB"
                 },
                 {

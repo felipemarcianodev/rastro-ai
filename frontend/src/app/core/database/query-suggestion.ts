@@ -1,4 +1,5 @@
 import { AiProvider } from '../models';
+import { currentLocale } from '../i18n/locale';
 import { QueryAnalysis } from './query-analysis';
 
 // Sugestão da IA para uma consulta (Fase 41). A IA só propõe: o Rastro confere a reescrita e os
@@ -56,10 +57,10 @@ export const PROPOSAL_ORIGIN_LABEL: Record<ProposalOrigin, string> = {
   [ProposalOrigin.Provider]: 'IA',
 };
 
-const COST_FORMAT = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const COST_FORMAT_OPTIONS: Intl.NumberFormatOptions = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 
 export function formatCost(cost: number): string {
-  return COST_FORMAT.format(cost);
+  return new Intl.NumberFormat(currentLocale(), COST_FORMAT_OPTIONS).format(cost);
 }
 
 export function findingsText(count: number): string {

@@ -1109,13 +1109,21 @@ Regras da tradução:
   - **Recurso do servidor:** o `.resx` neutro é o inglês (a reserva), com `pt-BR` e `es` ao lado.
   - **Hook:** a regra nasceu no repositório de origem da governança (branch `chore/revisao-ptbr-outro-idioma`, à espera do PR do dono lá) e foi replicada aqui. Arquivo com outro idioma no nome (`README.es.md`, `guia.en-US.md`) sai da varredura; `pt` e `pt-BR` continuam. Os outros repositórios irmãos com o hook não têm documento em outro idioma e ficam como estão.
 
-## Fase 46: infraestrutura da tela e o seletor `[ ]` (depende da Fase 45)
+## Fase 46: infraestrutura da tela e o seletor `[x]` (depende da Fase 45)
 
-- [ ] ngx-translate com o compilador de ICU; `pt-BR.json`, `en-US.json` e `es.json` servidos pela própria API.
-- [ ] Seletor de idioma nas Configurações, ao lado da paleta; idioma ativo aplicado ao `lang` da página, à formatação de data e número e ao `Accept-Language`.
-- [ ] Teste de paridade dos JSON (mesmas chaves e mesmos marcadores) no Karma.
-- [ ] Testes de tela existentes carregam o `pt-BR.json`; testes novos conferem o inglês.
-- [ ] Piloto: cabeçalho, Configurações e diálogos do tema.
+- [x] ngx-translate com o compilador de ICU; `pt-BR.json`, `en-US.json` e `es.json` servidos pela própria API.
+- [x] Seletor de idioma nas Configurações, ao lado da paleta; idioma ativo aplicado ao `lang` da página, à formatação de data e número e ao `Accept-Language`.
+- [x] Teste de paridade dos JSON (mesmas chaves e mesmos marcadores) no Karma.
+- [x] Testes de tela existentes carregam o `pt-BR.json`; testes novos conferem o inglês.
+- [x] Piloto: cabeçalho, Configurações (Aparência) e o diálogo de confirmação do tema.
+- **Registro (2026-11-15):**
+  - **Carregamento:** cada idioma é um pedaço próprio do pacote da tela (`import()` do JSON), e a tela só desenha depois que o idioma ativo chegou, sem chave aparecendo no lugar do texto. Nada sai da máquina.
+  - **Idioma inicial:** o escolhido antes neste navegador (`rastro.language`); senão, o do sistema operacional; senão, inglês. A gravação no `config.json` entra na Fase 49, e a tela passa a ler de lá.
+  - **Texto no TypeScript:** `LanguageService.t()`, que dentro de `computed` refaz o texto quando o idioma muda; o sinal do idioma só muda depois que os textos novos chegaram. As regras de uso estão em [`design-system.md`](../frontend/design-system.md#tradução-adr-009).
+  - **Formatação:** os seis `'pt-BR'` fixos saíram; data e número seguem `currentLocale()`.
+  - **Orçamento:** a carga inicial avisa a partir de 550 kB (estava em 500 kB); as duas bibliotecas somam cerca de 6 kB acima do limite antigo, e o `@messageformat/core`, que não é ESM, entrou na lista de CommonJS permitidos.
+  - **Testes:** todo spec roda com o `pt-BR.json`, inclusive depois de `TestBed.resetTestingModule()` (nove specs reiniciam o TestBed); testes `WEB-I18N-001` a `009`. Na primeira rodada da Fase 45, três testes do frontend falharam rodando junto com a suíte do backend e passaram sozinhos (erros de tempo, não de texto).
+  - **Navegador:** a extensão do Chrome não estava conectada; a conferência usou o Chrome sem janela pelo protocolo de depuração, com clique e teclado de verdade (o `elementFromPoint` no centro do seletor acerta o próprio seletor), a API numa pasta de dados temporária e em modo `Production` (o de desenvolvimento lê os user-secrets do dono). A troca vale na hora nos três idiomas e sobrevive à recarga. Prints em `docs/telas/fase-46/`.
 
 ## Fase 47: telas do levantamento e do grafo `[ ]` (depende da Fase 46)
 

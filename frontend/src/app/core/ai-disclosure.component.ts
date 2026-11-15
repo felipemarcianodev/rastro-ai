@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { AiStatusService } from './ai-status.service';
 import { AI_PROVIDER_LABEL } from './models';
+import { currentLocale } from './i18n/locale';
 
 // Aviso único do que vai para o provedor de IA e do que o pedido gasta (UX-FIM-Q06). Fica visível
 // antes de cada pedido, inclusive "pedir outra", que gasta de novo. Sem IA ligada e configurada,
@@ -39,9 +40,9 @@ export class AiDisclosureComponent {
   private readonly usage = computed(() => {
     const status = this.ai.status();
     if (!status) return '';
-    const used = status.tokensToday.toLocaleString('pt-BR');
+    const used = status.tokensToday.toLocaleString(currentLocale());
     return status.dailyTokenBudget > 0
-      ? `Hoje: ${used} de ${status.dailyTokenBudget.toLocaleString('pt-BR')} tokens.`
+      ? `Hoje: ${used} de ${status.dailyTokenBudget.toLocaleString(currentLocale())} tokens.`
       : `Hoje: ${used} tokens (sem limite).`;
   });
 }

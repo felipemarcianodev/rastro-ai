@@ -1,0 +1,54 @@
+{
+  "common": {
+    "cancel": "Cancelar"
+  },
+  "shell": {
+    "skipToContent": "Ir al contenido",
+    "brandLabel": "Rastro AI, ir a los rastreos",
+    "nav": {
+      "label": "Principal",
+      "surveys": "Rastreos",
+      "database": "Base de datos",
+      "databaseFailed": "Base de datos (no se pudieron leer los repositorios)",
+      "settings": "Configuración"
+    },
+    "aiState": {
+      "title": "Configuración de la IA y del modo agente",
+      "label": "{state}, abrir la configuración de la IA"
+    }
+  },
+  "ai": {
+    "status": {
+      "off": "IA desactivada",
+      "noKey": "IA sin clave",
+      "on": "IA: {provider}"
+    }
+  },
+  "settings": {
+    "appearance": {
+      "title": "Apariencia",
+      "hint": "Tu elección se guarda en este navegador.",
+      "language": "Idioma",
+      "languageApplied": "Idioma aplicado: {name}.",
+      "palette": "Paleta de colores",
+      "paletteApplied": "Paleta aplicada: {name}.",
+      "theme": "Tema"
+    }
+  },
+  "theme": {
+    "system": "Del sistema",
+    "light": "Claro",
+    "dark": "Oscuro"
+  },
+  "palette": {
+    "papel": "Papel",
+    "nautica": "Carta náutica",
+    "planta": "Plano técnico",
+    "grafite": "Grafito e índigo",
+    "cobalto": "Cobalto y naranja",
+    "vinho": "Vino y piedra",
+    "monocromo": "Monocromo y azul",
+    "rosa": "Rosa y carbón",
+    "artico": "Ártico"
+  }
+}

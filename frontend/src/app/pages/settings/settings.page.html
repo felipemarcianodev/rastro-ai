@@ -204,22 +204,30 @@
   }
 
   <section id="aparencia" class="card" aria-labelledby="appearance-title">
-    <h2 id="appearance-title">Aparência</h2>
-    <p>A escolha fica neste navegador.</p>
+    <h2 id="appearance-title">{{ 'settings.appearance.title' | translate }}</h2>
+    <p>{{ 'settings.appearance.hint' | translate }}</p>
     <div class="field">
-      <label class="field-label" for="palette-select">Paleta de cores</label>
+      <label class="field-label" for="language-select">{{ 'settings.appearance.language' | translate }}</label>
+      <select id="language-select" class="input palette-select" (change)="chooseLanguage($any($event.target).value)">
+        @for (l of languages; track l) {
+          <option [value]="l" [selected]="l === languageService.language()" [attr.lang]="languageCode[l]">{{ languageLabel[l] }}</option>
+        }
+      </select>
+    </div>
+    <div class="field">
+      <label class="field-label" for="palette-select">{{ 'settings.appearance.palette' | translate }}</label>
       <select id="palette-select" class="input palette-select" [value]="theme.palette()" (change)="choosePalette($any($event.target).value)">
         @for (p of palettes; track p) {
-          <option [value]="p" [selected]="p === theme.palette()">{{ paletteLabel[p] }}</option>
+          <option [value]="p" [selected]="p === theme.palette()">{{ paletteLabelKey[p] | translate }}</option>
         }
       </select>
     </div>
     <fieldset class="theme-options">
-      <legend class="field-label">Tema</legend>
+      <legend class="field-label">{{ 'settings.appearance.theme' | translate }}</legend>
       @for (t of themes; track t) {
         <label class="check">
           <input type="radio" name="theme" [value]="t" [checked]="theme.choice() === t" (change)="theme.set(t)" />
-          <span>{{ themeLabel[t] }}</span>
+          <span>{{ themeLabelKey[t] | translate }}</span>
         </label>
       }
     </fieldset>
