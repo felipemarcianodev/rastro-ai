@@ -559,7 +559,7 @@ describe('DatabasePage (Fase 38)', () => {
 
     tick(LIST_ANNOUNCE_DELAY_MS);
     fixture.detectChanges();
-    expect(status()).toBe('1 itens encontrados');
+    expect(status()).toBe('1 item encontrado');
   }));
 
   // UX-G-B19

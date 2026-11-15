@@ -1,57 +1,57 @@
 @if (error(); as message) {
   <div class="page-state">
-    <h1 class="visually-hidden">Visão consolidada</h1>
+    <h1 class="visually-hidden">{{ 'diagram.title' | translate }}</h1>
     <p class="notice is-error" role="alert">{{ message }}</p>
     <div class="page-state-actions">
-      <button type="button" class="btn btn-g" (click)="reload()">Tentar de novo</button>
-      <a class="btn btn-g" [routerLink]="['/surveys', id()]">Voltar ao fluxo</a>
-      <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
+      <button type="button" class="btn btn-g" (click)="reload()">{{ 'common.retry' | translate }}</button>
+      <a class="btn btn-g" [routerLink]="['/surveys', id()]">{{ 'diagram.backToFlow' | translate }}</a>
+      <a class="btn btn-g" routerLink="/">{{ 'diagram.backToSurveys' | translate }}</a>
     </div>
   </div>
 } @else if (detail(); as d) {
   <div class="page-layout">
     <header class="page-bar">
-      <a class="page-back" [routerLink]="['/surveys', id()]" aria-label="Voltar ao fluxo">←</a>
+      <a class="page-back" [routerLink]="['/surveys', id()]" [attr.aria-label]="'diagram.backToFlow' | translate">←</a>
       <div class="page-bar-title">
-        <h1>Visão consolidada</h1>
+        <h1>{{ 'diagram.title' | translate }}</h1>
         <div class="page-bar-meta">
           <span>{{ d.survey.repository }}</span>
           <span class="code">{{ d.survey.entryPoint }}</span>
           @if (saved() === null && inherited()) {
-            <span class="pill is-stale">Alterações não salvas</span>
+            <span class="pill is-stale">{{ 'diagram.unsaved' | translate }}</span>
           } @else if (saved() === null) {
-            <span class="muted">Gerada do fluxo, ainda não salva</span>
+            <span class="muted">{{ 'diagram.generatedNotSaved' | translate }}</span>
           } @else if (dirty()) {
-            <span class="pill is-stale">Alterações não salvas</span>
+            <span class="pill is-stale">{{ 'diagram.unsaved' | translate }}</span>
           } @else {
-            <span class="muted">Salva</span>
+            <span class="muted">{{ 'diagram.saved' | translate }}</span>
           }
         </div>
       </div>
       <div class="page-bar-side">
-        <div class="bar-group" role="group" aria-label="Histórico">
-          <button type="button" class="btn btn-g btn-small" (click)="undo()" [disabled]="!canUndo()" title="Desfazer (Ctrl+Z)">Desfazer</button>
-          <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" title="Refazer (Ctrl+Y ou Ctrl+Shift+Z)">Refazer</button>
+        <div class="bar-group" role="group" [attr.aria-label]="'diagram.history' | translate">
+          <button type="button" class="btn btn-g btn-small" (click)="undo()" [disabled]="!canUndo()" [title]="'diagram.undoTitle' | translate">{{ 'diagram.undo' | translate }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="redo()" [disabled]="!canRedo()" [title]="'diagram.redoTitle' | translate">{{ 'diagram.redo' | translate }}</button>
         </div>
-        <div class="bar-group" role="group" aria-label="Edição">
-          <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()" title="Refaz o diagrama a partir do fluxo e mantém suas cores e textos">Gerar de novo</button>
+        <div class="bar-group" role="group" [attr.aria-label]="'diagram.editGroup' | translate">
+          <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()" [title]="'diagram.regenerateTitle' | translate">{{ 'diagram.regenerate' | translate }}</button>
           @if (saved() !== null) {
-            <button type="button" class="btn btn-small btn-danger-quiet" (click)="confirmDiscard.set(true)">Descartar edição</button>
+            <button type="button" class="btn btn-small btn-danger-quiet" (click)="confirmDiscard.set(true)">{{ 'diagram.discardEdit' | translate }}</button>
           }
-          <button type="button" class="btn btn-p" (click)="save()" [disabled]="saving() || nothingToSave() || (saved() !== null && !dirty())">{{ saving() ? 'Salvando…' : 'Salvar' }}</button>
+          <button type="button" class="btn btn-p" (click)="save()" [disabled]="saving() || nothingToSave() || (saved() !== null && !dirty())">{{ (saving() ? 'common.saving' : 'common.save') | translate }}</button>
         </div>
       </div>
     </header>
 
     @if (outdated(); as old) {
       <p class="notice is-warning" role="status">
-        Editado no commit <span class="code">{{ shortCommit(old.saved) }}</span>; o levantamento é do commit <span class="code">{{ shortCommit(old.survey) }}</span>.
-        <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()">Atualizar pelo fluxo atual</button>
+        {{ 'diagram.outdated' | translate: { saved: shortCommit(old.saved), survey: shortCommit(old.survey) } }}
+        <button type="button" class="btn btn-g btn-small" (click)="askRegenerate()">{{ 'diagram.updateFromFlow' | translate }}</button>
       </p>
     }
     @if (inherited(); as from) {
       <p class="notice" role="status">
-        {{ inheritedNotice }}
+        {{ 'diagram.inheritedNotice' | translate }}
         @if (from.dropped > 0) {
           {{ droppedText(from.dropped) }}
         }
@@ -61,75 +61,75 @@
       <p class="toast is-fixed" [class.is-error]="!m.ok" [attr.role]="m.ok ? 'status' : 'alert'">
         {{ m.text }}
         @if (!m.ok) {
-          <button type="button" class="btn btn-g btn-small" (click)="message.set(null)">Fechar</button>
+          <button type="button" class="btn btn-g btn-small" (click)="message.set(null)">{{ 'common.close' | translate }}</button>
         }
       </p>
     }
 
     <div class="panes">
       <section class="pane editor" aria-labelledby="editor-title">
-        <h2 id="editor-title" class="pane-title">Texto Mermaid</h2>
+        <h2 id="editor-title" class="pane-title">{{ 'diagram.editorTitle' | translate }}</h2>
         <textarea
           class="input code source"
           spellcheck="false"
-          aria-label="Texto do diagrama em Mermaid"
+          [attr.aria-label]="'diagram.editorAria' | translate"
           aria-describedby="mermaid-help"
           [value]="text()"
           (input)="onType($event)"
         ></textarea>
-        <span id="mermaid-help" class="field-help">Texto do Mermaid (flowchart TD). Cada linha é um passo ou uma ligação; a prévia ao lado acompanha o que você digita.</span>
-        <div class="export" role="group" aria-label="Exportar">
-          <button type="button" class="btn btn-g btn-small" (click)="copyMermaid()">{{ copy.label('Copiar Mermaid') }}</button>
-          <button type="button" class="btn btn-g btn-small" (click)="downloadMermaid()">Baixar .mmd</button>
-          <button type="button" class="btn btn-g btn-small" (click)="exportImage('svg')" [disabled]="!svg()" [attr.title]="svg() ? null : 'Aguarde a prévia'">SVG</button>
-          <button type="button" class="btn btn-g btn-small" (click)="exportImage('png')" [disabled]="!svg() || pngBusy()" [attr.title]="svg() ? null : 'Aguarde a prévia'">{{ pngBusy() ? 'Gerando PNG…' : 'PNG' }}</button>
+        <span id="mermaid-help" class="field-help">{{ 'diagram.mermaidHelp' | translate }}</span>
+        <div class="export" role="group" [attr.aria-label]="'diagram.export' | translate">
+          <button type="button" class="btn btn-g btn-small" (click)="copyMermaid()">{{ copy.label('diagram.copyMermaid' | translate) }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="downloadMermaid()">{{ 'diagram.downloadMmd' | translate }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="exportImage('svg')" [disabled]="!svg()" [attr.title]="svg() ? null : ('diagram.waitPreview' | translate)">SVG</button>
+          <button type="button" class="btn btn-g btn-small" (click)="exportImage('png')" [disabled]="!svg() || pngBusy()" [attr.title]="svg() ? null : ('diagram.waitPreview' | translate)">{{ pngBusy() ? ('diagram.generatingPng' | translate) : 'PNG' }}</button>
         </div>
       </section>
 
       <section class="pane stage" aria-labelledby="preview-title">
-        <h2 id="preview-title" class="pane-title">Prévia</h2>
+        <h2 id="preview-title" class="pane-title">{{ 'diagram.previewTitle' | translate }}</h2>
         @if (renderError(); as problem) {
           <div class="notice is-error render-error" role="alert">
-            <strong>O Mermaid não entendeu o texto.</strong>
-            <span>Corrija o texto à esquerda ou use Desfazer.</span>
+            <strong>{{ 'diagram.renderErrorTitle' | translate }}</strong>
+            <span>{{ 'diagram.renderErrorFix' | translate }}</span>
             <pre class="code">{{ problem }}</pre>
             @if (svg()) {
-              <span class="muted">A prévia abaixo é a última que deu certo.</span>
+              <span class="muted">{{ 'diagram.renderErrorLast' | translate }}</span>
             }
           </div>
         }
         <div class="preview-wrap">
-          <app-diagram-stage class="preview" [svg]="svg()" [selected]="selected()" label="Prévia do diagrama. Escolha um passo para mudar a cor" (pick)="onPick($event)" />
+          <app-diagram-stage class="preview" [svg]="svg()" [selected]="selected()" [label]="'diagram.previewLabel' | translate" (pick)="onPick($event)" />
           @if (!text().trim()) {
-            <p class="muted preview-status" role="status">Escreva o diagrama ou use Gerar de novo.</p>
+            <p class="muted preview-status" role="status">{{ 'diagram.emptyHint' | translate }}</p>
           } @else if (rendering() || (!svg() && !renderError())) {
-            <p class="muted preview-status" role="status">Desenhando o diagrama…</p>
+            <p class="muted preview-status" role="status">{{ 'diagram.drawing' | translate }}</p>
           }
           @if (selected()) {
-            <div class="paint" role="group" aria-label="Cor do passo escolhido">
+            <div class="paint" role="group" [attr.aria-label]="'diagram.paint.group' | translate">
               <p class="paint-title">
-                <span>Passo: <strong>{{ selectedLabel() }}</strong></span>
-                <button type="button" class="btn btn-g btn-small" (click)="selected.set(null)" aria-label="Fechar o painel de cor">Fechar</button>
+                <span>{{ 'diagram.paint.step' | translate }} <strong>{{ selectedLabel() }}</strong></span>
+                <button type="button" class="btn btn-g btn-small" (click)="selected.set(null)" [attr.aria-label]="'diagram.paint.closeAria' | translate">{{ 'common.close' | translate }}</button>
               </p>
               @for (field of paintFields; track field.key) {
                 <div class="paint-row">
-                  <label class="paint-label" [for]="'paint-' + field.key">{{ field.label }}</label>
+                  <label class="paint-label" [for]="'paint-' + field.key">{{ field.labelKey | translate }}</label>
                   <input type="color" [id]="'paint-' + field.key" [value]="paint()[field.key]" (input)="onColor(field.key, $event)" />
                   <span class="code paint-hex">{{ paint()[field.key] }}</span>
-                  <span class="swatches" role="radiogroup" [attr.aria-label]="'Cores sugeridas para ' + field.hint">
+                  <span class="swatches" role="radiogroup" [attr.aria-label]="field.suggestedKey | translate">
                     @for (swatch of swatches(); track swatch) {
-                      <button type="button" class="swatch" role="radio" [attr.aria-checked]="paint()[field.key] === swatch" [style.background]="swatch" [attr.aria-label]="field.label + ' ' + swatch" [title]="swatch" (click)="setPaint(field.key, swatch)"></button>
+                      <button type="button" class="swatch" role="radio" [attr.aria-checked]="paint()[field.key] === swatch" [style.background]="swatch" [attr.aria-label]="'diagram.paint.swatch' | translate: { field: (field.labelKey | translate), color: swatch }" [title]="swatch" (click)="setPaint(field.key, swatch)"></button>
                     }
                   </span>
                 </div>
               }
               <div class="paint-actions">
-                <button type="button" class="btn btn-g btn-small" (click)="paintStep()">Só este passo</button>
+                <button type="button" class="btn btn-g btn-small" (click)="paintStep()">{{ 'diagram.paint.onlyThisStep' | translate }}</button>
                 <button type="button" class="btn btn-g btn-small" (click)="paintKind()" [disabled]="!kindClass()"
-                  [title]="kindClass() ? 'Muda a cor de todos os passos da classe ' + kindClass() : 'Este passo não tem classe de tipo'">Todos do tipo</button>
+                  [title]="kindClass() ? ('diagram.paint.allOfKindTitle' | translate: { kind: kindClass() }) : ('diagram.paint.noKind' | translate)">{{ 'diagram.paint.allOfKind' | translate }}</button>
               </div>
               @if (selectedNode(); as node) {
-                <a class="btn btn-g btn-small paint-context" [routerLink]="['/surveys', id()]" [queryParams]="{ passo: node }" title="Abre o fluxo com este passo escolhido e o painel do passo">Ver no fluxo</a>
+                <a class="btn btn-g btn-small paint-context" [routerLink]="['/surveys', id()]" [queryParams]="{ passo: node }" [title]="'diagram.paint.viewInFlowTitle' | translate">{{ 'diagram.paint.viewInFlow' | translate }}</a>
               }
             </div>
           }
@@ -140,9 +140,9 @@
 
   @if (confirmRegenerate(); as merged) {
     <app-confirm-dialog
-      title="Gerar o diagrama de novo?"
-      [text]="'O texto volta ao que o fluxo gera hoje. Suas cores e os textos que você deu aos passos que ainda existem são mantidos.' + (merged.dropped > 0 ? ' ' + droppedText(merged.dropped) : '') + ' Dá para desfazer.'"
-      confirmLabel="Gerar de novo"
+      [title]="'diagram.dialog.regenerateTitle' | translate"
+      [text]="regenerateText(merged.dropped)"
+      [confirmLabel]="'diagram.regenerate' | translate"
       [tone]="tonePrimary"
       (confirm)="regenerate()"
       (cancel)="confirmRegenerate.set(null)"
@@ -150,24 +150,24 @@
   }
   @if (leaveAsk(); as answer) {
     <app-confirm-dialog
-      title="Sair sem salvar?"
-      text="A edição deste diagrama ainda não foi salva e será perdida se você sair."
-      confirmLabel="Sair sem salvar"
-      cancelLabel="Ficar"
+      [title]="'diagram.dialog.leaveTitle' | translate"
+      [text]="'diagram.dialog.leaveText' | translate"
+      [confirmLabel]="'diagram.dialog.leaveConfirm' | translate"
+      [cancelLabel]="'diagram.dialog.leaveStay' | translate"
       (confirm)="answer(true)"
       (cancel)="answer(false)"
     />
   }
   @if (confirmDiscard()) {
     <app-confirm-dialog
-      title="Descartar a edição?"
-      text="O diagrama salvo é apagado e a tela volta ao diagrama gerado do fluxo. Isso não tem volta."
-      confirmLabel="Descartar edição"
+      [title]="'diagram.dialog.discardTitle' | translate"
+      [text]="'diagram.dialog.discardText' | translate"
+      [confirmLabel]="'diagram.discardEdit' | translate"
       [busy]="busy()"
       (confirm)="discard()"
       (cancel)="confirmDiscard.set(false)"
     />
   }
 } @else {
-  <p class="page-state muted" role="status">Carregando a visão consolidada…</p>
+  <p class="page-state muted" role="status">{{ 'diagram.loading' | translate }}</p>
 }

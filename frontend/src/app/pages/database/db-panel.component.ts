@@ -2,18 +2,19 @@ import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, injec
 import { RouterLink } from '@angular/router';
 import { HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageService } from '../../core/i18n/i18n';
 import { DB_OPERATION_SHORT_KEY, DB_OPERATION_SLUG, FINDING_KIND_LABEL_KEY, FINDING_SEVERITY_LABEL_KEY } from '../../core/models';
 import {
   Cardinality,
-  DELETE_ACTION_LABEL,
-  DIVERGENCE_LABEL,
+  DELETE_ACTION_LABEL_KEY,
+  DIVERGENCE_LABEL_KEY,
   DbRelation,
   DbSchema,
-  DIVERGENT_TEXT,
+  divergentText,
   DbUsageReport,
-  SCHEMA_FINDING_TITLE,
+  SCHEMA_FINDING_TITLE_KEY,
   KEY_MARK_LABEL,
-  SCHEMA_SOURCE_LABEL,
+  SCHEMA_SOURCE_LABEL_KEY,
   SchemaSourceKind,
   columnKeys,
   findTable,
@@ -42,14 +43,14 @@ export interface DbPick {
   key: string;
 }
 
-const CARDINALITY_TEXT: Record<Cardinality, string> = {
-  [Cardinality.ManyToOne]: 'N para 1',
-  [Cardinality.OneToOne]: '1 para 1',
+const CARDINALITY_TEXT_KEY: Record<Cardinality, string> = {
+  [Cardinality.ManyToOne]: 'dbPanel.cardinality.manyToOne',
+  [Cardinality.OneToOne]: 'dbPanel.cardinality.oneToOne',
 };
 
-const CARDINALITY_BACK: Record<Cardinality, string> = {
-  [Cardinality.ManyToOne]: '1 para N',
-  [Cardinality.OneToOne]: '1 para 1',
+const CARDINALITY_BACK_KEY: Record<Cardinality, string> = {
+  [Cardinality.ManyToOne]: 'dbPanel.cardinality.oneToMany',
+  [Cardinality.OneToOne]: 'dbPanel.cardinality.oneToOne',
 };
 
 // Painel da tela do banco (Fase 38): campos, índices, relações, divergência entre fontes e achados
@@ -75,6 +76,7 @@ export class DbPanelComponent {
   readonly backToAnalysis = output<void>();
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly i18n = inject(LanguageService);
   // Escolheu algo dentro do painel (UX-G-B02): o botão clicado some com o painel antigo, então o foco vai ao título do novo.
   private focusTitleNext = false;
 
@@ -92,9 +94,9 @@ export class DbPanelComponent {
   // O levantamento leva o repositório e a origem; a volta ao banco sai da origem (UX-G-B25).
   protected readonly surveyParams = computed(() => ({ repositorio: this.repository(), [HOME_FROM_DB_PARAM]: HOME_FROM_DB_VALUE }));
   protected readonly DbItemKind = DbItemKind;
-  protected readonly sourceLabel = SCHEMA_SOURCE_LABEL;
+  protected readonly sourceLabelKey = SCHEMA_SOURCE_LABEL_KEY;
   protected readonly SchemaSourceKind = SchemaSourceKind;
-  protected readonly findingTitle = SCHEMA_FINDING_TITLE;
+  protected readonly findingTitleKey = SCHEMA_FINDING_TITLE_KEY;
   protected readonly sourceText = sourceText;
   protected readonly findingText = findingText;
   protected readonly opShortKey = DB_OPERATION_SHORT_KEY;
@@ -124,9 +126,9 @@ export class DbPanelComponent {
       const keys = columnKeys(table, c.name);
       return {
         name: c.name,
-        type: c.type ?? DIVERGENT_TEXT,
+        type: c.type ?? divergentText(),
         divergent: c.type == null || c.nullable == null,
-        nullable: c.nullable == null ? DIVERGENT_TEXT : c.nullable ? 'sim' : 'não',
+        nullable: c.nullable == null ? divergentText() : this.i18n.t(c.nullable ? 'dbPanel.yes' : 'dbPanel.no'),
         nullableDivergent: c.nullable == null,
         mark: KEY_MARK_LABEL[keyMark(keys)],
         keyText: keyText(keys),
@@ -135,12 +137,13 @@ export class DbPanelComponent {
         default: c.default,
       };
     });
+    const t = (key: string, params?: Record<string, unknown>) => this.i18n.t(key, params);
     const indexes = [
-      ...(table.primaryKey ? [{ name: table.primaryKey.name ?? 'chave primária', columns: table.primaryKey.columns.join(', '), extra: 'chave primária', convention: false }] : []),
+      ...(table.primaryKey ? [{ name: table.primaryKey.name ?? t('dbPanel.primaryKey'), columns: table.primaryKey.columns.join(', '), extra: t('dbPanel.primaryKey'), convention: false }] : []),
       ...table.indexes.map((i) => ({
-        name: i.name ?? 'sem nome',
-        columns: i.columns.join(', ') + (i.included.length > 0 ? `, inclui ${i.included.join(', ')}` : ''),
-        extra: i.unique ? 'único' : '',
+        name: i.name ?? t('dbPanel.unnamed'),
+        columns: i.columns.join(', ') + (i.included.length > 0 ? ', ' + t('dbPanel.includes', { columns: i.included.join(', ') }) : ''),
+        extra: i.unique ? t('dbPanel.unique') : '',
         convention: i.convention,
       })),
     ];
@@ -149,12 +152,12 @@ export class DbPanelComponent {
       .filter((r) => r.from === key)
       .map((r) => ({
         target: r.to,
-        text: `Aponta para ${r.to} por ${r.fk.columns.join(', ')} (${CARDINALITY_TEXT[r.cardinality]}${r.optional ? ', opcional' : ''})`,
-        onDelete: `ao apagar em ${r.to}: ${DELETE_ACTION_LABEL[r.fk.onDelete]}`,
+        text: t('dbPanel.pointsTo', { target: r.to, columns: r.fk.columns.join(', '), cardinality: t(CARDINALITY_TEXT_KEY[r.cardinality]), optional: r.optional ? 'yes' : 'no' }),
+        onDelete: t('dbPanel.onDelete', { target: r.to, action: t(DELETE_ACTION_LABEL_KEY[r.fk.onDelete]) }),
       }));
     const incoming = relations
       .filter((r) => r.to === key && r.from !== key)
-      .map((r) => ({ target: r.from, text: `${r.from}.${r.fk.columns.join(', ')} aponta para esta tabela (${CARDINALITY_BACK[r.cardinality]})`, onDelete: '' }));
+      .map((r) => ({ target: r.from, text: t('dbPanel.pointsHere', { from: r.from, columns: r.fk.columns.join(', '), cardinality: t(CARDINALITY_BACK_KEY[r.cardinality]) }), onDelete: '' }));
     const link = linkTableOf(table, schema);
     const views = schema.views.filter((v) => v.reads.some((r) => findTable(schema, r) === table)).map((v) => tableKey(v));
     const procedures = schema.procedures
@@ -168,14 +171,19 @@ export class DbPanelComponent {
       columns,
       indexes,
       relations: [...out, ...incoming],
-      link: link ? `Tabela de ligação: ${link[0]} N para N ${link[1]}` : null,
+      link: link ? t('dbPanel.linkTable', { left: link[0], right: link[1] }) : null,
       views,
       procedures,
       divergences: schema.divergences
         .filter((d) => d.table.toLowerCase() === key.toLowerCase())
         .map((d) => ({
-          title: `${DIVERGENCE_LABEL[d.kind]}${d.column ? ' de ' + d.column : ''}`,
-          values: d.values.map((v) => `${SCHEMA_SOURCE_LABEL[v.source.kind]} diz ${v.value}${v.source.kind === SchemaSourceKind.LiveDatabase ? '' : ` (${v.source.file}:${v.source.line})`}`),
+          title: d.column ? t('dbPanel.divergenceKindColumn', { kind: t(DIVERGENCE_LABEL_KEY[d.kind]), column: d.column }) : t(DIVERGENCE_LABEL_KEY[d.kind]),
+          values: d.values.map((v) => {
+            const source = t(SCHEMA_SOURCE_LABEL_KEY[v.source.kind]);
+            return v.source.kind === SchemaSourceKind.LiveDatabase
+              ? t('dbPanel.divergenceValue', { source, value: v.value })
+              : t('dbPanel.divergenceValueAt', { source, value: v.value, where: `${v.source.file}:${v.source.line}` });
+          }),
         })),
       findings: schema.findings.filter((f) => f.table.toLowerCase() === key.toLowerCase()),
     };

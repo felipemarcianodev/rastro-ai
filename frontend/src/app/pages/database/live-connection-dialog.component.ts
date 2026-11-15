@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { DialogDirective } from '../../core/dialog.directive';
 import { SQL_DIALECT_LABEL, SqlDialect } from '../../core/database/db-schema';
@@ -14,7 +15,7 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 // repositório. A string de conexão é digitada aqui e nunca volta da API: o campo nunca vem preenchido.
 @Component({
   selector: 'app-live-connection-dialog',
-  imports: [DialogDirective],
+  imports: [DialogDirective, TranslatePipe],
   templateUrl: './live-connection-dialog.component.html',
   styleUrl: './live-connection-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

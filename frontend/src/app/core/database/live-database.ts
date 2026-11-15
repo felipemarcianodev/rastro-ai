@@ -1,3 +1,5 @@
+import { translatedRecord } from '../graph/translated';
+import { tr } from '../i18n/locale';
 import { SqlDialect } from './db-schema';
 
 // Banco vivo (Fase 40b, ADR-006): a conexão só leitura do repositório e o plano estimado pelo banco.
@@ -49,57 +51,57 @@ export interface QueryPlan {
   warnings: string[];
 }
 
-// Operadores como o SQL Server e o PostgreSQL (Fase 42b) escrevem, em pt-BR. O desconhecido fica como veio.
-export const PLAN_OPERATOR_LABEL: Record<string, string> = {
-  'Seq Scan': 'Varredura da tabela',
-  'Index Only Scan': 'Busca só no índice',
-  'Bitmap Heap Scan': 'Leitura da tabela pelo mapa do índice',
-  'Bitmap Index Scan': 'Busca no índice (mapa)',
-  'Nested Loop': 'Laços aninhados',
-  'Hash Join': 'Junção por hash',
-  Hash: 'Tabela de hash',
-  Aggregate: 'Agregação',
-  HashAggregate: 'Agregação por hash',
-  GroupAggregate: 'Agregação por grupo',
-  Limit: 'Limite',
-  ModifyTable: 'Alteração da tabela',
-  Materialize: 'Materialização',
-  Gather: 'Junção dos processos paralelos',
-  'Gather Merge': 'Junção ordenada dos processos paralelos',
-  Unique: 'Remoção de repetidos',
-  'Subquery Scan': 'Leitura da subconsulta',
-  'CTE Scan': 'Leitura do CTE',
-  Result: 'Resultado',
-  'Incremental Sort': 'Ordenação incremental',
-  'Clustered Index Scan': 'Varredura do índice clustered',
-  'Index Scan': 'Varredura do índice',
-  'Table Scan': 'Varredura da tabela',
-  'Index Seek': 'Busca no índice',
-  'Clustered Index Seek': 'Busca no índice clustered',
-  Sort: 'Ordenação',
-  'Hash Match': 'Junção por hash',
-  'Nested Loops': 'Laços aninhados',
-  'Merge Join': 'Junção por mesclagem',
-  'Key Lookup': 'Busca da chave',
+// Operadores como o SQL Server e o PostgreSQL (Fase 42b) escrevem; a descrição vem do idioma ativo.
+// O desconhecido fica como veio. O nome do operador em si (a chave do mapa) nunca se traduz.
+const PLAN_OPERATOR_LABEL_KEY: Record<string, string> = {
+  'Seq Scan': 'liveDb.operator.seqScan',
+  'Index Only Scan': 'liveDb.operator.indexOnlyScan',
+  'Bitmap Heap Scan': 'liveDb.operator.bitmapHeapScan',
+  'Bitmap Index Scan': 'liveDb.operator.bitmapIndexScan',
+  'Nested Loop': 'liveDb.operator.nestedLoop',
+  'Hash Join': 'liveDb.operator.hashJoin',
+  'Hash': 'liveDb.operator.hash',
+  'Aggregate': 'liveDb.operator.aggregate',
+  'HashAggregate': 'liveDb.operator.hashAggregate',
+  'GroupAggregate': 'liveDb.operator.groupAggregate',
+  'Limit': 'liveDb.operator.limit',
+  'ModifyTable': 'liveDb.operator.modifyTable',
+  'Materialize': 'liveDb.operator.materialize',
+  'Gather': 'liveDb.operator.gather',
+  'Gather Merge': 'liveDb.operator.gatherMerge',
+  'Unique': 'liveDb.operator.unique',
+  'Subquery Scan': 'liveDb.operator.subqueryScan',
+  'CTE Scan': 'liveDb.operator.cteScan',
+  'Result': 'liveDb.operator.result',
+  'Incremental Sort': 'liveDb.operator.incrementalSort',
+  'Clustered Index Scan': 'liveDb.operator.clusteredIndexScan',
+  'Index Scan': 'liveDb.operator.indexScan',
+  'Table Scan': 'liveDb.operator.tableScan',
+  'Index Seek': 'liveDb.operator.indexSeek',
+  'Clustered Index Seek': 'liveDb.operator.clusteredIndexSeek',
+  'Sort': 'liveDb.operator.sort',
+  'Hash Match': 'liveDb.operator.hashMatch',
+  'Nested Loops': 'liveDb.operator.nestedLoops',
+  'Merge Join': 'liveDb.operator.mergeJoin',
+  'Key Lookup': 'liveDb.operator.keyLookup',
 };
 
 export function operatorLabel(physicalOp: string): string {
-  return Object.prototype.hasOwnProperty.call(PLAN_OPERATOR_LABEL, physicalOp) ? PLAN_OPERATOR_LABEL[physicalOp] : physicalOp;
+  return Object.prototype.hasOwnProperty.call(PLAN_OPERATOR_LABEL_KEY, physicalOp) ? tr(PLAN_OPERATOR_LABEL_KEY[physicalOp]) : physicalOp;
 }
 
 // "O próprio banco aponta índice faltando em pedidos (criado_em), ganho estimado de 87%".
 export function missingIndexText(index: MissingIndex): string {
   const columns = [...index.equality, ...index.inequality].join(', ');
-  return `O próprio banco aponta índice faltando em ${index.table}${columns ? ` (${columns})` : ''}, ganho estimado de ${Math.round(index.impact)}%`;
+  return tr(columns ? 'liveDb.missingIndexColumns' : 'liveDb.missingIndex', { table: index.table, columns, impact: Math.round(index.impact) });
 }
 
-export const PLAN_SHOWPLAN_NOTE = 'SET SHOWPLAN_XML: o banco diz como faria, sem executar a consulta. Parâmetros (@p0) entram como texto.';
-
-// Como o plano é pedido, por dialeto (Fase 42b).
-export const PLAN_NOTE: Record<SqlDialect, string> = {
-  [SqlDialect.SqlServer]: PLAN_SHOWPLAN_NOTE,
-  [SqlDialect.PostgreSql]: 'EXPLAIN sem ANALYZE, numa conexão só de leitura: o banco diz como faria, sem executar a consulta. Com parâmetro ($1, @nome), o plano é o genérico, que não depende do valor.',
+// Como o plano é pedido, por dialeto (Fase 42b). Lido no idioma ativo.
+const PLAN_NOTE_KEY: Record<SqlDialect, string> = {
+  [SqlDialect.SqlServer]: 'liveDb.note.sqlServer',
+  [SqlDialect.PostgreSql]: 'liveDb.note.postgreSql',
 };
+export const PLAN_NOTE: Record<SqlDialect, string> = translatedRecord(PLAN_NOTE_KEY);
 
 export const LIVE_PERMISSION_GRANTS = 'GRANT VIEW DEFINITION TO usuario';
 export const LIVE_PERMISSION_SHOWPLAN = 'GRANT SHOWPLAN TO usuario';

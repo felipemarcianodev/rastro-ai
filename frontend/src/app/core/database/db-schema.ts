@@ -1,3 +1,5 @@
+import { currentLocale, tr } from '../i18n/locale';
+import { translatedRecord } from '../graph/translated';
 import { DbOperation, FindingKind, FindingSeverity, SourceLocation } from '../models';
 
 // Esquema do banco (Fases 37 e 38, ADR-006), como a API devolve em GET api/repositories/{nome}/schema.
@@ -89,11 +91,11 @@ export interface DbTable {
   estimatedRows?: number | null;
 }
 
-// "Cerca de 12.345 linhas, pela estimativa do banco vivo" (milhar com ponto, como a mensagem do backend).
+// "Cerca de 12.345 linhas, pela estimativa do banco vivo" (milhar no formato do idioma ativo).
 export function estimatedRowsText(rows: number | null | undefined): string | null {
   if (rows === null || rows === undefined || rows <= 0) return null;
-  const formatted = String(Math.round(rows)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-  return `Cerca de ${formatted} ${rows === 1 ? 'linha' : 'linhas'}, pela estimativa do banco vivo.`;
+  const formatted = new Intl.NumberFormat(currentLocale()).format(Math.round(rows));
+  return tr('dbSchema.estimatedRows', { count: rows, rows: formatted });
 }
 
 export interface DbView {
@@ -193,53 +195,56 @@ export const SQL_DIALECT_LABEL: Record<SqlDialect, string> = {
 };
 
 // Quem lê a consulta em cada dialeto, para a mensagem de erro de leitura (Fase 42).
-export const SQL_READER_LABEL: Record<SqlDialect, string> = {
-  [SqlDialect.SqlServer]: 'O leitor de T-SQL',
-  [SqlDialect.PostgreSql]: 'O leitor de SQL do PostgreSQL',
+const SQL_READER_LABEL_KEY: Record<SqlDialect, string> = {
+  [SqlDialect.SqlServer]: 'dbSchema.reader.sqlServer',
+  [SqlDialect.PostgreSql]: 'dbSchema.reader.postgreSql',
+};
+// Lida no idioma ativo (a constante é usada pela análise de consulta).
+export const SQL_READER_LABEL: Record<SqlDialect, string> = translatedRecord(SQL_READER_LABEL_KEY);
+
+export const SCHEMA_SOURCE_LABEL_KEY: Record<SchemaSourceKind, string> = {
+  [SchemaSourceKind.EfModel]: 'dbSchema.source.efModel',
+  [SchemaSourceKind.EfMigration]: 'dbSchema.source.efMigration',
+  [SchemaSourceKind.SqlScript]: 'dbSchema.source.sqlScript',
+  [SchemaSourceKind.LiveDatabase]: 'dbSchema.source.liveDatabase',
 };
 
-export const SCHEMA_SOURCE_LABEL: Record<SchemaSourceKind, string> = {
-  [SchemaSourceKind.EfModel]: 'modelo do EF Core',
-  [SchemaSourceKind.EfMigration]: 'migration',
-  [SchemaSourceKind.SqlScript]: 'arquivo .sql',
-  [SchemaSourceKind.LiveDatabase]: 'banco vivo',
+export const DELETE_ACTION_LABEL_KEY: Record<DeleteAction, string> = {
+  [DeleteAction.NoAction]: 'dbSchema.deleteAction.noAction',
+  [DeleteAction.Cascade]: 'dbSchema.deleteAction.cascade',
+  [DeleteAction.SetNull]: 'dbSchema.deleteAction.setNull',
+  [DeleteAction.SetDefault]: 'dbSchema.deleteAction.setDefault',
+  [DeleteAction.Restrict]: 'dbSchema.deleteAction.restrict',
 };
 
-export const DELETE_ACTION_LABEL: Record<DeleteAction, string> = {
-  [DeleteAction.NoAction]: 'sem ação',
-  [DeleteAction.Cascade]: 'apaga junto (cascata)',
-  [DeleteAction.SetNull]: 'anula a chave',
-  [DeleteAction.SetDefault]: 'volta ao padrão',
-  [DeleteAction.Restrict]: 'impede apagar',
+export const DIVERGENCE_LABEL_KEY: Record<SchemaDivergenceKind, string> = {
+  [SchemaDivergenceKind.ColumnType]: 'dbSchema.divergence.columnType',
+  [SchemaDivergenceKind.ColumnNullability]: 'dbSchema.divergence.columnNullability',
+  [SchemaDivergenceKind.ColumnMissing]: 'dbSchema.divergence.columnMissing',
+  [SchemaDivergenceKind.PrimaryKey]: 'dbSchema.divergence.primaryKey',
 };
 
-export const DIVERGENCE_LABEL: Record<SchemaDivergenceKind, string> = {
-  [SchemaDivergenceKind.ColumnType]: 'tipo',
-  [SchemaDivergenceKind.ColumnNullability]: 'nulo',
-  [SchemaDivergenceKind.ColumnMissing]: 'existência da coluna',
-  [SchemaDivergenceKind.PrimaryKey]: 'chave primária',
-};
-
-export const SCHEMA_FINDING_TITLE: Record<SchemaFindingKind, string> = {
-  [SchemaFindingKind.ForeignKeyWithoutIndex]: 'Chave estrangeira sem índice',
+export const SCHEMA_FINDING_TITLE_KEY: Record<SchemaFindingKind, string> = {
+  [SchemaFindingKind.ForeignKeyWithoutIndex]: 'dbSchema.finding.foreignKeyWithoutIndex.title',
 };
 
 // Selo curto no bloco do mapa.
-export const SCHEMA_FINDING_BADGE: Record<SchemaFindingKind, string> = {
-  [SchemaFindingKind.ForeignKeyWithoutIndex]: 'FK sem índice',
+export const SCHEMA_FINDING_BADGE_KEY: Record<SchemaFindingKind, string> = {
+  [SchemaFindingKind.ForeignKeyWithoutIndex]: 'dbSchema.finding.foreignKeyWithoutIndex.badge',
 };
 
 export function findingText(finding: SchemaFinding): string {
   const columns = finding.columns.join(', ');
   switch (finding.kind) {
     case SchemaFindingKind.ForeignKeyWithoutIndex:
-      return `${sourceText(finding.source)} cria a FK ${columns} sem índice. Toda busca por ${columns} (e todo DELETE na tabela de destino) varre esta tabela.`;
+      return tr('dbSchema.finding.foreignKeyWithoutIndex.text', { source: sourceText(finding.source), columns });
   }
 }
 
 // "migration Loja.Api/Migrations/20261020_Pagamentos.cs:24"; banco vivo não tem arquivo.
 export function sourceText(source: SchemaSource): string {
-  return source.kind === SchemaSourceKind.LiveDatabase ? SCHEMA_SOURCE_LABEL[source.kind] : `${SCHEMA_SOURCE_LABEL[source.kind]} ${source.file}:${source.line}`;
+  const label = tr(SCHEMA_SOURCE_LABEL_KEY[source.kind]);
+  return source.kind === SchemaSourceKind.LiveDatabase ? label : `${label} ${source.file}:${source.line}`;
 }
 
 // Nome como o resto do esquema escreve (DbNames.Display): sem o schema padrão do dialeto.
@@ -355,7 +360,9 @@ export const KEY_MARK_LABEL: Record<KeyMark, string> = {
 };
 
 // Texto do tipo e do nulo quando as fontes divergem e o Rastro não escolhe.
-export const DIVERGENT_TEXT = 'divergente';
+export function divergentText(): string {
+  return tr('dbSchema.divergent');
+}
 
 export function keyMark(keys: ColumnKeys): KeyMark {
   if (keys.pk && keys.fk) return KeyMark.PkFk;
@@ -367,7 +374,7 @@ export function hasPrimaryKey(mark: KeyMark): boolean {
 }
 
 export function keyText(keys: ColumnKeys): string {
-  return keys.pk && keys.fk ? 'primária e estrangeira' : keys.pk ? 'primária' : keys.fk ? 'estrangeira' : '';
+  return keys.pk && keys.fk ? tr('dbSchema.keyText.pkFk') : keys.pk ? tr('dbSchema.keyText.pk') : keys.fk ? tr('dbSchema.keyText.fk') : '';
 }
 
 // Mermaid erDiagram (Fase 38) do que está no mapa. O tipo vira uma palavra (o Mermaid não aceita
@@ -379,8 +386,8 @@ export function toErMermaid(schema: DbSchema, keys: ReadonlySet<string>): string
     lines.push(`  ${id(tableKey(table))} {`);
     for (const column of table.columns) {
       const mark = KEY_MARK_LABEL[keyMark(columnKeys(table, column.name))].replace(' ', ', ');
-      const type = (column.type ?? DIVERGENT_TEXT).replace(/,/g, '_').replace(/[^A-Za-z0-9_()[\]-]/g, '_');
-      const comment = column.personal ? ' "dado pessoal"' : '';
+      const type = (column.type ?? divergentText()).replace(/,/g, '_').replace(/[^A-Za-z0-9_()[\]-]/g, '_');
+      const comment = column.personal ? ` "${tr('dbSchema.personalData')}"` : '';
       lines.push(`    ${type} ${id(column.name)}${mark ? ' ' + mark : ''}${comment}`);
     }
     lines.push('  }');

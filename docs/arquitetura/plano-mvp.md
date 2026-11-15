@@ -1140,10 +1140,19 @@ Regras da tradução:
   - **Glossário:** entraram buraco (*gap*, *hueco*), entre fluxos, desfecho e recolhido.
   - **Ficou para a Fase 48:** o aviso de IA (`ai-disclosure`), o rótulo e o "Passo:" do palco do diagrama, e a tela da visão consolidada passar a chave do título (`route.consolidated`).
 
-## Fase 48: banco, diagrama e o resto da tela `[ ]` (depende da Fase 46)
+## Fase 48: banco, diagrama e o resto da tela `[x]` (depende da Fase 46)
 
-- [ ] Tela do banco, diagrama Mermaid, C4, cadastro de repositório, aviso de IA e os `Record` de rótulo restantes.
-- [ ] Teste que varre os templates atrás de texto fixo fora do `translate`.
+- [x] Tela do banco, diagrama Mermaid, C4, cadastro de repositório, aviso de IA e os `Record` de rótulo restantes.
+- [x] Teste que varre os templates atrás de texto fixo fora do `translate`.
+- **Registro (2026-11-15):**
+  - **Como foi feito:** três agentes em paralelo (tela do banco, análise de consulta, Configurações e diagrama), com as chaves juntadas depois nos JSON. A tela inteira tem 1.324 chaves por idioma.
+  - **Varredura:** `frontend/scripts/verificar-texto-fixo.mjs` lê os templates (`.html` e inline) e falha com texto visível escrito à mão; roda no workflow de PR, antes dos testes. As exceções de propósito (PK, FK, SVG, comandos `dotnet` e exemplos de SQL e de código) ficam em `texto-fixo-permitido.txt`.
+  - **Português corrigido no caminho:** "1 itens encontrados" e "+1 campos" viraram plural de verdade.
+  - **Exemplos que mudam com o idioma:** o nome e a pasta de exemplo do cadastro de repositório (*my-system*, *mi-sistema*).
+  - **`index.html`:** `lang="en"` e a descrição em inglês, o idioma de reserva; o `lang` troca na hora pelo idioma ativo.
+  - **Perdido para caber numa chave:** a ajuda dos comandos de build e testes e o aviso "editado no commit X" perderam o destaque monoespaçado (`&&`, `|` e os hashes viraram texto comum).
+  - **Navegador:** Configurações, tela do banco e visão consolidada nos três idiomas: nenhuma chave aparece no lugar do texto. O português que sobra no banco são os avisos do leitor de esquema, gerados pelo servidor (Fase 50). O caminho da pasta na máquina foi trocado por um genérico antes do print. Prints em `docs/telas/fase-48/`.
+  - **UX:** o levantamento de UX fica para a Fase 53, com todas as telas nos três idiomas; em português, as telas das Fases 47 e 48 continuam iguais.
 
 ## Fase 49: idioma no servidor e mensagens da API `[ ]` (depende da Fase 46)
 

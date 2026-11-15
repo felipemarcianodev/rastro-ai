@@ -94,3 +94,12 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 47 | Rastro multilíngue: um levantamento do próprio Rastro (RepositoriesController.Add), em português | [fase-47/levantamento-2-pt-BR.png](fase-47/levantamento-2-pt-BR.png) |
 | Fase 47 | Rastro multilíngue: um levantamento do próprio Rastro (RepositoriesController.Add), em inglês | [fase-47/levantamento-2-en-US.png](fase-47/levantamento-2-en-US.png) |
 | Fase 47 | Rastro multilíngue: um levantamento do próprio Rastro (RepositoriesController.Add), em espanhol | [fase-47/levantamento-2-es.png](fase-47/levantamento-2-es.png) |
+| Fase 48 | Rastro multilíngue: as Configurações, em português | [fase-48/telas-1-pt-BR.png](fase-48/telas-1-pt-BR.png) |
+| Fase 48 | Rastro multilíngue: as Configurações, em inglês | [fase-48/telas-1-en-US.png](fase-48/telas-1-en-US.png) |
+| Fase 48 | Rastro multilíngue: as Configurações, em espanhol | [fase-48/telas-1-es.png](fase-48/telas-1-es.png) |
+| Fase 48 | Rastro multilíngue: o mapa do banco do próprio Rastro, em português | [fase-48/telas-2-pt-BR.png](fase-48/telas-2-pt-BR.png) |
+| Fase 48 | Rastro multilíngue: o mapa do banco do próprio Rastro, em inglês | [fase-48/telas-2-en-US.png](fase-48/telas-2-en-US.png) |
+| Fase 48 | Rastro multilíngue: o mapa do banco do próprio Rastro, em espanhol | [fase-48/telas-2-es.png](fase-48/telas-2-es.png) |
+| Fase 48 | Rastro multilíngue: a visão consolidada, em português | [fase-48/telas-3-pt-BR.png](fase-48/telas-3-pt-BR.png) |
+| Fase 48 | Rastro multilíngue: a visão consolidada, em inglês | [fase-48/telas-3-en-US.png](fase-48/telas-3-en-US.png) |
+| Fase 48 | Rastro multilíngue: a visão consolidada, em espanhol | [fase-48/telas-3-es.png](fase-48/telas-3-es.png) |

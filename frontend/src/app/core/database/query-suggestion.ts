@@ -52,17 +52,8 @@ export interface QueryAiSuggestion {
   review: QuerySuggestionReview;
 }
 
-export const PROPOSAL_ORIGIN_LABEL_KEY: Record<ProposalOrigin, string> = {
-  [ProposalOrigin.Agent]: 'enum.proposalOrigin.agent',
-  [ProposalOrigin.Provider]: 'enum.proposalOrigin.provider',
-};
-
 const COST_FORMAT_OPTIONS: Intl.NumberFormatOptions = { minimumFractionDigits: 2, maximumFractionDigits: 2 };
 
 export function formatCost(cost: number): string {
   return new Intl.NumberFormat(currentLocale(), COST_FORMAT_OPTIONS).format(cost);
-}
-
-export function findingsText(count: number): string {
-  return count === 0 ? 'sem achados' : count === 1 ? '1 achado' : `${count} achados`;
 }

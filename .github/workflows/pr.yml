@@ -81,6 +81,9 @@ jobs:
       - name: Dependências
         run: npm ci --ignore-scripts
 
+      - name: Texto fixo nos templates (ADR-009)
+        run: node scripts/verificar-texto-fixo.mjs
+
       - name: Testes
         run: npm run test:ci
 

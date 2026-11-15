@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, input, signal, untracked } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { forkJoin, map, of, switchMap } from 'rxjs';
 import { LeaveGuarded } from '../../core/leave-guard';
 import { CopyFeedback } from '../../core/copy-feedback';
@@ -9,6 +10,7 @@ import { DiagramStyle, consolidatedMermaid, kindClassOf, mergeDiagram, nodeOfSte
 import { DIAGRAM_RENDERER, readDiagramColors, standaloneSvg } from '../../core/mermaid-render';
 import { SurveyDetail, SurveyDiagram, SurveyStatus } from '../../core/models';
 import { shortCommit } from '../../core/format';
+import { LanguageService } from '../../core/i18n/i18n';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { SurveyPageTitle } from '../../core/page-title.strategy';
 import { ConfirmDialogComponent, ConfirmTone } from '../survey/confirm-dialog.component';
@@ -28,10 +30,10 @@ const HEX6 = /^#[0-9a-fA-F]{6}$/;
 type Paint = Required<DiagramStyle>;
 type PaintKey = keyof Paint;
 
-const PAINT_FIELDS: { key: PaintKey; label: string; hint: string }[] = [
-  { key: 'fill', label: 'Fundo', hint: 'o fundo' },
-  { key: 'stroke', label: 'Borda', hint: 'a borda' },
-  { key: 'color', label: 'Texto', hint: 'o texto' },
+const PAINT_FIELDS: { key: PaintKey; labelKey: string; suggestedKey: string }[] = [
+  { key: 'fill', labelKey: 'diagram.paint.fill', suggestedKey: 'diagram.paint.suggestedFill' },
+  { key: 'stroke', labelKey: 'diagram.paint.stroke', suggestedKey: 'diagram.paint.suggestedStroke' },
+  { key: 'color', labelKey: 'diagram.paint.color', suggestedKey: 'diagram.paint.suggestedColor' },
 ];
 
 const DEFAULT_PAINT: Paint = { fill: '#ffffff', stroke: '#b7c1bc', color: '#1d2a2e' };
@@ -40,7 +42,7 @@ const DEFAULT_PAINT: Paint = { fill: '#ffffff', stroke: '#b7c1bc', color: '#1d2a
 // fonte: o painel de cor, o desfazer e o "gerar de novo" só reescrevem esse texto.
 @Component({
   selector: 'app-diagram-page',
-  imports: [RouterLink, ConfirmDialogComponent, DiagramStageComponent],
+  imports: [RouterLink, ConfirmDialogComponent, DiagramStageComponent, TranslatePipe],
   templateUrl: './diagram.page.html',
   styleUrl: './diagram.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)', '(window:beforeunload)': 'onBeforeUnload($event)' },
@@ -48,6 +50,7 @@ const DEFAULT_PAINT: Paint = { fill: '#ffffff', stroke: '#b7c1bc', color: '#1d2a
 export class DiagramPage implements LeaveGuarded {
   private readonly api = inject(RastroApi);
   private readonly renderer = inject(DIAGRAM_RENDERER);
+  private readonly i18n = inject(LanguageService);
 
   // Vem da rota (surveys/:id/visao).
   readonly id = input.required<string>();
@@ -55,7 +58,7 @@ export class DiagramPage implements LeaveGuarded {
   protected readonly detail = signal<SurveyDetail | null>(null);
   // UX-G-L23: título da aba com o ponto de entrada, assim que o levantamento chega.
   private readonly pageTitle = inject(SurveyPageTitle);
-  private readonly titleSync = effect(() => this.pageTitle.set('Visão consolidada', this.detail()?.survey.entryPoint));
+  private readonly titleSync = effect(() => this.pageTitle.set('route.consolidated', this.detail()?.survey.entryPoint));
   protected readonly error = signal<string | null>(null);
   protected readonly saved = signal<SurveyDiagram | null>(null);
   protected readonly text = signal('');
@@ -178,7 +181,7 @@ export class DiagramPage implements LeaveGuarded {
       .subscribe({
         next: ({ detail, resolved }) => {
           if (!resolved) {
-            this.error.set('Este levantamento ainda não tem um fluxo pronto para consolidar.');
+            this.error.set(this.i18n.t('diagram.notReady'));
             return;
           }
           this.detail.set(detail);
@@ -208,7 +211,7 @@ export class DiagramPage implements LeaveGuarded {
         this.firstRender = false;
         this.rendering.set(false);
         // Mantém o último desenho válido e mostra o que o Mermaid reclamou (com a linha, se vier).
-        this.renderError.set(error instanceof Error ? error.message : 'O Mermaid não conseguiu desenhar este texto.');
+        this.renderError.set(error instanceof Error ? error.message : this.i18n.t('diagram.renderFailed'));
       },
     );
   }
@@ -316,11 +319,11 @@ export class DiagramPage implements LeaveGuarded {
         this.saving.set(false);
         this.saved.set(saved);
         this.inherited.set(null);
-        this.show({ ok: true, text: 'Diagrama salvo.' });
+        this.show({ ok: true, text: this.i18n.t('diagram.message.saved') });
       },
       error: (error) => {
         this.saving.set(false);
-        this.show({ ok: false, text: `Não salvou: ${apiErrorMessage(error)}` });
+        this.show({ ok: false, text: this.i18n.t('diagram.message.saveFailed', { error: apiErrorMessage(error) }) });
       },
     });
   }
@@ -337,7 +340,7 @@ export class DiagramPage implements LeaveGuarded {
     this.change(merged.text);
     this.show({
       ok: true,
-      text: merged.dropped > 0 ? `Diagrama refeito. ${droppedText(merged.dropped)}` : 'Diagrama refeito a partir do fluxo.',
+      text: merged.dropped > 0 ? this.i18n.t('diagram.message.regeneratedDropped', { dropped: this.droppedText(merged.dropped) }) : this.i18n.t('diagram.message.regenerated'),
     });
   }
 
@@ -353,18 +356,24 @@ export class DiagramPage implements LeaveGuarded {
         this.syncHistory();
         this.text.set(this.generated());
         this.baseline.set(this.generated());
-        this.show({ ok: true, text: 'Edição descartada. Voltou ao diagrama gerado do fluxo.' });
+        this.show({ ok: true, text: this.i18n.t('diagram.message.discarded') });
       },
       error: (error) => {
         this.busy.set(false);
         this.confirmDiscard.set(false);
-        this.show({ ok: false, text: `Não descartou: ${apiErrorMessage(error)}` });
+        this.show({ ok: false, text: this.i18n.t('diagram.message.discardFailed', { error: apiErrorMessage(error) }) });
       },
     });
   }
 
-  protected droppedText = droppedText;
-  protected readonly inheritedNotice = 'Edição trazida do levantamento anterior.';
+  protected droppedText(count: number): string {
+    return this.i18n.t('diagram.dropped', { count });
+  }
+
+  // Texto do diálogo de gerar de novo, com o aviso dos passos que saíram quando há.
+  protected regenerateText(dropped: number): string {
+    return dropped > 0 ? this.i18n.t('diagram.dialog.regenerateTextDropped', { dropped: this.droppedText(dropped) }) : this.i18n.t('diagram.dialog.regenerateText');
+  }
 
   // Exportar -----------------------------------------------------------------------------
 
@@ -375,19 +384,19 @@ export class DiagramPage implements LeaveGuarded {
 
   protected downloadMermaid(): void {
     downloadBlob(new Blob([this.text()], { type: 'text/plain' }), `${this.fileName()}.mmd`);
-    this.show({ ok: true, text: `Download iniciado: ${this.fileName()}.mmd` });
+    this.show({ ok: true, text: this.i18n.t('diagram.message.downloadStarted', { name: `${this.fileName()}.mmd` }) });
   }
 
   protected exportImage(format: 'png' | 'svg'): void {
     const image = this.svg() ? standaloneSvg(this.svg(), readDiagramColors().paper) : null;
     if (!image) {
-      this.show({ ok: false, text: 'A prévia ainda não está desenhada. Espere ela aparecer e tente de novo.' });
+      this.show({ ok: false, text: this.i18n.t('diagram.message.previewNotReady') });
       return;
     }
     const name = this.fileName();
     if (format === 'svg') {
       downloadBlob(new Blob([image.svg], { type: 'image/svg+xml' }), `${name}.svg`);
-      this.show({ ok: true, text: `Download iniciado: ${name}.svg` });
+      this.show({ ok: true, text: this.i18n.t('diagram.message.downloadStarted', { name: `${name}.svg` }) });
       return;
     }
     this.pngBusy.set(true);
@@ -395,11 +404,11 @@ export class DiagramPage implements LeaveGuarded {
       (blob) => {
         this.pngBusy.set(false);
         downloadBlob(blob, `${name}.png`);
-        this.show({ ok: true, text: `Download iniciado: ${name}.png` });
+        this.show({ ok: true, text: this.i18n.t('diagram.message.downloadStarted', { name: `${name}.png` }) });
       },
       (error: Error) => {
         this.pngBusy.set(false);
-        this.show({ ok: false, text: `Não exportou a imagem: ${error.message} Tente o SVG.` });
+        this.show({ ok: false, text: this.i18n.t('diagram.message.exportFailed', { error: error.message }) });
       },
     );
   }
@@ -414,10 +423,6 @@ export class DiagramPage implements LeaveGuarded {
     clearTimeout(this.messageTimer);
     if (message.ok) this.messageTimer = setTimeout(() => this.message.set(null), MESSAGE_MS);
   }
-}
-
-function droppedText(count: number): string {
-  return count === 1 ? '1 passo editado saiu porque não existe mais no código.' : `${count} passos editados saíram porque não existem mais no código.`;
 }
 
 // Cores atuais do passo, lidas do SVG já desenhado (o que o dono está vendo).

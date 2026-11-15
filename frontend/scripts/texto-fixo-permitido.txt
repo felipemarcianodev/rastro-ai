@@ -1,0 +1,11 @@
+# Texto que fica fixo no template de propósito (nome de produto, símbolo, exemplo de código).
+# Uma entrada por linha, exatamente como a varredura mostra. Ver verificar-texto-fixo.mjs.
+Rastro AI
+workspace.dsl
+placeholder="PedidoService.ValidarEstoque"
+PK
+FK
+SVG
+placeholder="SELECT ... FROM ..."
+placeholder="dotnet build"
+placeholder="dotnet test"

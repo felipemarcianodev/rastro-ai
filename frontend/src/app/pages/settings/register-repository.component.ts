@@ -1,42 +1,40 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, ElementRef, booleanAttribute, inject, input, output, signal } from '@angular/core';
+import { Component, ElementRef, booleanAttribute, computed, inject, input, output, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { FormsModule } from '@angular/forms';
 import { DesktopBridge } from '../../core/desktop-bridge.service';
 import { isAbsoluteFolder } from '../../core/editor-links';
+import { LanguageService } from '../../core/i18n/i18n';
 import { tr } from '../../core/i18n/locale';
 import { API_ERROR_MESSAGE_KEY, REPOSITORY_NAME_PATTERN, RepositoryItem } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
-
-// Regra do nome na ajuda do campo (a mesma de REPOSITORY_NAME_PATTERN e do contrato da API).
-export const REPOSITORY_NAME_HELP =
-  'Letras, números, ponto, hífen ou sublinhado, começando por letra ou número. Até 100 caracteres.';
 
 // UX-G-L16: formulário único de cadastro de repositório, usado nas Configurações e no diálogo da tela inicial.
 // O pai só cuida da lista e do que vem depois: o formulário valida, chama a API e avisa o cadastrado.
 @Component({
   selector: 'app-register-repository',
-  imports: [FormsModule],
+  imports: [FormsModule, TranslatePipe],
   template: `
-    <form class="form" (ngSubmit)="register()" novalidate [attr.aria-label]="label()">
+    <form class="form" (ngSubmit)="register()" novalidate [attr.aria-label]="labelText()">
       <div class="field">
-        <label class="field-label" [for]="id('name')">Nome</label>
-        <input [id]="id('name')" class="input code" name="registerName" [(ngModel)]="newName" placeholder="meu-sistema" autocomplete="off" spellcheck="false"
+        <label class="field-label" [for]="id('name')">{{ 'register.name' | translate }}</label>
+        <input [id]="id('name')" class="input code" name="registerName" [(ngModel)]="newName" [placeholder]="'register.namePlaceholder' | translate" autocomplete="off" spellcheck="false"
           [attr.aria-invalid]="nameError() ? true : null" [attr.aria-describedby]="id('name-help') + (nameError() ? ' ' + id('name-error') : '')" />
-        <span [id]="id('name-help')" class="field-help">{{ nameHelp }}</span>
+        <span [id]="id('name-help')" class="field-help">{{ 'register.nameHelp' | translate }}</span>
         @if (nameError(); as error) {
           <span [id]="id('name-error')" class="field-error">{{ error }}</span>
         }
       </div>
       <div class="field">
-        <label class="field-label" [for]="id('path')">Pasta</label>
+        <label class="field-label" [for]="id('path')">{{ 'register.path' | translate }}</label>
         <div class="field-row">
-          <input [id]="id('path')" class="input code" name="registerPath" [(ngModel)]="newPath" placeholder="C:\\codigo\\meu-sistema" autocomplete="off" spellcheck="false"
+          <input [id]="id('path')" class="input code" name="registerPath" [(ngModel)]="newPath" [placeholder]="'register.pathPlaceholder' | translate" autocomplete="off" spellcheck="false"
             [attr.aria-invalid]="pathError() ? true : null" [attr.aria-describedby]="pathError() ? id('path-error') : id('path-help')" />
           @if (desktop.available) {
-            <button type="button" class="btn btn-g" (click)="browseFolder()" [disabled]="registering()">Procurar…</button>
+            <button type="button" class="btn btn-g" (click)="browseFolder()" [disabled]="registering()">{{ 'register.browse' | translate }}</button>
           }
         </div>
-        <span [id]="id('path-help')" class="field-help">O caminho completo da pasta neste computador, onde está o .git. Windows: C:\\codigo\\meu-sistema. Linux ou macOS: /home/voce/meu-sistema.</span>
+        <span [id]="id('path-help')" class="field-help">{{ 'register.pathHelp' | translate }}</span>
         @if (pathError(); as error) {
           <span [id]="id('path-error')" class="field-error">{{ error }}</span>
         }
@@ -50,7 +48,7 @@ export const REPOSITORY_NAME_HELP =
       }
       <div [class]="inDialog() ? 'dialog-foot' : 'actions'">
         <ng-content />
-        <button type="submit" [class]="primary() ? 'btn btn-p' : 'btn btn-g'" [disabled]="registering()">{{ registering() ? 'Cadastrando…' : submitLabel() }}</button>
+        <button type="submit" [class]="primary() ? 'btn btn-p' : 'btn btn-g'" [disabled]="registering()">{{ registering() ? ('register.registering' | translate) : submitText() }}</button>
       </div>
     </form>
   `,
@@ -75,15 +73,18 @@ export class RegisterRepositoryComponent {
 
   // Prefixo dos ids (repo-name, register-name...), para o pai e os testes acharem os campos.
   readonly idPrefix = input.required<string>();
-  readonly label = input('Cadastrar repositório');
-  readonly submitLabel = input('Cadastrar');
+  // Vazios: valem o texto padrão do idioma ativo.
+  readonly label = input('');
+  readonly submitLabel = input('');
   readonly primary = input(false, { transform: booleanAttribute });
   readonly inDialog = input(false, { transform: booleanAttribute });
   readonly registered = output<RepositoryItem>();
   // Avisa o pai de que o cadastro está em andamento (ele trava o Cancelar e o fechar do diálogo).
   readonly busy = output<boolean>();
 
-  protected readonly nameHelp = REPOSITORY_NAME_HELP;
+  private readonly i18n = inject(LanguageService);
+  protected readonly labelText = computed(() => this.label() || this.i18n.t('register.label'));
+  protected readonly submitText = computed(() => this.submitLabel() || this.i18n.t('register.submit'));
   protected newName = '';
   protected newPath = '';
   protected readonly registering = signal(false);
@@ -111,7 +112,7 @@ export class RegisterRepositoryComponent {
         this.setBusy(false);
         this.newName = '';
         this.newPath = '';
-        this.notice.set(`Repositório "${created.name}" cadastrado.`);
+        this.notice.set(this.i18n.t('register.registered', { name: created.name }));
         this.registered.emit(created);
         this.focus('name');
       },
