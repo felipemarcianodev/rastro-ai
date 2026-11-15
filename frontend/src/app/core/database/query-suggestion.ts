@@ -52,9 +52,9 @@ export interface QueryAiSuggestion {
   review: QuerySuggestionReview;
 }
 
-export const PROPOSAL_ORIGIN_LABEL: Record<ProposalOrigin, string> = {
-  [ProposalOrigin.Agent]: 'Agente',
-  [ProposalOrigin.Provider]: 'IA',
+export const PROPOSAL_ORIGIN_LABEL_KEY: Record<ProposalOrigin, string> = {
+  [ProposalOrigin.Agent]: 'enum.proposalOrigin.agent',
+  [ProposalOrigin.Provider]: 'enum.proposalOrigin.provider',
 };
 
 const COST_FORMAT_OPTIONS: Intl.NumberFormatOptions = { minimumFractionDigits: 2, maximumFractionDigits: 2 };

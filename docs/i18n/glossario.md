@@ -34,6 +34,11 @@ Nunca se traduz: Rastro AI, nomes de produto (.NET, Angular, Roslyn, MCP, Claude
 | visão consolidada | consolidated view | vista consolidada |
 | repositório | repository | repositorio |
 | desatualizado (hash do commit mudou) | out of date | desactualizado |
+| buraco (não resolvido no grafo) | gap | hueco |
+| completar os buracos | fill gaps | completar huecos |
+| entre fluxos (regra cruzada) | cross-flow | entre flujos |
+| desfecho (fim de um caminho) | outcome | desenlace |
+| recolhido / expandido | collapsed / expanded | contraído / expandido |
 
 ## Tipos de passo
 

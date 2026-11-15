@@ -12,7 +12,8 @@ export function isAdded(node: FlowNode | FlowEdge): boolean {
 
 // Passo de outro sistema do fluxo (Fase 25): vem de outro repositório e não se edita aqui. A API
 // também recusa (DRAFT_INVALID); esta guarda evita o erro na hora do arraste.
-export const FOREIGN_EDIT_MESSAGE = 'Edição só no primeiro sistema do fluxo';
+// Chave da mensagem (o texto sai da tradução, em quem mostra). O nome antigo segue até o painel do passo migrar.
+export const FOREIGN_EDIT_MESSAGE_KEY = 'graph.foreignEdit';
 
 export function isForeign(draft: FlowGraph, nodeId: string | undefined): boolean {
   return !!nodeId && draft.nodes.some((n) => n.id === nodeId && !!n.system);

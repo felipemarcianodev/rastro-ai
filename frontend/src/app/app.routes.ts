@@ -1,31 +1,33 @@
 import { Routes } from '@angular/router';
 import { leaveGuard } from './core/leave-guard';
 
+// O título é a chave de tradução (route.*); o PageTitleStrategy traduz e acrescenta o nome do produto.
+
 export const routes: Routes = [
   {
     path: '',
-    title: 'Levantamentos | Rastro AI',
+    title: 'route.surveys',
     loadComponent: () => import('./pages/surveys/surveys.page').then((m) => m.SurveysPage),
   },
   {
     path: 'surveys/:id',
-    title: 'Fluxo | Rastro AI',
+    title: 'route.survey',
     loadComponent: () => import('./pages/survey/survey.page').then((m) => m.SurveyPage),
   },
   {
     path: 'surveys/:id/visao',
-    title: 'Visão consolidada | Rastro AI',
+    title: 'route.consolidated',
     canDeactivate: [leaveGuard],
     loadComponent: () => import('./pages/diagram/diagram.page').then((m) => m.DiagramPage),
   },
   {
     path: 'repositorios/:nome/banco',
-    title: 'Banco de :nome | Rastro AI',
+    title: 'route.database',
     loadComponent: () => import('./pages/database/database.page').then((m) => m.DatabasePage),
   },
   {
     path: 'configuracoes',
-    title: 'Configurações | Rastro AI',
+    title: 'route.settings',
     loadComponent: () => import('./pages/settings/settings.page').then((m) => m.SettingsPage),
   },
   { path: '**', redirectTo: '' },

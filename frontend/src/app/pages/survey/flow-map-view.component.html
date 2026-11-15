@@ -1,35 +1,35 @@
-<div class="map-bar" role="group" aria-label="Desenho do mapa">
+<div class="map-bar" role="group" [attr.aria-label]="'flowMap.barLabel' | translate">
   <button type="button" class="btn btn-icon" (click)="toggleDirection()"
-    [attr.aria-label]="'Desenho ' + directionLabel[LayoutDirection.Map] + '. Trocar para ' + directionLabel[next]"
-    [title]="'Desenhar ' + directionLabel[next]">{{ directionGlyph[next] }}</button>
-  <span class="map-zoom" role="group" aria-label="Zoom do mapa">
-    <button type="button" class="btn btn-icon" (click)="zoomOut()" aria-label="Afastar" title="Afastar">−</button>
-    <button type="button" class="btn btn-icon map-zoom-actual" (click)="actualSize()" [attr.aria-label]="'Zoom em ' + percent() + '%. Voltar para 100%'" title="Voltar para 100%">{{ percent() }}%</button>
-    <button type="button" class="btn btn-icon" (click)="zoomIn()" aria-label="Aproximar" title="Aproximar">+</button>
-    <button type="button" class="btn btn-icon" (click)="fitZoom()" aria-label="Enquadrar o mapa na tela" title="Enquadrar o mapa na tela">⤢</button>
+    [attr.aria-label]="'graph.layout.directionAria' | translate: { current: (directionLabel[LayoutDirection.Map] | translate), next: (directionLabel[next] | translate) }"
+    [title]="'graph.layout.directionTitle' | translate: { next: (directionLabel[next] | translate) }">{{ directionGlyph[next] }}</button>
+  <span class="map-zoom" role="group" [attr.aria-label]="'flowMap.zoomLabel' | translate">
+    <button type="button" class="btn btn-icon" (click)="zoomOut()" [attr.aria-label]="'flowCanvas.zoomOut' | translate" [title]="'flowCanvas.zoomOut' | translate">−</button>
+    <button type="button" class="btn btn-icon map-zoom-actual" (click)="actualSize()" [attr.aria-label]="'flowMap.zoomActualAria' | translate: { percent: percent() }" [title]="'flowMap.zoomActualTitle' | translate">{{ percent() }}%</button>
+    <button type="button" class="btn btn-icon" (click)="zoomIn()" [attr.aria-label]="'flowCanvas.zoomIn' | translate" [title]="'flowCanvas.zoomIn' | translate">+</button>
+    <button type="button" class="btn btn-icon" (click)="fitZoom()" [attr.aria-label]="'flowMap.fit' | translate" [title]="'flowMap.fit' | translate">⤢</button>
   </span>
   @if (collapsed().size > 0) {
-    <span class="muted map-bar-label">{{ collapsed().size === 1 ? 'Um sistema recolhido' : collapsed().size + ' sistemas recolhidos' }}: clique no bloco com + para abrir.</span>
+    <span class="muted map-bar-label">{{ 'flowMap.collapsedBar' | translate: { count: collapsed().size } }}</span>
   }
   @if (chosen()) {
-    <button type="button" class="btn btn-g btn-small map-clear" (click)="clearPath()">Limpar o destaque</button>
+    <button type="button" class="btn btn-g btn-small map-clear" (click)="clearPath()">{{ 'flowMap.clearPath' | translate }}</button>
   }
 </div>
 
 @if (error(); as message) {
   <div class="notice is-error map-status" role="alert">
     <span>{{ message }}</span>
-    <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button>
+    <button type="button" class="btn btn-g btn-small" (click)="retry()">{{ 'common.retry' | translate }}</button>
   </div>
 } @else if (loading()) {
   <div class="canvas-status" role="status">
     <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
       <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
     </svg>
-    <p class="muted">Montando o mapa do fluxo…</p>
+    <p class="muted">{{ 'flowMap.loading' | translate }}</p>
   </div>
 } @else if (empty()) {
-  <p class="muted map-status" role="status">O mapa deste fluxo está vazio: o levantamento não tem passos para desenhar.</p>
+  <p class="muted map-status" role="status">{{ 'flowMap.empty' | translate }}</p>
 } @else if (geometry(); as g) {
   <div class="map-scroll" #scroller>
     <div class="map-canvas" [style.zoom]="zoom()" [style.width.px]="g.width" [style.height.px]="g.height">
@@ -71,9 +71,9 @@
         @if (l.text) {
           @if (l.link.kind === MapLinkKind.Outcome) {
             <button type="button" class="map-label is-outcome" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)"
-              [attr.aria-label]="'Acender o caminho do desfecho: ' + l.text" (click)="pickLinkOutcome(l.index)">{{ l.text }}</button>
+              [attr.aria-label]="'flowMap.outcomeAria' | translate: { text: l.text }" (click)="pickLinkOutcome(l.index)">{{ l.text }}</button>
           } @else {
-            <span class="map-label" role="note" [attr.aria-label]="'Chamada: ' + (callTitle(l.link) ?? l.text)" [attr.title]="callTitle(l.link)" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)">{{ l.text }}</span>
+            <span class="map-label" role="note" [attr.aria-label]="'flowMap.callAria' | translate: { text: (callTitle(l.link) ?? l.text) }" [attr.title]="callTitle(l.link)" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [class.is-dim]="litLinkIndexes() && !litLinkIndexes()!.has(l.index)">{{ l.text }}</span>
           }
         }
       }
@@ -81,27 +81,27 @@
   </div>
 }
 
-<section class="map-panel" aria-label="Painel do mapa">
-  <div class="panel-tabs" role="tablist" aria-label="Painel do mapa">
+<section class="map-panel" [attr.aria-label]="'flowMap.panelLabel' | translate">
+  <div class="panel-tabs" role="tablist" [attr.aria-label]="'flowMap.panelLabel' | translate">
     @for (item of tabs; track item.tab) {
-      <button type="button" role="tab" class="panel-tab" [class.is-active]="tab() === item.tab" [attr.aria-selected]="tab() === item.tab" (click)="setTab(item.tab)">{{ item.label }}</button>
+      <button type="button" role="tab" class="panel-tab" [class.is-active]="tab() === item.tab" [attr.aria-selected]="tab() === item.tab" (click)="setTab(item.tab)">{{ item.labelKey | translate }}</button>
     }
   </div>
   @if (tab() === MapTab.Block) {
     @if (panel(); as p) {
-      <div class="map-block-panel" aria-label="Bloco escolhido">
+      <div class="map-block-panel" [attr.aria-label]="'flowMap.blockPanelLabel' | translate">
     <header class="map-panel-head">
-      <span class="kind kind-{{ slug[p.block.kind] }}"><span class="kind-glyph" aria-hidden="true">{{ glyph[p.block.kind] }}</span>{{ kindLabel[p.block.kind] }}</span>
+      <span class="kind kind-{{ slug[p.block.kind] }}"><span class="kind-glyph" aria-hidden="true">{{ glyph[p.block.kind] }}</span>{{ kindLabel[p.block.kind] | translate }}</span>
       <strong class="map-panel-title">{{ p.title }}</strong>
       <span class="muted">{{ p.lane }}</span>
       @if (p.where) {
         <code class="map-where">{{ p.where }}</code>
       }
-      <button type="button" class="btn btn-g btn-small map-panel-close" (click)="closeBlock()" title="Fechar o painel do bloco (Esc)">Fechar</button>
+      <button type="button" class="btn btn-g btn-small map-panel-close" (click)="closeBlock()" [title]="'flowMap.closeBlockTitle' | translate">{{ 'common.close' | translate }}</button>
     </header>
 
     @if (p.steps.length > 0) {
-      <h3 class="map-panel-h">Passos deste bloco</h3>
+      <h3 class="map-panel-h">{{ 'flowMap.steps' | translate }}</h3>
       <ol class="map-steps">
         @for (step of p.steps; track step.id) {
           <li><button type="button" class="map-step" (click)="pickStep(step.id)">{{ step.text }}@if (step.where) { <code class="map-where">{{ step.where }}</code> }</button></li>
@@ -110,13 +110,13 @@
     }
 
     @if (p.outcomes.length > 0) {
-      <h3 class="map-panel-h">Desfechos</h3>
+      <h3 class="map-panel-h">{{ 'flowMap.outcomes' | translate }}</h3>
       <ul class="map-outcomes">
         @for (outcome of p.outcomes; track outcome.index) {
           <li>
             <button type="button" class="map-step" [class.is-active]="outcome.chosen" [attr.aria-pressed]="outcome.chosen" (click)="pickOutcome(p.block.id, outcome.index)">
-              {{ outcome.text }}@if (outcome.target) { <span class="muted">leva a {{ outcome.target }}</span> }
-              @if (outcome.fails) { <span class="map-path-fail">falha</span> } @else if (outcome.ends) { <span class="muted">encerra</span> }
+              {{ outcome.text }}@if (outcome.target) { <span class="muted">{{ 'flowMap.leadsTo' | translate: { target: outcome.target } }}</span> }
+              @if (outcome.fails) { <span class="map-path-fail">{{ 'flowMap.fails' | translate }}</span> } @else if (outcome.ends) { <span class="muted">{{ 'flowMap.ends' | translate }}</span> }
             </button>
           </li>
         }
@@ -124,25 +124,25 @@
     }
 
     @if (p.calls.length > 0) {
-      <h3 class="map-panel-h">Chamadas que saem daqui</h3>
+      <h3 class="map-panel-h">{{ 'flowMap.calls' | translate }}</h3>
       <ul class="map-outcomes">
         @for (call of p.calls; track call.to) {
-          <li><button type="button" class="map-step" (click)="pickBlockId(call.to)">{{ call.text ?? 'Chama' }} <span class="muted">{{ call.title }}</span>@if (call.fields) { <span class="muted map-fields">campos: {{ call.fields }}</span> }</button></li>
+          <li><button type="button" class="map-step" (click)="pickBlockId(call.to)">{{ call.text ?? ('flowMap.call' | translate) }} <span class="muted">{{ call.title }}</span>@if (call.fields) { <span class="muted map-fields">{{ 'flowMap.fields' | translate: { fields: call.fields } }}</span> }</button></li>
         }
       </ul>
     }
 
     <footer class="map-panel-foot">
-      <button type="button" class="btn btn-g btn-small" [disabled]="!p.previous" (click)="walk(-1)" [title]="p.previousTitle ? 'Anterior: ' + p.previousTitle + ' (seta para a esquerda)' : 'Não há bloco anterior neste caminho'">Anterior</button>
-      <button type="button" class="btn btn-g btn-small" [disabled]="!p.next" (click)="walk(1)" [title]="p.nextTitle ? 'Seguinte: ' + p.nextTitle + ' (seta para a direita)' : 'Não há bloco seguinte neste caminho'">Seguinte</button>
-      <button type="button" class="btn btn-g btn-small" (click)="focusSection()" title="Recorta o fluxo no passo deste bloco">Ver só este trecho</button>
+      <button type="button" class="btn btn-g btn-small" [disabled]="!p.previous" (click)="walk(-1)" [title]="p.previousTitle ? ('flowMap.previousTitle' | translate: { title: p.previousTitle }) : ('flowMap.noPrevious' | translate)">{{ 'flowMap.previous' | translate }}</button>
+      <button type="button" class="btn btn-g btn-small" [disabled]="!p.next" (click)="walk(1)" [title]="p.nextTitle ? ('flowMap.nextTitle' | translate: { title: p.nextTitle }) : ('flowMap.noNext' | translate)">{{ 'flowMap.next' | translate }}</button>
+      <button type="button" class="btn btn-g btn-small" (click)="focusSection()" [title]="'flowMap.focusSectionTitle' | translate">{{ 'flowMap.focusSection' | translate }}</button>
       @if (p.collapsible) {
-        <button type="button" class="btn btn-g btn-small map-toggle-segment" (click)="toggleSegment(p.block)">{{ p.segmentOpen ? 'Recolher este sistema' : 'Abrir este sistema' }}</button>
+        <button type="button" class="btn btn-g btn-small map-toggle-segment" (click)="toggleSegment(p.block)">{{ (p.segmentOpen ? 'flowMap.closeSystem' : 'flowMap.openSystem') | translate }}</button>
       }
     </footer>
   </div>
     } @else {
-      <p class="muted map-hint">Escolha um bloco no mapa para ver os passos dele, os desfechos e as chamadas que saem dele.</p>
+      <p class="muted map-hint">{{ 'flowMap.hint' | translate }}</p>
     }
   }
 

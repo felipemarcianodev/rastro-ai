@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageService } from '../../core/i18n/i18n';
 import { DB_SURVEY_ORIGIN_PARAM } from '../../core/database/query-analysis';
 import {
   EFMarkerType,
@@ -21,7 +23,7 @@ import { COLLAPSED_PREFIX, collapsedOwner } from '../../core/graph/collapse';
 import { SvgColors, httpLabel, toMermaid, toSvg } from '../../core/graph/export';
 import {
   LAYOUT_DIRECTION_GLYPH,
-  LAYOUT_DIRECTION_LABEL,
+  LAYOUT_DIRECTION_LABEL_KEY,
   LAYOUT_DIRECTION_SLUG,
   readLayoutDirection,
   saveLayoutDirection,
@@ -51,10 +53,9 @@ import { TREE_CONNECTION, TreeConnectionBuilder } from '../../core/graph/tree-co
 import { Trail } from '../../core/graph/trail';
 import { EDGE_ORIGIN_MARK, EDGE_ORIGIN_MARK_LABEL, EDGE_ORIGIN_MARK_SLUG, EDGE_ORIGIN_ORDER } from '../../core/graph/origin';
 import {
-  FINDING_SEVERITY_LABEL,
   FINDING_SEVERITY_SLUG,
   FindingSeverity,
-  CHANGE_KIND_LABEL,
+  CHANGE_KIND_LABEL_KEY,
   CHANGE_KIND_SLUG,
   EDGE_CONFIDENCE_SLUG,
   EdgeConfidence,
@@ -62,7 +63,7 @@ import {
   FlowGraph,
   FlowNode,
   NODE_KIND_GLYPH,
-  NODE_KIND_LABEL,
+  NODE_KIND_LABEL_KEY,
   NODE_KIND_SLUG,
   NodeKind,
   ProposalOrigin,
@@ -87,11 +88,17 @@ export const SLOW_LAYOUT_MS = 500;
 const SLOW_LAYOUT_PAINT_MS = 40;
 const SHORTCUTS_KEY = 'rastro.shortcutsHintSeen';
 
-const WALK_END: Record<StepMove, string> = {
-  [StepMove.Forward]: 'Fim do caminho: este passo não chama nenhum outro.',
-  [StepMove.Back]: 'Este é o começo do caminho.',
-  [StepMove.Next]: 'Este passo não tem irmãos.',
-  [StepMove.Previous]: 'Este passo não tem irmãos.',
+const WALK_END_KEY: Record<StepMove, string> = {
+  [StepMove.Forward]: 'flowCanvas.walkEnd.forward',
+  [StepMove.Back]: 'flowCanvas.walkEnd.back',
+  [StepMove.Next]: 'flowCanvas.walkEnd.siblings',
+  [StepMove.Previous]: 'flowCanvas.walkEnd.siblings',
+};
+// A pior gravidade, em minúscula, no meio da frase do selo de achados.
+const WORST_SEVERITY_KEY: Record<FindingSeverity, string> = {
+  [FindingSeverity.Info]: 'flowCanvas.worst.info',
+  [FindingSeverity.Warning]: 'flowCanvas.worst.warning',
+  [FindingSeverity.Critical]: 'flowCanvas.worst.critical',
 };
 // Espera a pessoa parar de digitar antes de mover a câmera até o resultado.
 const MATCH_CENTER_DELAY_MS = 250;
@@ -132,7 +139,7 @@ interface IndexedEdge {
 
 @Component({
   selector: 'app-flow-canvas',
-  imports: [FFlowModule, RouterLink],
+  imports: [FFlowModule, RouterLink, TranslatePipe],
   templateUrl: './flow-canvas.component.html',
   styleUrl: './flow-canvas.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -217,6 +224,7 @@ export class FlowCanvasComponent {
   // Modo "Resumo" (Fase 23): só o código do método de entrada, com os métodos chamados fechados.
   protected readonly brief = signal(readBrief());
   protected readonly effectLabel = NODE_EFFECT_LABEL;
+  protected readonly NodeEffect = NodeEffect;
   // Texto da etiqueta no bloco: com banco visto no código, o nome da tabela.
   protected effectBadge(node: FlowNode, effect: NodeEffect): string {
     return effect === NodeEffect.Database ? dbBadgeText(node, NODE_EFFECT_LABEL[effect]) : NODE_EFFECT_LABEL[effect];
@@ -226,7 +234,7 @@ export class FlowCanvasComponent {
   // A etiqueta de banco avisa que o passo leva à tabela (o painel tem o link para o mapa do banco).
   protected effectTitle(node: FlowNode, effect: NodeEffect): string {
     const text = effectText(node, effect);
-    return effect === NodeEffect.Database ? `${text}. Clique no passo para ver a tabela no banco` : text;
+    return effect === NodeEffect.Database ? this.i18n.t('flowCanvas.dbTitle', { text }) : text;
   }
   protected readonly effectSlug = NODE_EFFECT_SLUG;
   protected readonly blockSlug = BLOCK_KIND_SLUG;
@@ -237,7 +245,7 @@ export class FlowCanvasComponent {
   private readonly downward = computed(() => !this.horizontal());
   // Na edição e na comparação o consolidado e o mapa não entram: só o canvas mostra o rascunho e as diferenças.
   protected readonly nextDirection = computed(() => nextDrawing(this.direction(), this.editing() || this.comparing()));
-  protected readonly directionLabel = LAYOUT_DIRECTION_LABEL;
+  protected readonly directionLabel = LAYOUT_DIRECTION_LABEL_KEY;
   protected readonly directionGlyph = LAYOUT_DIRECTION_GLYPH;
   // Cada direção guarda o seu arranjo feito à mão.
   private readonly positionsKey = computed(() => {
@@ -264,7 +272,7 @@ export class FlowCanvasComponent {
     }
     for (const [id, count] of counts) {
       const severity = worst.get(id)!;
-      badges.set(id, { count, slug: FINDING_SEVERITY_SLUG[severity], title: `${count} achado(s) de qualidade; o pior: ${FINDING_SEVERITY_LABEL[severity].toLowerCase()}` });
+      badges.set(id, { count, slug: FINDING_SEVERITY_SLUG[severity], title: this.i18n.t('flowCanvas.findingTitle', { count, severity: this.i18n.t(WORST_SEVERITY_KEY[severity]) }) });
     }
     return badges;
   });
@@ -272,6 +280,7 @@ export class FlowCanvasComponent {
 
   private readonly canvas = viewChild(FCanvasComponent);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly i18n = inject(LanguageService);
   private pickedInCanvas: string | null = null;
   // Seleção múltipla: arrastar no fundo desenha o laço; Ctrl+clique marca e desmarca (padrão do
   // Foblex). Os passos marcados se movem juntos. Mover a visão: Espaço+arrastar ou botão do meio.
@@ -286,8 +295,7 @@ export class FlowCanvasComponent {
   protected readonly markerEnd = EFMarkerType.END_ALL_STATES;
   protected readonly Port = Port;
   protected readonly glyph = NODE_KIND_GLYPH;
-  protected readonly kindLabel = NODE_KIND_LABEL;
-  protected readonly changeLabel = CHANGE_KIND_LABEL;
+  protected readonly changeKey = CHANGE_KIND_LABEL_KEY;
   protected readonly EdgeConfidence = EdgeConfidence;
   protected readonly httpLabel = httpLabel;
   protected readonly collapsedPrefix = COLLAPSED_PREFIX;
@@ -581,7 +589,7 @@ export class FlowCanvasComponent {
     const target = step && this.shown(step) !== nodeId ? this.shown(step) : null;
     event.preventDefault();
     if (!target) {
-      this.walkMessage.set(WALK_END[move]);
+      this.walkMessage.set(this.i18n.t(WALK_END_KEY[move]));
       return;
     }
     this.walkMessage.set('');
@@ -598,19 +606,20 @@ export class FlowCanvasComponent {
   }
 
   protected nodeAria(node: FlowNode): string {
-    if (collapsedOwner(node.id)) return `Recolhido: ${node.label}. Enter para expandir`;
-    if (this.repeatOf().has(node.id)) return `${this.kindLabel[node.kind]} de novo: ${node.label}. Enter vai até o original`;
+    const kind = this.i18n.t(NODE_KIND_LABEL_KEY[node.kind]);
+    if (collapsedOwner(node.id)) return this.i18n.t('flowCanvas.aria.collapsed', { label: node.label });
+    if (this.repeatOf().has(node.id)) return this.i18n.t('flowCanvas.aria.repeat', { kind, label: node.label });
     const outcome = this.guards().get(node.id);
-    const parts = [`${this.kindLabel[node.kind]}: ${node.label}${outcome ? `, então ${outcome.label}` : ''}`];
+    const parts = [outcome ? this.i18n.t('flowCanvas.aria.nodeThen', { kind, label: node.label, outcome: outcome.label }) : this.i18n.t('flowCanvas.aria.node', { kind, label: node.label })];
     const effect = this.effects().get(node.id);
     if (effect !== undefined) parts.push(effectText(node, effect));
-    if (node.change !== undefined) parts.push(this.changeLabel[node.change]);
+    if (node.change !== undefined) parts.push(this.i18n.t(CHANGE_KIND_LABEL_KEY[node.change]));
     const badge = this.findingBadges().get(node.id);
     if (badge) parts.push(badge.title);
-    if (this.noteIds().has(node.id)) parts.push('com anotação sua');
-    if (this.matchIds()?.has(node.id)) parts.push('resultado da busca');
+    if (this.noteIds().has(node.id)) parts.push(this.i18n.t('flowCanvas.aria.note'));
+    if (this.matchIds()?.has(node.id)) parts.push(this.i18n.t('flowCanvas.aria.match'));
     const fold = this.folds().get(node.id);
-    if (fold !== undefined) parts.push(fold === FoldState.Open ? 'detalhe aberto, tecla − fecha' : 'detalhe fechado, tecla + abre');
+    if (fold !== undefined) parts.push(this.i18n.t(fold === FoldState.Open ? 'flowCanvas.aria.foldOpen' : 'flowCanvas.aria.foldClosed'));
     return parts.join('. ');
   }
 
@@ -619,8 +628,8 @@ export class FlowCanvasComponent {
   protected readonly hasCollapsed = computed(() => this.graph().nodes.some((n) => !!collapsedOwner(n.id)));
 
   protected meta(node: FlowNode): string {
-    if (collapsedOwner(node.id)) return 'Clique para expandir';
-    if (this.repeatOf().has(node.id)) return 'Já aparece acima: clique para ir';
+    if (collapsedOwner(node.id)) return this.i18n.t('flowCanvas.meta.expand');
+    if (this.repeatOf().has(node.id)) return this.i18n.t('flowCanvas.meta.repeat');
     if (node.location) {
       const file = node.location.file.split(/[\\/]/).pop() ?? node.location.file;
       const where = `${file}:${node.location.line}`;
@@ -629,7 +638,7 @@ export class FlowCanvasComponent {
       const ownerClass = owner.split('.').pop() ?? '';
       return ownerClass && `${ownerClass}.cs` !== file ? `${ownerClass}, ${where}` : where;
     }
-    return this.kindLabel[node.kind];
+    return this.i18n.t(NODE_KIND_LABEL_KEY[node.kind]);
   }
 
   // O Foblex consome o clique do mouse (arraste do canvas): a seleção de nó chega por este evento.

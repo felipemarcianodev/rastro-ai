@@ -164,7 +164,7 @@
     <ul class="db-access">
       @for (u of fl.uses; track $index) {
         <li>
-          <span class="db-op is-{{ opSlug[u.operation] }}">{{ opShort[u.operation] }}</span>
+          <span class="db-op is-{{ opSlug[u.operation] }}">{{ opShortKey[u.operation] | translate }}</span>
           <a [routerLink]="['/surveys', u.surveyId]" [queryParams]="{ passo: u.nodeId }" [title]="'Abrir o passo no fluxo ' + u.entryPoint">{{ u.entryPoint }} › {{ u.nodeLabel }}</a>
           @if (u.location) {
             <code class="muted">linha {{ u.location.line }}</code>
@@ -177,7 +177,7 @@
     <h3 class="db-h">Achados sem IA nos fluxos</h3>
     @for (f of fl.findings; track $index) {
       <div class="db-finding">
-        <strong class="db-finding-title">{{ kindLabel[f.kind] }} <span class="muted">({{ severityLabel[f.severity] }})</span></strong>
+        <strong class="db-finding-title">{{ kindKey[f.kind] | translate }} <span class="muted">({{ severityKey[f.severity] | translate }})</span></strong>
         {{ f.message }}
         <a [routerLink]="['/surveys', f.surveyId]" [queryParams]="{ passo: f.nodeId }">Ver no fluxo {{ f.entryPoint }}</a>
       </div>

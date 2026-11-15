@@ -3,17 +3,17 @@
   <section class="dialog" role="dialog" aria-modal="true" aria-labelledby="validation-title" (click)="$event.stopPropagation()">
     <header class="dialog-head">
       <div>
-        <h2 id="validation-title">Validação da mudança</h2>
-        <p class="muted">O Rastro levanta o fluxo de novo no código atual e confere o que o rascunho pediu. Um agente conectado ao Rastro (MCP) obtém o mesmo resultado.</p>
+        <h2 id="validation-title">{{ 'validation.title' | translate }}</h2>
+        <p class="muted">{{ 'validation.intro' | translate }}</p>
       </div>
-      <button type="button" class="btn btn-icon" data-dialog-close (click)="closed.emit()" aria-label="Fechar">×</button>
+      <button type="button" class="btn btn-icon" data-dialog-close (click)="closed.emit()" [attr.aria-label]="'common.close' | translate">×</button>
     </header>
 
     <div class="dialog-body">
       @if (v.status === ValidationStatus.Pending || v.status === ValidationStatus.Running) {
         <p class="running" aria-live="polite">
-          {{ v.status === ValidationStatus.Pending ? 'Na fila para validar.' : 'Levantando o fluxo de novo e rodando o build e os testes do repositório.' }}
-          <span class="muted">Pode levar alguns minutos. Esta janela atualiza sozinha. Se fechar, a validação continua e o botão Última validação, no topo da página, mostra o resultado.</span>
+          {{ (v.status === ValidationStatus.Pending ? 'validation.queued' : 'validation.running') | translate }}
+          <span class="muted">{{ 'validation.runningHint' | translate }}</span>
         </p>
       } @else if (v.status === ValidationStatus.Failed) {
         <p class="notice is-error" role="alert">{{ v.error }}</p>
@@ -21,24 +21,24 @@
         <div [class]="'score is-' + verdictSlug[r.verdict]">
           <span class="score-value">{{ r.score }}</span>
           <span class="score-text">
-            <strong>{{ verdictLabel[r.verdict] }}</strong>
+            <strong>{{ verdictKey[r.verdict] | translate }}</strong>
             @if (failureSummary(); as why) {
               <span class="score-why">{{ why }}</span>
             }
-            <span class="muted">{{ r.score }}% dos critérios do rascunho cumpridos. Pontos de decisão do fluxo: de {{ r.decisionPointsBefore }} para {{ r.decisionPointsAfter }}.</span>
+            <span class="muted">{{ 'validation.scoreLine' | translate: { score: r.score, before: r.decisionPointsBefore, after: r.decisionPointsAfter } }}</span>
           </span>
         </div>
 
-        <h3>Critérios do rascunho</h3>
+        <h3>{{ 'validation.criteriaTitle' | translate }}</h3>
         @if (r.expectations.length === 0) {
-          <p class="muted">Nenhum critério conferível.</p>
+          <p class="muted">{{ 'validation.noCriteria' | translate }}</p>
         }
         <ul class="checks">
           @for (check of r.expectations; track $index) {
             <li [class]="'is-' + checkSlug[check.status]">
               <span class="mark" aria-hidden="true">{{ mark(check.status) }}</span>
               <span>
-                <span class="visually-hidden">{{ checkLabel[check.status] }}: </span>{{ check.description }}
+                <span class="visually-hidden">{{ checkKey[check.status] | translate }}: </span>{{ check.description }}
                 @if (check.detail) {
                   <span class="muted check-detail">{{ check.detail }}</span>
                 }
@@ -48,7 +48,7 @@
         </ul>
 
         @if (r.unexpected.length > 0) {
-          <h3>Fora do pedido</h3>
+          <h3>{{ 'validation.outOfScope' | translate }}</h3>
           <ul class="checks">
             @for (line of r.unexpected; track $index) {
               <li class="is-unexpected"><span class="mark" aria-hidden="true">!</span><span>{{ line }}</span></li>
@@ -56,17 +56,17 @@
           </ul>
         }
 
-        <h3>Build e testes do repositório</h3>
+        <h3>{{ 'validation.buildTests' | translate }}</h3>
         <ul class="checks">
           @for (check of [r.build, r.tests]; track $index) {
             <li [class]="'is-' + checkSlug[check.status]">
               <span class="mark" aria-hidden="true">{{ mark(check.status) }}</span>
               <span>
-                {{ check.description }}: {{ checkLabel[check.status] }}
+                {{ check.description }}: {{ checkKey[check.status] | translate }}
                 @if (check.detail) {
                   @if (check.status === CheckStatus.Failed) {
                     <details>
-                      <summary>Ver a saída</summary>
+                      <summary>{{ 'validation.viewOutput' | translate }}</summary>
                       <pre class="output">{{ check.detail }}</pre>
                     </details>
                   } @else {
@@ -79,7 +79,7 @@
         </ul>
 
         @if (document(); as doc) {
-          <h3>Documentação do fluxo</h3>
+          <h3>{{ 'validation.docTitle' | translate }}</h3>
           <pre class="output doc" tabindex="0">{{ doc }}</pre>
         }
       }
@@ -91,19 +91,19 @@
     <footer class="dialog-foot">
       @if (v.newSurveyId) {
         <a class="btn btn-g" [routerLink]="['/surveys', v.newSurveyId]" [queryParams]="{ comparar: v.surveyId }" (click)="closed.emit()"
-          title="Abre o fluxo novo com o original por cima: o que entrou em azul, o que saiu em vermelho (dá para parar de comparar lá)">Abrir o fluxo novo comparado</a>
+          [title]="'validation.openNewTitle' | translate">{{ 'validation.openNew' | translate }}</a>
       }
       @if (!v.hasDocument && (v.status === ValidationStatus.Failed || v.result?.verdict === ValidationVerdict.Rejected)) {
-        <button type="button" class="btn btn-p" (click)="revalidate.emit()" [disabled]="busy()">Validar de novo</button>
+        <button type="button" class="btn btn-p" (click)="revalidate.emit()" [disabled]="busy()">{{ 'validation.revalidate' | translate }}</button>
       } @else if (v.status === ValidationStatus.Completed || v.status === ValidationStatus.Failed) {
-        <button type="button" class="btn btn-g" (click)="revalidate.emit()" [disabled]="busy()">Validar de novo</button>
+        <button type="button" class="btn btn-g" (click)="revalidate.emit()" [disabled]="busy()">{{ 'validation.revalidate' | translate }}</button>
       }
       @if (v.hasDocument) {
-        <a class="btn btn-p" [href]="documentUrl()" [attr.download]="documentName()" [title]="'Baixa ' + documentName() + ' (Markdown com regras, diagrama e histórico)'">Baixar documentação</a>
+        <a class="btn btn-p" [href]="documentUrl()" [attr.download]="documentName()" [title]="'validation.downloadTitle' | translate: { name: documentName() }">{{ 'validation.download' | translate }}</a>
       } @else if (v.result && v.result.verdict !== ValidationVerdict.Rejected) {
         <button type="button" class="btn btn-p" (click)="approve.emit()" [disabled]="busy()"
-          [title]="v.result.verdict === ValidationVerdict.Partial ? 'Nem todos os critérios passaram; aprovar registra assim mesmo e gera a documentação' : 'Gera a documentação do fluxo'">
-          {{ busy() ? 'Gerando…' : v.result.verdict === ValidationVerdict.Partial ? 'Aprovar mesmo assim' : 'Aprovar e documentar' }}
+          [title]="(v.result.verdict === ValidationVerdict.Partial ? 'validation.partialTitle' : 'validation.generateTitle') | translate">
+          {{ (busy() ? 'validation.generating' : v.result.verdict === ValidationVerdict.Partial ? 'validation.approveAnyway' : 'validation.approve') | translate }}
         </button>
       }
     </footer>

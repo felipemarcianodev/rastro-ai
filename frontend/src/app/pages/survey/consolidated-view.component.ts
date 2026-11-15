@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { resolveDiagram } from '../../core/diagram-source';
 import { consolidatedMermaid, flowSummaryOf, mergeDiagram, nodeOfStep, stepId } from '../../core/graph/consolidated';
@@ -14,7 +15,7 @@ import { DiagramStageComponent, StagePick } from '../diagram/diagram-stage.compo
 // no lugar do canvas. Clicar num passo escolhe o nó do grafo e abre o painel do passo.
 @Component({
   selector: 'app-consolidated-view',
-  imports: [RouterLink, DiagramStageComponent],
+  imports: [RouterLink, TranslatePipe, DiagramStageComponent],
   templateUrl: './consolidated-view.component.html',
   styleUrl: './consolidated-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,

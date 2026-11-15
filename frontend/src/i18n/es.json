@@ -1,6 +1,11 @@
 {
   "common": {
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "retry": "Intentar de nuevo",
+    "close": "Cerrar",
+    "sending": "Enviando…",
+    "copied": "Copiado",
+    "copyFailed": "No se pudo copiar"
   },
   "shell": {
     "skipToContent": "Ir al contenido",
@@ -50,5 +55,984 @@
     "monocromo": "Monocromo y azul",
     "rosa": "Rosa y carbón",
     "artico": "Ártico"
+  },
+  "enum": {
+    "changeKind": {
+      "added": "Paso nuevo",
+      "removed": "Sale del flujo",
+      "modified": "Cambia"
+    },
+    "dbOperation": {
+      "read": "lee",
+      "insert": "inserta en",
+      "update": "actualiza",
+      "delete": "elimina de",
+      "execute": "ejecuta"
+    },
+    "dbOperationShort": {
+      "read": "lee",
+      "insert": "inserta",
+      "update": "actualiza",
+      "delete": "elimina",
+      "execute": "ejecuta"
+    },
+    "nodeKind": {
+      "entry": "Entrada",
+      "method": "Método",
+      "decision": "Decisión",
+      "loop": "Bucle",
+      "try": "Manejo de errores",
+      "return": "Retorno anticipado",
+      "throw": "Excepción",
+      "external": "Llamada externa",
+      "unresolved": "Sin resolver",
+      "jump": "Salto del bucle"
+    },
+    "edgeConfidence": {
+      "extracted": "Extraída del código",
+      "inferred": "Inferida (por revisar)",
+      "confirmed": "Confirmada por ti"
+    },
+    "proposalOrigin": {
+      "manual": "Tú",
+      "agent": "Agente",
+      "provider": "IA"
+    },
+    "unresolvedReason": {
+      "multipleImplementations": "Más de una implementación",
+      "noImplementation": "Sin implementación en el código",
+      "dynamicDispatch": "Llamada dinámica",
+      "delegate": "Delegado o evento",
+      "messageDispatch": "Mensaje para mediador o bus",
+      "reflection": "Reflection",
+      "depthLimit": "Límite de profundidad",
+      "routeNotResolved": "Ruta de la llamada HTTP sin resolver",
+      "noMatchingEndpoint": "Ningún endpoint atiende la llamada",
+      "multipleEndpoints": "Más de un endpoint atiende la llamada"
+    },
+    "unresolvedReasonHint": {
+      "multipleImplementations": "La interfaz tiene varias implementaciones y ningún registro de DI decide cuál se ejecuta aquí.",
+      "noImplementation": "La interfaz no tiene implementación en esta solution. Puede venir de un paquete o de otro repositorio.",
+      "dynamicDispatch": "El compilador no enlazó la llamada a un método (dynamic o código que no compiló).",
+      "delegate": "Lo que se ejecuta depende de quién asignó el delegado o se suscribió al evento.",
+      "messageDispatch": "El handler del mensaje lo elige en tiempo de ejecución el mediador o el bus.",
+      "reflection": "El método se llama por reflection, así que el destino solo existe en tiempo de ejecución.",
+      "depthLimit": "El camino continúa, pero se detuvo en el límite de profundidad elegido.",
+      "routeNotResolved": "La ruta de la llamada HTTP se arma en tiempo de ejecución, así que no se puede saber a qué endpoint llega.",
+      "noMatchingEndpoint": "La ruta se resolvió, pero ninguno de los repositorios elegidos tiene un endpoint que la atienda.",
+      "multipleEndpoints": "La ruta coincide con más de un endpoint. Elige cuál recibe la llamada."
+    },
+    "surveyStatus": {
+      "pending": "En cola",
+      "running": "Analizando",
+      "completed": "Listo",
+      "failed": "Falló"
+    },
+    "validationVerdict": {
+      "approved": "Aprobada",
+      "partial": "Parcial",
+      "rejected": "Rechazada"
+    },
+    "checkStatus": {
+      "passed": "pasó",
+      "failed": "falló",
+      "skipped": "no configurado"
+    },
+    "findingCategory": {
+      "ddd": "Reglas de DDD",
+      "cleanCode": "Código limpio",
+      "metric": "Métricas",
+      "database": "Base de datos"
+    },
+    "findingKind": {
+      "highComplexity": "Complejidad alta",
+      "longMethod": "Método largo",
+      "deepNesting": "Anidamiento profundo",
+      "tooManyDependencies": "Demasiadas dependencias",
+      "silentCatch": "Catch que se traga el fallo",
+      "serviceLocator": "Service locator",
+      "entityChangedOutsideDomain": "Entidad modificada fuera del dominio",
+      "publicSetterOnEntity": "Setter público en la entidad",
+      "persistenceOutsideDomain": "Escritura fuera del dominio",
+      "queryInLoop": "Consulta dentro de un bucle (N+1)",
+      "materializeBeforeFilter": "ToList antes del filtro",
+      "readWithoutNoTracking": "Lectura sin AsNoTracking",
+      "procedureByRawSql": "Procedure por SQL crudo",
+      "loadToDelete": "Carga para borrar",
+      "leadingWildcardLike": "LIKE con comodín al inicio"
+    },
+    "findingSeverity": {
+      "info": "Informativo",
+      "warning": "Atención",
+      "critical": "Crítico"
+    }
+  },
+  "error": {
+    "REPOSITORY_COMMAND_INVALID": "El comando debe caber en una línea, con hasta 500 caracteres.",
+    "REPOSITORY_NOT_ALLOWED": "Este repositorio no está registrado. Registra la carpeta en Configuración.",
+    "SOLUTION_PATH_INVALID": "Usa un .sln, .slnx, .csproj o tsconfig relativo a la raíz del repositorio.",
+    "ANGULAR_UNAVAILABLE": "No se encontró Node en esta máquina. Instala Node para rastrear flujos Angular.",
+    "SOLUTION_NOT_FOUND": "No hay solution en esa ruta.",
+    "ENTRY_POINT_REQUIRED": "Indica el punto de entrada, por ejemplo PedidosController.Crear.",
+    "DEPTH_OUT_OF_RANGE": "La profundidad debe estar entre 1 y 40.",
+    "SOURCE_PATH_INVALID": "Este archivo no se puede leer.",
+    "EDGE_NOT_PROPOSED": "Esta arista no es una propuesta (o ya fue decidida).",
+    "DRAFT_INVALID": "El borrador no pasó la validación.",
+    "DRAFT_REQUIRED": "Dibuja y guarda al menos un cambio antes de validar.",
+    "VALIDATION_RUNNING": "Ya hay una validación en curso para este rastreo.",
+    "VALIDATION_NOT_APPROVABLE": "Solo se puede aprobar una validación concluida y no rechazada.",
+    "C4_PEOPLE_INVALID": "Revisa las personas: cada una necesita un nombre, sin repetir.",
+    "NOTE_INVALID": "La nota debe ser de un paso de este flujo y tener hasta 500 caracteres.",
+    "DIAGRAM_INVALID": "El diagrama está vacío o es demasiado grande.",
+    "SURVEY_RUNNING": "El rastreo aún está en análisis. Espera a que termine para eliminarlo.",
+    "AI_SETTINGS_INVALID": "Configuración inválida: revisa los modelos, las claves y el presupuesto.",
+    "AI_DISABLED": "La IA está desactivada en la configuración.",
+    "AI_USE_DISABLED": "Este uso de la IA está desactivado en la configuración.",
+    "AI_NOT_CONFIGURED": "Falta la clave de API del proveedor elegido.",
+    "AI_BUDGET_EXCEEDED": "Se agotó el presupuesto diario de tokens.",
+    "AI_PROVIDER_ERROR": "El proveedor de IA no respondió. Inténtalo de nuevo en unos instantes.",
+    "AI_QUESTION_INVALID": "Escribe una pregunta de hasta unos pocos párrafos sobre este flujo.",
+    "REPOSITORY_NAME_INVALID": "Nombre inválido: usa letras, números, punto, guion o guion bajo, empezando por letra o número.",
+    "REPOSITORY_PATH_INVALID": "Usa la ruta completa de la carpeta, como C:\\codigo\\mi-sistema (Windows) o /home/tu/mi-sistema (Linux y macOS).",
+    "REPOSITORY_FOLDER_NOT_FOUND": "Esa carpeta no existe en este equipo.",
+    "REPOSITORY_EXISTS": "Ya existe un repositorio con ese nombre.",
+    "REPOSITORY_NOT_FOUND": "Este repositorio ya no está registrado.",
+    "CROSS_REPOSITORIES_INVALID": "Elige como máximo 10 repositorios para seguir las llamadas HTTP.",
+    "QUERY_INVALID": "Pega una consulta de hasta 100 mil caracteres.",
+    "CONNECTION_INVALID": "Cadena de conexión inválida: revisa el servidor (Data Source) y el formato, con hasta 2.000 caracteres.",
+    "CONNECTION_MISSING": "Registra antes la conexión con la base de datos viva.",
+    "PLAN_NOT_ALLOWED": "El plan solo se genera para una instrucción SELECT, INSERT, UPDATE, DELETE o MERGE, sin SET, EXEC ni DDL.",
+    "LIVE_DATABASE_ERROR": "La base de datos viva no respondió. Revisa la conexión e inténtalo de nuevo.",
+    "ORIGIN_NOT_ALLOWED": "Solicitud rechazada: solo la pantalla del propio Rastro puede modificar datos.",
+    "noResponse": "Rastro no respondió. Comprueba que el comando rastro siga abierto en la terminal e inténtalo de nuevo.",
+    "notFound": "No encontrado.",
+    "generic": "Algo salió mal en Rastro. Inténtalo de nuevo."
+  },
+  "flowCanvas": {
+    "mark": {
+      "confirmed": "Confirmada por ti",
+      "inferred": "Inferida, por revisar"
+    },
+    "noteTitle": "Tu nota: {note}",
+    "outcomeTitle": "Si la condición se cumple: {outcome}",
+    "drawing": "Dibujando el grafo…",
+    "keysHelp": "Las flechas recorren los pasos siguiendo los enlaces; Alt+flechas mueve el paso; Enter lo elige; las teclas + y − abren y cierran el detalle del paso; Ctrl+clic o Shift+arrastrar en el fondo marca varios pasos para moverlos juntos.",
+    "toolsLabel": "Navegación del grafo",
+    "zoomIn": "Acercar",
+    "zoomOut": "Alejar",
+    "fit": "Ajustar el grafo a la pantalla",
+    "search": "Buscar",
+    "searchAria": "Buscar un paso en el grafo (Ctrl+F)",
+    "filtersLabel": "Filtros del grafo",
+    "nextHoleTitle": "Ir al siguiente paso no resuelto",
+    "holes": "No resueltos ({count})",
+    "brief": {
+      "label": "Solo el método de entrada",
+      "showAll": "Mostrar también lo que llama cada método",
+      "showEntry": "Mostrar solo el código del método de entrada, con los métodos llamados cerrados"
+    },
+    "reset": "Reorganizar",
+    "resetTitle": "Devuelve los pasos que arrastraste a la organización automática",
+    "framework": {
+      "show": "Mostrar las llamadas de .NET (LINQ, EF Core, caché, DI, HttpClient)",
+      "hide": "Ocultar las llamadas de .NET (LINQ, EF Core, caché, DI, HttpClient)",
+      "label": "Llamadas de .NET ({count})"
+    },
+    "undo": "Deshacer",
+    "moved": "Paso movido.",
+    "positionsReset": "Posiciones restablecidas.",
+    "shortcuts": {
+      "hint": "Flechas: recorrer · Alt+flechas: mover · Ctrl+F: buscar · Esc: limpiar",
+      "close": "Cerrar la sugerencia de atajos"
+    },
+    "legend": {
+      "title": "Leyenda",
+      "hide": "Ocultar leyenda",
+      "trail": "Camino hasta el paso elegido",
+      "nextRight": "Línea hacia la derecha: el paso siguiente, en el orden del código",
+      "callDown": "Flecha hacia abajo: lo que llama el paso, o lo que ocurre cuando la condición se cumple",
+      "nextDown": "Línea hacia abajo: el paso siguiente, en el orden del código",
+      "callRight": "Flecha hacia la derecha: lo que llama el paso, o lo que ocurre cuando la condición se cumple",
+      "order": "Orden de lectura: el paso 2.1 va dentro del paso 2",
+      "effect": "Lo que hace el paso en el mundo: base de datos, mensaje, caché, archivo o cola",
+      "dbMap": "Ver el mapa de la base de datos",
+      "dbMapTitle": "El mapa de la base de datos de este repositorio, leído del código",
+      "main": "Línea más gruesa: el código del método de entrada; los pasos más claros están más hondo en las llamadas",
+      "exit": "Roja discontinua: el flujo se detiene con un error",
+      "unresolved": "No resuelto",
+      "http": "Llamada HTTP a otro sistema (verbo y ruta)",
+      "drag": "Arrastra un paso para reorganizar (o Alt+flechas); las flechas recorren los pasos",
+      "pan": "Arrastra el fondo para mover la vista; Shift+arrastrar o Ctrl+clic marca varios pasos para moverlos juntos",
+      "added": "Paso nuevo en la comparación",
+      "removed": "Salió del flujo",
+      "match": "Resultado de la búsqueda",
+      "collapsed": "Pasos contraídos (clic para abrir)",
+      "note": "Tu nota"
+    },
+    "walkEnd": {
+      "forward": "Fin del camino: este paso no llama a ningún otro.",
+      "back": "Este es el comienzo del camino.",
+      "siblings": "Este paso no tiene hermanos."
+    },
+    "dbTitle": "{text}. Haz clic en el paso para ver la tabla en la base de datos",
+    "findingTitle": "{count, plural, one {# hallazgo} other {# hallazgos}} de calidad; el peor: {severity}",
+    "worst": {
+      "info": "informativo",
+      "warning": "atención",
+      "critical": "crítico"
+    },
+    "meta": {
+      "expand": "Haz clic para expandir",
+      "repeat": "Ya aparece arriba: haz clic para ir"
+    },
+    "aria": {
+      "collapsed": "Contraído: {label}. Enter para expandir",
+      "repeat": "{kind} de nuevo: {label}. Enter va al original",
+      "node": "{kind}: {label}",
+      "nodeThen": "{kind}: {label}, entonces {outcome}",
+      "note": "con una nota tuya",
+      "match": "resultado de la búsqueda",
+      "foldOpen": "detalle abierto, la tecla − lo cierra",
+      "foldClosed": "detalle cerrado, la tecla + lo abre"
+    },
+    "dbEffect": {
+      "read": "lee",
+      "write": "escribe",
+      "execute": "ejecuta"
+    }
+  },
+  "flowMap": {
+    "tab": {
+      "block": "Bloque",
+      "rules": "Reglas",
+      "questions": "Preguntas"
+    },
+    "barLabel": "Diseño del mapa",
+    "zoomLabel": "Zoom del mapa",
+    "zoomActualAria": "Zoom al {percent}%. Volver al 100%",
+    "zoomActualTitle": "Volver al 100%",
+    "fit": "Ajustar el mapa a la pantalla",
+    "collapsedBar": "{count, plural, one {Un sistema contraído} other {# sistemas contraídos}}: haz clic en el bloque con + para abrir.",
+    "clearPath": "Quitar el resaltado",
+    "loading": "Armando el mapa del flujo…",
+    "empty": "El mapa de este flujo está vacío: el rastreo no tiene pasos para dibujar.",
+    "outcomeAria": "Resaltar el camino del desenlace: {text}",
+    "callAria": "Llamada: {text}",
+    "panelLabel": "Panel del mapa",
+    "blockPanelLabel": "Bloque elegido",
+    "closeBlockTitle": "Cerrar el panel del bloque (Esc)",
+    "steps": "Pasos de este bloque",
+    "outcomes": "Desenlaces",
+    "leadsTo": "lleva a {target}",
+    "fails": "falla",
+    "ends": "termina",
+    "calls": "Llamadas que salen de aquí",
+    "call": "Llama",
+    "fields": "campos: {fields}",
+    "callTitle": "{text}. Campos: {fields}",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "previousTitle": "Anterior: {title} (flecha izquierda)",
+    "noPrevious": "No hay un bloque anterior en este camino",
+    "nextTitle": "Siguiente: {title} (flecha derecha)",
+    "noNext": "No hay un bloque siguiente en este camino",
+    "focusSection": "Ver solo este tramo",
+    "focusSectionTitle": "Recorta el flujo en el paso de este bloque",
+    "closeSystem": "Contraer este sistema",
+    "openSystem": "Abrir este sistema",
+    "hint": "Elige un bloque en el mapa para ver sus pasos, sus desenlaces y las llamadas que salen de él.",
+    "blockAria": "{kind}: {title}",
+    "blockAriaCollapsed": "{label}. Contraído, con {count, plural, one {# bloque más} other {# bloques más}}: haz clic para abrir",
+    "rules": {
+      "filterLabel": "Filtrar reglas por efecto",
+      "all": "Todas",
+      "loading": "Buscando las reglas del flujo…",
+      "byYou": "escrita por ti",
+      "duplicated": "{count, plural, one {implementada en # sistema} other {implementada en # sistemas}}",
+      "duplicatedTitle": "La misma condición aparece en más de un sistema",
+      "pickBlockTitle": "Elegir el bloque en el mapa",
+      "empty": "Ninguna regla con este efecto."
+    },
+    "questions": {
+      "filterLabel": "Filtrar preguntas por rol",
+      "all": "Todos",
+      "loading": "Armando las preguntas del flujo…",
+      "empty": "Ninguna pregunta lista para este rol.",
+      "freeLabel": "Pregunta libre sobre el flujo",
+      "placeholder": "Por ejemplo: ¿qué ocurre si el pago es rechazado?",
+      "asking": "Preguntando a la IA…",
+      "ask": "Preguntar a la IA",
+      "goes": "tu pregunta, el mapa del flujo (nombres de métodos y archivo:línea), las reglas y hasta 8 fragmentos de código alrededor de las entradas y las decisiones",
+      "answerLabel": "Respuesta",
+      "providerAnswer": "respuesta de la IA ({provider})",
+      "gap": "Laguna:",
+      "sources": "Fuentes:",
+      "pickStepTitle": "Elegir el paso en el flujo"
+    }
+  },
+  "graph": {
+    "layout": {
+      "horizontal": "de izquierda a derecha",
+      "timeline": "en línea de tiempo",
+      "tree": "en árbol",
+      "consolidated": "consolidado, en un solo dibujo",
+      "map": "en mapa, por sistema",
+      "directionAria": "Dibujo {current}. Cambiar a dibujar {next}",
+      "directionTitle": "Dibujar {next}"
+    },
+    "flowMap": {
+      "outsideLane": "Fuera del código",
+      "conditionTitle": "Si {condition}",
+      "blockKind": {
+        "entry": "Entrada",
+        "step": "Paso",
+        "decision": "Decisión",
+        "outside": "Fuera del código"
+      }
+    },
+    "flowInsight": {
+      "ruleEffect": {
+        "blocks": "Bloquea",
+        "allows": "Permite",
+        "sideEffect": "Efecto colateral"
+      },
+      "questionRole": {
+        "techLead": "TL",
+        "staff": "Staff",
+        "manager": "Gerente"
+      },
+      "answerSeal": {
+        "extracted": "Extraída del código",
+        "inferred": "Inferida por la IA",
+        "outside": "Fuera del código rastreado",
+        "none": "Sin respuesta"
+      },
+      "fieldsAndMore": "{fields} y otros campos",
+      "moreFields": "otros campos"
+    },
+    "timeline": {
+      "repeatFrame": "↻ Repite {label}"
+    },
+    "collapse": {
+      "steps": "{count, plural, one {+# paso} other {+# pasos}}",
+      "hint": "Contraído. Haz clic para expandir."
+    },
+    "reading": {
+      "effect": {
+        "database": "base de datos",
+        "message": "mensaje",
+        "cache": "caché",
+        "file": "archivo",
+        "queue": "cola"
+      },
+      "hint": {
+        "database": "Lee o escribe en la base de datos",
+        "message": "Envía un mensaje o llama a otro sistema (HTTP, correo, Telegram)",
+        "cache": "Lee o escribe en la caché",
+        "file": "Lee o escribe un archivo",
+        "queue": "Publica en una cola o la consume"
+      }
+    },
+    "plain": {
+      "if": "Si {condition}",
+      "switch": "Según {condition}",
+      "foreach": "Para cada {item} en {collection}",
+      "while": "Mientras {condition}",
+      "repeatWhile": "Repite mientras {condition}",
+      "repeat": "Repite",
+      "rethrow": "Vuelve a lanzar el error",
+      "throwNew": "Se detiene con el error {error}",
+      "throw": "Se detiene con el error: {error}",
+      "end": "Termina",
+      "endReturning": "Termina y devuelve {value}",
+      "jump": {
+        "break": "Sale del bucle",
+        "continue": "Salta al siguiente"
+      },
+      "branchThen": "Si sí",
+      "branchElse": "Si no",
+      "branchDefault": "En los demás casos",
+      "branchCase": "Caso {value}",
+      "branchOr": "{text} o {part}",
+      "branchOtherCases": "otros casos"
+    },
+    "origin": {
+      "manual": "Enlace hecho por ti",
+      "agent": "Propuesto por un agente (MCP)",
+      "provider": "Propuesto por el proveedor de IA"
+    },
+    "branches": {
+      "foldOpen": "Cerrar el detalle de este método (tecla −)",
+      "foldClosed": "Abrir el detalle de este método (tecla +)"
+    },
+    "consolidated": {
+      "firstSystem": "Primer sistema"
+    },
+    "foreignEdit": "La edición solo está disponible en el primer sistema del flujo",
+    "firstSystem": "Primer sistema",
+    "image": {
+      "noCanvas": "Este navegador no tiene canvas 2D.",
+      "tooLarge": "La imagen quedó demasiado grande.",
+      "drawFailed": "No se pudo dibujar la imagen."
+    }
+  },
+  "nodePanel": {
+    "closeAria": "Cerrar el paso y volver a la vista general",
+    "closeTitle": "Cerrar (Esc)",
+    "showWholeGraph": "Mostrar el grafo completo",
+    "focusFlow": "Ver solo este flujo",
+    "focusHelp": "Oculta los otros caminos: queda lo que lleva a este paso y lo que se ejecuta después",
+    "focusHelpText": "Oculta los otros caminos: queda lo que lleva a este paso y lo que se ejecuta después.",
+    "origin": "Sistema {system} · {language}",
+    "originCommit": "Sistema {system} · {language} · commit {commit}",
+    "editGroup": "Editar este paso",
+    "removedInDraft": "Este paso sale del flujo en el borrador.",
+    "restoreStep": "Restaurar paso",
+    "intentLabelAdded": "Qué debe hacer este paso",
+    "intentLabelChanged": "Qué debe cambiar en este paso",
+    "intentPlaceholder": "Ej.: confirmar solo cuando haya stock",
+    "apply": "Aplicar",
+    "applied": "Aplicado al borrador",
+    "removeStep": "Quitar paso",
+    "connectLabel": "Seguir a otro paso",
+    "connectChoose": "Elige el paso",
+    "connect": "Enlazar",
+    "draftChange": "Cambio pedido en el borrador",
+    "ruleWrittenBy": "Regla escrita {origin, select, manual {por ti} agent {por un agente (MCP)} other {por el proveedor de IA}}",
+    "ruleWrittenByTitle": "Escrita {origin, select, manual {por ti} agent {por un agente (MCP)} other {por el proveedor de IA}}",
+    "noRule": "No hay regla escrita para este paso. Un agente conectado (MCP) puede escribirla.",
+    "noRuleAi": "No hay regla escrita para este paso. Un agente conectado (MCP) puede escribirla, o pídesela a la IA abajo.",
+    "aiOff": "IA desactivada.",
+    "aiOffLink": "Activar en Configuración",
+    "needUseWriteRules": "Para que la IA escriba la regla, activa el uso \"Escribir reglas\" en",
+    "needUseFillHoles": "Para que la IA proponga destinos, activa el uso \"Completar huecos\" en",
+    "describing": "Escribiendo…",
+    "rewriteRule": "Reescribir regla con la IA",
+    "writeRule": "Escribir regla con la IA",
+    "writeMissingRules": "Escribir las reglas que faltan con la IA",
+    "disclosure": {
+      "stepCode": "el código de este paso",
+      "noRepeat": "El código ya descrito antes no se envía de nuevo.",
+      "hole": "la llamada sin destino, el código que la rodea y los candidatos que encontró el compilador",
+      "missingRules": "el código de los pasos sin regla, en lotes"
+    },
+    "noteLabel": "Tu nota en este paso",
+    "notePlaceholder": "Ej.: cuidado, también lo llama el webhook",
+    "noteHelp": "Aparece en todo flujo de este repositorio que pasa por este paso y en la documentación. {used}/{max}",
+    "saving": "Guardando…",
+    "saveNote": "Guardar nota",
+    "deleteNote": "Eliminar nota",
+    "editNote": "Editar nota",
+    "addNote": "Anotar este paso",
+    "undo": "Deshacer",
+    "calledAt": "Llamado en",
+    "calledAtMany": "Llamado en (1 de {count} llamadas; las otras están en Enlaces)",
+    "openInEditor": "Abrir en VS Code",
+    "openInEditorTitle": "Abre en VS Code, en la carpeta {folder}",
+    "copyLocation": "Copiar archivo:línea",
+    "editorOpening": "Abriendo en VS Code… Si no se abre, revisa la carpeta en Configuración.",
+    "editorHint": "Para abrir en VS Code, el repositorio debe estar registrado, con su carpeta, en",
+    "editorHintDismiss": "No mostrar de nuevo",
+    "db": {
+      "title": "En la base de datos",
+      "line": "línea {line}",
+      "noSql": "sin consulta en el código",
+      "viewTable": "Ver {table} en el mapa de la base de datos",
+      "analyzeTitle": "Abrir la consulta de este paso en el análisis de consulta",
+      "analyzeAria": "Analizar la consulta de {table}, línea {line}",
+      "analyze": "Analizar la consulta"
+    },
+    "metricsTitle": "Métricas del método",
+    "metrics": "Complejidad {cyclomatic}, {lines, plural, one {# línea} other {# líneas}}, {nesting, plural, one {# nivel} other {# niveles}} de anidamiento y {deps, plural, one {# dependencia inyectada} other {# dependencias inyectadas}}.",
+    "improvementsHere": "Mejoras en este paso",
+    "condition": "Condición",
+    "fillAsking": "Preguntando a la IA…",
+    "fillWithAi": "Proponer destinos con la IA",
+    "links": {
+      "title": "Enlaces",
+      "from": "viene de",
+      "to": "sigue a",
+      "removeAria": "Quitar el enlace con {name}",
+      "remove": "Quitar enlace",
+      "leaves": "El enlace sale del flujo",
+      "confirmAria": "Confirmar el enlace con {name}",
+      "dismissAria": "Descartar el enlace con {name}",
+      "confirm": "Confirmar",
+      "dismiss": "Descartar",
+      "proposal": "{base}; propuesta {origin, select, manual {tuya} agent {de un agente (MCP)} other {del proveedor de IA}}"
+    },
+    "pathFromEntry": "Camino desde la entrada",
+    "pathFrom": "Camino a partir de {label}",
+    "code": "Código",
+    "snippetAria": "Fragmento del código",
+    "loadingSnippet": "Cargando el fragmento…",
+    "externalNoCode": "Llamada fuera de la solution: el código no está en el repositorio.",
+    "noPosition": "Este paso no tiene posición propia en el código.",
+    "overview": {
+      "title": "Vista general",
+      "hint": "Haz clic en un paso para ver el código y el camino desde la entrada hasta él.",
+      "jumpTo": "Ir a la sección",
+      "holesCount": "{count, plural, one {# hueco} other {# huecos}}",
+      "crossFlowCount": "{count} entre flujos",
+      "improvementsCount": "{count, plural, one {# mejora} other {# mejoras}}",
+      "shortcuts": "Qué puedes hacer aquí",
+      "dbMap": "Mapa de la base de datos",
+      "dbMapTitle": "El mapa de la base de datos de este repositorio, leído del código",
+      "exportFlow": "Exportar el flujo",
+      "exportTitle": "PNG, SVG, Mermaid y C4",
+      "editFlow": "Editar flujo",
+      "editFlowTitle": "Dibujar un cambio en el flujo y generar el prompt para el agente",
+      "questions": "Preguntas sobre el flujo",
+      "questionsTitle": "Abre el mapa del flujo en la pestaña Preguntas",
+      "summary": "Resumen del flujo",
+      "dbInFlow": "Base de datos en este flujo",
+      "tablesCount": "{count, plural, one {# tabla} other {# tablas}}",
+      "openDbMap": "Abrir en el mapa de la base de datos",
+      "holesTitle": "Huecos por completar",
+      "holesHint": "Llamadas que el compilador no enlazó por sí solo. Un agente conectado (MCP) o la IA, si está activada, propone el destino; tú confirmas.",
+      "proposedTarget": "Destino propuesto, esperándote",
+      "stepTypes": "Tipos de paso",
+      "rulesTitle": "Reglas del flujo",
+      "noRules": "Ninguna regla escrita todavía. Aparecen aquí en el orden en que el flujo pasa por los pasos.",
+      "crossFlowTitle": "Entre flujos",
+      "crossFlowHint": "Este flujo guarda datos sin una verificación que otros flujos del repositorio hacen antes de guardar. Revisa si es a propósito.",
+      "crossFlowItem": "Guarda {entity} sin la verificación {guard}, que {count, plural, one {el flujo} other {los flujos}} {flows} {count, plural, one {hace} other {hacen}} antes de guardar.",
+      "seeInFlow": "Ver en el flujo",
+      "seeInFlowAria": "Ver en el flujo: {label}",
+      "improvementsDebt": "Mejoras y deuda técnica",
+      "noHoles": "Sin huecos: el compilador resolvió todas las llamadas de este flujo.",
+      "deleteSurvey": "Eliminar rastreo…"
+    }
+  },
+  "findings": {
+    "legacy": "Este rastreo es anterior a la inspección de calidad. Rastrea el flujo de nuevo para ver las mejoras.",
+    "noneStep": "Ningún hallazgo en este paso.",
+    "noneFlow": "Ningún hallazgo de calidad en este flujo.",
+    "seeInFlow": "Ver en el flujo",
+    "seeInFlowAria": "Ver en el flujo: {label}",
+    "goTo": "Ir a {label}",
+    "seeInDbMap": "Ver en el mapa de la base de datos",
+    "seeInDbMapAria": "Ver en el mapa de la base de datos",
+    "seeInDbMapAriaTarget": "Ver en el mapa de la base de datos: {target}",
+    "refactorPrompt": "Prompt de refactorización",
+    "refactorPromptAria": "Prompt de refactorización: {kind} en {label}"
+  },
+  "flowSummary": {
+    "showMain": "Mostrar solo la línea principal",
+    "showAll": "Mostrar todos los pasos"
+  },
+  "validation": {
+    "title": "Validación del cambio",
+    "intro": "Rastro vuelve a rastrear el flujo en el código actual y comprueba lo que pidió el borrador. Un agente conectado a Rastro (MCP) obtiene el mismo resultado.",
+    "queued": "En cola para validar.",
+    "running": "Rastreando el flujo de nuevo y ejecutando la compilación y las pruebas del repositorio.",
+    "runningHint": "Puede tardar unos minutos. Esta ventana se actualiza sola. Si la cierras, la validación continúa y el botón Última validación, en la parte superior de la página, muestra el resultado.",
+    "scoreLine": "{score}% de los criterios del borrador cumplidos. Puntos de decisión del flujo: de {before} a {after}.",
+    "failedCriteria": "{count, plural, one {# criterio falló} other {# criterios fallaron}}",
+    "unexpectedChanges": "{count, plural, one {# cambio fuera de lo pedido} other {# cambios fuera de lo pedido}}",
+    "buildFailed": "la compilación falló",
+    "testsFailed": "las pruebas fallaron",
+    "criteriaTitle": "Criterios del borrador",
+    "noCriteria": "Ningún criterio comprobable.",
+    "outOfScope": "Fuera de lo pedido",
+    "buildTests": "Compilación y pruebas del repositorio",
+    "viewOutput": "Ver la salida",
+    "docTitle": "Documentación del flujo",
+    "openNew": "Abrir el flujo nuevo comparado",
+    "openNewTitle": "Abre el flujo nuevo con el original encima: lo que entró en azul, lo que salió en rojo (allí puedes dejar de comparar)",
+    "revalidate": "Validar de nuevo",
+    "download": "Descargar documentación",
+    "downloadTitle": "Descarga {name} (Markdown con reglas, diagrama e historial)",
+    "partialTitle": "No todos los criterios pasaron; aprobar lo registra igualmente y genera la documentación",
+    "generateTitle": "Genera la documentación del flujo",
+    "generating": "Generando…",
+    "approveAnyway": "Aprobar igualmente",
+    "approve": "Aprobar y documentar"
+  },
+  "c4": {
+    "title": "Diagramas C4",
+    "intro": "Structurizr DSL con los cuatro niveles: C1 contexto, C2 contenedores, C3 componentes y C4 el orden de las llamadas del flujo. Un agente conectado a Rastro (MCP) obtiene el mismo resultado.",
+    "peopleTitle": "Quién usa el sistema (C1)",
+    "peopleHint": "El compilador no sabe quién usa el sistema. Dilo aquí; las personas se guardan con el rastreo.",
+    "nobody": "Nadie registrado todavía.",
+    "nameLabel": "Nombre de la persona",
+    "descLabel": "Qué hace",
+    "namePlaceholder": "Operador",
+    "descPlaceholder": "Sigue los pedidos del día",
+    "aiBadgeTitle": "Sugerida por la IA. Desaparece cuando la edites; en el C1 sale como inferida.",
+    "aiBadgeHidden": ", sugerida; desaparece cuando la edites",
+    "remove": "Quitar",
+    "removeAria": "Quitar a {name}",
+    "removeAriaAnon": "Quitar a esta persona",
+    "nameError": "Ponle un nombre a esta persona.",
+    "nameErrorAll": "Ponle un nombre a cada persona con descripción.",
+    "suggestionsAria": "Personas sugeridas por la IA",
+    "suggestedCount": "{count, plural, one {La IA sugirió # persona.} other {La IA sugirió # personas.}}",
+    "suggestionsHead": "Sugerencias de {provider}, por revisar",
+    "add": "Añadir",
+    "allAdded": "Todas las sugerencias se añadieron. Guarda las personas para que entren en el C1.",
+    "noOther": "La IA no encontró a nadie más además de los ya registrados.",
+    "addPerson": "Añadir persona",
+    "asking": "Preguntando a la IA…",
+    "suggest": "Sugerir personas con la IA",
+    "disclosure": {
+      "goes": "el nombre del repositorio, el punto de entrada, las clases del flujo, los sistemas externos y las personas ya registradas",
+      "never": "El código de las clases no se envía."
+    },
+    "needUse": "Para que la IA sugiera personas, activa la IA y el uso \"Contexto de C4\" en",
+    "savePeople": "Guardar personas",
+    "saving": "Guardando…",
+    "saved": "Personas guardadas. El C1 ya muestra quién usa el sistema.",
+    "unsavedPending": "Personas modificadas y sin guardar: el DSL de abajo aún no las incluye.",
+    "retry": "Intentar de nuevo",
+    "building": "Armando los diagramas…",
+    "hintIntro": "Para ver los diagramas sin que el código salga de tu máquina, ejecuta Structurizr local en la carpeta donde guardaste el archivo:",
+    "hintWindows": "En el cmd de Windows:",
+    "hintUnix": "En macOS y Linux:",
+    "hintOpen": "Luego abre http://localhost:8080.",
+    "saveBeforeDownload": "Guarda las personas antes de descargar.",
+    "copyDsl": "Copiar DSL",
+    "download": "Descargar workspace.dsl",
+    "downloadTitle": "Descarga el archivo workspace.dsl para abrir en Structurizr"
+  },
+  "consolidated": {
+    "stageLabel": "Vista consolidada del flujo",
+    "directionAria": "Dibujo {current}. Cambiar a {next}",
+    "directionTitle": "Dibujar {next}",
+    "barLabel": "Vista consolidada",
+    "hintEdited": "Con tus colores y textos. Haz clic en un paso para ver el contexto.",
+    "hintGenerated": "Generada del flujo. Haz clic en un paso para ver el contexto.",
+    "editMermaid": "Editar el Mermaid (texto y colores)",
+    "renderError": "El texto guardado de la vista no se dibuja.",
+    "fixInEdit": "Corregir en la edición",
+    "drawing": "Dibujando la vista consolidada…",
+    "hidden": "El paso elegido no aparece en este dibujo (solo reenvía la llamada). El panel muestra su contexto."
+  },
+  "route": {
+    "surveys": "Rastreos",
+    "survey": "Flujo",
+    "consolidated": "Vista consolidada",
+    "database": "Base de datos de {nome}",
+    "settings": "Configuración"
+  },
+  "surveys": {
+    "title": "Rastreos",
+    "welcomeTitle": "Te damos la bienvenida a Rastro",
+    "subtitle": "Rastro lee tu código con el compilador: sigue un flujo, mira la base de datos o analiza una consulta.",
+    "newSurvey": "Nuevo rastreo",
+    "deleted": "Rastreo de {entryPoint} eliminado.",
+    "welcome": {
+      "steps": "Dos pasos hasta tu primer flujo:",
+      "step1": "Registra la carpeta con el código que Rastro va a leer.",
+      "step2": "Elige el método de entrada y rastrea tu primer flujo.",
+      "aiNote": "La IA es opcional: Rastro funciona sin ella. Para activarla, abre la",
+      "settingsLink": "Configuración"
+    },
+    "registerRepository": "Registrar repositorio",
+    "loadingRepos": "Cargando repositorios",
+    "repositories": "Repositorios",
+    "traceFlow": "Rastrear flujo",
+    "card": {
+      "database": "Mapa de la base de datos",
+      "analyzeQuery": "Analizar consulta"
+    },
+    "repoCount": "{count, plural, =0 {Ningún rastreo} one {# rastreo} other {# rastreos}}",
+    "recent": "Rastreos recientes",
+    "loadingList": "Cargando rastreos…",
+    "empty": {
+      "none": "Aún no hay rastreos.",
+      "hint": "Usa \"Rastrear flujo\" en un repositorio para seguir tu primer rastro."
+    },
+    "searchLabel": "Buscar rastreo",
+    "searchPlaceholder": "Buscar por punto de entrada, repositorio o proyecto",
+    "filterGroup": "Filtrar por estado",
+    "filter": {
+      "all": "Todos",
+      "completed": "Listos",
+      "inProgress": "En curso",
+      "failed": "Con error"
+    },
+    "noMatch": "Ningún rastreo coincide con este filtro.",
+    "clearFilters": "Limpiar la búsqueda y el filtro",
+    "open": "Abrir",
+    "openLabel": "Abrir el rastreo {entryPoint}",
+    "finished": "{entryPoint}: {status}",
+    "registered": "Repositorio \"{name}\" registrado.",
+    "form": {
+      "intro": "Rastro lee la solution con el compilador y sigue cada llamada desde el método elegido.",
+      "backToDb": "Volver a la base de datos",
+      "loadingRepos": "Cargando repositorios…",
+      "chooseRepository": "Elige un repositorio",
+      "noRepositories": "Ningún repositorio registrado.",
+      "dbMapOf": "Ver el mapa de la base de datos de {name}",
+      "searchingSolutions": "Buscando solutions…",
+      "noSolutions": "No se encontró ninguna solution en este repositorio",
+      "entryHelpTs": "Componente.metodo: el método que llama el clic de la pantalla.",
+      "entryHelp": "Clase.Metodo o Namespace.Clase.Metodo: una action, un job, un handler.",
+      "nodeNotice": "Los flujos Angular necesitan Node instalado en esta máquina.",
+      "crossSelf": "Seguir las llamadas HTTP dentro del propio repositorio",
+      "crossFollow": "Seguir llamadas HTTP hacia",
+      "crossOwn": "el propio repositorio",
+      "crossHelp": "Cuando el método llama a otro servicio por HTTP, el flujo continúa en el endpoint que atiende la llamada. Desactivado, la llamada queda como llamada externa.",
+      "repository": {
+        "label": "Repositorio",
+        "info": "Qué es un repositorio",
+        "summary": "La carpeta con el código que Rastro va a leer.",
+        "text1": "La carpeta con el código que Rastro va a leer, registrada en Configuración. Rastro solo lee el código: no ejecuta nada ni necesita que el sistema esté en marcha."
+      },
+      "solution": {
+        "label": "Solution o tsconfig",
+        "info": "Qué es una solution",
+        "summary": "El archivo .sln o .slnx que reúne los proyectos.",
+        "text1": "El archivo .sln o .slnx que reúne los proyectos del sistema. Rastro compila a través de él para saber quién llama a quién, incluida la implementación real detrás de cada interfaz.",
+        "text2": "Si hay más de una, elige la que contiene el proyecto donde está el punto de entrada.",
+        "text3": "En un proyecto Angular, la lista muestra el tsconfig (como tsconfig.app.json) y el punto de entrada es Componente.metodo."
+      },
+      "entry": {
+        "label": "Punto de entrada",
+        "info": "Qué es un punto de entrada",
+        "summary": "El método donde empieza la funcionalidad, como Clase.Metodo.",
+        "text1": "El método donde empieza la funcionalidad: la action del controller que recibe la solicitud, el Execute del job o el Handle del handler del mensaje.",
+        "text2": "Escribe la clase y el método: PedidosController.Criar. Si hay dos clases con ese nombre, incluye el namespace: Loja.Api.Controllers.PedidosController.Criar.",
+        "text3": "No sirve la ruta (/api/pedidos) ni el namespace sin la clase."
+      },
+      "depth": {
+        "label": "Profundidad",
+        "info": "Qué es la profundidad",
+        "summary": "Cuántos niveles de llamada seguir desde el punto de entrada.",
+        "text1": "Cuántos niveles de llamada sigue Rastro desde el punto de entrada. 15 sirve para la mayoría de los flujos.",
+        "text2": "Donde el límite corta, el camino queda marcado en el grafo y puedes continuar desde ahí después.",
+        "help": "Cuántos niveles de llamada seguir. Más allá, el camino queda marcado para continuar después."
+      }
+    },
+    "errors": {
+      "repository": "Elige un repositorio.",
+      "solution": "Elige una solution.",
+      "entry": "Indica el método de entrada, por ejemplo PedidosController.Criar.",
+      "depth": "Usa un número entero de {min} a {max}."
+    }
+  },
+  "survey": {
+    "heading": "Rastreo",
+    "backToList": "Volver a los rastreos",
+    "commit": "commit",
+    "details": "Detalles",
+    "branch": "Branch",
+    "stepCount": "{count, plural, one {# paso} other {# pasos}}",
+    "unresolvedCount": "{count, plural, one {# no resuelto} other {# no resueltos}}",
+    "nextUnresolved": "Ir al siguiente paso no resuelto del grafo",
+    "stale": {
+      "changed": "El código cambió",
+      "changedIn": "El código cambió en {systems}",
+      "titleIn": "Commits nuevos desde este rastreo en: {systems}.",
+      "title": "El repositorio tiene commits nuevos desde este rastreo."
+    },
+    "resurvey": "Rastrear de nuevo",
+    "lastValidation": {
+      "title": "Abrir el resultado de la última validación",
+      "label": "Última validación:",
+      "score": "{verdict}, puntuación {score} de 100",
+      "failed": "falló",
+      "running": "en curso"
+    },
+    "group": {
+      "view": "Ver",
+      "share": "Compartir",
+      "change": "Cambiar",
+      "drawing": "Dibujo del flujo",
+      "editing": "Edición del flujo",
+      "promptToCode": "Del cambio al código"
+    },
+    "view": {
+      "graph": {
+        "label": "Grafo",
+        "title": "El grafo del flujo, paso a paso"
+      },
+      "map": {
+        "label": "Mapa por sistemas",
+        "title": "Un mapa por sistema, con los caminos de punta a punta"
+      },
+      "consolidated": {
+        "label": "Vista consolidada",
+        "title": "Todo el flujo en un solo dibujo, con sus colores"
+      }
+    },
+    "databaseMap": "Mapa de la base de datos",
+    "databaseMapTitle": "El mapa de la base de datos de este repositorio, leído del código",
+    "compare": {
+      "button": "Comparar",
+      "menu": "Comparar con otro rastreo de este método",
+      "searching": "Buscando rastreos…",
+      "listFailed": "No se pudieron listar los rastreos.",
+      "item": "{date}, commit {commit}, {count, plural, one {# paso} other {# pasos}}",
+      "unknownCommit": "desconocido",
+      "empty": "Ningún otro rastreo listo de este método."
+    },
+    "export": {
+      "button": "Exportar",
+      "title": "PNG, SVG, Mermaid y C4",
+      "group": "Exportar lo que está en pantalla",
+      "png": "Imagen PNG",
+      "svg": "Imagen SVG",
+      "copyMermaid": "Copiar como Mermaid",
+      "downloadMermaid": "Descargar como Mermaid (.mmd)",
+      "c4": "Diagramas C4 (Structurizr DSL)",
+      "notDrawn": "El grafo aún no está dibujado. Espera a que aparezca e inténtalo de nuevo.",
+      "started": "Descarga iniciada: {file}",
+      "imageFailed": "No se pudo exportar la imagen: {message} Prueba con el SVG."
+    },
+    "edit": {
+      "button": "Editar flujo",
+      "newStep": "Nuevo paso",
+      "undo": "Deshacer",
+      "undoTitle": "Deshacer (Ctrl+Z)",
+      "redo": "Rehacer",
+      "redoTitle": "Rehacer (Ctrl+Y o Ctrl+Shift+Z)",
+      "changes": "{count, plural, one {# cambio} other {# cambios}}",
+      "changesUnsaved": "{count, plural, one {# cambio} other {# cambios}}, sin guardar",
+      "howItWorks": "Cómo funciona",
+      "howItWorksTitle": "Cómo enlazar y mover pasos",
+      "generatePrompt": "Generar prompt",
+      "generating": "Generando…",
+      "validate": "Validar cambio",
+      "validateTitle": "Después de aplicar el cambio en el código: rastrea el flujo de nuevo y lo comprueba",
+      "saveDraft": "Guardar borrador",
+      "saving": "Guardando…",
+      "saveAndExit": "Guardar y salir",
+      "exit": "Salir de la edición",
+      "discard": "Descartar borrador…",
+      "hint": "Arrastra desde un punto de salida hasta el de entrada de otro paso para enlazarlos; arrastra el extremo de un enlace para mover el paso. El camino es: dibujar el cambio, generar el prompt, dejar que el agente lo aplique en el código y validar. Con el teclado: elige el paso y usa \"Seguir a otro paso\" en el panel."
+    },
+    "newStep": {
+      "nameLabel": "Nombre del paso",
+      "nameHelp": "Tipo.Metodo. Si hay sobrecarga, incluye los tipos: Tipo.Metodo(string, int).",
+      "kindLabel": "Tipo",
+      "intentLabel": "Qué debe hacer",
+      "intentPlaceholder": "Comprobar el stock antes de confirmar el pedido",
+      "after": "Entra después de",
+      "loose": "Entra suelto en el grafo; elige un paso antes para enlazarlo.",
+      "createAfter": "Crear después del paso elegido",
+      "create": "Crear paso",
+      "errorName": "Ponle un nombre al paso.",
+      "errorIntent": "Indica qué debe hacer el paso."
+    },
+    "draft": {
+      "loaded": "Borrador guardado cargado.",
+      "saved": "Borrador guardado.",
+      "discarded": "Borrador descartado.",
+      "needChangeForPrompt": "Dibuja al menos un cambio para generar el prompt.",
+      "needChangeForValidation": "Dibuja al menos un cambio para validar.",
+      "discardFailed": "No se descartó: {message}"
+    },
+    "filters": {
+      "region": "Filtros activos en el grafo",
+      "title": "En el grafo:",
+      "focusTitle": "Mostrando solo el flujo de {label}: los caminos hasta él y lo que se ejecuta después.",
+      "focusText": "Solo el flujo de",
+      "showWhole": "Mostrar el grafo completo",
+      "compareTitle": "Comparando con el rastreo de {date}, commit {commit}",
+      "compareText": "Comparando con {date}:",
+      "compareAdded": "+{count, plural, one {# paso nuevo} other {# pasos nuevos}}",
+      "compareRemoved": "−{count, plural, one {# salió} other {# salieron}}",
+      "compareFailed": "No se pudo comparar: {message}",
+      "compareLoading": "Cargando la comparación…",
+      "compareStop": "Dejar de comparar",
+      "pathFrom": "Caminos desde",
+      "pathPickTarget": ": haz clic en el destino",
+      "pathShortest": "El más corto tiene {count, plural, one {# paso} other {# pasos}}",
+      "pathBetween": "Caminos",
+      "pathCount": "({count, plural, one {# paso} other {# pasos}})",
+      "pathUnreachable": "no se alcanza desde",
+      "pathClear": "Limpiar el camino",
+      "pathCancel": "Cancelar el camino",
+      "collapsed": "{count, plural, one {# paso contraído} other {# pasos contraídos}}",
+      "collapsedTitle": "Haz clic en \"+N pasos\" en el grafo para abrir uno de ellos",
+      "expandAll": "Expandir todo"
+    },
+    "search": {
+      "label": "Buscar un paso en el grafo",
+      "placeholder": "Buscar paso (nombre del método, condición…)",
+      "escHint": "Esc cierra",
+      "none": "Ningún paso en pantalla",
+      "position": "{index} de {total}",
+      "hidden": "({count, plural, one {# otro oculto} other {# otros ocultos}} por el recorte, los pasos contraídos o las llamadas de .NET)",
+      "everywhere": "Buscar en todo",
+      "previous": "Paso anterior",
+      "next": "Paso siguiente",
+      "close": "Cerrar búsqueda",
+      "results": "Resultados de la búsqueda"
+    },
+    "retryNow": "Intentar ahora",
+    "failed": {
+      "title": "El análisis falló",
+      "fix": "Corregir y rastrear de nuevo",
+      "delete": "Eliminar rastreo…"
+    },
+    "pending": {
+      "queued": "En cola para analizar.",
+      "reading": "Leyendo la solution y siguiendo las llamadas.",
+      "wait": "Las solutions grandes tardan hasta un minuto. Esta pantalla se actualiza sola."
+    },
+    "loading": "Cargando el rastreo…",
+    "panel": {
+      "showLabel": "Mostrar el panel del paso",
+      "hideLabel": "Contraer el panel del paso para ver más del grafo",
+      "showTitle": "Mostrar el panel",
+      "hideTitle": "Contraer el panel",
+      "label": "Panel"
+    },
+    "prompt": {
+      "refactorTitle": "Prompt de refactorización",
+      "refactorHint": "Pégalo en tu agente de código; él también obtiene este texto por MCP (get_refactor_prompt).",
+      "changeTitle": "Prompt del cambio",
+      "changeHint": "{count, plural, one {# cambio} other {# cambios}}. Pégalo en tu agente de código; él también obtiene este texto por MCP (get_change_prompt).",
+      "building": "Montando el prompt…",
+      "nextChange": "Después: pégalo en el agente de código, deja que aplique el cambio y vuelve aquí a Validar cambio.",
+      "nextRefactor": "Después de que el agente lo aplique, usa Rastrear de nuevo para comprobar el flujo sin el hallazgo.",
+      "suggestionRegion": "Sugerencia de la IA",
+      "suggestionReady": "La sugerencia de refactorización de la IA está lista.",
+      "suggestionAppendedStatus": "Sugerencia de la IA añadida al final del prompt.",
+      "aiBadge": "IA",
+      "suggestionAppended": "Sugerencia añadida al final del prompt.",
+      "suggestionHead": "Sugerencia de {provider}, para revisar antes de aplicar",
+      "append": "Añadir al prompt",
+      "asking": "Preguntando a la IA…",
+      "ask": "Sugerir refactorización con la IA",
+      "disclosureGoes": "el hallazgo, el nombre y las métricas del método y su fragmento de código",
+      "turnOnAi": "Para que la IA sugiera la refactorización, activa la IA y el uso \"Sugerencias de mejora\" en",
+      "settingsLink": "Configuración",
+      "appendedText": "Sugerencia de la IA ({provider}), para revisar antes de aplicar:",
+      "regenerate": "Regenerar",
+      "copy": "Copiar prompt"
+    },
+    "menu": {
+      "actionsOf": "Acciones de {label}",
+      "focusOnly": "Ver solo este flujo",
+      "pathsTo": "Caminos desde {from} hasta aquí",
+      "pathsFrom": "Caminos desde aquí",
+      "openVsCode": "Abrir en VS Code",
+      "copyLocation": "Copiar archivo:línea",
+      "expand": "Expandir lo que viene después",
+      "collapse": "Contraer lo que viene después"
+    },
+    "toast": {
+      "copied": "Copiado."
+    },
+    "confirm": {
+      "discardTitle": "¿Descartar el borrador?",
+      "discardTextWithChanges": "Elimina {count, plural, one {# cambio} other {# cambios}} del borrador guardado y de la pantalla. No se puede deshacer.",
+      "discardText": "Elimina el borrador guardado de este rastreo. No se puede deshacer.",
+      "discardWithChanges": "Descartar {count, plural, one {# cambio} other {# cambios}}",
+      "discard": "Descartar",
+      "deleteTitle": "¿Eliminar el rastreo?",
+      "deleteText": "Elimina el rastreo de {entryPoint}, con el borrador, las validaciones y las propuestas. Las notas de los pasos se conservan, porque son del repositorio. No se puede deshacer.",
+      "deleting": "Eliminando…",
+      "delete": "Eliminar rastreo"
+    },
+    "deleteFailed": "No se eliminó: {message}",
+    "note": {
+      "saved": "Nota guardada.",
+      "deleted": "Nota eliminada."
+    }
   }
 }

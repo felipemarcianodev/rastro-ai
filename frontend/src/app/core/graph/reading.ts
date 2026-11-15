@@ -1,4 +1,6 @@
-import { DB_OPERATION_LABEL, FlowGraph, FlowNode, NodeKind } from '../models';
+import { tr } from '../i18n/locale';
+import { DB_OPERATION_LABEL_KEY, FlowGraph, FlowNode, NodeKind } from '../models';
+import { translatedRecord } from './translated';
 
 // Leitura do fluxo de relance (Fase 23): o nome do método legível e o que o passo faz no mundo.
 // Tudo determinístico, pelo nome e pelo tipo do passo; nada de IA.
@@ -33,21 +35,25 @@ export enum NodeEffect {
   Queue = 4,
 }
 
-export const NODE_EFFECT_LABEL: Record<NodeEffect, string> = {
-  [NodeEffect.Database]: 'banco',
-  [NodeEffect.Message]: 'mensagem',
-  [NodeEffect.Cache]: 'cache',
-  [NodeEffect.File]: 'arquivo',
-  [NodeEffect.Queue]: 'fila',
+export const NODE_EFFECT_LABEL_KEY: Record<NodeEffect, string> = {
+  [NodeEffect.Database]: 'graph.reading.effect.database',
+  [NodeEffect.Message]: 'graph.reading.effect.message',
+  [NodeEffect.Cache]: 'graph.reading.effect.cache',
+  [NodeEffect.File]: 'graph.reading.effect.file',
+  [NodeEffect.Queue]: 'graph.reading.effect.queue',
 };
 
-export const NODE_EFFECT_HINT: Record<NodeEffect, string> = {
-  [NodeEffect.Database]: 'Lê ou grava no banco de dados',
-  [NodeEffect.Message]: 'Envia mensagem ou chama outro sistema (HTTP, e-mail, Telegram)',
-  [NodeEffect.Cache]: 'Lê ou grava no cache',
-  [NodeEffect.File]: 'Lê ou grava arquivo',
-  [NodeEffect.Queue]: 'Publica ou consome uma fila',
+export const NODE_EFFECT_HINT_KEY: Record<NodeEffect, string> = {
+  [NodeEffect.Database]: 'graph.reading.hint.database',
+  [NodeEffect.Message]: 'graph.reading.hint.message',
+  [NodeEffect.Cache]: 'graph.reading.hint.cache',
+  [NodeEffect.File]: 'graph.reading.hint.file',
+  [NodeEffect.Queue]: 'graph.reading.hint.queue',
 };
+
+// Já traduzidos na leitura (quem importa estes nomes continua lendo texto).
+export const NODE_EFFECT_LABEL = translatedRecord(NODE_EFFECT_LABEL_KEY);
+export const NODE_EFFECT_HINT = translatedRecord(NODE_EFFECT_HINT_KEY);
 
 export const NODE_EFFECT_SLUG: Record<NodeEffect, string> = {
   [NodeEffect.Database]: 'database',
@@ -84,7 +90,7 @@ export function effectOf(node: FlowNode): NodeEffect | undefined {
 // ("lê pedidos; inclui em pagamentos"); sem isso, a explicação da etiqueta.
 export function effectText(node: FlowNode, effect: NodeEffect): string {
   if (effect !== NodeEffect.Database || !node.db?.length) return NODE_EFFECT_HINT[effect];
-  const text = node.db.map((a) => `${DB_OPERATION_LABEL[a.operation]} ${a.target}`).join('; ');
+  const text = node.db.map((a) => `${tr(DB_OPERATION_LABEL_KEY[a.operation])} ${a.target}`).join('; ');
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 

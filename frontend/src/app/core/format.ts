@@ -10,10 +10,6 @@ export function shortCommit(hash: string | undefined): string {
   return hash ? hash.slice(0, 7) : '';
 }
 
-export function plural(count: number, one: string, many: string): string {
-  return `${count} ${count === 1 ? one : many}`;
-}
-
 const ZERO_WIDTH_SPACE = '​';
 
 // Identificador de código que pode quebrar linha nos pontos e barras (não no meio do nome).

@@ -27,7 +27,7 @@ O arquivo neutro do `.resx` (`Messages.resx`) é o inglês, que é a reserva qua
 ## Como traduzir
 
 1. **Mesmo sentido, não palavra por palavra.** O texto de tela em inglês costuma ser mais curto; em espanhol, cerca de 25% mais longo que o inglês. Se o espanhol estourar o espaço do botão, encurte mantendo o verbo.
-2. **Marcadores intactos.** `{count}`, `{name}`, `{0}` e a sintaxe ICU (`{count, plural, one {# step} other {# steps}}`) ficam iguais nos três; só o texto em volta muda. O inglês e o espanhol têm `one` e `other`.
+2. **Marcadores intactos.** `{count}`, `{name}`, `{0}` e a sintaxe ICU (`{count, plural, one {# step} other {# steps}}`) ficam iguais nos três; só o texto em volta muda. O inglês e o espanhol têm `one` e `other`; no português, use `=1` no lugar de `one`, porque o `one` do pt inclui o zero e daria "0 passo".
 3. **Estilo do glossário:** "you" no inglês, "tú" no espanhol; botão com verbo (imperativo no inglês, infinitivo no espanhol); só a primeira letra maiúscula.
 4. **Nunca traduza** código, identificador, nome de produto, caminho ou valor técnico (`extracted`, `inferred`, `confirmed`).
 5. **Mesma ordem de chaves** nos três JSON, para o diff do PR mostrar a tradução lado a lado.

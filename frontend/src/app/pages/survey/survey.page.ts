@@ -1,8 +1,10 @@
 import { Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { DB_SURVEY_ORIGIN_PARAM } from '../../core/database/query-analysis';
-import { plural, shortCommit, shortDate } from '../../core/format';
+import { shortCommit, shortDate } from '../../core/format';
+import { LanguageService } from '../../core/i18n/i18n';
 import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
@@ -29,14 +31,14 @@ import {
   FlowGraph,
   NodeKind,
   CrossFlowFinding,
-  SURVEY_STATUS_LABEL,
+  SURVEY_STATUS_LABEL_KEY,
   aiCan,
   SURVEY_STATUS_SLUG,
   SurveyDetail,
   SurveySummary,
   SurveyStaleness,
   SurveyStatus,
-  VALIDATION_VERDICT_LABEL,
+  VALIDATION_VERDICT_LABEL_KEY,
   ValidationStatus,
   ValidationView,
   isFinished,
@@ -58,11 +60,11 @@ import { DialogDirective } from '../../core/dialog.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 
 const POLL_MS = 2000;
-// As três visões do seletor da barra (F09). Rótulo e dica saem daqui, nunca de comparação com texto.
+// As três visões do seletor da barra (F09). Rótulo e dica são chaves de tradução, nunca comparação com texto.
 const DRAWING_VIEWS: readonly { direction: LayoutDirection; label: string; title: string }[] = [
-  { direction: LayoutDirection.Horizontal, label: 'Grafo', title: 'O grafo do fluxo, passo a passo' },
-  { direction: LayoutDirection.Map, label: 'Mapa por sistemas', title: 'Um mapa por sistema, com os caminhos de ponta a ponta' },
-  { direction: LayoutDirection.Consolidated, label: 'Visão consolidada', title: 'O fluxo todo num desenho só, com as suas cores' },
+  { direction: LayoutDirection.Horizontal, label: 'survey.view.graph.label', title: 'survey.view.graph.title' },
+  { direction: LayoutDirection.Map, label: 'survey.view.map.label', title: 'survey.view.map.title' },
+  { direction: LayoutDirection.Consolidated, label: 'survey.view.consolidated.label', title: 'survey.view.consolidated.title' },
 ];
 const SEARCH_FOCUS_DELAY_MS = 120;
 // Lista de ocorrências da busca (UX-G-F22) e espera até o canvas voltar (UX-G-F03).
@@ -81,7 +83,7 @@ const POLL_TOLERATED_FAILURES = 2;
 
 @Component({
   selector: 'app-survey-page',
-  imports: [RouterLink, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective, AiDisclosureComponent],
+  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective, AiDisclosureComponent],
   templateUrl: './survey.page.html',
   styleUrl: './survey.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
@@ -93,6 +95,7 @@ export class SurveyPage {
   }
 
   private readonly api = inject(RastroApi);
+  private readonly i18n = inject(LanguageService);
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly canvas = viewChild(FlowCanvasComponent);
@@ -110,7 +113,7 @@ export class SurveyPage {
   protected readonly detail = signal<SurveyDetail | null>(null);
   // UX-G-L23: título da aba com o ponto de entrada, assim que o levantamento chega.
   private readonly pageTitle = inject(SurveyPageTitle);
-  private readonly titleSync = effect(() => this.pageTitle.set('Fluxo', this.detail()?.survey.entryPoint));
+  private readonly titleSync = effect(() => this.pageTitle.set('route.survey', this.detail()?.survey.entryPoint));
   protected readonly error = signal<string | null>(null);
   // Erro depois que a tela já carregou: faixa no topo, a tela (e a edição) continuam.
   protected readonly softError = signal<string | null>(null);
@@ -170,11 +173,10 @@ export class SurveyPage {
   protected readonly decisionError = signal<string | null>(null);
 
   protected readonly SurveyStatus = SurveyStatus;
-  protected readonly statusLabel = SURVEY_STATUS_LABEL;
+  protected readonly statusKey = SURVEY_STATUS_LABEL_KEY;
   protected readonly statusSlug = SURVEY_STATUS_SLUG;
   protected readonly shortCommit = shortCommit;
   protected readonly shortDate = shortDate;
-  protected readonly plural = plural;
 
   // Chamadas do .NET (LINQ, EF Core, cache...) escondidas por padrão; a escolha fica no navegador.
   protected readonly showFramework = signal(readShowFramework());
@@ -210,7 +212,7 @@ export class SurveyPage {
   protected readonly validationBusy = signal(false);
   protected readonly validationMessage = signal<string | null>(null);
   protected readonly validationDocument = signal<string | null>(null);
-  protected readonly verdictLabel = VALIDATION_VERDICT_LABEL;
+  protected readonly verdictKey = VALIDATION_VERDICT_LABEL_KEY;
   protected readonly ValidationStatus = ValidationStatus;
   private validationTimer?: ReturnType<typeof setTimeout>;
   protected showNewStep = false;
@@ -596,21 +598,21 @@ export class SurveyPage {
     this.closePopovers();
     const image = this.canvas()?.exportSvg();
     if (!image) {
-      this.showExport({ ok: false, text: 'O grafo ainda não está desenhado. Espere ele aparecer e tente de novo.' });
+      this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
     }
     const name = this.exportName();
     if (format === 'svg') {
       downloadBlob(new Blob([image.svg], { type: 'image/svg+xml' }), `${name}.svg`);
-      this.showExport({ ok: true, text: `Download iniciado: ${name}.svg` });
+      this.showExport({ ok: true, text: this.i18n.t('survey.export.started', { file: `${name}.svg` }) });
       return;
     }
     svgToPng(image.svg, image.width, image.height).then(
       (blob) => {
         downloadBlob(blob, `${name}.png`);
-        this.showExport({ ok: true, text: `Download iniciado: ${name}.png` });
+        this.showExport({ ok: true, text: this.i18n.t('survey.export.started', { file: `${name}.png` }) });
       },
-      (error: Error) => this.showExport({ ok: false, text: `Não exportou a imagem: ${error.message} Tente o SVG.` }),
+      (error: Error) => this.showExport({ ok: false, text: this.i18n.t('survey.export.imageFailed', { message: error.message }) }),
     );
   }
 
@@ -618,12 +620,12 @@ export class SurveyPage {
     this.closePopovers();
     const text = this.canvas()?.exportMermaid();
     if (!text) {
-      this.showExport({ ok: false, text: 'O grafo ainda não está desenhado. Espere ele aparecer e tente de novo.' });
+      this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
     }
     if (download) {
       downloadBlob(new Blob([text], { type: 'text/plain' }), `${this.exportName()}.mmd`);
-      this.showExport({ ok: true, text: `Download iniciado: ${this.exportName()}.mmd` });
+      this.showExport({ ok: true, text: this.i18n.t('survey.export.started', { file: `${this.exportName()}.mmd` }) });
     } else {
       this.menuCopy.copy('```mermaid\n' + text + '```\n');
     }
@@ -672,7 +674,7 @@ export class SurveyPage {
       error: (error) => {
         this.deleting.set(false);
         this.confirmDelete.set(false);
-        this.softError.set(`Não excluiu: ${apiErrorMessage(error)}`);
+        this.softError.set(this.i18n.t('survey.deleteFailed', { message: apiErrorMessage(error) }));
       },
     });
   }
@@ -748,7 +750,7 @@ export class SurveyPage {
         this.dirty.set(false);
         this.editing.set(true);
         this.openHintFirstTime();
-        if (saved) this.draftMessage.set({ ok: true, text: 'Rascunho salvo carregado.' });
+        if (saved) this.draftMessage.set({ ok: true, text: this.i18n.t('survey.draft.loaded') });
       },
       error: (error) => this.draftMessage.set({ ok: false, text: apiErrorMessage(error) }),
     });
@@ -820,8 +822,8 @@ export class SurveyPage {
     const draft = this.draft();
     if (!draft) return;
     const errors: { label?: string; intent?: string } = {};
-    if (!this.newLabel.trim()) errors.label = 'Dê um nome ao passo.';
-    if (!this.newIntent.trim()) errors.intent = 'Diga o que o passo deve fazer.';
+    if (!this.newLabel.trim()) errors.label = this.i18n.t('survey.newStep.errorName');
+    if (!this.newIntent.trim()) errors.intent = this.i18n.t('survey.newStep.errorIntent');
     this.newStepErrors.set(errors);
     if (errors.label || errors.intent) {
       this.host.nativeElement.querySelector<HTMLElement>(errors.label ? '#new-label' : '#new-intent')?.focus();
@@ -875,7 +877,7 @@ export class SurveyPage {
         this.savingDraft.set(false);
         this.dirty.set(false);
         this.savedChanges.set(changeCount(draft));
-        this.draftMessage.set({ ok: true, text: 'Rascunho salvo.' });
+        this.draftMessage.set({ ok: true, text: this.i18n.t('survey.draft.saved') });
         then?.();
       },
       error: (error) => {
@@ -907,7 +909,7 @@ export class SurveyPage {
     };
     if (this.dirty() || this.changes() === 0) {
       if (this.changes() === 0) {
-        this.draftMessage.set({ ok: false, text: 'Desenhe ao menos uma mudança para gerar o prompt.' });
+        this.draftMessage.set({ ok: false, text: this.i18n.t('survey.draft.needChangeForPrompt') });
         return;
       }
       this.saveDraft(load);
@@ -942,7 +944,7 @@ export class SurveyPage {
     const steps = suggestion.steps.map((step, i) => `${i + 1}. ${step}`).join('\n');
     this.prompt.set({
       ...current,
-      prompt: `${current.prompt}\n\nSugestão da IA (${this.providerLabel[suggestion.provider]}), para conferir antes de aplicar:\n${suggestion.summary}\n${steps}`,
+      prompt: `${current.prompt}\n\n${this.i18n.t('survey.prompt.appendedText', { provider: this.providerLabel[suggestion.provider] })}\n${suggestion.summary}\n${steps}`,
     });
     this.suggestion.set(null);
     this.suggestionAppended.set(true);
@@ -1058,7 +1060,7 @@ export class SurveyPage {
           else next.delete(change.nodeId);
           return next;
         });
-        this.noteMessage.set({ ok: true, text: saved ? 'Anotação salva.' : 'Anotação apagada.' });
+        this.noteMessage.set({ ok: true, text: this.i18n.t(saved ? 'survey.note.saved' : 'survey.note.deleted') });
       },
       error: (error) => {
         this.savingNote.set(false);
@@ -1134,7 +1136,7 @@ export class SurveyPage {
   // Valida a mudança: salva o rascunho pendente e pede a validação (roda na fila da API).
   protected validate(): void {
     if (this.editing() && this.changes() === 0) {
-      this.draftMessage.set({ ok: false, text: 'Desenhe ao menos uma mudança para validar.' });
+      this.draftMessage.set({ ok: false, text: this.i18n.t('survey.draft.needChangeForValidation') });
       return;
     }
     const request = () => {
@@ -1250,7 +1252,7 @@ export class SurveyPage {
       error: (error) => {
         // 404: não havia rascunho salvo; descartar só zera o que está na tela.
         if (error instanceof HttpErrorResponse && error.status === 404) this.resetDraft(graph);
-        else this.draftMessage.set({ ok: false, text: `Não descartou: ${apiErrorMessage(error)}` });
+        else this.draftMessage.set({ ok: false, text: this.i18n.t('survey.draft.discardFailed', { message: apiErrorMessage(error) }) });
       },
     });
   }
@@ -1262,7 +1264,7 @@ export class SurveyPage {
     this.dirty.set(false);
     this.savedChanges.set(0);
     this.promptReady.set(false);
-    this.draftMessage.set({ ok: true, text: 'Rascunho descartado.' });
+    this.draftMessage.set({ ok: true, text: this.i18n.t('survey.draft.discarded') });
   }
 
   protected retry(): void {

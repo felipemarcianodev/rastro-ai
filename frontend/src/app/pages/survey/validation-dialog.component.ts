@@ -1,11 +1,13 @@
-import { Component, input, output } from '@angular/core';
+import { Component, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { DialogDirective } from '../../core/dialog.directive';
+import { LanguageService } from '../../core/i18n/i18n';
 import {
-  CHECK_STATUS_LABEL,
+  CHECK_STATUS_LABEL_KEY,
   CHECK_STATUS_SLUG,
   CheckStatus,
-  VALIDATION_VERDICT_LABEL,
+  VALIDATION_VERDICT_LABEL_KEY,
   VALIDATION_VERDICT_SLUG,
   ValidationStatus,
   ValidationVerdict,
@@ -16,11 +18,13 @@ import {
 // pedido, build e testes. Aprovar gera a documentação do fluxo.
 @Component({
   selector: 'app-validation-dialog',
-  imports: [RouterLink, DialogDirective],
+  imports: [RouterLink, TranslatePipe, DialogDirective],
   templateUrl: './validation-dialog.component.html',
   styleUrl: './validation-dialog.component.scss',
 })
 export class ValidationDialogComponent {
+  private readonly i18n = inject(LanguageService);
+
   readonly validation = input.required<ValidationView>();
   readonly document = input<string | null>(null);
   readonly busy = input(false);
@@ -33,9 +37,9 @@ export class ValidationDialogComponent {
   protected readonly ValidationStatus = ValidationStatus;
   protected readonly ValidationVerdict = ValidationVerdict;
   protected readonly CheckStatus = CheckStatus;
-  protected readonly verdictLabel = VALIDATION_VERDICT_LABEL;
+  protected readonly verdictKey = VALIDATION_VERDICT_LABEL_KEY;
   protected readonly verdictSlug = VALIDATION_VERDICT_SLUG;
-  protected readonly checkLabel = CHECK_STATUS_LABEL;
+  protected readonly checkKey = CHECK_STATUS_LABEL_KEY;
   protected readonly checkSlug = CHECK_STATUS_SLUG;
 
   // O motivo na linha da nota: quantos critérios falharam e se build ou testes caíram.
@@ -44,10 +48,10 @@ export class ValidationDialogComponent {
     if (!result || result.verdict === ValidationVerdict.Approved) return '';
     const parts: string[] = [];
     const failed = result.expectations.filter((c) => c.status === CheckStatus.Failed).length;
-    if (failed > 0) parts.push(failed === 1 ? '1 critério falhou' : `${failed} critérios falharam`);
-    if (result.unexpected.length > 0) parts.push(result.unexpected.length === 1 ? '1 mudança fora do pedido' : `${result.unexpected.length} mudanças fora do pedido`);
-    if (result.build.status === CheckStatus.Failed) parts.push('o build falhou');
-    if (result.tests.status === CheckStatus.Failed) parts.push('os testes falharam');
+    if (failed > 0) parts.push(this.i18n.t('validation.failedCriteria', { count: failed }));
+    if (result.unexpected.length > 0) parts.push(this.i18n.t('validation.unexpectedChanges', { count: result.unexpected.length }));
+    if (result.build.status === CheckStatus.Failed) parts.push(this.i18n.t('validation.buildFailed'));
+    if (result.tests.status === CheckStatus.Failed) parts.push(this.i18n.t('validation.testsFailed'));
     return parts.length > 0 ? parts.join(', ') + '.' : '';
   }
 

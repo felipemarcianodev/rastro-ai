@@ -1,3 +1,4 @@
+import { tr } from '../i18n/locale';
 import { FlowGraph, FlowNode, NodeKind } from '../models';
 import { httpLabel, mermaidText } from './export';
 import { NodeEffect, effectOf, humanName, splitLabel } from './reading';
@@ -47,9 +48,11 @@ const KIND_CLASS: Partial<Record<NodeKind, DiagramClass>> = {
 
 const CLASS_ORDER = [DiagramClass.Entry, DiagramClass.Decision, DiagramClass.External, DiagramClass.Error, DiagramClass.Unresolved];
 
-const LABEL_THEN = 'Se sim';
-const LABEL_ELSE = 'Se não';
-const LABEL_OTHER_CASES = 'Nos outros casos';
+// Rótulos de seta que o Rastro gera, no idioma da tela (o que o dono editou e salvou não muda).
+// Traduzidos na hora de usar: o mesmo texto que plainBranch dá aos cabeçalhos dos galhos.
+const labelThen = () => tr('graph.plain.branchThen');
+const labelElse = () => tr('graph.plain.branchElse');
+const labelOtherCases = () => tr('graph.plain.branchDefault');
 
 // Hash FNV-1a de 32 bits em base 36: o id de um passo no Mermaid ("s" + hash).
 export function stepId(nodeId: string): string {
@@ -192,8 +195,8 @@ export function consolidatedMermaid(graph: FlowGraph, firstSystem?: string): str
       const branches = groups(children, true);
       const tails = branches.flatMap((group) => emit(group.items, [{ from: id, label: group.label }]));
       // Sem "Se não" (ou "Nos outros casos"), a decisão também segue direto para o passo seguinte.
-      if (!branches.some((g) => g.label === LABEL_ELSE || g.label === LABEL_OTHER_CASES)) {
-        tails.push({ from: id, label: branches.some((g) => g.label !== LABEL_THEN) ? LABEL_OTHER_CASES : LABEL_ELSE });
+      if (!branches.some((g) => g.label === labelElse() || g.label === labelOtherCases())) {
+        tails.push({ from: id, label: branches.some((g) => g.label !== labelThen()) ? labelOtherCases() : labelElse() });
       }
       return tails;
     }
@@ -211,7 +214,7 @@ export function consolidatedMermaid(graph: FlowGraph, firstSystem?: string): str
   if (systems.length > 1) {
     // Um subgraph por sistema; ids sys0, sys1... e título entre aspas (o nome pode ter ponto e hífen).
     systems.forEach((system, index) => {
-      lines.push(`  subgraph sys${index}["${mermaidText(system === '' ? (firstSystem ?? 'Primeiro sistema') : system)}"]`);
+      lines.push(`  subgraph sys${index}["${mermaidText(system === '' ? (firstSystem ?? tr('graph.consolidated.firstSystem')) : system)}"]`);
       for (const step of steps.filter((s) => s.system === system)) lines.push(`    ${step.id}${step.shape}`);
       lines.push('  end');
     });
@@ -234,7 +237,7 @@ function groups(children: OutlineItem[], decision: boolean): Group[] {
   for (const child of children) {
     const current = result[result.length - 1];
     if (!current || child.head) {
-      result.push({ label: child.head ?? (decision ? LABEL_THEN : ''), head: child.head, items: [child] });
+      result.push({ label: child.head ?? (decision ? labelThen() : ''), head: child.head, items: [child] });
     } else {
       current.items.push(child);
     }

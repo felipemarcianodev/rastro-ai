@@ -1,16 +1,16 @@
 @if (graph().findings === undefined) {
-  <p class="muted">Levantamento anterior à inspeção de qualidade. Levante o fluxo de novo para ver as melhorias.</p>
+  <p class="muted">{{ 'findings.legacy' | translate }}</p>
 } @else if (total() === 0) {
-  <p class="muted">{{ nodeId() ? 'Nenhum achado neste passo.' : 'Nenhum achado de qualidade neste fluxo.' }}</p>
+  <p class="muted">{{ (nodeId() ? 'findings.noneStep' : 'findings.noneFlow') | translate }}</p>
 } @else {
   @for (group of groups(); track group.category) {
-    <h4 class="group-title">{{ categoryLabel[group.category] }} <span class="muted">({{ group.items.length }})</span></h4>
+    <h4 class="group-title">{{ categoryKey[group.category] | translate }} <span class="muted">({{ group.items.length }})</span></h4>
     <ul class="findings">
       @for (item of group.items; track item.index) {
         <li [class]="'finding is-' + severitySlug[item.finding.severity]">
           <p class="finding-head">
-            <span class="severity">{{ severityLabel[item.finding.severity] }}</span>
-            <span>{{ kindLabel[item.finding.kind] }}</span>
+            <span class="severity">{{ severityKey[item.finding.severity] | translate }}</span>
+            <span>{{ kindKey[item.finding.kind] | translate }}</span>
           </p>
           <p class="finding-text">{{ item.finding.message }}</p>
           @if (item.finding.location; as location) {
@@ -18,13 +18,13 @@
           }
           <div class="finding-actions">
             @if (!nodeId()) {
-              <button type="button" class="btn btn-g btn-small" (click)="selectNode.emit(item.finding.nodeId)" [title]="'Ir para ' + item.nodeLabel" [attr.aria-label]="'Ver no fluxo: ' + item.nodeLabel">Ver no fluxo</button>
+              <button type="button" class="btn btn-g btn-small" (click)="selectNode.emit(item.finding.nodeId)" [title]="'findings.goTo' | translate: { label: item.nodeLabel }" [attr.aria-label]="'findings.seeInFlowAria' | translate: { label: item.nodeLabel }">{{ 'findings.seeInFlow' | translate }}</button>
             }
             @if (group.category === FindingCategory.Database && repository()) {
               <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repository(), 'banco']" [queryParams]="dbQuery(item.finding.target)"
-                [attr.aria-label]="'Ver no mapa do banco' + (item.finding.target ? ': ' + item.finding.target : '')">Ver no mapa do banco</a>
+                [attr.aria-label]="item.finding.target ? ('findings.seeInDbMapAriaTarget' | translate: { target: item.finding.target }) : ('findings.seeInDbMapAria' | translate)">{{ 'findings.seeInDbMap' | translate }}</a>
             }
-            <button type="button" class="btn btn-g btn-small" (click)="prompt.emit(item.index)" [attr.aria-label]="'Prompt de refatoração: ' + kindLabel[item.finding.kind] + ' em ' + item.nodeLabel">Prompt de refatoração</button>
+            <button type="button" class="btn btn-g btn-small" (click)="prompt.emit(item.index)" [attr.aria-label]="'findings.refactorPromptAria' | translate: { kind: (kindKey[item.finding.kind] | translate), label: item.nodeLabel }">{{ 'findings.refactorPrompt' | translate }}</button>
           </div>
         </li>
       }

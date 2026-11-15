@@ -1,4 +1,5 @@
 import { signal } from '@angular/core';
+import { tr } from './i18n/locale';
 
 export type CopyStatus = 'idle' | 'copied' | 'failed';
 
@@ -23,7 +24,7 @@ export class CopyFeedback {
 
   label(idle: string): string {
     const status = this.status();
-    return status === 'copied' ? 'Copiado' : status === 'failed' ? 'Não deu para copiar' : idle;
+    return status === 'copied' ? tr('common.copied') : status === 'failed' ? tr('common.copyFailed') : idle;
   }
 
   reset(): void {

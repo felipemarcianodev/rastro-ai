@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { DB_SURVEY_ORIGIN_PARAM } from '../../core/database/query-analysis';
 import {
-  FINDING_CATEGORY_LABEL,
+  FINDING_CATEGORY_LABEL_KEY,
   FINDING_CATEGORY_OF,
-  FINDING_KIND_LABEL,
-  FINDING_SEVERITY_LABEL,
+  FINDING_KIND_LABEL_KEY,
+  FINDING_SEVERITY_LABEL_KEY,
   FINDING_SEVERITY_SLUG,
   Finding,
   FindingCategory,
@@ -25,7 +26,7 @@ const CATEGORY_ORDER = [FindingCategory.Database, FindingCategory.Ddd, FindingCa
 // Achados de qualidade do fluxo (Fase 10), agrupados por categoria. Com nodeId, só os do passo.
 @Component({
   selector: 'app-findings-list',
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   templateUrl: './findings-list.component.html',
   styleUrl: './findings-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,9 +49,9 @@ export class FindingsListComponent {
   readonly selectNode = output<string>();
   readonly prompt = output<number>();
 
-  protected readonly categoryLabel = FINDING_CATEGORY_LABEL;
-  protected readonly kindLabel = FINDING_KIND_LABEL;
-  protected readonly severityLabel = FINDING_SEVERITY_LABEL;
+  protected readonly categoryKey = FINDING_CATEGORY_LABEL_KEY;
+  protected readonly kindKey = FINDING_KIND_LABEL_KEY;
+  protected readonly severityKey = FINDING_SEVERITY_LABEL_KEY;
   protected readonly severitySlug = FINDING_SEVERITY_SLUG;
 
   protected readonly groups = computed(() => {

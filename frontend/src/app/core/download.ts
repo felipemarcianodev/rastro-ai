@@ -1,3 +1,5 @@
+import { tr } from './i18n/locale';
+
 // Baixar um arquivo gerado no navegador (exportações do grafo).
 export function downloadBlob(blob: Blob, fileName: string): void {
   const url = URL.createObjectURL(blob);
@@ -24,17 +26,17 @@ export function svgToPng(svg: string, width: number, height: number): Promise<Bl
       const context = canvas.getContext('2d');
       if (!context) {
         URL.revokeObjectURL(url);
-        reject(new Error('Sem canvas 2D neste navegador.'));
+        reject(new Error(tr('graph.image.noCanvas')));
         return;
       }
       context.scale(scale, scale);
       context.drawImage(image, 0, 0);
       URL.revokeObjectURL(url);
-      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('A imagem ficou grande demais.'))), 'image/png');
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error(tr('graph.image.tooLarge')))), 'image/png');
     };
     image.onerror = () => {
       URL.revokeObjectURL(url);
-      reject(new Error('Não deu para desenhar a imagem.'));
+      reject(new Error(tr('graph.image.drawFailed')));
     };
     image.src = url;
   });

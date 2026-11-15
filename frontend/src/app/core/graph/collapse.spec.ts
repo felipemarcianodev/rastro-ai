@@ -1,3 +1,5 @@
+import { registerStaticTranslator } from '../i18n/i18n.testing';
+import { UiLanguage } from '../i18n/language';
 import { EdgeConfidence, FlowEdge, FlowGraph, NodeKind } from '../models';
 import { COLLAPSED_PREFIX, collapseAfter, collapsedOwner } from './collapse';
 
@@ -23,6 +25,16 @@ describe('collapseAfter', () => {
     expect(placeholder.label).toBe('+2 passos');
     expect(result.edges.some((e) => e.from === 'b' && e.to === COLLAPSED_PREFIX + 'b')).toBeTrue();
     expect(result.edges.some((e) => e.to === 'c' || e.from === 'c')).toBeFalse();
+  });
+
+  it('o "+N passos" segue o plural e o idioma ativo', () => {
+    registerStaticTranslator(UiLanguage.English);
+    expect(collapseAfter(graph, new Set(['b'])).nodes.find((n) => n.id === COLLAPSED_PREFIX + 'b')!.label).toBe('+2 steps');
+    const line: FlowGraph = { ...graph, nodes: graph.nodes.slice(0, 3), edges: [edge('a', 'b'), edge('b', 'c')] };
+    expect(collapseAfter(line, new Set(['b'])).nodes.find((n) => n.id === COLLAPSED_PREFIX + 'b')!.label).toBe('+1 step');
+
+    registerStaticTranslator(UiLanguage.Spanish);
+    expect(collapseAfter(graph, new Set(['b'])).nodes.find((n) => n.id === COLLAPSED_PREFIX + 'b')!.label).toBe('+2 pasos');
   });
 
   it('mantém o passo que também é alcançado por outro caminho', () => {

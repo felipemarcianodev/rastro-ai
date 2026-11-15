@@ -2,7 +2,7 @@ import { HttpClient, HttpErrorResponse, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, of, throwError } from 'rxjs';
 import {
-  API_ERROR_MESSAGE,
+  API_ERROR_MESSAGE_KEY,
   AiSettingsUpdate,
   AiSettingsView,
   AiStatus,
@@ -32,12 +32,16 @@ import {
   C4Person,
   SurveySummary,
 } from './models';
+import { tr } from './i18n/locale';
 import { DbSchema, DbUsageReport } from './database/db-schema';
 import { QueryAnalysis } from './database/query-analysis';
 import { QueryAiSuggestion } from './database/query-suggestion';
 import { LiveConnectionTest, LiveConnectionView, QueryPlan } from './database/live-database';
 
 // Códigos cujo title traz o motivo exato em pt-BR, escrito pelo Rastro (nunca a mensagem crua do driver).
+const ERROR_KEY_NO_RESPONSE = 'error.noResponse';
+const ERROR_KEY_NOT_FOUND = 'error.notFound';
+const ERROR_KEY_GENERIC = 'error.generic';
 const TITLE_CODES: ReadonlySet<string> = new Set(['PLAN_NOT_ALLOWED', 'LIVE_DATABASE_ERROR', 'AI_PROVIDER_ERROR']);
 
 @Injectable({ providedIn: 'root' })
@@ -282,9 +286,9 @@ export function apiErrorMessage(error: unknown): string {
     // O plano recusado e a falha do banco vivo trazem o motivo exato em pt-BR no title do problema.
     const title = error.error?.title as string | undefined;
     if (code && TITLE_CODES.has(code) && typeof title === 'string' && title.trim()) return title;
-    if (code && API_ERROR_MESSAGE[code]) return API_ERROR_MESSAGE[code];
-    if (error.status === 0) return 'O Rastro não respondeu. Confira se o comando rastro continua aberto no terminal e tente de novo.';
-    if (error.status === 404) return 'Não encontrado.';
+    if (code && API_ERROR_MESSAGE_KEY[code]) return tr(API_ERROR_MESSAGE_KEY[code]);
+    if (error.status === 0) return tr(ERROR_KEY_NO_RESPONSE);
+    if (error.status === 404) return tr(ERROR_KEY_NOT_FOUND);
   }
-  return 'Algo deu errado no Rastro. Tente de novo.';
+  return tr(ERROR_KEY_GENERIC);
 }

@@ -1,3 +1,4 @@
+import { tr } from '../i18n/locale';
 import { FlowEdge, FlowGraph, FlowNode, NodeKind, SOURCE_LANGUAGE_LABEL, SourceLanguage, SurveySummary } from '../models';
 import { NodeBox, nodeSize } from './layout';
 import { plainBranch } from './plain';
@@ -216,7 +217,8 @@ export function timelineDrawing(graph: FlowGraph): TimelineDrawing {
 
 // Moldura do laço: "Para cada alert em pendingAlerts" -> "↻ Repete para cada alert em pendingAlerts".
 function repeatLabel(label: string): string {
-  return label.startsWith('Repete') ? `↻ ${label}` : `↻ Repete ${label.charAt(0).toLowerCase()}${label.slice(1)}`;
+  // O rótulo do laço vem do extrator em português ("Para cada ..."): só o verbo da moldura se traduz.
+  return label.startsWith('Repete') ? `↻ ${label}` : tr('graph.timeline.repeatFrame', { label: `${label.charAt(0).toLowerCase()}${label.slice(1)}` });
 }
 
 // "extraWidth": largura a mais de um passo (a etiqueta "banco", "mensagem"), que a tela desenha.

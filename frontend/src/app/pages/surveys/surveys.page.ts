@@ -1,15 +1,17 @@
 import { Component, DestroyRef, ElementRef, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { LanguageService } from '../../core/i18n/i18n';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { DB_TAB_QUERY_PARAM, HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { DialogDirective } from '../../core/dialog.directive';
 import { EditorLinks } from '../../core/editor-links';
-import { plural, shortCommit, shortDate } from '../../core/format';
+import { shortCommit, shortDate } from '../../core/format';
 import { LastRepositoryService } from '../../core/last-repository.service';
 import {
   CreateSurveyRequest,
   RepositoryItem,
-  SURVEY_STATUS_LABEL,
+  SURVEY_STATUS_LABEL_KEY,
   SURVEY_STATUS_SLUG,
   SurveyStatus,
   SurveySummary,
@@ -41,47 +43,26 @@ interface RepoCard {
 
 const DEFAULT_MAX_DEPTH = 15;
 
-const CROSS_HELP =
-  'Quando o método chama outro serviço por HTTP, o fluxo continua no endpoint que atende a chamada. Desligado, a chamada fica como chamada externa.';
+// Chaves de tradução (surveys.form.*): o template as traduz.
+const CROSS_HELP = 'surveys.form.crossHelp';
 
 type Field = 'repository' | 'solution' | 'entry' | 'depth';
 
-// Explicação de cada campo (botão "i"): o resumo vai no title; o texto, no quadro que abre.
+// Explicação de cada campo (botão "i"): o resumo vai no texto de apoio; o texto, no quadro que abre.
+// Os dois guardam chaves de tradução, que o template traduz.
 interface FieldInfo {
   summary: string;
   text: string[];
 }
 
 const FIELD_INFO: Record<Field, FieldInfo> = {
-  repository: {
-    summary: 'A pasta do código que o Rastro vai ler.',
-    text: [
-      'A pasta do código que o Rastro vai ler, cadastrada em Configurações. O Rastro só lê o código: não executa nada nem precisa do sistema no ar.',
-    ],
-  },
+  repository: { summary: 'surveys.form.repository.summary', text: ['surveys.form.repository.text1'] },
   solution: {
-    summary: 'O arquivo .sln ou .slnx que reúne os projetos.',
-    text: [
-      'O arquivo .sln ou .slnx que reúne os projetos do sistema. O Rastro compila por ele para saber quem chama quem, inclusive a implementação real atrás de cada interface.',
-      'Se houver mais de uma, escolha a que contém o projeto onde está o ponto de entrada.',
-      'Num projeto Angular, a lista traz o tsconfig (como tsconfig.app.json) e o ponto de entrada é Componente.metodo.',
-    ],
+    summary: 'surveys.form.solution.summary',
+    text: ['surveys.form.solution.text1', 'surveys.form.solution.text2', 'surveys.form.solution.text3'],
   },
-  entry: {
-    summary: 'O método onde a funcionalidade começa, como Classe.Metodo.',
-    text: [
-      'O método onde a funcionalidade começa: a action do controller que recebe a requisição, o Execute do job ou o Handle do handler da mensagem.',
-      'Escreva a classe e o método: PedidosController.Criar. Se houver duas classes com esse nome, inclua o namespace: Loja.Api.Controllers.PedidosController.Criar.',
-      'Não serve a rota (/api/pedidos), nem o namespace sem a classe.',
-    ],
-  },
-  depth: {
-    summary: 'Quantos níveis de chamada seguir a partir do ponto de entrada.',
-    text: [
-      'Quantos níveis de chamada o Rastro segue a partir do ponto de entrada. 15 serve para a maioria dos fluxos.',
-      'Onde o limite corta, o caminho fica marcado no grafo, e dá para continuar dali depois.',
-    ],
-  },
+  entry: { summary: 'surveys.form.entry.summary', text: ['surveys.form.entry.text1', 'surveys.form.entry.text2', 'surveys.form.entry.text3'] },
+  depth: { summary: 'surveys.form.depth.summary', text: ['surveys.form.depth.text1', 'surveys.form.depth.text2'] },
 };
 
 // Filtro da lista por estado (chips). Andamento junta "na fila" e "analisando".
@@ -92,11 +73,11 @@ export enum SurveyFilter {
   Failed = 3,
 }
 
-const FILTER_LABEL: Record<SurveyFilter, string> = {
-  [SurveyFilter.All]: 'Todos',
-  [SurveyFilter.Completed]: 'Prontos',
-  [SurveyFilter.InProgress]: 'Em andamento',
-  [SurveyFilter.Failed]: 'Com falha',
+const FILTER_LABEL_KEY: Record<SurveyFilter, string> = {
+  [SurveyFilter.All]: 'surveys.filter.all',
+  [SurveyFilter.Completed]: 'surveys.filter.completed',
+  [SurveyFilter.InProgress]: 'surveys.filter.inProgress',
+  [SurveyFilter.Failed]: 'surveys.filter.failed',
 };
 
 const FILTER_MATCH: Record<SurveyFilter, (status: SurveyStatus) => boolean> = {
@@ -116,12 +97,13 @@ export function matchesSearch(survey: SurveySummary, query: string): boolean {
 
 @Component({
   selector: 'app-surveys-page',
-  imports: [FormsModule, RouterLink, DialogDirective, RegisterRepositoryComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, DialogDirective, RegisterRepositoryComponent],
   templateUrl: './surveys.page.html',
   styleUrl: './surveys.page.scss',
 })
 export class SurveysPage implements OnInit {
   private readonly api = inject(RastroApi);
+  private readonly i18n = inject(LanguageService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
@@ -133,7 +115,7 @@ export class SurveysPage implements OnInit {
 
   protected readonly surveys = signal<SurveySummary[] | null>(null);
   protected readonly listError = signal<string | null>(null);
-  // Aviso de exclusão vindo da página do levantamento (estado da navegação).
+  // Aviso de exclusão vindo da página do levantamento (estado da navegação): guarda o ponto de entrada.
   protected readonly deletedNotice = signal<string | null>(null);
   protected readonly repositories = signal<RepositoryItem[]>([]);
   protected readonly reposState = signal<'loading' | 'error' | 'ready'>('loading');
@@ -151,12 +133,11 @@ export class SurveysPage implements OnInit {
   protected readonly fieldInfo = FIELD_INFO;
   protected readonly openInfo = signal<Field | null>(null);
 
-  protected readonly statusLabel = SURVEY_STATUS_LABEL;
+  protected readonly statusKey = SURVEY_STATUS_LABEL_KEY;
   protected readonly statusSlug = SURVEY_STATUS_SLUG;
   protected readonly SurveyStatus = SurveyStatus;
   protected readonly shortDate = shortDate;
   protected readonly shortCommit = shortCommit;
-  protected readonly plural = plural;
 
   protected readonly skeletonRows = SKELETON_ROWS;
 
@@ -166,7 +147,7 @@ export class SurveysPage implements OnInit {
   // UX-G-N02: sem repositório e sem levantamento guardado, a tela mostra só o bloco de boas-vindas.
   protected readonly welcome = computed(() => this.firstUse() && !this.surveys()?.length && !this.listError());
   protected readonly crossHelp = CROSS_HELP;
-  // UX-G-L14: o aviso do cadastro aparece no formulário que abre em seguida.
+  // UX-G-L14: o aviso do cadastro aparece no formulário que abre em seguida (guarda o nome do repositório).
   protected readonly registeredNotice = signal<string | null>(null);
 
   // Painel "Novo levantamento": abre pelo botão do topo ou pelo "Levantar fluxo" de um cartão.
@@ -181,7 +162,7 @@ export class SurveysPage implements OnInit {
       const latest = own.reduce<SurveySummary | null>((a, b) => (a === null || b.createdAt > a.createdAt ? b : a), null);
       return {
         name: repo.name,
-        count: own.length === 0 ? 'Nenhum levantamento' : plural(own.length, 'levantamento', 'levantamentos'),
+        count: this.i18n.t('surveys.repoCount', { count: own.length }),
         stack: latest?.solutionPath ?? null,
       };
     });
@@ -229,7 +210,7 @@ export class SurveysPage implements OnInit {
     this.editor.set(list);
     this.reposState.set('ready');
     this.registerOpen.set(false);
-    this.registeredNotice.set(`Repositório "${created.name}" cadastrado.`);
+    this.registeredNotice.set(created.name);
     this.selectRepository(created.name);
     this.formOpen.set(true);
   }
@@ -264,7 +245,7 @@ export class SurveysPage implements OnInit {
   protected readonly query = signal('');
   protected readonly filter = signal(SurveyFilter.All);
   protected readonly filters = [SurveyFilter.All, SurveyFilter.Completed, SurveyFilter.InProgress, SurveyFilter.Failed];
-  protected readonly filterLabel = FILTER_LABEL;
+  protected readonly filterLabelKey = FILTER_LABEL_KEY;
   protected readonly filterCounts = computed(() => {
     const surveys = this.surveys() ?? [];
     return new Map(this.filters.map((f) => [f, surveys.filter((s) => FILTER_MATCH[f](s.status)).length]));
@@ -288,7 +269,7 @@ export class SurveysPage implements OnInit {
   ngOnInit(): void {
     const deleted = (history.state as { deleted?: string } | null)?.deleted;
     if (deleted) {
-      this.deletedNotice.set(`Levantamento de ${deleted} excluído.`);
+      this.deletedNotice.set(deleted);
       setTimeout(() => this.deletedNotice.set(null), 5000);
     }
     this.retry = (history.state as { retry?: CreateSurveyRequest } | null)?.retry ?? null;
@@ -426,12 +407,12 @@ export class SurveysPage implements OnInit {
 
   private validate(): Partial<Record<Field, string>> {
     const errors: Partial<Record<Field, string>> = {};
-    if (!this.repository) errors.repository = 'Escolha um repositório.';
-    if (!this.solutionPath) errors.solution = 'Escolha uma solution.';
-    if (!this.entryPoint.trim()) errors.entry = 'Informe o método de entrada, por exemplo PedidosController.Criar.';
+    if (!this.repository) errors.repository = this.i18n.t('surveys.errors.repository');
+    if (!this.solutionPath) errors.solution = this.i18n.t('surveys.errors.solution');
+    if (!this.entryPoint.trim()) errors.entry = this.i18n.t('surveys.errors.entry');
     const depth = Number(this.maxDepth);
     if (!Number.isInteger(depth) || depth < MIN_DEPTH || depth > MAX_DEPTH)
-      errors.depth = `Use um número inteiro de ${MIN_DEPTH} a ${MAX_DEPTH}.`;
+      errors.depth = this.i18n.t('surveys.errors.depth', { min: MIN_DEPTH, max: MAX_DEPTH });
     return errors;
   }
 
@@ -443,7 +424,8 @@ export class SurveysPage implements OnInit {
           const before = this.lastStatus.get(s.id);
           return before !== undefined && !isFinished(before) && isFinished(s.status);
         });
-        if (finished.length > 0) this.announcement.set(finished.map((s) => `${s.entryPoint}: ${this.statusLabel[s.status]}`).join('. '));
+        if (finished.length > 0)
+          this.announcement.set(finished.map((s) => this.i18n.t('surveys.finished', { entryPoint: s.entryPoint, status: this.i18n.t(this.statusKey[s.status]) })).join('. '));
         this.lastStatus = new Map(surveys.map((s) => [s.id, s.status]));
         this.surveys.set(surveys);
         this.listError.set(null);

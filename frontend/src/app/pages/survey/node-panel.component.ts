@@ -4,13 +4,15 @@ import { FlowSummary } from '../../core/graph/summary';
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, output, signal, untracked } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
+import { LanguageService } from '../../core/i18n/i18n';
 import { Trail } from '../../core/graph/trail';
 import {
-  DB_OPERATION_SHORT,
+  DB_OPERATION_SHORT_KEY,
   DB_OPERATION_SLUG,
   ChangeKind,
   CrossFlowFinding,
-  EDGE_CONFIDENCE_LABEL,
+  EDGE_CONFIDENCE_LABEL_KEY,
   EdgeDecision,
   EDGE_CONFIDENCE_SLUG,
   EdgeConfidence,
@@ -18,27 +20,26 @@ import {
   FlowGraph,
   FlowNode,
   NODE_KIND_GLYPH,
-  NODE_KIND_LABEL,
+  NODE_KIND_LABEL_KEY,
   NODE_KIND_SLUG,
   NodeKind,
   NOTE_MAX_LENGTH,
-  PROPOSAL_ORIGIN_BADGE,
-  PROPOSAL_ORIGIN_LABEL,
+  PROPOSAL_ORIGIN_BADGE_KEY,
   PROPOSAL_ORIGIN_SLUG,
   SOURCE_LANGUAGE_LABEL,
   SourceLanguage,
   SourceLocation,
   SourceSnippet,
   SurveySegment,
-  UNRESOLVED_REASON_HELP,
-  UNRESOLVED_REASON_LABEL,
+  UNRESOLVED_REASON_HELP_KEY,
+  UNRESOLVED_REASON_LABEL_KEY,
 } from '../../core/models';
 import { breakable, shortCommit } from '../../core/format';
 import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { EditorLinks } from '../../core/editor-links';
-import { FOREIGN_EDIT_MESSAGE } from '../../core/graph/draft-editor';
+import { FOREIGN_EDIT_MESSAGE_KEY } from '../../core/graph/draft-editor';
 import { rulesTimeline } from '../../core/graph/rules-timeline';
 import { collapsedOwner } from '../../core/graph/collapse';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
@@ -54,7 +55,7 @@ const SNIPPET_DELAY_MS = 150;
 
 @Component({
   selector: 'app-node-panel',
-  imports: [FormsModule, RouterLink, FindingsListComponent, FlowSummaryComponent, AiDisclosureComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, FindingsListComponent, FlowSummaryComponent, AiDisclosureComponent],
   templateUrl: './node-panel.component.html',
   styleUrl: './node-panel.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,6 +63,7 @@ const SNIPPET_DELAY_MS = 150;
 export class NodePanelComponent {
   private readonly api = inject(RastroApi);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly i18n = inject(LanguageService);
 
   readonly surveyId = input.required<string>();
 
@@ -75,7 +77,7 @@ export class NodePanelComponent {
   readonly segments = input<SurveySegment[]>([]);
   // Linguagem do primeiro trecho (o do levantamento); os outros trazem a deles em "segments".
   readonly language = input<SourceLanguage>(SourceLanguage.DotNet);
-  protected readonly foreignMessage = FOREIGN_EDIT_MESSAGE;
+  protected readonly foreignMessage = computed(() => this.i18n.t(FOREIGN_EDIT_MESSAGE_KEY));
   protected readonly editor = inject(EditorLinks);
   readonly graph = input.required<FlowGraph>();
   // Resumo do fluxo (Fase 23), montado pelo canvas a partir do desenho.
@@ -147,14 +149,14 @@ export class NodePanelComponent {
   private snippetTimer?: ReturnType<typeof setTimeout>;
   protected readonly locationCopy = new CopyFeedback();
 
-  protected readonly kindLabel = NODE_KIND_LABEL;
-  protected readonly dbShort = DB_OPERATION_SHORT;
+  protected readonly kindKey = NODE_KIND_LABEL_KEY;
+  protected readonly dbShortKey = DB_OPERATION_SHORT_KEY;
   protected readonly dbSlug = DB_OPERATION_SLUG;
   protected readonly queryTab = DB_TAB_QUERY_PARAM;
   protected readonly kindSlug = NODE_KIND_SLUG;
   protected readonly glyph = NODE_KIND_GLYPH;
-  protected readonly reasonLabel = UNRESOLVED_REASON_LABEL;
-  protected readonly reasonHelp = UNRESOLVED_REASON_HELP;
+  protected readonly reasonKey = UNRESOLVED_REASON_LABEL_KEY;
+  protected readonly reasonHintKey = UNRESOLVED_REASON_HELP_KEY;
   protected readonly NodeKind = NodeKind;
   protected readonly breakable = breakable;
 
@@ -175,8 +177,7 @@ export class NodePanelComponent {
 
   protected readonly unresolved = computed(() => this.graph().nodes.filter((n) => n.kind === NodeKind.Unresolved));
   protected readonly proposedHoles = computed(() => new Set(this.graph().edges.map((e) => e.from)));
-  protected readonly originLabel = PROPOSAL_ORIGIN_LABEL;
-  protected readonly originBadge = PROPOSAL_ORIGIN_BADGE;
+  protected readonly originBadgeKey = PROPOSAL_ORIGIN_BADGE_KEY;
   protected readonly originSlug = PROPOSAL_ORIGIN_SLUG;
   protected readonly findingCount = computed(() => (this.graph().findings ?? []).length);
   protected readonly EdgeConfidence = EdgeConfidence;
@@ -222,7 +223,7 @@ export class NodePanelComponent {
   // O caminho começa na entrada ou no passo A do "caminhos a partir daqui".
   protected readonly pathTitle = computed(() => {
     const first = this.path()[0];
-    return !first || first.id === this.graph().entryNodeId ? 'Caminho desde a entrada' : `Caminho a partir de ${first.label}`;
+    return !first || first.id === this.graph().entryNodeId ? this.i18n.t('nodePanel.pathFromEntry') : this.i18n.t('nodePanel.pathFrom', { label: first.label });
   });
 
   protected readonly path = computed(() => {
@@ -356,7 +357,7 @@ export class NodePanelComponent {
     const link = this.editorLink(node);
     if (!link) return;
     window.location.assign(link);
-    this.editorStatus.set('Abrindo no VS Code… Se não abrir, confira a pasta em Configurações.');
+    this.editorStatus.set(this.i18n.t('nodePanel.editorOpening'));
     clearTimeout(this.editorTimer);
     this.editorTimer = setTimeout(() => this.editorStatus.set(null), 5000);
   }
@@ -367,10 +368,26 @@ export class NodePanelComponent {
   }
 
   protected edgeDescription(edge: FlowEdge): string {
-    const base = EDGE_CONFIDENCE_LABEL[edge.confidence];
+    const base = this.i18n.t(EDGE_CONFIDENCE_LABEL_KEY[edge.confidence]);
     return edge.origin !== undefined && edge.confidence !== EdgeConfidence.Extracted
-      ? `${base}; proposta de ${PROPOSAL_ORIGIN_LABEL[edge.origin]}`
+      ? this.i18n.t('nodePanel.links.proposal', { base, origin: PROPOSAL_ORIGIN_SLUG[edge.origin] })
       : base;
+  }
+
+  // A frase de "entre fluxos" tem três pedaços de código (entidade, verificação, fluxos) no meio do
+  // texto, e a ordem muda de idioma para idioma: a chave leva marcadores e a tela monta os pedaços.
+  protected crossFlowParts(item: CrossFlowFinding): { kind: 'text' | 'entity' | 'guard' | 'flows'; text: string }[] {
+    const marks = { entity: '\u0001E', guard: '\u0001G', flows: '\u0001F' } as const;
+    const text = this.i18n.t('nodePanel.overview.crossFlowItem', { entity: marks.entity, guard: marks.guard, flows: marks.flows, count: item.flows.length });
+    return text
+      .split(/(\u0001[EGF])/)
+      .filter(Boolean)
+      .map((part) => {
+        if (part === marks.entity) return { kind: 'entity', text: item.entity };
+        if (part === marks.guard) return { kind: 'guard', text: item.guard };
+        if (part === marks.flows) return { kind: 'flows', text: item.flows.join(', ') };
+        return { kind: 'text', text: part };
+      });
   }
 
   protected edgeSlug(edge: FlowEdge): string {

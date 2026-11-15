@@ -88,3 +88,9 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 46 | Rastro multilíngue: o seletor de idioma em Aparência, com cada idioma no próprio nome; em português | [fase-46/configuracoes-idioma-pt-BR.png](fase-46/configuracoes-idioma-pt-BR.png) |
 | Fase 46 | O mesmo cartão em inglês, trocado na hora com clique de verdade; a data sai no formato americano (o resto da tela entra nas Fases 47 e 48) | [fase-46/configuracoes-idioma-en-US.png](fase-46/configuracoes-idioma-en-US.png) |
 | Fase 46 | Em espanhol, com o cabeçalho e o estado da IA traduzidos | [fase-46/configuracoes-idioma-es.png](fase-46/configuracoes-idioma-es.png) |
+| Fase 47 | Rastro multilíngue: a lista de levantamentos, em português | [fase-47/levantamento-1-pt-BR.png](fase-47/levantamento-1-pt-BR.png) |
+| Fase 47 | Rastro multilíngue: a lista de levantamentos, em inglês | [fase-47/levantamento-1-en-US.png](fase-47/levantamento-1-en-US.png) |
+| Fase 47 | Rastro multilíngue: a lista de levantamentos, em espanhol | [fase-47/levantamento-1-es.png](fase-47/levantamento-1-es.png) |
+| Fase 47 | Rastro multilíngue: um levantamento do próprio Rastro (RepositoriesController.Add), em português | [fase-47/levantamento-2-pt-BR.png](fase-47/levantamento-2-pt-BR.png) |
+| Fase 47 | Rastro multilíngue: um levantamento do próprio Rastro (RepositoriesController.Add), em inglês | [fase-47/levantamento-2-en-US.png](fase-47/levantamento-2-en-US.png) |
+| Fase 47 | Rastro multilíngue: um levantamento do próprio Rastro (RepositoriesController.Add), em espanhol | [fase-47/levantamento-2-es.png](fase-47/levantamento-2-es.png) |

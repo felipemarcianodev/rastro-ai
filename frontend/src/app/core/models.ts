@@ -64,10 +64,10 @@ export const CHANGE_KIND_SLUG: Record<ChangeKind, string> = {
   [ChangeKind.Modified]: 'modified',
 };
 
-export const CHANGE_KIND_LABEL: Record<ChangeKind, string> = {
-  [ChangeKind.Added]: 'Passo novo',
-  [ChangeKind.Removed]: 'Sai do fluxo',
-  [ChangeKind.Modified]: 'Muda',
+export const CHANGE_KIND_LABEL_KEY: Record<ChangeKind, string> = {
+  [ChangeKind.Added]: 'enum.changeKind.added',
+  [ChangeKind.Removed]: 'enum.changeKind.removed',
+  [ChangeKind.Modified]: 'enum.changeKind.modified',
 };
 
 export interface NodeRule {
@@ -113,20 +113,20 @@ export interface DbAccess {
   sql?: string | null;
 }
 
-export const DB_OPERATION_LABEL: Record<DbOperation, string> = {
-  [DbOperation.Read]: 'lê',
-  [DbOperation.Insert]: 'inclui em',
-  [DbOperation.Update]: 'altera',
-  [DbOperation.Delete]: 'exclui de',
-  [DbOperation.Execute]: 'executa',
+export const DB_OPERATION_LABEL_KEY: Record<DbOperation, string> = {
+  [DbOperation.Read]: 'enum.dbOperation.read',
+  [DbOperation.Insert]: 'enum.dbOperation.insert',
+  [DbOperation.Update]: 'enum.dbOperation.update',
+  [DbOperation.Delete]: 'enum.dbOperation.delete',
+  [DbOperation.Execute]: 'enum.dbOperation.execute',
 };
 
-export const DB_OPERATION_SHORT: Record<DbOperation, string> = {
-  [DbOperation.Read]: 'lê',
-  [DbOperation.Insert]: 'inclui',
-  [DbOperation.Update]: 'altera',
-  [DbOperation.Delete]: 'exclui',
-  [DbOperation.Execute]: 'executa',
+export const DB_OPERATION_SHORT_KEY: Record<DbOperation, string> = {
+  [DbOperation.Read]: 'enum.dbOperationShort.read',
+  [DbOperation.Insert]: 'enum.dbOperationShort.insert',
+  [DbOperation.Update]: 'enum.dbOperationShort.update',
+  [DbOperation.Delete]: 'enum.dbOperationShort.delete',
+  [DbOperation.Execute]: 'enum.dbOperationShort.execute',
 };
 
 export const DB_OPERATION_SLUG: Record<DbOperation, string> = {
@@ -290,17 +290,17 @@ export const NODE_KIND_SLUG: Record<NodeKind, string> = {
   [NodeKind.Jump]: 'jump',
 };
 
-export const NODE_KIND_LABEL: Record<NodeKind, string> = {
-  [NodeKind.Entry]: 'Entrada',
-  [NodeKind.Method]: 'Método',
-  [NodeKind.Decision]: 'Decisão',
-  [NodeKind.Loop]: 'Laço',
-  [NodeKind.Try]: 'Tratamento de erro',
-  [NodeKind.Return]: 'Retorno antecipado',
-  [NodeKind.Throw]: 'Exceção',
-  [NodeKind.External]: 'Chamada externa',
-  [NodeKind.Unresolved]: 'Não resolvido',
-  [NodeKind.Jump]: 'Desvio do laço',
+export const NODE_KIND_LABEL_KEY: Record<NodeKind, string> = {
+  [NodeKind.Entry]: 'enum.nodeKind.entry',
+  [NodeKind.Method]: 'enum.nodeKind.method',
+  [NodeKind.Decision]: 'enum.nodeKind.decision',
+  [NodeKind.Loop]: 'enum.nodeKind.loop',
+  [NodeKind.Try]: 'enum.nodeKind.try',
+  [NodeKind.Return]: 'enum.nodeKind.return',
+  [NodeKind.Throw]: 'enum.nodeKind.throw',
+  [NodeKind.External]: 'enum.nodeKind.external',
+  [NodeKind.Unresolved]: 'enum.nodeKind.unresolved',
+  [NodeKind.Jump]: 'enum.nodeKind.jump',
 };
 
 // Letra do selo do nó: identifica o tipo sem depender de cor.
@@ -323,17 +323,17 @@ export const EDGE_CONFIDENCE_SLUG: Record<EdgeConfidence, string> = {
   [EdgeConfidence.Confirmed]: 'confirmed',
 };
 
-export const EDGE_CONFIDENCE_LABEL: Record<EdgeConfidence, string> = {
-  [EdgeConfidence.Extracted]: 'Extraída do código',
-  [EdgeConfidence.Inferred]: 'Inferida (a conferir)',
-  [EdgeConfidence.Confirmed]: 'Confirmada por você',
+export const EDGE_CONFIDENCE_LABEL_KEY: Record<EdgeConfidence, string> = {
+  [EdgeConfidence.Extracted]: 'enum.edgeConfidence.extracted',
+  [EdgeConfidence.Inferred]: 'enum.edgeConfidence.inferred',
+  [EdgeConfidence.Confirmed]: 'enum.edgeConfidence.confirmed',
 };
 
 // Selo curto da origem de uma regra ou ligação (painel e linha do tempo).
-export const PROPOSAL_ORIGIN_BADGE: Record<ProposalOrigin, string> = {
-  [ProposalOrigin.Manual]: 'Você',
-  [ProposalOrigin.Agent]: 'Agente',
-  [ProposalOrigin.Provider]: 'IA',
+export const PROPOSAL_ORIGIN_BADGE_KEY: Record<ProposalOrigin, string> = {
+  [ProposalOrigin.Manual]: 'enum.proposalOrigin.manual',
+  [ProposalOrigin.Agent]: 'enum.proposalOrigin.agent',
+  [ProposalOrigin.Provider]: 'enum.proposalOrigin.provider',
 };
 
 export const PROPOSAL_ORIGIN_SLUG: Record<ProposalOrigin, string> = {
@@ -342,37 +342,31 @@ export const PROPOSAL_ORIGIN_SLUG: Record<ProposalOrigin, string> = {
   [ProposalOrigin.Provider]: 'provider',
 };
 
-export const PROPOSAL_ORIGIN_LABEL: Record<ProposalOrigin, string> = {
-  [ProposalOrigin.Manual]: 'você',
-  [ProposalOrigin.Agent]: 'um agente (MCP)',
-  [ProposalOrigin.Provider]: 'o provedor de IA',
-};
-
-export const UNRESOLVED_REASON_LABEL: Record<UnresolvedReason, string> = {
-  [UnresolvedReason.MultipleImplementations]: 'Mais de uma implementação',
-  [UnresolvedReason.NoImplementation]: 'Sem implementação no código',
-  [UnresolvedReason.DynamicDispatch]: 'Chamada dinâmica',
-  [UnresolvedReason.Delegate]: 'Delegate ou evento',
-  [UnresolvedReason.MessageDispatch]: 'Mensagem para mediator ou barramento',
-  [UnresolvedReason.Reflection]: 'Reflection',
-  [UnresolvedReason.DepthLimit]: 'Limite de profundidade',
-  [UnresolvedReason.RouteNotResolved]: 'Rota da chamada HTTP não resolvida',
-  [UnresolvedReason.NoMatchingEndpoint]: 'Nenhum endpoint atende a chamada',
-  [UnresolvedReason.MultipleEndpoints]: 'Mais de um endpoint atende a chamada',
+export const UNRESOLVED_REASON_LABEL_KEY: Record<UnresolvedReason, string> = {
+  [UnresolvedReason.MultipleImplementations]: 'enum.unresolvedReason.multipleImplementations',
+  [UnresolvedReason.NoImplementation]: 'enum.unresolvedReason.noImplementation',
+  [UnresolvedReason.DynamicDispatch]: 'enum.unresolvedReason.dynamicDispatch',
+  [UnresolvedReason.Delegate]: 'enum.unresolvedReason.delegate',
+  [UnresolvedReason.MessageDispatch]: 'enum.unresolvedReason.messageDispatch',
+  [UnresolvedReason.Reflection]: 'enum.unresolvedReason.reflection',
+  [UnresolvedReason.DepthLimit]: 'enum.unresolvedReason.depthLimit',
+  [UnresolvedReason.RouteNotResolved]: 'enum.unresolvedReason.routeNotResolved',
+  [UnresolvedReason.NoMatchingEndpoint]: 'enum.unresolvedReason.noMatchingEndpoint',
+  [UnresolvedReason.MultipleEndpoints]: 'enum.unresolvedReason.multipleEndpoints',
 };
 
 // O que o motivo significa, em uma frase, para quem vai completar o buraco.
-export const UNRESOLVED_REASON_HELP: Record<UnresolvedReason, string> = {
-  [UnresolvedReason.MultipleImplementations]: 'A interface tem várias implementações e nenhum registro de DI decide qual roda aqui.',
-  [UnresolvedReason.NoImplementation]: 'A interface não tem implementação nesta solution. Ela pode vir de um pacote ou de outro repositório.',
-  [UnresolvedReason.DynamicDispatch]: 'O compilador não ligou a chamada a um método (dynamic ou código que não compilou).',
-  [UnresolvedReason.Delegate]: 'Quem roda depende de quem atribuiu o delegate ou assinou o evento.',
-  [UnresolvedReason.MessageDispatch]: 'O handler da mensagem é escolhido em tempo de execução pelo mediator ou barramento.',
-  [UnresolvedReason.Reflection]: 'O método é chamado por reflection, então o destino só existe em tempo de execução.',
-  [UnresolvedReason.DepthLimit]: 'O caminho continua, mas parou no limite de profundidade escolhido.',
-  [UnresolvedReason.RouteNotResolved]: 'A rota da chamada HTTP é montada em tempo de execução, então não dá para saber qual endpoint ela alcança.',
-  [UnresolvedReason.NoMatchingEndpoint]: 'A rota foi resolvida, mas nenhum dos repositórios escolhidos tem um endpoint que a atenda.',
-  [UnresolvedReason.MultipleEndpoints]: 'A rota casa com mais de um endpoint. Escolha qual deles recebe a chamada.',
+export const UNRESOLVED_REASON_HELP_KEY: Record<UnresolvedReason, string> = {
+  [UnresolvedReason.MultipleImplementations]: 'enum.unresolvedReasonHint.multipleImplementations',
+  [UnresolvedReason.NoImplementation]: 'enum.unresolvedReasonHint.noImplementation',
+  [UnresolvedReason.DynamicDispatch]: 'enum.unresolvedReasonHint.dynamicDispatch',
+  [UnresolvedReason.Delegate]: 'enum.unresolvedReasonHint.delegate',
+  [UnresolvedReason.MessageDispatch]: 'enum.unresolvedReasonHint.messageDispatch',
+  [UnresolvedReason.Reflection]: 'enum.unresolvedReasonHint.reflection',
+  [UnresolvedReason.DepthLimit]: 'enum.unresolvedReasonHint.depthLimit',
+  [UnresolvedReason.RouteNotResolved]: 'enum.unresolvedReasonHint.routeNotResolved',
+  [UnresolvedReason.NoMatchingEndpoint]: 'enum.unresolvedReasonHint.noMatchingEndpoint',
+  [UnresolvedReason.MultipleEndpoints]: 'enum.unresolvedReasonHint.multipleEndpoints',
 };
 
 export const SURVEY_STATUS_SLUG: Record<SurveyStatus, string> = {
@@ -382,50 +376,50 @@ export const SURVEY_STATUS_SLUG: Record<SurveyStatus, string> = {
   [SurveyStatus.Failed]: 'failed',
 };
 
-export const SURVEY_STATUS_LABEL: Record<SurveyStatus, string> = {
-  [SurveyStatus.Pending]: 'Na fila',
-  [SurveyStatus.Running]: 'Analisando',
-  [SurveyStatus.Completed]: 'Pronto',
-  [SurveyStatus.Failed]: 'Falhou',
+export const SURVEY_STATUS_LABEL_KEY: Record<SurveyStatus, string> = {
+  [SurveyStatus.Pending]: 'enum.surveyStatus.pending',
+  [SurveyStatus.Running]: 'enum.surveyStatus.running',
+  [SurveyStatus.Completed]: 'enum.surveyStatus.completed',
+  [SurveyStatus.Failed]: 'enum.surveyStatus.failed',
 };
 
-export const API_ERROR_MESSAGE: Record<string, string> = {
-  REPOSITORY_COMMAND_INVALID: 'O comando precisa caber numa linha, com até 500 caracteres.',
-  REPOSITORY_NOT_ALLOWED: 'Esse repositório não está cadastrado. Cadastre a pasta em Configurações.',
-  SOLUTION_PATH_INVALID: 'Use um .sln, .slnx, .csproj ou tsconfig relativo à raiz do repositório.',
-  ANGULAR_UNAVAILABLE: 'O Node não foi encontrado nesta máquina. Instale o Node para levantar fluxos Angular.',
-  SOLUTION_NOT_FOUND: 'Não há solution nesse caminho.',
-  ENTRY_POINT_REQUIRED: 'Informe o ponto de entrada, por exemplo PedidosController.Criar.',
-  DEPTH_OUT_OF_RANGE: 'A profundidade precisa ficar entre 1 e 40.',
-  SOURCE_PATH_INVALID: 'Esse arquivo não pode ser lido.',
-  EDGE_NOT_PROPOSED: 'Essa aresta não é uma proposta (ou já foi decidida).',
-  DRAFT_INVALID: 'O rascunho não passou na validação.',
-  DRAFT_REQUIRED: 'Desenhe e salve ao menos uma mudança antes de validar.',
-  VALIDATION_RUNNING: 'Já existe uma validação em andamento para este levantamento.',
-  VALIDATION_NOT_APPROVABLE: 'Só uma validação concluída e não reprovada pode ser aprovada.',
-  C4_PEOPLE_INVALID: 'Confira as pessoas: cada uma precisa de nome, sem repetir.',
-  NOTE_INVALID: 'A anotação precisa ser de um passo deste fluxo e ter até 500 caracteres.',
-  DIAGRAM_INVALID: 'O diagrama está vazio ou grande demais.',
-  SURVEY_RUNNING: 'O levantamento ainda está em análise. Espere terminar para excluir.',
-  AI_SETTINGS_INVALID: 'Configuração inválida: confira modelos, chaves e orçamento.',
-  AI_DISABLED: 'A IA está desligada na configuração.',
-  AI_USE_DISABLED: 'Este uso da IA está desligado na configuração.',
-  AI_NOT_CONFIGURED: 'Falta a chave de API do provedor escolhido.',
-  AI_BUDGET_EXCEEDED: 'O orçamento diário de tokens acabou.',
-  AI_PROVIDER_ERROR: 'O provedor de IA não respondeu. Tente de novo em instantes.',
-  AI_QUESTION_INVALID: 'Escreva uma pergunta de até alguns parágrafos sobre este fluxo.',
-  REPOSITORY_NAME_INVALID: 'Nome inválido: use letras, números, ponto, hífen ou sublinhado, começando por letra ou número.',
-  REPOSITORY_PATH_INVALID: 'Use o caminho completo da pasta, como C:\\codigo\\meu-sistema (Windows) ou /home/voce/meu-sistema (Linux e macOS).',
-  REPOSITORY_FOLDER_NOT_FOUND: 'Essa pasta não existe neste computador.',
-  REPOSITORY_EXISTS: 'Já existe um repositório com esse nome.',
-  REPOSITORY_NOT_FOUND: 'Esse repositório não está mais cadastrado.',
-  CROSS_REPOSITORIES_INVALID: 'Escolha no máximo 10 repositórios para seguir as chamadas HTTP.',
-  QUERY_INVALID: 'Cole uma consulta de até 100 mil caracteres.',
-  CONNECTION_INVALID: 'String de conexão inválida: confira o servidor (Data Source) e o formato, com até 2.000 caracteres.',
-  CONNECTION_MISSING: 'Cadastre a conexão com o banco vivo antes.',
-  PLAN_NOT_ALLOWED: 'O plano só sai para uma instrução SELECT, INSERT, UPDATE, DELETE ou MERGE, sem SET, EXEC nem DDL.',
-  LIVE_DATABASE_ERROR: 'O banco vivo não respondeu. Confira a conexão e tente de novo.',
-  ORIGIN_NOT_ALLOWED: 'Pedido recusado: só a tela do próprio Rastro pode alterar dados.',
+export const API_ERROR_MESSAGE_KEY: Record<string, string> = {
+  REPOSITORY_COMMAND_INVALID: 'error.REPOSITORY_COMMAND_INVALID',
+  REPOSITORY_NOT_ALLOWED: 'error.REPOSITORY_NOT_ALLOWED',
+  SOLUTION_PATH_INVALID: 'error.SOLUTION_PATH_INVALID',
+  ANGULAR_UNAVAILABLE: 'error.ANGULAR_UNAVAILABLE',
+  SOLUTION_NOT_FOUND: 'error.SOLUTION_NOT_FOUND',
+  ENTRY_POINT_REQUIRED: 'error.ENTRY_POINT_REQUIRED',
+  DEPTH_OUT_OF_RANGE: 'error.DEPTH_OUT_OF_RANGE',
+  SOURCE_PATH_INVALID: 'error.SOURCE_PATH_INVALID',
+  EDGE_NOT_PROPOSED: 'error.EDGE_NOT_PROPOSED',
+  DRAFT_INVALID: 'error.DRAFT_INVALID',
+  DRAFT_REQUIRED: 'error.DRAFT_REQUIRED',
+  VALIDATION_RUNNING: 'error.VALIDATION_RUNNING',
+  VALIDATION_NOT_APPROVABLE: 'error.VALIDATION_NOT_APPROVABLE',
+  C4_PEOPLE_INVALID: 'error.C4_PEOPLE_INVALID',
+  NOTE_INVALID: 'error.NOTE_INVALID',
+  DIAGRAM_INVALID: 'error.DIAGRAM_INVALID',
+  SURVEY_RUNNING: 'error.SURVEY_RUNNING',
+  AI_SETTINGS_INVALID: 'error.AI_SETTINGS_INVALID',
+  AI_DISABLED: 'error.AI_DISABLED',
+  AI_USE_DISABLED: 'error.AI_USE_DISABLED',
+  AI_NOT_CONFIGURED: 'error.AI_NOT_CONFIGURED',
+  AI_BUDGET_EXCEEDED: 'error.AI_BUDGET_EXCEEDED',
+  AI_PROVIDER_ERROR: 'error.AI_PROVIDER_ERROR',
+  AI_QUESTION_INVALID: 'error.AI_QUESTION_INVALID',
+  REPOSITORY_NAME_INVALID: 'error.REPOSITORY_NAME_INVALID',
+  REPOSITORY_PATH_INVALID: 'error.REPOSITORY_PATH_INVALID',
+  REPOSITORY_FOLDER_NOT_FOUND: 'error.REPOSITORY_FOLDER_NOT_FOUND',
+  REPOSITORY_EXISTS: 'error.REPOSITORY_EXISTS',
+  REPOSITORY_NOT_FOUND: 'error.REPOSITORY_NOT_FOUND',
+  CROSS_REPOSITORIES_INVALID: 'error.CROSS_REPOSITORIES_INVALID',
+  QUERY_INVALID: 'error.QUERY_INVALID',
+  CONNECTION_INVALID: 'error.CONNECTION_INVALID',
+  CONNECTION_MISSING: 'error.CONNECTION_MISSING',
+  PLAN_NOT_ALLOWED: 'error.PLAN_NOT_ALLOWED',
+  LIVE_DATABASE_ERROR: 'error.LIVE_DATABASE_ERROR',
+  ORIGIN_NOT_ALLOWED: 'error.ORIGIN_NOT_ALLOWED',
 };
 
 export function isFinished(status: SurveyStatus): boolean {
@@ -554,10 +548,10 @@ export enum ValidationVerdict {
   Rejected = 2,
 }
 
-export const VALIDATION_VERDICT_LABEL: Record<ValidationVerdict, string> = {
-  [ValidationVerdict.Approved]: 'Aprovada',
-  [ValidationVerdict.Partial]: 'Parcial',
-  [ValidationVerdict.Rejected]: 'Reprovada',
+export const VALIDATION_VERDICT_LABEL_KEY: Record<ValidationVerdict, string> = {
+  [ValidationVerdict.Approved]: 'enum.validationVerdict.approved',
+  [ValidationVerdict.Partial]: 'enum.validationVerdict.partial',
+  [ValidationVerdict.Rejected]: 'enum.validationVerdict.rejected',
 };
 
 export const VALIDATION_VERDICT_SLUG: Record<ValidationVerdict, string> = {
@@ -566,10 +560,10 @@ export const VALIDATION_VERDICT_SLUG: Record<ValidationVerdict, string> = {
   [ValidationVerdict.Rejected]: 'rejected',
 };
 
-export const CHECK_STATUS_LABEL: Record<CheckStatus, string> = {
-  [CheckStatus.Passed]: 'passou',
-  [CheckStatus.Failed]: 'falhou',
-  [CheckStatus.Skipped]: 'não configurado',
+export const CHECK_STATUS_LABEL_KEY: Record<CheckStatus, string> = {
+  [CheckStatus.Passed]: 'enum.checkStatus.passed',
+  [CheckStatus.Failed]: 'enum.checkStatus.failed',
+  [CheckStatus.Skipped]: 'enum.checkStatus.skipped',
 };
 
 export const CHECK_STATUS_SLUG: Record<CheckStatus, string> = {
@@ -681,35 +675,35 @@ export const FINDING_CATEGORY_OF: Record<FindingKind, FindingCategory> = {
   [FindingKind.LeadingWildcardLike]: FindingCategory.Database,
 };
 
-export const FINDING_CATEGORY_LABEL: Record<FindingCategory, string> = {
-  [FindingCategory.Ddd]: 'Regras de DDD',
-  [FindingCategory.CleanCode]: 'Código limpo',
-  [FindingCategory.Metric]: 'Métricas',
-  [FindingCategory.Database]: 'Banco de dados',
+export const FINDING_CATEGORY_LABEL_KEY: Record<FindingCategory, string> = {
+  [FindingCategory.Ddd]: 'enum.findingCategory.ddd',
+  [FindingCategory.CleanCode]: 'enum.findingCategory.cleanCode',
+  [FindingCategory.Metric]: 'enum.findingCategory.metric',
+  [FindingCategory.Database]: 'enum.findingCategory.database',
 };
 
-export const FINDING_KIND_LABEL: Record<FindingKind, string> = {
-  [FindingKind.HighComplexity]: 'Complexidade alta',
-  [FindingKind.LongMethod]: 'Método longo',
-  [FindingKind.DeepNesting]: 'Aninhamento fundo',
-  [FindingKind.TooManyDependencies]: 'Dependências demais',
-  [FindingKind.SilentCatch]: 'Catch que engole a falha',
-  [FindingKind.ServiceLocator]: 'Service locator',
-  [FindingKind.EntityChangedOutsideDomain]: 'Entidade alterada fora do domínio',
-  [FindingKind.PublicSetterOnEntity]: 'Setter público na entidade',
-  [FindingKind.PersistenceOutsideDomain]: 'Gravação fora do domínio',
-  [FindingKind.QueryInLoop]: 'Consulta dentro de laço (N+1)',
-  [FindingKind.MaterializeBeforeFilter]: 'ToList antes do filtro',
-  [FindingKind.ReadWithoutNoTracking]: 'Leitura sem AsNoTracking',
-  [FindingKind.ProcedureByRawSql]: 'Procedure por SQL cru',
-  [FindingKind.LoadToDelete]: 'Carrega para apagar',
-  [FindingKind.LeadingWildcardLike]: 'LIKE com curinga no começo',
+export const FINDING_KIND_LABEL_KEY: Record<FindingKind, string> = {
+  [FindingKind.HighComplexity]: 'enum.findingKind.highComplexity',
+  [FindingKind.LongMethod]: 'enum.findingKind.longMethod',
+  [FindingKind.DeepNesting]: 'enum.findingKind.deepNesting',
+  [FindingKind.TooManyDependencies]: 'enum.findingKind.tooManyDependencies',
+  [FindingKind.SilentCatch]: 'enum.findingKind.silentCatch',
+  [FindingKind.ServiceLocator]: 'enum.findingKind.serviceLocator',
+  [FindingKind.EntityChangedOutsideDomain]: 'enum.findingKind.entityChangedOutsideDomain',
+  [FindingKind.PublicSetterOnEntity]: 'enum.findingKind.publicSetterOnEntity',
+  [FindingKind.PersistenceOutsideDomain]: 'enum.findingKind.persistenceOutsideDomain',
+  [FindingKind.QueryInLoop]: 'enum.findingKind.queryInLoop',
+  [FindingKind.MaterializeBeforeFilter]: 'enum.findingKind.materializeBeforeFilter',
+  [FindingKind.ReadWithoutNoTracking]: 'enum.findingKind.readWithoutNoTracking',
+  [FindingKind.ProcedureByRawSql]: 'enum.findingKind.procedureByRawSql',
+  [FindingKind.LoadToDelete]: 'enum.findingKind.loadToDelete',
+  [FindingKind.LeadingWildcardLike]: 'enum.findingKind.leadingWildcardLike',
 };
 
-export const FINDING_SEVERITY_LABEL: Record<FindingSeverity, string> = {
-  [FindingSeverity.Info]: 'Informativo',
-  [FindingSeverity.Warning]: 'Atenção',
-  [FindingSeverity.Critical]: 'Crítico',
+export const FINDING_SEVERITY_LABEL_KEY: Record<FindingSeverity, string> = {
+  [FindingSeverity.Info]: 'enum.findingSeverity.info',
+  [FindingSeverity.Warning]: 'enum.findingSeverity.warning',
+  [FindingSeverity.Critical]: 'enum.findingSeverity.critical',
 };
 
 export const FINDING_SEVERITY_SLUG: Record<FindingSeverity, string> = {

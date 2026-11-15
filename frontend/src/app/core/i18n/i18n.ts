@@ -11,7 +11,7 @@ import {
 import { TranslateMessageFormatCompiler } from 'ngx-translate-messageformat-compiler';
 import { Observable, firstValueFrom, from, map } from 'rxjs';
 import { FALLBACK_LANGUAGE, UI_LANGUAGE_CODE, UiLanguage, languageFromCode, languageFromSystem } from './language';
-import { setCurrentLocale } from './locale';
+import { registerTranslator, setCurrentLocale } from './locale';
 
 // Cada idioma é um pedaço próprio do pacote da tela, servido pela API local: a tela carrega só
 // o idioma ativo e nada sai da máquina.
@@ -72,6 +72,7 @@ export class LanguageService {
   private apply(language: UiLanguage): void {
     const code = UI_LANGUAGE_CODE[language];
     setCurrentLocale(code);
+    registerTranslator((key, params) => this.translate.instant(key, params) as string);
     if (typeof document !== 'undefined') document.documentElement.lang = code;
   }
 }
