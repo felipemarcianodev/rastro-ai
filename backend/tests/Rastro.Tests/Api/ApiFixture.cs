@@ -78,7 +78,9 @@ public sealed class ApiFixture : IAsyncLifetime
         {
             ["ConnectionStrings:Rastro"] = ConnectionString,
             ["Rastro:Repositories:0:Name"] = RepositoryName,
-            ["Rastro:Repositories:0:Path"] = RepositoryRoot
+            ["Rastro:Repositories:0:Path"] = RepositoryRoot,
+            // O MCP segue o idioma do config.json (ADR-009); os testes que conferem a prosa do núcleo pedem pt-BR.
+            ["Rastro:Language"] = "pt-BR"
         };
         foreach (var (key, value) in extraSettings ?? new Dictionary<string, string?>()) settings[key] = value;
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();

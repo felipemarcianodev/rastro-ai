@@ -1,6 +1,8 @@
 using System.Text.RegularExpressions;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -11,7 +13,8 @@ public interface ISqlQueryAnalyzer
     SqlDialect Dialect { get; }
 
     // schema: o esquema do repositório, para cruzar coluna com índice e com nulo; nulo, só as regras do texto.
-    QueryAnalysis Analyze(string sql, DbSchema? schema);
+    // language: o idioma dos achados e dos erros, que vão para a tela (ADR-009).
+    QueryAnalysis Analyze(string sql, DbSchema? schema, UiLanguage language);
 }
 
 public static class SqlQueryAnalyzers
@@ -30,22 +33,18 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
 
     public SqlDialect Dialect => SqlDialect.SqlServer;
 
-    public QueryAnalysis Analyze(string sql, DbSchema? schema)
+    public QueryAnalysis Analyze(string sql, DbSchema? schema, UiLanguage language)
     {
-        var parser = new TSql170Parser(initialQuotedIdentifiers: true);
-        TSqlFragment? tree;
-        IList<ParseError> errors;
-        using (var reader = new StringReader(sql))
-            tree = parser.Parse(reader, out errors);
+        var tree = TSqlParsing.Parse(sql, out var errors);
 
         if (errors.Count > 0 || tree is not TSqlScript script)
         {
             var first = errors.FirstOrDefault();
             return new QueryAnalysis(Dialect, 0, [], [],
-                new QueryParseError(first is null ? "Texto vazio." : SqlMessageTranslator.Translate(first.Message), first?.Line ?? 1, first?.Column ?? 1));
+                new QueryParseError(first is null ? Txt.Get("Query.EmptyText", language) : SqlMessageTranslator.Translate(first.Message, language), first?.Line ?? 1, first?.Column ?? 1));
         }
 
-        var run = new Run(sql, schema);
+        var run = new Run(sql, schema, language);
         var statements = script.Batches.SelectMany(b => b.Statements).ToList();
         foreach (var statement in statements)
             run.Statement(statement);
@@ -54,8 +53,10 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
     }
 
     // Uma análise: o texto, o esquema e o que já foi achado.
-    private sealed class Run(string sql, DbSchema? schema)
+    private sealed class Run(string sql, DbSchema? schema, UiLanguage language)
     {
+        private string T(string key, params object[] args) => Txt.Get(key, language, args);
+
         // A chave de partição (o tenant): filtrar só por ela não é filtrar por um pai.
         private readonly HashSet<string> _partition = DbPartition.Columns(schema);
         private readonly HashSet<string> _tableKeys = DbPartition.TableKeys(schema);
@@ -101,13 +102,13 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                     break;
                 case UpdateStatement update when update.UpdateSpecification is { } spec:
                     Ctes(update.WithCtesAndXmlNamespaces);
-                    Write(statement, spec.Target, spec.FromClause, spec.WhereClause, "UPDATE", "altera");
+                    Write(statement, spec.Target, spec.FromClause, spec.WhereClause, "UPDATE", "Query.WriteUpdates");
                     foreach (var set in spec.SetClauses.OfType<AssignmentSetClause>())
                         if (set.NewValue is not null) Subqueries(set.NewValue, null);
                     break;
                 case DeleteStatement delete when delete.DeleteSpecification is { } spec:
                     Ctes(delete.WithCtesAndXmlNamespaces);
-                    Write(statement, spec.Target, spec.FromClause, spec.WhereClause, "DELETE", "apaga");
+                    Write(statement, spec.Target, spec.FromClause, spec.WhereClause, "DELETE", "Query.WriteDeletes");
                     break;
                 case InsertStatement insert when insert.InsertSpecification?.InsertSource is SelectInsertSource source:
                     Ctes(insert.WithCtesAndXmlNamespaces);
@@ -131,7 +132,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
 
         // UPDATE e DELETE: sem WHERE, a tabela inteira muda. Com junção no FROM, a junção limita as
         // linhas, e o achado não vale.
-        private void Write(TSqlStatement statement, TableReference target, FromClause? from, WhereClause? where, string verb, string action)
+        private void Write(TSqlStatement statement, TableReference target, FromClause? from, WhereClause? where, string verb, string actionKey)
         {
             var scope = new Scope(null);
             ReadEqualities(scope, from?.TableReferences ?? [], where?.SearchCondition);
@@ -146,10 +147,10 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             if (where is null && !joined)
             {
                 var table = scope.Refs.FirstOrDefault(r => r.Fragment == target) ?? scope.Refs.FirstOrDefault();
-                var name = table?.Name ?? "a tabela";
+                var name = table?.Name ?? T("Query.TheTable");
                 var end = from?.TableReferences.Count == 1 ? (TSqlFragment)from : target;
                 Report(QueryFindingKind.WriteWithoutWhere, QuerySeverity.High, statement.StartOffset, end.StartOffset + end.FragmentLength - statement.StartOffset, statement.StartLine,
-                    $"{verb} sem WHERE {action} todas as linhas de {name}. Se é isso mesmo, deixe escrito; se não, falta o filtro.", table?.Table is null ? null : table.Name);
+                    T("Query.WriteWithoutWhere", verb, T(actionKey), name), table?.Table is null ? null : table.Name);
             }
             if (where?.SearchCondition is { } condition)
             {
@@ -197,7 +198,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
 
             if (spec.UniqueRowFilter == UniqueRowFilter.Distinct && scope.Refs.Count > 1 && Token(spec, TSqlTokenType.Distinct) is { } distinct)
                 Report(QueryFindingKind.DistinctOverJoin, QuerySeverity.Low, distinct.Offset, distinct.Text.Length, distinct.Line,
-                    "DISTINCT numa consulta com junção costuma esconder linhas repetidas pela junção: o banco junta tudo e depois ordena para tirar as repetidas. Confira a condição da junção ou troque a junção por EXISTS.");
+                    T("Query.DistinctOverJoin"));
 
             if (spec.WhereClause?.SearchCondition is { } where)
             {
@@ -219,7 +220,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         {
             if (!outermost || query.OrderByClause is not { } order || query.OffsetClause is not null || top is not null || FilteredByForeignKey(scope)) return;
             Report(QueryFindingKind.OrderByWithoutLimit, QuerySeverity.Low, order,
-                "Ordena todas as linhas que o filtro deixou, sem TOP nem OFFSET/FETCH: o custo cresce com a tabela. Se a tela mostra uma página, limite.");
+                T("Query.OrderByTop"));
         }
 
         private void SelectStar(SelectStarExpression star, Scope scope)
@@ -233,12 +234,11 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                 var count = known.Sum(r => r.Table!.Columns.Count);
                 var personal = known.SelectMany(r => r.Table!.Columns.Where(c => c.Personal).Select(c => $"{r.Name}.{c.Name}")).ToList();
                 var tables = Join(known.Select(r => r.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
-                message = $"Traz todas as {count} colunas de {tables}"
-                    + (personal.Count == 0 ? "" : $", inclusive {Join(personal)}, {(personal.Count == 1 ? "marcada" : "marcadas")} como dado pessoal")
-                    + ". Liste só as colunas que a tela usa: menos dado lido e trafegado, e a consulta não muda quando entra coluna nova.";
+                message = T("Query.SelectStarKnown", count, tables,
+                    personal.Count == 0 ? "" : T(personal.Count == 1 ? "Query.SelectStarPersonalOne" : "Query.SelectStarPersonalMany", Join(personal)));
             }
             else
-                message = "Traz todas as colunas, inclusive as que ninguém usa, e muda sozinha quando entra coluna nova. Liste só as colunas que a tela usa.";
+                message = T("Query.SelectStarUnknown");
             Report(QueryFindingKind.SelectStar, QuerySeverity.Medium, star, message, known.Count == 1 && refs.Count == 1 ? known[0].Name : null);
         }
 
@@ -252,7 +252,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                     break;
                 case QueryDerivedTable derived:
                     Query(derived.QueryExpression, scope, outermost: false, inExists: false);
-                    scope.Refs.Add(new TableRef(derived.Alias?.Value ?? "(subconsulta)", null, derived.Alias?.Value, derived, Known: false));
+                    scope.Refs.Add(new TableRef(derived.Alias?.Value ?? T("Query.SubqueryName"), null, derived.Alias?.Value, derived, Known: false));
                     break;
                 case QualifiedJoin join:
                     Add(scope, join.FirstTableReference);
@@ -263,7 +263,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                     {
                         if (!Links(on, scope, second))
                             Report(QueryFindingKind.JoinWithoutCondition, QuerySeverity.High, on,
-                                $"O ON não compara uma coluna de {Join(second.Select(r => r.Name).ToList())} com as das outras tabelas: a junção vira o produto das tabelas, cada linha com cada linha.",
+                                T("Query.JoinOnWithoutLink", Join(second.Select(r => r.Name).ToList())),
                                 second.FirstOrDefault(r => r.Table is not null)?.Name);
                         Predicate(on, scope, join: true);
                     }
@@ -281,7 +281,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                         var token = cross.ScriptTokenStream[from];
                         var end = cross.SecondTableReference.StartOffset + cross.SecondTableReference.FragmentLength;
                         Report(QueryFindingKind.JoinWithoutCondition, QuerySeverity.High, token.Offset, end - token.Offset, token.Line,
-                            $"CROSS JOIN junta cada linha de {Join(left.Select(r => r.Name).ToList())} com cada linha de {Join(right.Select(r => r.Name).ToList())}: o resultado é o produto das tabelas. Se não é isso, use JOIN com ON.",
+                            T("Query.CrossJoin", Join(left.Select(r => r.Name).ToList()), Join(right.Select(r => r.Name).ToList())),
                             right.FirstOrDefault(r => r.Table is not null)?.Name);
                     }
                     break;
@@ -350,7 +350,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                 }
                 if (linked) continue;
                 Report(QueryFindingKind.JoinWithoutCondition, QuerySeverity.High, named,
-                    $"{mine.Name} entra no FROM pela vírgula, sem uma comparação no WHERE que a ligue às outras tabelas: o resultado é o produto das tabelas, cada linha com cada linha. Use JOIN com ON.",
+                    T("Query.CommaJoin", mine.Name),
                     mine.Table is null ? null : mine.Name);
             }
         }
@@ -429,7 +429,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             if (sets.Any(s => s.Count == 0) || sets.All(s => s.SetEquals(sets[0]))) return;
             var names = operands.SelectMany(Columns).Select(Written).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             Report(QueryFindingKind.OrAcrossColumns, QuerySeverity.Medium, or,
-                $"O OR liga filtros em colunas diferentes ({Join(names)}): um índice só não atende os dois lados, e o banco costuma ler a tabela inteira. Separe em consultas ligadas por UNION ALL, ou confira o plano.");
+                T("Query.OrAcrossColumnsTsql", Join(names)));
         }
 
         // Um lado de comparação: coluna pura (índice), coluna embrulhada em função (achado) ou subconsulta.
@@ -450,10 +450,10 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             var key = ColumnKey(first, scope);
             _covered.Add(key);
             var noIndex = resolved is { Ref.Table: { } table, Column: { } name } && table.Columns.Any(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) && !Covered(table, name, scope, resolved.Ref)
-                ? $" E {resolved.Ref.Name}.{name} nem tem índice."
+                ? T("Query.NoIndexTail", resolved.Ref.Name, name)
                 : "";
             Report(QueryFindingKind.FunctionOnFilterColumn, QuerySeverity.High, expression,
-                $"{Wrapper(expression)} roda em cada linha e impede o uso de índice em {Written(first)}: compare a coluna pura (com uma faixa, no caso de data).{noIndex}",
+                T("Query.FunctionOnColumn", Wrapper(expression), Written(first), noIndex),
                 resolved.Ref?.Table is null ? null : resolved.Ref.Name);
         }
 
@@ -462,9 +462,9 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             var resolved = scope.Resolve(column);
             _covered.Add(ColumnKey(column, scope));
             var index = resolved is { Ref.Table: { } table, Column: { } name } ? IndexOn(table, name) : null;
-            var tail = index is null ? "." : $": o índice {index} existe, mas não ajuda.";
+            var tail = index is null ? "." : T("Query.IndexExistsNoHelp", index);
             Report(QueryFindingKind.LeadingWildcardLike, QuerySeverity.Medium, like,
-                $"Com o curinga no começo ('{pattern}'), o banco pode ler todos os valores de {Written(column)}{tail} Se a busca é pelo fim do texto, guarde uma coluna com o texto invertido ou use a busca de texto completo.",
+                T("Query.LeadingWildcardTsql", pattern, Written(column), tail),
                 resolved.Ref?.Table is null ? null : resolved.Ref.Name);
         }
 
@@ -476,7 +476,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             if (resolved is not { Ref.Table: { } table, Column: { } name }) return;
             if (table.Columns.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase)) is not { Nullable: true }) return;
             Report(QueryFindingKind.NotInNullable, QuerySeverity.High, @in,
-                $"{resolved.Ref.Name}.{name} aceita nulo: se a subconsulta trouxer um nulo, o NOT IN não devolve linha nenhuma. Use NOT EXISTS ou tire o nulo na subconsulta (WHERE {name} IS NOT NULL).",
+                T("Query.NotInNullable", resolved.Ref.Name, name),
                 resolved.Ref.Name);
         }
 
@@ -491,11 +491,11 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             if (_indexFindings.Any(f => f.Column.Equals(key, StringComparison.OrdinalIgnoreCase))) return;
 
             var indexes = IndexList(table);
-            var have = indexes.Count == 0 ? "a tabela não tem índice nenhum" : $"o esquema tem {Join(indexes)}";
-            var what = join ? "na junção" : "no filtro";
+            var have = indexes.Count == 0 ? T("Query.NoIndexAtAll") : T("Query.SchemaHas", Join(indexes));
+            var what = T(join ? "Query.InJoin" : "Query.InFilter");
             var span = Span(column);
             _indexFindings.Add((key, new QueryFinding(QueryFindingKind.ColumnWithoutIndex, QuerySeverity.Medium, span.Start, span.Length, column.StartLine, Snippet(span.Start, span.Length),
-                $"{resolved.Ref.Name}.{name} está {what} e não tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade ({have}): o banco pode ler a tabela inteira para achar as linhas. Confira o plano.",
+                T("Query.ColumnWithoutIndex", resolved.Ref.Name, name, what, have),
                 resolved.Ref.Name), scope, resolved.Ref, join, DbNames.Unquote(name)));
         }
 
@@ -510,11 +510,11 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                 if (group.Count() == 1) { yield return first.Finding; continue; }
                 var table = first.Ref.Name;
                 var names = Join(group.Select(f => f.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
-                var what = first.Join ? "na junção" : "no filtro";
-                var have = first.Ref.Table is { } t && IndexList(t) is { Count: > 0 } indexes ? $"o esquema tem {Join(indexes)}" : "a tabela não tem índice nenhum";
+                var what = T(first.Join ? "Query.InJoin" : "Query.InFilter");
+                var have = first.Ref.Table is { } t && IndexList(t) is { Count: > 0 } indexes ? T("Query.SchemaHas", Join(indexes)) : T("Query.NoIndexAtAll");
                 yield return first.Finding with
                 {
-                    Message = $"{table}: {names} estão {what} e nenhuma tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade ({have}): o banco pode ler a tabela inteira para achar as linhas. Confira o plano."
+                    Message = T("Query.ColumnsWithoutIndex", table, names, what, have)
                 };
             }
         }
@@ -552,12 +552,12 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
                     // A ligação com a de fora é pela chave primária (ou única) da tabela de dentro: cada linha
                     // vira uma busca pontual, e o custo é baixo.
                     Report(QueryFindingKind.CorrelatedSubquery, QuerySeverity.Low, subquery,
-                        $"A subconsulta busca {keyed.Ref.Name} pela chave ({keyed.Column}) usando {Written(outer)}, da consulta de fora: é uma busca pontual por linha, de custo baixo. Se a consulta devolve muitas linhas, um JOIN faz o mesmo numa passada só.",
+                        T("Query.CorrelatedKeyed", keyed.Ref.Name, keyed.Column, Written(outer)),
                         keyed.Ref.Table is null ? null : keyed.Ref.Name);
                     continue;
                 }
                 Report(QueryFindingKind.CorrelatedSubquery, QuerySeverity.Medium, subquery,
-                    $"A subconsulta cita {Written(outer)}, da consulta de fora: o banco pode rodá-la uma vez para cada linha. Troque por uma junção (JOIN com GROUP BY) ou por OUTER APPLY.");
+                    T("Query.CorrelatedTsql", Written(outer)));
             }
         }
 
@@ -712,7 +712,7 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         {
             foreach (var f in filters)
                 if (IsParentFilter(f.Table, f.Column) && IsMainEntity(f.Table))
-                    return $" {f.Ref.Name} é apontada por {DbPartition.Referrers(_referrers, f.Table.Name)} tabelas: a lista filtrada por {DbNames.Unquote(f.Column)} de um pai tende a crescer, então o filtro pela chave estrangeira não limita o resultado.";
+                    return T("Query.MainEntityNote", f.Ref.Name, DbPartition.Referrers(_referrers, f.Table.Name), DbNames.Unquote(f.Column));
             return string.Empty;
         }
 
@@ -740,16 +740,16 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             var written = Join(filters.Select(f => $"{f.Ref.Name}.{f.Column}").Distinct(StringComparer.OrdinalIgnoreCase).ToList());
             var tables = Join(filters.Select(f => f.Ref.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList());
             Report(QueryFindingKind.ReadWithoutLimit, QuerySeverity.Low, where,
-                $"A consulta não tem TOP nem OFFSET/FETCH e filtra {tables} só por igualdade em {written}, que não identifica uma linha (não é chave primária nem única): o resultado cresce com a tabela.{Estimated(filters)}{MainEntityNote(filters)} Se a tela mostra uma página, limite.",
+                T("Query.ReadWithoutLimitTsql", tables, written, Estimated(filters), MainEntityNote(filters)),
                 filters[0].Ref.Name);
         }
 
         // O tamanho que o banco vivo estima para as tabelas filtradas, quando há.
-        private static string Estimated(List<(TableRef Ref, DbTable Table, string Column)> filters)
+        private string Estimated(List<(TableRef Ref, DbTable Table, string Column)> filters)
         {
             var sized = filters.Where(f => f.Table.EstimatedRows is not null).DistinctBy(f => f.Ref.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(f => $"{f.Ref.Name} tem cerca de {TableSize.Format(f.Table.EstimatedRows!.Value)} linhas").ToList();
-            return sized.Count == 0 ? string.Empty : $" Pela estimativa do banco vivo, {Join(sized)}.";
+                .Select(f => T("Query.EstimatedRows", f.Ref.Name, TableSize.Format(f.Table.EstimatedRows!.Value, language))).ToList();
+            return sized.Count == 0 ? string.Empty : T("Query.EstimatedByLive", Join(sized));
         }
 
         // COUNT(*), SUM(x) e parentes sem GROUP BY: uma linha só.
@@ -775,22 +775,22 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
         }
 
         // O nome do índice que começa pela coluna (ou da chave primária), para o motivo do LIKE.
-        private static string? IndexOn(DbTable table, string column)
+        private string? IndexOn(DbTable table, string column)
         {
             if (table.Indexes.FirstOrDefault(i => i.Columns.FirstOrDefault()?.Equals(column, StringComparison.OrdinalIgnoreCase) ?? false) is { } index)
-                return index.Name ?? $"de {column}";
-            return table.PrimaryKey?.Columns.FirstOrDefault()?.Equals(column, StringComparison.OrdinalIgnoreCase) == true ? table.PrimaryKey.Name ?? "da chave primária" : null;
+                return index.Name ?? T("Query.IndexOfColumn", column);
+            return table.PrimaryKey?.Columns.FirstOrDefault()?.Equals(column, StringComparison.OrdinalIgnoreCase) == true ? table.PrimaryKey.Name ?? T("Query.OfThePrimaryKey") : null;
         }
 
-        private static List<string> IndexList(DbTable table)
+        private List<string> IndexList(DbTable table)
         {
             var list = new List<string>();
-            if (table.PrimaryKey is { } pk) list.Add($"{pk.Name ?? "a chave primária"} ({string.Join(", ", pk.Columns)})");
-            list.AddRange(table.Indexes.Select(i => $"{i.Name ?? "um índice"} ({string.Join(", ", i.Columns)})"));
+            if (table.PrimaryKey is { } pk) list.Add($"{pk.Name ?? T("Query.ThePrimaryKey")} ({string.Join(", ", pk.Columns)})");
+            list.AddRange(table.Indexes.Select(i => $"{i.Name ?? T("Query.AnIndex")} ({string.Join(", ", i.Columns)})"));
             return list;
         }
 
-        private static string Wrapper(ScalarExpression expression) => expression switch
+        private string Wrapper(ScalarExpression expression) => expression switch
         {
             FunctionCall f => f.FunctionName.Value.ToUpperInvariant() + "()",
             CastCall => "CAST",
@@ -802,9 +802,9 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             CoalesceExpression => "COALESCE()",
             NullIfExpression => "NULLIF()",
             IIfCall => "IIF()",
-            BinaryExpression or UnaryExpression => "A conta",
+            BinaryExpression or UnaryExpression => T("Query.WrapperArithmetic"),
             ParenthesisExpression p => Wrapper(p.Expression),
-            _ => "A expressão"
+            _ => T("Query.WrapperExpression")
         };
 
         private static ColumnReferenceExpression? Plain(ScalarExpression expression)
@@ -866,11 +866,11 @@ public sealed partial class TSqlQueryAnalyzer : ISqlQueryAnalyzer
             return null;
         }
 
-        private static string Join(IReadOnlyList<string> items) => items.Count switch
+        private string Join(IReadOnlyList<string> items) => items.Count switch
         {
             0 => string.Empty,
             1 => items[0],
-            _ => string.Join(", ", items.Take(items.Count - 1)) + " e " + items[^1]
+            _ => string.Join(", ", items.Take(items.Count - 1)) + T("Query.JoinAnd") + items[^1]
         };
 
         private (int Start, int Length) Span(TSqlFragment fragment) =>

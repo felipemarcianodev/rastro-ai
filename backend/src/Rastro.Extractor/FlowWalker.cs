@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.FindSymbols;
 using Rastro.Core.Graph;
 using Rastro.Core.Http;
+using Rastro.Extractor.Resources;
 
 namespace Rastro.Extractor;
 
@@ -107,7 +108,7 @@ internal sealed partial class FlowWalker(
         if (depth >= options.MaxDepth)
         {
             var limitId = "u:depth:" + id;
-            graph.AddNode(new FlowNode(limitId, NodeKind.Unresolved, "limite de profundidade",
+            graph.AddNode(new FlowNode(limitId, NodeKind.Unresolved, ExtractorText.Get("Flow.DepthLimit", options.Language),
                 Reason: UnresolvedReason.DepthLimit, Detail: $"MaxDepth = {options.MaxDepth}"));
             graph.AddEdge(id, limitId, null);
             return id;

@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -19,7 +20,7 @@ public class TSqlQueryAnalyzerFase44Tests
     };
 
     private static List<QueryFinding> Reads(string sql, DbSchema schema) =>
-        new TSqlQueryAnalyzer().Analyze(sql, schema).Findings.Where(f => f.Kind == QueryFindingKind.ReadWithoutLimit).ToList();
+        new TSqlQueryAnalyzer().Analyze(sql, schema, UiLanguage.Portuguese).Findings.Where(f => f.Kind == QueryFindingKind.ReadWithoutLimit).ToList();
 
     private const string PeloEspaco = "SELECT t.id FROM tarefas t WHERE t.tenant_id = @t AND t.space_id = @s AND t.archived_at IS NULL";
 
@@ -96,9 +97,9 @@ public class TSqlQueryAnalyzerFase44Tests
     [Fact] // EXT-DBQ-031
     public void Analyze_OrderByDaListaDoConteinerEmEntidadePrincipal_Dispara()
     {
-        var all = new TSqlQueryAnalyzer().Analyze("SELECT t.id FROM tarefas t WHERE t.tenant_id = @t AND t.espaco_id = @e ORDER BY t.id", Hierarquia).Findings;
+        var all = new TSqlQueryAnalyzer().Analyze("SELECT t.id FROM tarefas t WHERE t.tenant_id = @t AND t.espaco_id = @e ORDER BY t.id", Hierarquia, UiLanguage.Portuguese).Findings;
         Assert.Contains(all, f => f.Kind == QueryFindingKind.OrderByWithoutLimit);
-        var folha = new TSqlQueryAnalyzer().Analyze("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t AND s.tarefa_id = @a ORDER BY s.id", Hierarquia).Findings;
+        var folha = new TSqlQueryAnalyzer().Analyze("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t AND s.tarefa_id = @a ORDER BY s.id", Hierarquia, UiLanguage.Portuguese).Findings;
         Assert.DoesNotContain(folha, f => f.Kind == QueryFindingKind.OrderByWithoutLimit);
     }
 
@@ -108,7 +109,7 @@ public class TSqlQueryAnalyzerFase44Tests
         """)]);
 
     private static List<QueryFinding> Funcoes(string sql) =>
-        new TSqlQueryAnalyzer().Analyze(sql, Assinaturas).Findings.Where(f => f.Kind == QueryFindingKind.FunctionOnFilterColumn).ToList();
+        new TSqlQueryAnalyzer().Analyze(sql, Assinaturas, UiLanguage.Portuguese).Findings.Where(f => f.Kind == QueryFindingKind.FunctionOnFilterColumn).ToList();
 
     [Fact] // EXT-DBQ-032
     public void Analyze_FuncaoNaColunaDentroDeExistsNaListaDoSelect_Dispara()
@@ -120,7 +121,7 @@ public class TSqlQueryAnalyzerFase44Tests
     [Fact] // EXT-DBQ-033
     public void Analyze_SelectEstrelaDentroDeExistsNaListaDoSelect_NaoEAchado()
     {
-        var all = new TSqlQueryAnalyzer().Analyze("SELECT CASE WHEN EXISTS (SELECT * FROM assinaturas AS s WHERE s.tenant_id = @t) THEN 1 ELSE 0 END", Assinaturas).Findings;
+        var all = new TSqlQueryAnalyzer().Analyze("SELECT CASE WHEN EXISTS (SELECT * FROM assinaturas AS s WHERE s.tenant_id = @t) THEN 1 ELSE 0 END", Assinaturas, UiLanguage.Portuguese).Findings;
 
         Assert.DoesNotContain(all, f => f.Kind == QueryFindingKind.SelectStar);
     }

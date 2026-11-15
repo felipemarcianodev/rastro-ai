@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Rastro.Ai.Providers;
 using Rastro.Ai.Settings;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 using Rastro.Infrastructure;
 using Rastro.Infrastructure.Repositories;
 
@@ -55,7 +56,7 @@ public class QuestionAdvisor(RastroDbContext db, RepositoryCatalog catalog, AiGa
         }
         """)!;
 
-    public async Task<QuestionAnswer> AskAsync(Guid surveyId, string? question, CancellationToken ct)
+    public async Task<QuestionAnswer> AskAsync(Guid surveyId, string? question, UiLanguage language, CancellationToken ct)
     {
         var text = (question ?? string.Empty).Trim();
         if (text.Length == 0 || text.Length > MaxQuestionLength)
@@ -98,7 +99,7 @@ public class QuestionAdvisor(RastroDbContext db, RepositoryCatalog catalog, AiGa
 
         var result = await gateway.GenerateAsync(AiUse.Suggestions, new AiRequest(SystemPrompt, user.ToString(), "rastro_flow_question", Schema), ct);
         var status = await gateway.StatusAsync(ct);
-        return new QuestionAnswer(FlowQuestions.Verify(graph, Parse(result.Json)), status.Provider);
+        return new QuestionAnswer(FlowQuestions.Verify(graph, Parse(result.Json), language), status.Provider);
     }
 
     private static string Where(SourceLocation? location) => location is null ? string.Empty : $", {location.File}:{location.Line}";

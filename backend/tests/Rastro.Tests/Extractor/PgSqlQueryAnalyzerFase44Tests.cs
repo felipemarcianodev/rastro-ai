@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -24,7 +25,7 @@ public class PgSqlQueryAnalyzerFase44Tests
     };
 
     private static List<QueryFinding> Reads(string sql, DbSchema schema) =>
-        new PgSqlQueryAnalyzer().Analyze(sql, schema).Findings.Where(f => f.Kind == QueryFindingKind.ReadWithoutLimit).ToList();
+        new PgSqlQueryAnalyzer().Analyze(sql, schema, UiLanguage.Portuguese).Findings.Where(f => f.Kind == QueryFindingKind.ReadWithoutLimit).ToList();
 
     private const string PeloEspaco = "SELECT t.id FROM task_items t WHERE t.tenant_id = @t AND t.space_id = @s AND t.archived_at IS NULL";
 
@@ -109,9 +110,9 @@ public class PgSqlQueryAnalyzerFase44Tests
     [Fact] // EXT-PGQ-049
     public void Analyze_OrderByDaListaDoConteinerEmEntidadePrincipal_Dispara()
     {
-        var all = new PgSqlQueryAnalyzer().Analyze("SELECT t.id FROM tarefas t WHERE t.tenant_id = @t AND t.espaco_id = @e ORDER BY t.id", Hierarquia).Findings;
+        var all = new PgSqlQueryAnalyzer().Analyze("SELECT t.id FROM tarefas t WHERE t.tenant_id = @t AND t.espaco_id = @e ORDER BY t.id", Hierarquia, UiLanguage.Portuguese).Findings;
         Assert.Contains(all, f => f.Kind == QueryFindingKind.OrderByWithoutLimit);
-        var folha = new PgSqlQueryAnalyzer().Analyze("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t AND s.tarefa_id = @a ORDER BY s.id", Hierarquia).Findings;
+        var folha = new PgSqlQueryAnalyzer().Analyze("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t AND s.tarefa_id = @a ORDER BY s.id", Hierarquia, UiLanguage.Portuguese).Findings;
         Assert.DoesNotContain(folha, f => f.Kind == QueryFindingKind.OrderByWithoutLimit);
     }
 
@@ -121,7 +122,7 @@ public class PgSqlQueryAnalyzerFase44Tests
         """)]);
 
     private static List<QueryFinding> Funcoes(string sql) =>
-        new PgSqlQueryAnalyzer().Analyze(sql, Assinaturas).Findings.Where(f => f.Kind == QueryFindingKind.FunctionOnFilterColumn).ToList();
+        new PgSqlQueryAnalyzer().Analyze(sql, Assinaturas, UiLanguage.Portuguese).Findings.Where(f => f.Kind == QueryFindingKind.FunctionOnFilterColumn).ToList();
 
     [Fact] // EXT-PGQ-050
     public void Analyze_FuncaoNaColunaDentroDeExistsNaListaDoSelect_Dispara()
@@ -131,7 +132,7 @@ public class PgSqlQueryAnalyzerFase44Tests
 
         Assert.Contains("s.email_teste", found.Message);
         Assert.Single(Funcoes("SELECT EXISTS (SELECT 1 FROM assinaturas AS a WHERE a.tenant_id = @t AND ((a.detalhes IS NOT NULL AND a.detalhes LIKE @m) OR lower(a.titulo) = @e))"));
-        var tabelas = new PgSqlQueryAnalyzer().Analyze("SELECT EXISTS (SELECT 1 FROM assinaturas AS s WHERE s.tenant_id = @t)", Assinaturas).Tables;
+        var tabelas = new PgSqlQueryAnalyzer().Analyze("SELECT EXISTS (SELECT 1 FROM assinaturas AS s WHERE s.tenant_id = @t)", Assinaturas, UiLanguage.Portuguese).Tables;
         Assert.Contains(tabelas, t => t.Name == "assinaturas");
     }
 
@@ -148,7 +149,7 @@ public class PgSqlQueryAnalyzerFase44Tests
         """)]);
 
     private static List<QueryFinding> Like(string sql) =>
-        new PgSqlQueryAnalyzer().Analyze(sql, Busca).Findings.Where(f => f.Kind == QueryFindingKind.LeadingWildcardLike).ToList();
+        new PgSqlQueryAnalyzer().Analyze(sql, Busca, UiLanguage.Portuguese).Findings.Where(f => f.Kind == QueryFindingKind.LeadingWildcardLike).ToList();
 
     [Fact] // EXT-PGQ-052
     public void Analyze_IlikeComCuringaNoComecoEEscapeVazio_DisparaSoSemIndiceTrigrama()

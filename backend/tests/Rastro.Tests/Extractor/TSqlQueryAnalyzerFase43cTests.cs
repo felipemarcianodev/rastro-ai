@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -27,7 +28,7 @@ public class TSqlQueryAnalyzerFase43cTests
         """)]);
 
     private static List<QueryFinding> Kinds(string sql, QueryFindingKind kind) =>
-        new TSqlQueryAnalyzer().Analyze(sql, Sistema).Findings.Where(f => f.Kind == kind).ToList();
+        new TSqlQueryAnalyzer().Analyze(sql, Sistema, UiLanguage.Portuguese).Findings.Where(f => f.Kind == kind).ToList();
 
     [Fact] // EXT-DBQ-020
     public void Analyze_ColunaResidualDepoisDeIndiceUsado_NaoViraColunaSemIndice()
@@ -64,7 +65,7 @@ public class TSqlQueryAnalyzerFase43cTests
         """)]);
 
     private static List<QueryFinding> ImplicitKinds(string sql, QueryFindingKind kind) =>
-        new TSqlQueryAnalyzer().Analyze(sql, Implicita).Findings.Where(f => f.Kind == kind).ToList();
+        new TSqlQueryAnalyzer().Analyze(sql, Implicita, UiLanguage.Portuguese).Findings.Where(f => f.Kind == kind).ToList();
 
     [Fact] // EXT-DBQ-023
     public void Analyze_ListaFilhaPorChaveImplicitaCamelCase_NaoDisparaELeituraPeloTenantDispara()

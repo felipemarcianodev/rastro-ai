@@ -1,4 +1,6 @@
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -9,8 +11,9 @@ public interface ISqlSchemaReader
     SqlDialect Dialect { get; }
 
     // file: caminho relativo ao repositório; firstLine: a linha do arquivo onde o texto começa (o SQL
-    // dentro de uma migration começa no meio do .cs). kind: a fonte que os itens lidos recebem.
-    SchemaFragment Read(string text, string file, int firstLine, SchemaSourceKind kind);
+    // dentro de uma migration começa no meio do .cs). kind: a fonte que os itens lidos recebem. language: o
+    // idioma das notas do leitor, que vão para a tela (ADR-009).
+    SchemaFragment Read(string text, string file, int firstLine, SchemaSourceKind kind, UiLanguage language);
 }
 
 public static class SqlSchemaReaders

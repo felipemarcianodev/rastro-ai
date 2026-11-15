@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Query.EmptyText" xml:space="preserve"><value>Empty text.</value></data>
+  <data name="Query.TheTable" xml:space="preserve"><value>the table</value></data>
+  <data name="Query.WriteUpdates" xml:space="preserve"><value>changes</value></data>
+  <data name="Query.WriteDeletes" xml:space="preserve"><value>deletes</value></data>
+  <data name="Query.WriteWithoutWhere" xml:space="preserve"><value>{0} without WHERE {1} every row of {2}. If that is intended, say so explicitly; if not, the filter is missing.</value></data>
+  <data name="Query.DistinctOverJoin" xml:space="preserve"><value>DISTINCT on a query with a join usually hides rows duplicated by the join: the database joins everything and then sorts to remove the duplicates. Check the join condition or replace the join with EXISTS.</value></data>
+  <data name="Query.OrderByTop" xml:space="preserve"><value>Sorts every row the filter left, without TOP or OFFSET/FETCH: the cost grows with the table. If the screen shows one page, add a limit.</value></data>
+  <data name="Query.OrderByLimit" xml:space="preserve"><value>Sorts every row the filter left, without LIMIT or FETCH: the cost grows with the table. If the screen shows one page, add a limit.</value></data>
+  <data name="Query.SelectStarKnown" xml:space="preserve"><value>Brings back all {0} columns of {1}{2}. List only the columns the screen uses: less data read and transferred, and the query does not change when a new column is added.</value></data>
+  <data name="Query.SelectStarPersonalOne" xml:space="preserve"><value>, including {0}, marked as personal data</value></data>
+  <data name="Query.SelectStarPersonalMany" xml:space="preserve"><value>, including {0}, marked as personal data</value></data>
+  <data name="Query.SelectStarUnknown" xml:space="preserve"><value>Brings back all columns, including the ones nobody uses, and changes on its own when a new column is added. List only the columns the screen uses.</value></data>
+  <data name="Query.SubqueryName" xml:space="preserve"><value>(subquery)</value></data>
+  <data name="Query.JoinOnWithoutLink" xml:space="preserve"><value>The ON does not compare a column of {0} with those of the other tables: the join becomes the product of the tables, every row with every row.</value></data>
+  <data name="Query.CrossJoin" xml:space="preserve"><value>CROSS JOIN pairs every row of {0} with every row of {1}: the result is the product of the tables. If that is not intended, use JOIN with ON.</value></data>
+  <data name="Query.CommaJoin" xml:space="preserve"><value>{0} enters the FROM through a comma, with no comparison in the WHERE that links it to the other tables: the result is the product of the tables, every row with every row. Use JOIN with ON.</value></data>
+  <data name="Query.OrAcrossColumnsTsql" xml:space="preserve"><value>The OR joins filters on different columns ({0}): a single index does not serve both sides, and the database usually reads the whole table. Split it into queries linked by UNION ALL, or check the plan.</value></data>
+  <data name="Query.OrAcrossColumnsPg" xml:space="preserve"><value>The OR joins filters on different columns ({0}): a single index does not serve both sides, and the database may read the whole table. Split it into queries linked by UNION ALL, or check the plan.{1}</value></data>
+  <data name="Query.OrInAdvice" xml:space="preserve"><value> The comparisons of {0} with values fit in an IN.</value></data>
+  <data name="Query.NoIndexTail" xml:space="preserve"><value> And {0}.{1} has no index either.</value></data>
+  <data name="Query.FunctionOnColumn" xml:space="preserve"><value>{0} runs on every row and prevents the use of an index on {1}: compare the bare column (with a range, in the case of a date).{2}</value></data>
+  <data name="Query.IndexExistsNoHelp" xml:space="preserve"><value>: the index {0} exists, but it does not help.</value></data>
+  <data name="Query.LeadingWildcardTsql" xml:space="preserve"><value>With the wildcard at the start ('{0}'), the database may read every value of {1}{2} If the search is for the end of the text, store a column with the reversed text or use full-text search.</value></data>
+  <data name="Query.LeadingWildcardPg" xml:space="preserve"><value>With the wildcard at the start ('{0}'), the {1} may read every value of {2}{3}{4}</value></data>
+  <data name="Query.LikeSearchIlike" xml:space="preserve"><value> If the search is for a piece of the text, a trigram index (pg_trgm, GIN) serves the ILIKE.</value></data>
+  <data name="Query.LikeSearchLike" xml:space="preserve"><value> If the search is for the end of the text, store a column with the reversed text or use full-text search.</value></data>
+  <data name="Query.NotInNullable" xml:space="preserve"><value>{0}.{1} accepts null: if the subquery brings back a null, the NOT IN returns no rows at all. Use NOT EXISTS or remove the null in the subquery (WHERE {1} IS NOT NULL).</value></data>
+  <data name="Query.NoIndexAtAll" xml:space="preserve"><value>the table has no index at all</value></data>
+  <data name="Query.SchemaHas" xml:space="preserve"><value>the schema has {0}</value></data>
+  <data name="Query.InJoin" xml:space="preserve"><value>in the join</value></data>
+  <data name="Query.InFilter" xml:space="preserve"><value>in the filter</value></data>
+  <data name="Query.ColumnWithoutIndex" xml:space="preserve"><value>{0}.{1} is {2} and has no index that starts with it, nor a composite whose leading columns are all in the filter with equality ({3}): the database may read the whole table to find the rows. Check the plan.</value></data>
+  <data name="Query.ColumnsWithoutIndex" xml:space="preserve"><value>{0}: {1} are {2} and none has an index that starts with it, nor a composite whose leading columns are all in the filter with equality ({3}): the database may read the whole table to find the rows. Check the plan.</value></data>
+  <data name="Query.CorrelatedKeyed" xml:space="preserve"><value>The subquery looks up {0} by its key ({1}) using {2} from the outer query: it is a point lookup per row, with a low cost. If the query returns many rows, a JOIN does the same in a single pass.</value></data>
+  <data name="Query.CorrelatedTsql" xml:space="preserve"><value>The subquery references {0} from the outer query: the database may run it once for each row. Replace it with a join (JOIN with GROUP BY) or with OUTER APPLY.</value></data>
+  <data name="Query.CorrelatedPg" xml:space="preserve"><value>The subquery references {0} from the outer query: the database may run it once for each row. Replace it with a join (JOIN with GROUP BY) or with LEFT JOIN LATERAL.</value></data>
+  <data name="Query.MainEntityNote" xml:space="preserve"><value> {0} is referenced by {1} tables: a list filtered by {2} of one parent tends to grow, so the filter by the foreign key does not bound the result.</value></data>
+  <data name="Query.ReadWithoutLimitTsql" xml:space="preserve"><value>The query has no TOP or OFFSET/FETCH and filters {0} only by equality on {1}, which does not identify a row (it is neither a primary key nor unique): the result grows with the table.{2}{3} If the screen shows one page, add a limit.</value></data>
+  <data name="Query.ReadWithoutLimitPg" xml:space="preserve"><value>The query has no LIMIT and filters {0} only by equality on {1}, which does not identify a row (it is neither a primary key nor unique): the result grows with the table.{2}{3} If the screen shows one page, add a limit.</value></data>
+  <data name="Query.EstimatedRows" xml:space="preserve"><value>{0} has about {1} rows</value></data>
+  <data name="Query.EstimatedByLive" xml:space="preserve"><value> By the live database estimate, {0}.</value></data>
+  <data name="Query.IndexOfColumn" xml:space="preserve"><value>of {0}</value></data>
+  <data name="Query.OfThePrimaryKey" xml:space="preserve"><value>of the primary key</value></data>
+  <data name="Query.ThePrimaryKey" xml:space="preserve"><value>the primary key</value></data>
+  <data name="Query.AnIndex" xml:space="preserve"><value>an index</value></data>
+  <data name="Query.WrapperArithmetic" xml:space="preserve"><value>The arithmetic</value></data>
+  <data name="Query.WrapperExpression" xml:space="preserve"><value>The expression</value></data>
+  <data name="Query.WrapperPgCast" xml:space="preserve"><value>The ::{0} conversion</value></data>
+  <data name="Query.WrapperJsonb" xml:space="preserve"><value>The jsonb operator {0}</value></data>
+  <data name="Query.JoinAnd" xml:space="preserve"><value> and </value></data>
+  <data name="Query.ArrayColumn" xml:space="preserve"><value>{0} reads the list {1} of every row, and a B-tree index does not serve it. To find rows by an element of the list, use the @&gt; (or &amp;&amp;) operator with a GIN index on the column.</value></data>
+  <data name="Query.AdviceJsonIndex" xml:space="preserve"><value>create an index on the expression itself (CREATE INDEX ... (({0} {1} 'key'))) or, to find values inside the document, use @&gt; with a GIN index</value></data>
+  <data name="Query.AdviceCast" xml:space="preserve"><value>compare the bare column and convert the value, not the column (with a range, in the case of a date)</value></data>
+  <data name="Query.AdvicePlain" xml:space="preserve"><value>compare the bare column (with a range, in the case of a date)</value></data>
+  <data name="Query.EffectJson" xml:space="preserve"><value>extracts the value from the document on every row and does not use the regular B-tree index on</value></data>
+  <data name="Query.EffectFunction" xml:space="preserve"><value>runs on every row and prevents the use of an index on</value></data>
+  <data name="Sql.Expected" xml:space="preserve"><value>expected {0}, but found {1}</value></data>
+  <data name="Sql.Unclosed" xml:space="preserve"><value>unclosed quotation mark after the text '{0}'</value></data>
+  <data name="Sql.NearKeyword" xml:space="preserve"><value>incorrect syntax near the keyword '{0}'</value></data>
+  <data name="Sql.Near" xml:space="preserve"><value>incorrect syntax near '{0}'</value></data>
+  <data name="Sql.UnterminatedIdentifier" xml:space="preserve"><value>unclosed quoted identifier</value></data>
+  <data name="Sql.UnterminatedComment" xml:space="preserve"><value>unclosed comment</value></data>
+  <data name="Sql.UnterminatedString" xml:space="preserve"><value>unclosed quoted text</value></data>
+  <data name="Sql.EndOfInput" xml:space="preserve"><value>the text ended too soon</value></data>
+  <data name="Sql.Parentheses" xml:space="preserve"><value>unmatched parentheses</value></data>
+  <data name="Sql.ThingExpression" xml:space="preserve"><value>an expression</value></data>
+  <data name="Sql.ThingEndOfStatement" xml:space="preserve"><value>the end of the statement</value></data>
+  <data name="Sql.ThingEndOfText" xml:space="preserve"><value>the end of the text</value></data>
+  <data name="Sql.ThingIdentifier" xml:space="preserve"><value>an identifier</value></data>
+  <data name="Sql.ThingLiteral" xml:space="preserve"><value>a literal value</value></data>
+  <data name="Sql.ThingDataType" xml:space="preserve"><value>a data type</value></data>
+  <data name="Sql.ThingKeyword" xml:space="preserve"><value>a keyword</value></data>
+  <data name="Sql.ThingTableName" xml:space="preserve"><value>a table name</value></data>
+  <data name="Sql.ThingCloseParenthesis" xml:space="preserve"><value>the closing parenthesis ')'</value></data>
+  <data name="Sql.ThingOpenParenthesis" xml:space="preserve"><value>the opening parenthesis '('</value></data>
+  <data name="Sql.ThingComma" xml:space="preserve"><value>a comma</value></data>
+  <data name="Sql.ThingSelect" xml:space="preserve"><value>a SELECT</value></data>
+  <data name="Pg.ReaderFailed" xml:space="preserve"><value>the PostgreSQL SQL reader could not read the text</value></data>
+  <data name="Guard.EmptyText" xml:space="preserve"><value>empty text</value></data>
+  <data name="Guard.TSqlNotUnderstood" xml:space="preserve"><value>The T-SQL reader did not understand the query (line {0}): {1}.</value></data>
+  <data name="Guard.PgNotUnderstood" xml:space="preserve"><value>The PostgreSQL SQL reader did not understand the query (line {0}): {1}.</value></data>
+  <data name="Guard.TSqlSingleStatement" xml:space="preserve"><value>The estimated plan is produced for a single statement (no GO and no semicolon separating others).</value></data>
+  <data name="Guard.PgSingleStatement" xml:space="preserve"><value>The estimated plan is produced for a single statement (no semicolon separating others).</value></data>
+  <data name="Guard.TSqlOnlyDml" xml:space="preserve"><value>The estimated plan is only produced for SELECT, INSERT, UPDATE, DELETE or MERGE: SET, EXEC, DECLARE and DDL do not go to the database.</value></data>
+  <data name="Guard.PgOnlyDml" xml:space="preserve"><value>The estimated plan is only produced for SELECT, INSERT, UPDATE, DELETE or MERGE: SET, COPY, CALL, DO, EXPLAIN and DDL do not go to the database.</value></data>
+  <data name="Guard.TSqlVariable" xml:space="preserve"><value>Variable name that Rastro does not declare: {0}.</value></data>
+  <data name="Guard.PgParameter" xml:space="preserve"><value>Parameter that Rastro does not declare: {0}.</value></data>
+  <data name="Guard.SelectInto" xml:space="preserve"><value>SELECT INTO creates a table: it does not go to the live database.</value></data>
+  <data name="Guard.NestedWrite" xml:space="preserve"><value>Statement that writes inside another (in the WITH or in a subquery): it does not go to the live database.</value></data>
+  <data name="Guard.FunctionEffect" xml:space="preserve"><value>The function {0} has an effect outside the query: it does not go to the live database.</value></data>
+  <data name="Guard.OutputInto" xml:space="preserve"><value>OUTPUT INTO writes to another table: it does not go to the live database.</value></data>
+  <data name="Guard.Exec" xml:space="preserve"><value>EXEC does not go to the live database.</value></data>
+  <data name="Guard.OpenRowset" xml:space="preserve"><value>OPENROWSET accesses another server: it does not go to the live database.</value></data>
+  <data name="Guard.OpenQuery" xml:space="preserve"><value>OPENQUERY accesses another server: it does not go to the live database.</value></data>
+  <data name="Guard.OpenDataSource" xml:space="preserve"><value>OPENDATASOURCE accesses another server: it does not go to the live database.</value></data>
+  <data name="Guard.OpenRowsetBulk" xml:space="preserve"><value>OPENROWSET(BULK) reads a file: it does not go to the live database.</value></data>
+  <data name="Check.RewriteTooLong" xml:space="preserve"><value>The rewritten query is longer than 100 thousand characters.</value></data>
+  <data name="Check.RewriteNotUnderstoodTsql" xml:space="preserve"><value>The T-SQL reader did not understand the rewritten query ({0}).</value></data>
+  <data name="Check.RewriteNotUnderstoodPg" xml:space="preserve"><value>The PostgreSQL SQL reader did not understand the rewritten query (line {0}, column {1}: {2}).</value></data>
+  <data name="Check.ErrorAt" xml:space="preserve"><value>line {0}, column {1}: {2}</value></data>
+  <data name="Check.FailsGuard" xml:space="preserve"><value>The rewritten query does not pass Rastro's check: {0}</value></data>
+  <data name="Check.OriginalNotReadTsql" xml:space="preserve"><value>The original query was not read by the T-SQL reader: there is nothing to compare with.</value></data>
+  <data name="Check.OriginalNotReadPg" xml:space="preserve"><value>The original query was not read by the PostgreSQL SQL reader: there is nothing to compare with.</value></data>
+  <data name="Check.OriginalMultiple" xml:space="preserve"><value>The original query has {0} statements: the check compares a single statement.</value></data>
+  <data name="Check.DifferentOperation" xml:space="preserve"><value>The original query is a {0} and the rewrite is a {1}: the rewrite must do the same operation.</value></data>
+  <data name="Check.DifferentTable" xml:space="preserve"><value>The original query changes {0} and the rewrite changes {1}: the rewrite must change the same table.</value></data>
+  <data name="Check.LimitsRowsTsql" xml:space="preserve"><value>The rewrite limits the rows (TOP or OFFSET/FETCH) and the original does not: the result changes. If the screen shows one page, that is your decision, outside the rewrite.</value></data>
+  <data name="Check.LimitsRowsPg" xml:space="preserve"><value>The rewrite limits the rows (LIMIT, FETCH or OFFSET) and the original does not: the result changes. If the screen shows one page, that is your decision, outside the rewrite.</value></data>
+  <data name="Check.TemporaryTable" xml:space="preserve"><value>The rewrite uses {0}, which the original query does not use.</value></data>
+  <data name="Check.TableNotInSchema" xml:space="preserve"><value>The rewrite references the table {0}, which is not in the schema read from the code.</value></data>
+  <data name="Check.QualifierUnknown" xml:space="preserve"><value>The rewrite references {0}, but {1} is neither a table nor an alias of the query.</value></data>
+  <data name="Check.ColumnNotInTable" xml:space="preserve"><value>The rewrite references {0}, and the column {1} does not exist in {2}.</value></data>
+  <data name="Check.ColumnNowhere" xml:space="preserve"><value>The rewrite references the column {0}, which does not exist in any table of the query ({1}).</value></data>
+  <data name="Check.WrittenColumnMissing" xml:space="preserve"><value>The rewrite writes the column {0}, which does not exist in {1}.</value></data>
+  <data name="Check.StarUnknown" xml:space="preserve"><value>It is not possible to confirm that the rewrite returns the same columns: a SELECT * references a table with unknown columns. List the columns in the query.</value></data>
+  <data name="Check.ColumnCountDiffers" xml:space="preserve"><value>The original query returns {0} ({1}) and the rewrite returns {2}: the rewrite must return the same columns, in the same order.</value></data>
+  <data name="Check.ColumnChanged" xml:space="preserve"><value>Column {0} changes: the original returns {1} and the rewrite returns {2}. Keep the same names, in the same order.</value></data>
+  <data name="Check.ColumnCountOne" xml:space="preserve"><value>1 column</value></data>
+  <data name="Check.ColumnCountMany" xml:space="preserve"><value>{0} columns</value></data>
+  <data name="Check.NoName" xml:space="preserve"><value>(no name)</value></data>
+  <data name="Check.UnnamedExpression" xml:space="preserve"><value>an expression with no name</value></data>
+  <data name="Check.Unnamed" xml:space="preserve"><value>unnamed</value></data>
+  <data name="Check.IndexOnView" xml:space="preserve"><value>{0} is a view: the index goes on the table.</value></data>
+  <data name="Check.IndexTableMissing" xml:space="preserve"><value>The table {0} is not in the schema read from the code.</value></data>
+  <data name="Check.IndexNoColumn" xml:space="preserve"><value>The index has no column.</value></data>
+  <data name="Check.IndexColumnMissing" xml:space="preserve"><value>The column {0} does not exist in {1}.</value></data>
+  <data name="Check.IndexExists" xml:space="preserve"><value>{0} already exists and starts with these columns.</value></data>
+  <data name="Check.IndexRepeated" xml:space="preserve"><value>It repeats another index in this proposal.</value></data>
+  <data name="Check.ExistingPrimaryKey" xml:space="preserve"><value>the primary key ({0})</value></data>
+  <data name="Check.ExistingPrimaryKeyNamed" xml:space="preserve"><value>the primary key {0} ({1})</value></data>
+  <data name="Check.ExistingIndex" xml:space="preserve"><value>the index {0} ({1})</value></data>
+  <data name="Schema.TSqlFileNotUnderstood" xml:space="preserve"><value>The T-SQL reader did not understand the file ({0}); what comes after the error may have been left out.</value></data>
+  <data name="Schema.PgFileNotUnderstood" xml:space="preserve"><value>The PostgreSQL SQL reader did not understand the file ({0}): it was left out.</value></data>
+  <data name="Schema.PgStatementNotUnderstood" xml:space="preserve"><value>The PostgreSQL SQL reader did not understand a statement ({0}){1}: it was left out.</value></data>
+  <data name="Schema.PgMoreStatements" xml:space="preserve"><value> (and {0} more statement(s) in the same file)</value></data>
+  <data name="Schema.PgEmptyStatement" xml:space="preserve"><value>empty statement</value></data>
+  <data name="Schema.OwnedType" xml:space="preserve"><value>Owned type ({0}) in {1} is not read: its columns are left out.</value></data>
+  <data name="Schema.PropertyNotEntity" xml:space="preserve"><value>{0}.{1} is of type {2}, which is not a model entity: the property was left out.</value></data>
+  <data name="Schema.ColumnTypeConvention" xml:space="preserve"><value>{0}.{1}: the column type comes from the provider convention, and Rastro does not know the {2} one yet.</value></data>
+  <data name="Schema.EntityNotFound" xml:space="preserve"><value>The entity {0} was not found in the repository: its table was left out.</value></data>
+  <data name="Schema.MigrationRawSql" xml:space="preserve"><value>SQL built at run time in a migration: Rastro does not read it.</value></data>
+  <data name="Schema.SqlFilesNotRead" xml:space="preserve"><value>The .sql files of {0} are not read ({1} file(s)).</value></data>
+</root>

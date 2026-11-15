@@ -1,8 +1,11 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
 using Rastro.Infrastructure.Database;
 using Rastro.Infrastructure.Database.Live;
 using Rastro.Infrastructure.Repositories;
+using Txt = Rastro.Infrastructure.Resources.Database;
 
 namespace Rastro.Api.Controllers;
 
@@ -30,7 +33,7 @@ public class LiveDatabaseController(
         {
             // A string que serve aos dois drivers fica com o dialeto do código do repositório (Fase 42b).
             var dialect = await schemas.DialectAsync(name, ct) ?? SqlDialect.SqlServer;
-            var view = await connections.SaveAsync(name, request.ConnectionString, dialect, ct);
+            var view = await connections.SaveAsync(name, request.ConnectionString, dialect, Language, ct);
             logger.LogInformation("Conexão com o banco vivo do repositório {Repository} cadastrada (servidor {Server}, {Dialect}).", name, view.Server, view.Dialect);
             return Ok(view);
         }
@@ -55,9 +58,9 @@ public class LiveDatabaseController(
     public async Task<ActionResult<LiveConnectionTest>> Test(string name, CancellationToken ct)
     {
         if (catalog.RootOf(name) is null) return NotFoundRepository();
-        return await live.TestAsync(name, ct) is { } test
+        return await live.TestAsync(name, Language, ct) is { } test
             ? Ok(test)
-            : Error(StatusCodes.Status409Conflict, ErrorCodes.ConnectionMissing, "Cadastre a conexão com o banco vivo antes.");
+            : Error(StatusCodes.Status409Conflict, ErrorCodes.ConnectionMissing, Txt.Get("Live.ConnectionMissing", Language));
     }
 
     // Plano estimado (SET SHOWPLAN_XML ON no SQL Server, EXPLAIN sem ANALYZE no PostgreSQL): a consulta passa
@@ -67,17 +70,20 @@ public class LiveDatabaseController(
     {
         if (catalog.RootOf(name) is null) return NotFoundRepository();
         if (string.IsNullOrWhiteSpace(request.Sql) || request.Sql.Length > QueryLimits.MaxSqlLength)
-            return Error(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, "Cole uma consulta de até 100 mil caracteres.");
+            return Error(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, Txt.Get("Live.QueryInvalid", Language));
 
-        var result = await live.PlanAsync(name, request.Sql, ct);
+        var result = await live.PlanAsync(name, request.Sql, Language, ct);
         return result.Outcome switch
         {
             LivePlanOutcome.Ok => Ok(result.Plan),
-            LivePlanOutcome.NoConnection => Error(StatusCodes.Status409Conflict, ErrorCodes.ConnectionMissing, "Cadastre a conexão com o banco vivo antes."),
-            LivePlanOutcome.NotAllowed => Error(StatusCodes.Status400BadRequest, ErrorCodes.PlanNotAllowed, result.Reason ?? "Consulta recusada."),
-            _ => Error(StatusCodes.Status502BadGateway, ErrorCodes.LiveDatabaseError, $"O plano não veio do banco vivo: {result.Reason}.")
+            LivePlanOutcome.NoConnection => Error(StatusCodes.Status409Conflict, ErrorCodes.ConnectionMissing, Txt.Get("Live.ConnectionMissing", Language)),
+            LivePlanOutcome.NotAllowed => Error(StatusCodes.Status400BadRequest, ErrorCodes.PlanNotAllowed, result.Reason ?? Txt.Get("Live.QueryRefused", Language)),
+            _ => Error(StatusCodes.Status502BadGateway, ErrorCodes.LiveDatabaseError, Txt.Get("Live.PlanFailed", Language, result.Reason ?? string.Empty))
         };
     }
+
+    // O idioma do pedido (Accept-Language, que a tela sempre manda; ADR-009).
+    private static UiLanguage Language => UiLanguages.FromCulture(CultureInfo.CurrentUICulture);
 
     private ObjectResult NotFoundRepository() =>
         Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");

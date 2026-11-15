@@ -1,5 +1,7 @@
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -10,19 +12,15 @@ public sealed class TSqlSchemaReader : ISqlSchemaReader
 {
     public SqlDialect Dialect => SqlDialect.SqlServer;
 
-    public SchemaFragment Read(string text, string file, int firstLine, SchemaSourceKind kind)
+    public SchemaFragment Read(string text, string file, int firstLine, SchemaSourceKind kind, UiLanguage language)
     {
-        var parser = new TSql170Parser(initialQuotedIdentifiers: true);
-        TSqlFragment? tree;
-        IList<ParseError> errors;
-        using (var reader = new StringReader(text))
-            tree = parser.Parse(reader, out errors);
+        var tree = TSqlParsing.Parse(text, out var errors);
 
         var notes = new List<SchemaNote>();
         if (errors.Count > 0)
         {
             var first = errors[0];
-            notes.Add(new SchemaNote($"O leitor de T-SQL não entendeu o arquivo ({SqlMessageTranslator.Translate(first.Message)}); o que vem depois do erro pode ter ficado de fora.", file, firstLine + first.Line - 1));
+            notes.Add(new SchemaNote(Txt.Get("Schema.TSqlFileNotUnderstood", language, SqlMessageTranslator.Translate(first.Message, language)), file, firstLine + first.Line - 1));
         }
         if (tree is null) return new SchemaFragment([], [], [], notes);
 

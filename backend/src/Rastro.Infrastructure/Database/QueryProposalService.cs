@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
 using Rastro.Extractor.Database;
 
 namespace Rastro.Infrastructure.Database;
@@ -14,18 +15,18 @@ public record QueryProposalContext(DbSchema Schema, QueryAnalysis Analysis);
 public class QueryProposalService(DbSchemaService schemas, ILogger<QueryProposalService> logger)
 {
     // Nulo quando o repositório não está cadastrado.
-    public async Task<QueryProposalContext?> ContextAsync(string repositoryName, string sql, CancellationToken ct)
+    public async Task<QueryProposalContext?> ContextAsync(string repositoryName, string sql, UiLanguage language, CancellationToken ct)
     {
-        var schema = await schemas.ReadAsync(repositoryName, ct);
+        var schema = await schemas.ReadAsync(repositoryName, language, ct);
         if (schema is null) return null;
         var analyzer = SqlQueryAnalyzers.For(schema.Dialect) ?? new TSqlQueryAnalyzer();
-        return new QueryProposalContext(schema, analyzer.Analyze(sql, schema));
+        return new QueryProposalContext(schema, analyzer.Analyze(sql, schema, language));
     }
 
-    public QueryProposalReview Review(string repositoryName, QueryProposalContext context, string sql, QueryProposal proposal)
+    public QueryProposalReview Review(string repositoryName, QueryProposalContext context, string sql, QueryProposal proposal, UiLanguage language)
     {
         var checker = SqlProposalCheckers.For(context.Schema.Dialect) ?? new TSqlProposalChecker();
-        var review = checker.Review(sql, proposal, context.Schema);
+        var review = checker.Review(sql, proposal, context.Schema, language);
         var rewrite = review.Rewrite is null ? "nenhuma" : review.Rewrite.Accepted ? "aceita" : "recusada";
         logger.LogInformation("Proposta de melhora de consulta conferida no repositório {Repository} ({Origin}): reescrita {Rewrite}, {AcceptedIndexes} de {Indexes} índices aceitos.",
             repositoryName, proposal.Origin, rewrite, review.Indexes.Count(i => i.Accepted), review.Indexes.Count);
@@ -33,6 +34,6 @@ public class QueryProposalService(DbSchemaService schemas, ILogger<QueryProposal
     }
 
     // Nulo quando o repositório não está cadastrado.
-    public async Task<QueryProposalReview?> ReviewAsync(string repositoryName, string sql, QueryProposal proposal, CancellationToken ct) =>
-        await ContextAsync(repositoryName, sql, ct) is { } context ? Review(repositoryName, context, sql, proposal) : null;
+    public async Task<QueryProposalReview?> ReviewAsync(string repositoryName, string sql, QueryProposal proposal, UiLanguage language, CancellationToken ct) =>
+        await ContextAsync(repositoryName, sql, language, ct) is { } context ? Review(repositoryName, context, sql, proposal, language) : null;
 }

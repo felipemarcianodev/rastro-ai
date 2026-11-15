@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Cross.MultipleEndpoints" xml:space="preserve"><value>A rota casa com mais de um destino: {0}.</value></data>
+  <data name="Cross.NoSolution" xml:space="preserve"><value>O repositório {0} atende a rota, mas não tem solution para abrir.</value></data>
+  <data name="Cross.DepthLimit" xml:space="preserve"><value>A chamada segue para {0}: {1}, mas o limite de profundidade foi atingido.</value></data>
+  <data name="Cross.SegmentLimit" xml:space="preserve"><value>Limite de {0} trechos por levantamento atingido antes de seguir para {1}: {2}.</value></data>
+  <data name="Cross.SolutionNotOpened" xml:space="preserve"><value>A solution de {0} não abriu, então a chamada não foi seguida.</value></data>
+  <data name="Cross.EntryNotFound" xml:space="preserve"><value>O índice de rotas aponta para {0}, mas a solution de {1} não achou o método.</value></data>
+</root>

@@ -1,6 +1,8 @@
 using System.Text.RegularExpressions;
 using SqlParser.Ast;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -8,10 +10,10 @@ namespace Rastro.Extractor.Database;
 // PostgreSQL pelo PgSqlPlanGuard (Fase 42).
 public static class SqlPlanGuards
 {
-    public static PlanGuardResult Check(SqlDialect dialect, string sql) => dialect switch
+    public static PlanGuardResult Check(SqlDialect dialect, string sql, UiLanguage language) => dialect switch
     {
-        SqlDialect.PostgreSql => PgSqlPlanGuard.Check(sql),
-        _ => TSqlPlanGuard.Check(sql)
+        SqlDialect.PostgreSql => PgSqlPlanGuard.Check(sql, language),
+        _ => TSqlPlanGuard.Check(sql, language)
     };
 }
 
@@ -39,17 +41,18 @@ public static partial class PgSqlPlanGuard
     private static readonly string[] ForbiddenPrefixes =
         ["dblink", "lo_", "pg_advisory", "pg_try_advisory", "pg_file", "pg_ls_", "pg_stat_reset", "pg_replication_origin"];
 
-    public static PlanGuardResult Check(string sql)
+    public static PlanGuardResult Check(string sql, UiLanguage language)
     {
-        var statements = PgSqlText.Parse(sql, out var error);
+        string T(string key, params object[] args) => Txt.Get(key, language, args);
+        var statements = PgSqlText.Parse(sql, out var error, language);
         if (statements is null)
-            return Deny($"O leitor de SQL do PostgreSQL não entendeu a consulta (linha {error?.Line ?? 1}): {error?.Message ?? "texto vazio"}.");
+            return Deny(T("Guard.PgNotUnderstood", error?.Line ?? 1, error?.Message ?? T("Guard.EmptyText")));
         if (statements.Count != 1)
-            return Deny("O plano estimado sai para uma instrução só (sem ponto e vírgula separando outras).");
+            return Deny(T("Guard.PgSingleStatement"));
 
         var statement = statements[0];
         if (statement is not (Statement.Select or Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge))
-            return Deny("O plano estimado só sai para SELECT, INSERT, UPDATE, DELETE ou MERGE: SET, COPY, CALL, DO, EXPLAIN e DDL não vão ao banco.");
+            return Deny(T("Guard.PgOnlyDml"));
 
         var variables = new List<string>();
         foreach (var node in PgAst.Descendants(statement))
@@ -57,16 +60,16 @@ public static partial class PgSqlPlanGuard
             switch (node)
             {
                 case Select { Into: not null }:
-                    return Deny("SELECT INTO cria uma tabela: não vai ao banco vivo.");
+                    return Deny(T("Guard.SelectInto"));
                 // O SELECT de um INSERT ... SELECT é uma instrução dentro da outra, e só lê.
                 case SetExpression.Insert or Statement.Insert or Statement.Update or Statement.Delete or Statement.Merge:
-                    return Deny("Instrução que grava dentro de outra (no WITH ou numa subconsulta): não vai ao banco vivo.");
+                    return Deny(T("Guard.NestedWrite"));
                 case Expression.Function function when Blocked(function.Name) is { } blocked:
-                    return Deny($"A função {blocked} tem efeito fora da consulta: não vai ao banco vivo.");
+                    return Deny(T("Guard.FunctionEffect", blocked));
                 case TableFactor.Table { Args: not null } table when Blocked(table.Name) is { } tableFunction:
-                    return Deny($"A função {tableFunction} tem efeito fora da consulta: não vai ao banco vivo.");
+                    return Deny(T("Guard.FunctionEffect", tableFunction));
                 case TableFactor.Function tableFunction when Blocked(tableFunction.Name) is { } other:
-                    return Deny($"A função {other} tem efeito fora da consulta: não vai ao banco vivo.");
+                    return Deny(T("Guard.FunctionEffect", other));
                 case Expression.LiteralValue { Value: Value.Placeholder placeholder }:
                     variables.Add(placeholder.Value);
                     break;
@@ -77,7 +80,7 @@ public static partial class PgSqlPlanGuard
         }
 
         var invalid = variables.FirstOrDefault(v => !VariableName().IsMatch(v));
-        if (invalid is not null) return Deny($"Parâmetro que o Rastro não declara: {invalid}.");
+        if (invalid is not null) return Deny(T("Guard.PgParameter", invalid));
         return new PlanGuardResult(true, null, variables.Distinct(StringComparer.OrdinalIgnoreCase).ToList());
     }
 

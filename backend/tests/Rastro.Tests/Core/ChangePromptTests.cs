@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core;
 using Rastro.Core.Graph;
 using Rastro.Core.Prompts;
@@ -10,7 +11,7 @@ public class ChangePromptTests
     private static readonly SourceLocation Job = new("src/Job.cs", 10);
 
     // entry -> a -> b ; entry -> c ; a -> if
-    private static FlowGraph Original() => new(
+    internal static FlowGraph Original() => new(
         RastroSchema.Version, "Job.Run", "entry",
         [
             new FlowNode("entry", NodeKind.Entry, "Job.Run", "Ns.Job.Run()", new SourceLocation("src/Job.cs", 3)),
@@ -28,7 +29,7 @@ public class ChangePromptTests
         ]);
 
     // Passo novo depois de C, decisão modificada, B movido de A para C.
-    private static FlowGraph Draft()
+    internal static FlowGraph Draft()
     {
         var o = Original();
         return o with
@@ -66,7 +67,7 @@ public class ChangePromptTests
     [Fact] // CORE-PROMPT-002
     public void Prompt_TemAncorasIntencaoOQueNaoMexerECriterios()
     {
-        var prompt = ChangePromptBuilder.Build(new PromptContext("loja", "backend/loja.slnx", "Job.Run", "ce7cec50abc"), Original(), Draft());
+        var prompt = ChangePromptBuilder.Build(new PromptContext("loja", "backend/loja.slnx", "Job.Run", "ce7cec50abc"), UiLanguage.Portuguese, Original(), Draft());
 
         Assert.Contains("# Mudança no fluxo `Job.Run`", prompt);
         Assert.Contains("commit `ce7cec5`", prompt);
@@ -88,8 +89,8 @@ public class ChangePromptTests
     {
         var context = new PromptContext("r", "s.slnx", "Job.Run", null);
 
-        Assert.Equal(ChangePromptBuilder.Build(context, Original(), Draft()), ChangePromptBuilder.Build(context, Original(), Draft()));
-        Assert.Contains("Nenhuma mudança no rascunho.", ChangePromptBuilder.Build(context, Original(), Original()));
+        Assert.Equal(ChangePromptBuilder.Build(context, UiLanguage.Portuguese, Original(), Draft()), ChangePromptBuilder.Build(context, UiLanguage.Portuguese, Original(), Draft()));
+        Assert.Contains("Nenhuma mudança no rascunho.", ChangePromptBuilder.Build(context, UiLanguage.Portuguese, Original(), Original()));
     }
 
     [Fact] // CORE-PROMPT-004

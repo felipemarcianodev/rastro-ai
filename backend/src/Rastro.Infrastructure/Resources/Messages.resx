@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Cross.MultipleEndpoints" xml:space="preserve"><value>The route matches more than one destination: {0}.</value></data>
+  <data name="Cross.NoSolution" xml:space="preserve"><value>The repository {0} serves the route, but has no solution to open.</value></data>
+  <data name="Cross.DepthLimit" xml:space="preserve"><value>The call continues to {0}: {1}, but the depth limit was reached.</value></data>
+  <data name="Cross.SegmentLimit" xml:space="preserve"><value>Limit of {0} segments per trace reached before continuing to {1}: {2}.</value></data>
+  <data name="Cross.SolutionNotOpened" xml:space="preserve"><value>The solution of {0} did not open, so the call was not followed.</value></data>
+  <data name="Cross.EntryNotFound" xml:space="preserve"><value>The route index points to {0}, but the solution of {1} did not find the method.</value></data>
+</root>

@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Extractor.Database;
 
 namespace Rastro.Tests.Extractor;
@@ -8,41 +9,41 @@ public class SqlMessageTranslatorTests
     [Fact] // EXT-PGQ-037
     public void Translate_ExpectedExpression_VemEmPortugues()
     {
-        Assert.Equal("esperava uma expressão, mas encontrou =", SqlMessageTranslator.Translate("Expected an expression, found ="));
-        Assert.Equal("esperava o fim da instrução, mas encontrou x", SqlMessageTranslator.Translate("Expected end of statement, found: x"));
+        Assert.Equal("esperava uma expressão, mas encontrou =", SqlMessageTranslator.Translate("Expected an expression, found =", UiLanguage.Portuguese));
+        Assert.Equal("esperava o fim da instrução, mas encontrou x", SqlMessageTranslator.Translate("Expected end of statement, found: x", UiLanguage.Portuguese));
     }
 
     [Fact] // EXT-PGQ-038
     public void Translate_ParentesesEsperados_NomeiaOParentese()
     {
-        Assert.Equal("esperava o parêntese de fechamento ')', mas encontrou o fim do texto", SqlMessageTranslator.Translate("Expected ), found: EOF"));
+        Assert.Equal("esperava o parêntese de fechamento ')', mas encontrou o fim do texto", SqlMessageTranslator.Translate("Expected ), found: EOF", UiLanguage.Portuguese));
     }
 
     [Fact] // EXT-PGQ-039
     public void Translate_IncorrectSyntaxNear_VemEmPortugues()
     {
-        Assert.Equal("sintaxe incorreta perto de ','", SqlMessageTranslator.Translate("Incorrect syntax near ','."));
-        Assert.Equal("sintaxe incorreta perto da palavra-chave 'FROM'", SqlMessageTranslator.Translate("Incorrect syntax near the keyword 'FROM'."));
+        Assert.Equal("sintaxe incorreta perto de ','", SqlMessageTranslator.Translate("Incorrect syntax near ','.", UiLanguage.Portuguese));
+        Assert.Equal("sintaxe incorreta perto da palavra-chave 'FROM'", SqlMessageTranslator.Translate("Incorrect syntax near the keyword 'FROM'.", UiLanguage.Portuguese));
     }
 
     [Fact] // EXT-PGQ-040
     public void Translate_AspasSemFechar_VemEmPortugues()
     {
-        Assert.Equal("aspas sem fechar depois do texto 'abc'", SqlMessageTranslator.Translate("Unclosed quotation mark after the character string 'abc'."));
-        Assert.Equal("texto entre aspas sem fechar", SqlMessageTranslator.Translate("Unterminated string literal"));
+        Assert.Equal("aspas sem fechar depois do texto 'abc'", SqlMessageTranslator.Translate("Unclosed quotation mark after the character string 'abc'.", UiLanguage.Portuguese));
+        Assert.Equal("texto entre aspas sem fechar", SqlMessageTranslator.Translate("Unterminated string literal", UiLanguage.Portuguese));
     }
 
     [Fact] // EXT-PGQ-041
     public void Translate_FimInesperadoEParenteses_VemEmPortugues()
     {
-        Assert.Equal("o texto terminou antes da hora", SqlMessageTranslator.Translate("Unexpected end of input"));
-        Assert.Equal("parênteses sem par", SqlMessageTranslator.Translate("Unbalanced parentheses"));
+        Assert.Equal("o texto terminou antes da hora", SqlMessageTranslator.Translate("Unexpected end of input", UiLanguage.Portuguese));
+        Assert.Equal("parênteses sem par", SqlMessageTranslator.Translate("Unbalanced parentheses", UiLanguage.Portuguese));
     }
 
     [Fact] // EXT-PGQ-042
     public void Translate_MensagemDesconhecida_FicaComOTextoOriginal()
     {
-        Assert.Equal("Something else entirely", SqlMessageTranslator.Translate("Something else entirely"));
-        Assert.Equal("", SqlMessageTranslator.Translate(""));
+        Assert.Equal("Something else entirely", SqlMessageTranslator.Translate("Something else entirely", UiLanguage.Portuguese));
+        Assert.Equal("", SqlMessageTranslator.Translate("", UiLanguage.Portuguese));
     }
 }

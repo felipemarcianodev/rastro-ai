@@ -1,5 +1,6 @@
 using System.Text;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 
 namespace Rastro.Core.Prompts;
 
@@ -8,125 +9,102 @@ namespace Rastro.Core.Prompts;
 // mexer e os critérios que o Rastro confere ao levantar o fluxo de novo.
 public static class RefactorPromptBuilder
 {
-    public static string Build(PromptContext context, FlowGraph graph, Finding finding)
+    public static string Build(PromptContext context, UiLanguage language, FlowGraph graph, Finding finding)
     {
+        string T(string key, params object[] args) => LocalizedText.Get(key, language, args);
+
         var node = graph.Nodes.FirstOrDefault(n => n.Id == finding.NodeId);
         var label = node?.Label ?? finding.NodeId;
         var text = new StringBuilder();
 
-        text.AppendLine($"# Refatoração no fluxo `{context.EntryPoint}`");
+        text.AppendLine(T("Prompt.Refactor.Title", context.EntryPoint));
         text.AppendLine();
-        text.AppendLine($"Repositório `{context.Repository}`, solution `{context.SolutionPath}`" +
-                        (context.CommitHash is null ? "." : $", levantado no commit `{context.CommitHash[..Math.Min(7, context.CommitHash.Length)]}`."));
-        text.AppendLine("O achado veio do levantamento do fluxo pelo compilador (Roslyn). Corrija só ele.");
+        text.AppendLine(PromptText.RepositoryLine(context, language));
+        text.AppendLine(T("Prompt.Refactor.Intro"));
         text.AppendLine();
 
-        text.AppendLine("## O problema");
-        text.AppendLine($"{SeverityText(finding.Severity)}: {finding.Message}");
+        text.AppendLine(T("Prompt.Refactor.Problem.Heading"));
+        text.AppendLine($"{SeverityText(finding.Severity, language)}: {finding.Message}");
         var location = finding.Location ?? node?.Location;
-        if (location is not null) text.AppendLine($"- Local: `{location.File}:{location.Line}`");
-        if (node?.Symbol is not null) text.AppendLine($"- Método: `{node.Symbol}`");
+        if (location is not null) text.AppendLine(T("Prompt.Refactor.Problem.Location", location.File, location.Line));
+        if (node?.Symbol is not null) text.AppendLine(T("Prompt.Refactor.Problem.Method", node.Symbol));
         if (node?.Metrics is { } m)
-            text.AppendLine($"- Métricas do método: complexidade {m.Cyclomatic}, {Count(m.Lines, "linha", "linhas")}, " +
-                            $"{Count(m.MaxNesting, "nível", "níveis")} de aninhamento e {Count(m.Dependencies, "dependência injetada", "dependências injetadas")}");
+            text.AppendLine(T("Prompt.Refactor.Problem.Metrics", m.Cyclomatic,
+                Count(m.Lines, "Prompt.Refactor.Unit.Line", language),
+                Count(m.MaxNesting, "Prompt.Refactor.Unit.Level", language),
+                Count(m.Dependencies, "Prompt.Refactor.Unit.Dependency", language)));
         var path = GraphQueries.PathsTo(graph, finding.NodeId).FirstOrDefault();
         if (path is { Count: > 1 })
-            text.AppendLine($"- Como o fluxo chega aqui: {string.Join(" → ", path.Select(n => $"`{n.Label}`"))}");
+            text.AppendLine(T("Prompt.Refactor.Problem.Path", string.Join(" → ", path.Select(n => $"`{n.Label}`"))));
         text.AppendLine();
 
-        text.AppendLine("## O que fazer");
-        foreach (var line in Guidance(finding.Kind)) text.AppendLine($"- {line}");
+        text.AppendLine(T("Prompt.Refactor.Do.Heading"));
+        foreach (var key in Guidance(finding.Kind)) text.AppendLine($"- {T(key)}");
         text.AppendLine();
 
-        text.AppendLine("## Não mexer");
-        text.AppendLine($"- O comportamento observável do fluxo: o que `{label}` faz para quem chama continua igual.");
-        text.AppendLine("- Assinaturas públicas, contratos de API e nomes de tabela, salvo se a correção exigir (e então diga por quê).");
-        text.AppendLine("- Outros achados do mesmo arquivo: um assunto por mudança.");
+        text.AppendLine(T("Prompt.Refactor.Keep.Heading"));
+        text.AppendLine(T("Prompt.Refactor.Keep.Behavior", label));
+        text.AppendLine(T("Prompt.Refactor.Keep.Contracts"));
+        text.AppendLine(T("Prompt.Refactor.Keep.OtherFindings"));
         text.AppendLine();
 
-        text.AppendLine("## Critérios de aceite");
-        text.AppendLine($"- {Acceptance(finding.Kind)}");
-        text.AppendLine("- Build e testes do repositório passando; teste novo cobrindo o comportamento que a refatoração tocou.");
-        text.AppendLine("- Ao levantar o fluxo de novo no Rastro, este achado não aparece mais.");
+        text.AppendLine(T("Prompt.Refactor.Accept.Heading"));
+        text.AppendLine($"- {Acceptance(finding.Kind, language)}");
+        text.AppendLine(T("Prompt.Refactor.Accept.Build"));
+        text.AppendLine(T("Prompt.Refactor.Accept.Resurvey"));
         return text.ToString();
     }
 
+    // Chaves das linhas de orientação de cada tipo de achado.
     private static string[] Guidance(FindingKind kind) => kind switch
     {
-        FindingKind.HighComplexity =>
-        [
-            "Quebre o método em métodos menores com nome de regra de negócio, cada um com uma decisão.",
-            "Troque cadeias de if/switch por tabela, polimorfismo ou retorno antecipado quando couber.",
-        ],
-        FindingKind.LongMethod => ["Extraia os blocos que fazem coisas diferentes para métodos com nome do que fazem; o método original vira a sequência deles."],
-        FindingKind.DeepNesting => ["Use retorno antecipado (guard clauses) e extraia o corpo dos laços para reduzir os níveis."],
-        FindingKind.TooManyDependencies => ["Separe as responsabilidades da classe: agrupe as dependências que andam juntas num serviço próprio e injete esse serviço."],
-        FindingKind.SilentCatch =>
-        [
-            "Registre a falha com log estruturado (identificador do que falhou, sem dado pessoal) ou relance.",
-            "Se a falha é esperada, troque o catch genérico pelo tipo exato e diga no código por que é seguro seguir.",
-        ],
-        FindingKind.ServiceLocator => ["Injete a dependência pelo construtor. Em job ou serviço em segundo plano, abra o escopo e resolva só a raiz do trabalho."],
-        FindingKind.EntityChangedOutsideDomain =>
-        [
-            "Mova a alteração para um método da entidade (ou do serviço de domínio dela) que valide a regra e mantenha o estado consistente.",
-            "O código de fora passa a chamar esse método; a propriedade deixa de ter setter público.",
-        ],
-        FindingKind.PublicSetterOnEntity => ["Torne os setters privados (ou init) e exponha métodos de negócio que mudam o estado com validação."],
-        FindingKind.QueryInLoop =>
-        [
-            "Traga os dados de uma vez antes do laço: Include na consulta de fora, ou um Where com Contains sobre os ids do laço.",
-            "Dentro do laço, use o que já está na memória (um dicionário pelo id, por exemplo).",
-        ],
-        FindingKind.MaterializeBeforeFilter => ["Ponha o filtro (Where, First, Any) na consulta, antes do ToList, para o banco filtrar e devolver só o que precisa."],
-        FindingKind.ReadWithoutNoTracking => ["Acrescente AsNoTracking à consulta que só lê. Se a entidade lida for alterada e gravada depois, deixe como está e diga isso no código."],
-        FindingKind.ProcedureByRawSql =>
-        [
-            "Confira que a procedure existe com esse nome e esses parâmetros no projeto de banco.",
-            "Passe os valores como parâmetros (nunca concatenados no texto) e cubra a chamada com um teste de integração.",
-        ],
-        FindingKind.LoadToDelete =>
-        [
-            "Troque o ToList e o RemoveRange por ExecuteDeleteAsync sobre a consulta com o mesmo Where: o banco apaga numa instrução só e devolve quantas linhas apagou.",
-            "Se o chamador usava o tamanho da lista, use o número que o ExecuteDeleteAsync devolve.",
-        ],
-        FindingKind.LeadingWildcardLike =>
-        [
-            "Se a busca é por prefixo, monte o padrão sem o curinga do começo (termo%), que o índice B-tree atende.",
-            "Se a busca no meio do texto é necessária, crie um índice trigram (pg_trgm no PostgreSQL) ou use busca de texto completo.",
-        ],
-        _ =>
-        [
-            "Leve a gravação para o serviço de domínio da entidade, que valida antes de persistir.",
-            "A camada de aplicação passa a chamar o serviço de domínio, não o repositório.",
-        ]
+        FindingKind.HighComplexity => ["Prompt.Refactor.Do.HighComplexity.1", "Prompt.Refactor.Do.HighComplexity.2"],
+        FindingKind.LongMethod => ["Prompt.Refactor.Do.LongMethod.1"],
+        FindingKind.DeepNesting => ["Prompt.Refactor.Do.DeepNesting.1"],
+        FindingKind.TooManyDependencies => ["Prompt.Refactor.Do.TooManyDependencies.1"],
+        FindingKind.SilentCatch => ["Prompt.Refactor.Do.SilentCatch.1", "Prompt.Refactor.Do.SilentCatch.2"],
+        FindingKind.ServiceLocator => ["Prompt.Refactor.Do.ServiceLocator.1"],
+        FindingKind.EntityChangedOutsideDomain => ["Prompt.Refactor.Do.EntityChangedOutsideDomain.1", "Prompt.Refactor.Do.EntityChangedOutsideDomain.2"],
+        FindingKind.PublicSetterOnEntity => ["Prompt.Refactor.Do.PublicSetterOnEntity.1"],
+        FindingKind.QueryInLoop => ["Prompt.Refactor.Do.QueryInLoop.1", "Prompt.Refactor.Do.QueryInLoop.2"],
+        FindingKind.MaterializeBeforeFilter => ["Prompt.Refactor.Do.MaterializeBeforeFilter.1"],
+        FindingKind.ReadWithoutNoTracking => ["Prompt.Refactor.Do.ReadWithoutNoTracking.1"],
+        FindingKind.ProcedureByRawSql => ["Prompt.Refactor.Do.ProcedureByRawSql.1", "Prompt.Refactor.Do.ProcedureByRawSql.2"],
+        FindingKind.LoadToDelete => ["Prompt.Refactor.Do.LoadToDelete.1", "Prompt.Refactor.Do.LoadToDelete.2"],
+        FindingKind.LeadingWildcardLike => ["Prompt.Refactor.Do.LeadingWildcardLike.1", "Prompt.Refactor.Do.LeadingWildcardLike.2"],
+        _ => ["Prompt.Refactor.Do.PersistenceOutsideDomain.1", "Prompt.Refactor.Do.PersistenceOutsideDomain.2"]
     };
 
-    private static string Acceptance(FindingKind kind) => kind switch
+    private static string Acceptance(FindingKind kind, UiLanguage language)
     {
-        FindingKind.HighComplexity => $"Complexidade ciclomática do método em até {QualityThresholds.ComplexityWarning}.",
-        FindingKind.LongMethod => $"Método com até {QualityThresholds.LinesWarning} linhas.",
-        FindingKind.DeepNesting => $"No máximo {QualityThresholds.NestingWarning} níveis de blocos um dentro do outro.",
-        FindingKind.TooManyDependencies => $"Construtor com até {QualityThresholds.DependenciesWarning} dependências injetadas.",
-        FindingKind.SilentCatch => "Nenhum catch sem log, sem relançar e sem usar a exceção.",
-        FindingKind.ServiceLocator => "Nenhum GetService ou GetRequiredService fora da raiz de composição.",
-        FindingKind.EntityChangedOutsideDomain => "Nenhuma atribuição a propriedade da entidade fora dela e do domínio.",
-        FindingKind.PublicSetterOnEntity => "A entidade sem setter público nas propriedades de estado.",
-        FindingKind.QueryInLoop => "Nenhuma consulta ao banco dentro do laço.",
-        FindingKind.MaterializeBeforeFilter => "O filtro roda no banco, antes do ToList.",
-        FindingKind.ReadWithoutNoTracking => "A consulta que só lê usa AsNoTracking.",
-        FindingKind.ProcedureByRawSql => "A procedure chamada existe no projeto de banco e recebe os valores como parâmetros.",
-        FindingKind.LoadToDelete => "A exclusão roda no banco com ExecuteDeleteAsync, sem carregar as linhas.",
-        FindingKind.LeadingWildcardLike => "A busca usa um índice (padrão sem curinga no começo, índice trigram ou busca de texto completo).",
-        _ => "Nenhuma gravação da entidade pelo repositório fora do domínio."
-    };
+        string T(string key, params object[] args) => LocalizedText.Get(key, language, args);
+        return kind switch
+        {
+            FindingKind.HighComplexity => T("Prompt.Refactor.Accept.HighComplexity", QualityThresholds.ComplexityWarning),
+            FindingKind.LongMethod => T("Prompt.Refactor.Accept.LongMethod", QualityThresholds.LinesWarning),
+            FindingKind.DeepNesting => T("Prompt.Refactor.Accept.DeepNesting", QualityThresholds.NestingWarning),
+            FindingKind.TooManyDependencies => T("Prompt.Refactor.Accept.TooManyDependencies", QualityThresholds.DependenciesWarning),
+            FindingKind.SilentCatch => T("Prompt.Refactor.Accept.SilentCatch"),
+            FindingKind.ServiceLocator => T("Prompt.Refactor.Accept.ServiceLocator"),
+            FindingKind.EntityChangedOutsideDomain => T("Prompt.Refactor.Accept.EntityChangedOutsideDomain"),
+            FindingKind.PublicSetterOnEntity => T("Prompt.Refactor.Accept.PublicSetterOnEntity"),
+            FindingKind.QueryInLoop => T("Prompt.Refactor.Accept.QueryInLoop"),
+            FindingKind.MaterializeBeforeFilter => T("Prompt.Refactor.Accept.MaterializeBeforeFilter"),
+            FindingKind.ReadWithoutNoTracking => T("Prompt.Refactor.Accept.ReadWithoutNoTracking"),
+            FindingKind.ProcedureByRawSql => T("Prompt.Refactor.Accept.ProcedureByRawSql"),
+            FindingKind.LoadToDelete => T("Prompt.Refactor.Accept.LoadToDelete"),
+            FindingKind.LeadingWildcardLike => T("Prompt.Refactor.Accept.LeadingWildcardLike"),
+            _ => T("Prompt.Refactor.Accept.PersistenceOutsideDomain")
+        };
+    }
 
-    private static string Count(int value, string one, string many) => $"{value} {(value == 1 ? one : many)}";
+    private static string Count(int value, string unitKey, UiLanguage language) =>
+        $"{value} {LocalizedText.Get(value == 1 ? unitKey + ".One" : unitKey + ".Many", language)}";
 
-    public static string SeverityText(FindingSeverity severity) => severity switch
+    public static string SeverityText(FindingSeverity severity, UiLanguage language) => severity switch
     {
-        FindingSeverity.Critical => "Crítico",
-        FindingSeverity.Warning => "Atenção",
-        _ => "Informativo"
+        FindingSeverity.Critical => LocalizedText.Get("Prompt.Severity.Critical", language),
+        FindingSeverity.Warning => LocalizedText.Get("Prompt.Severity.Warning", language),
+        _ => LocalizedText.Get("Prompt.Severity.Info", language)
     };
 }

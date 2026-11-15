@@ -1171,11 +1171,22 @@ Regras da tradução:
   - **Documentação:** README, README do pacote (seção Idioma) e `SECURITY.md` (a rota nova).
   - **Testes:** backend 762/762 (`API-LANG-001` a `007`, `CORE-LANG-001` a `005`, `CORE-FAIL-001` a `008`, `API-FAIL-001` a `006`), frontend 590/590.
 
-## Fase 50: textos que o núcleo gera `[ ]` (depende da Fase 49)
+## Fase 50: textos que o núcleo gera `[x]` (depende da Fase 49)
 
-- [ ] Prompt da mudança e da refatoração, documentação do fluxo, relatório da validação, perguntas, C4, achados do extrator e do acesso ao banco, motivos do extrator TypeScript.
-- [ ] Cultura como parâmetro explícito no núcleo, sem referência à API nem à IA; teste de determinismo por idioma.
-- [ ] Erro do banco em inglês original quando o idioma é inglês.
+- [x] Prompt da mudança e da refatoração, documentação do fluxo, relatório da validação, perguntas, C4, achados do extrator e do acesso ao banco, motivos do extrator TypeScript.
+- [x] Cultura como parâmetro explícito no núcleo, sem referência à API nem à IA; teste de determinismo por idioma.
+- [x] Erro do banco em inglês original quando o idioma é inglês.
+- [ ] Texto das regras do `FlowRuleExtractor` ("encerra o fluxo com exceção" e afins), que aparece dentro das respostas das perguntas: continua só em português.
+- **Registro (2026-11-15):**
+  - **Como foi feito:** três agentes em paralelo, cada um com o seu conjunto de recursos: prosa do núcleo (`Rastro.Core/Resources/Messages`, 254 chaves), achados do fluxo (`Rastro.Extractor/Resources/Messages` e `Rastro.Infrastructure/Resources/Messages`) e visão do banco (`Database` no Extractor, 142 chaves, e na Infrastructure, 47). O teste de paridade passou a varrer todo conjunto `Resources/<Nome>.resx`.
+  - **Idioma de cada texto:** o que nasce de um pedido (prompt, documentação, perguntas, C4, análise de consulta, esquema, plano, banco vivo) sai no idioma do pedido, por `RequestLanguage.Current`, o único ponto que lê a cultura da thread. O que nasce fora de pedido (achados gravados pelo levantamento, relatório da validação, MCP, CLI) sai no idioma efetivo (`EffectiveLanguage.Of`: o `config.json`, senão o do sistema). O texto gravado fica no idioma em que nasceu.
+  - **Determinismo:** cada construtor recebe o idioma como parâmetro; testes byte a byte nos três idiomas (`CORE-LANG-101` a `113`).
+  - **Erro do banco:** em inglês, volta a mensagem original do banco; em espanhol, os mesmos casos do português são traduzidos. Na integração apareceu que o ScriptDom já devolve a mensagem traduzida pelo idioma do Windows ("Sintaxe incorreta próxima a" numa máquina em português), o que o tradutor do Rastro não reconhece: o leitor de T-SQL passou a rodar com a cultura invariante (`TSqlParsing`), sempre em inglês, e a tradução fica com o Rastro.
+  - **Extrator Angular:** o script recebe `--lang` e traduz as próprias mensagens (`lib/mensagens.mjs`); sem o argumento, inglês.
+  - **Pacote:** as culturas satélite (`pt-BR/` e `es/`, com os `*.resources.dll` do Core, do Extractor e da Infrastructure) saem no publish e no pacote, sem passo novo no `empacotar.ps1`.
+  - **Ficou para a Fase 51:** o prompt de sistema dos provedores de IA (a análise que o alimenta ainda vai em português) e o texto próprio do MCP, que fixa o idioma ao subir.
+  - **Navegador:** a tela do banco, que na Fase 48 ainda mostrava os avisos do leitor de esquema em português, sai inteira em inglês e em espanhol. Prints em `docs/telas/fase-50/`.
+  - **Testes:** backend 848/848, frontend 590/590, extrator Angular 72/72. Os testes de banco vivo com Testcontainers rodam no CI.
 
 ## Fase 51: MCP, provedores de IA e CLI `[ ]` (depende da Fase 50)
 

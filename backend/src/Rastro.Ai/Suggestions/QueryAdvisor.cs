@@ -4,8 +4,10 @@ using System.Text.Json.Nodes;
 using Rastro.Ai.Providers;
 using Rastro.Ai.Settings;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
 using Rastro.Core.Graph;
 using Rastro.Infrastructure.Database;
+using Txt = Rastro.Infrastructure.Resources.Database;
 
 namespace Rastro.Ai.Suggestions;
 
@@ -82,16 +84,16 @@ public class QueryAdvisor(QueryProposalService proposals, AiGateway gateway)
         }
         """)!;
 
-    public async Task<QueryAiSuggestion> SuggestAsync(string repository, string sql, CancellationToken ct)
+    // language: o idioma do pedido, para o que volta à tela (recusas da conferência, avisos). O texto que vai ao provedor
+    // segue em português, como o prompt.
+    public async Task<QueryAiSuggestion> SuggestAsync(string repository, string sql, UiLanguage language, CancellationToken ct)
     {
         await gateway.EnsureAllowedAsync(AiUse.Suggestions, ct);
 
-        var context = await proposals.ContextAsync(repository, sql, ct)
+        var context = await proposals.ContextAsync(repository, sql, UiLanguage.Portuguese, ct)
                       ?? throw new RepositoryNotFoundException("Repositório não cadastrado.");
         if (context.Analysis.Error is not null)
-            throw new QueryUnreadableException(context.Schema.Dialect == SqlDialect.PostgreSql
-                ? "O leitor de SQL do PostgreSQL não entendeu a consulta: corrija antes de pedir a sugestão."
-                : "O leitor de T-SQL não entendeu a consulta: corrija antes de pedir a sugestão.");
+            throw new QueryUnreadableException(Txt.Get(context.Schema.Dialect == SqlDialect.PostgreSql ? "Advice.UnreadablePg" : "Advice.UnreadableTsql", language));
 
         var user = new StringBuilder();
         user.AppendLine(context.Schema.Dialect == SqlDialect.PostgreSql ? "Dialeto: PostgreSQL." : "Dialeto: SQL Server (T-SQL).");
@@ -99,16 +101,16 @@ public class QueryAdvisor(QueryProposalService proposals, AiGateway gateway)
         user.AppendLine(sql);
         user.AppendLine("</consulta>");
         user.AppendLine("<achados>");
-        user.AppendLine(context.Analysis.Findings.Count == 0 ? "Nenhum achado das regras fixas." : QueryContextText.Findings(context.Analysis));
+        user.AppendLine(context.Analysis.Findings.Count == 0 ? "Nenhum achado das regras fixas." : QueryContextText.Findings(context.Analysis, UiLanguage.Portuguese));
         user.AppendLine("</achados>");
         user.AppendLine("<tabelas>");
-        user.AppendLine(QueryContextText.Tables(context.Analysis, context.Schema));
+        user.AppendLine(QueryContextText.Tables(context.Analysis, context.Schema, UiLanguage.Portuguese));
         user.AppendLine("</tabelas>");
 
         var result = await gateway.GenerateAsync(AiUse.Suggestions, new AiRequest(SystemPrompt(context.Schema.Dialect), user.ToString(), "rastro_query_suggestion", Schema), ct);
         var proposal = Parse(result.Json);
         var status = await gateway.StatusAsync(ct);
-        return new QueryAiSuggestion(status.Provider, proposals.Review(repository, context, sql, proposal));
+        return new QueryAiSuggestion(status.Provider, proposals.Review(repository, context, sql, proposal, language));
     }
 
     private sealed record ChangePayload(string? What, string? Why);

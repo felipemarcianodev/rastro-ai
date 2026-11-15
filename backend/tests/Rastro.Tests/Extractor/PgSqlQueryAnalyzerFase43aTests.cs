@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -11,7 +12,7 @@ public class PgSqlQueryAnalyzerFase43aTests
 {
     private static readonly Lazy<DbSchema> Loja = new(() => DbSchemaExtractor.Extract(LojaMultiTenantPg.Files()));
 
-    private static QueryAnalysis Analyze(string sql) => new PgSqlQueryAnalyzer().Analyze(sql, Loja.Value);
+    private static QueryAnalysis Analyze(string sql) => new PgSqlQueryAnalyzer().Analyze(sql, Loja.Value, UiLanguage.Portuguese);
 
     private static List<QueryFinding> Kinds(string sql, QueryFindingKind kind) => Analyze(sql).Findings.Where(f => f.Kind == kind).ToList();
 
@@ -42,10 +43,10 @@ public class PgSqlQueryAnalyzerFase43aTests
         var triple = Schema("CREATE TABLE itens (id uuid PRIMARY KEY, tenant_id uuid NOT NULL, loja_id uuid NOT NULL, criado_em timestamptz NOT NULL);\n"
             + "CREATE INDEX ix_itens_tlc ON itens (tenant_id, loja_id, criado_em);");
         var query = "SELECT i.id FROM itens i WHERE i.tenant_id = @t AND i.loja_id = @l AND i.criado_em > @d LIMIT 10";
-        Assert.DoesNotContain(new PgSqlQueryAnalyzer().Analyze(query, triple).Findings, x => x.Kind == QueryFindingKind.ColumnWithoutIndex);
+        Assert.DoesNotContain(new PgSqlQueryAnalyzer().Analyze(query, triple, UiLanguage.Portuguese).Findings, x => x.Kind == QueryFindingKind.ColumnWithoutIndex);
         // Só a segunda coluna e a terceira, sem a primeira: o índice não ajuda.
         var skipped = "SELECT i.id FROM itens i WHERE i.loja_id = @l AND i.criado_em > @d LIMIT 10";
-        Assert.Single(new PgSqlQueryAnalyzer().Analyze(skipped, triple).Findings, x => x.Kind == QueryFindingKind.ColumnWithoutIndex);
+        Assert.Single(new PgSqlQueryAnalyzer().Analyze(skipped, triple, UiLanguage.Portuguese).Findings, x => x.Kind == QueryFindingKind.ColumnWithoutIndex);
         // E a junção também: o ON com igualdade conta para o índice composto.
         var join = "SELECT i.id FROM categorias c JOIN itens i ON i.tenant_id = c.tenant_id AND i.loja_id = c.id WHERE c.id = @c LIMIT 10";
         Assert.DoesNotContain(Kinds(join, QueryFindingKind.ColumnWithoutIndex), x => x.Table == "itens");
@@ -197,7 +198,7 @@ public class PgSqlQueryAnalyzerFase43aTests
             CREATE INDEX ix_sub_tarefa ON subtarefas (tarefa_id);
             """);
         List<QueryFinding> Found(string sql, QueryFindingKind kind) =>
-            new PgSqlQueryAnalyzer().Analyze(sql, schema).Findings.Where(f => f.Kind == kind).ToList();
+            new PgSqlQueryAnalyzer().Analyze(sql, schema, UiLanguage.Portuguese).Findings.Where(f => f.Kind == kind).ToList();
 
         Assert.Single(Found("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t", QueryFindingKind.ReadWithoutLimit));
         Assert.Single(Found("SELECT s.id FROM subtarefas s WHERE s.tenant_id = @t ORDER BY s.titulo", QueryFindingKind.OrderByWithoutLimit));

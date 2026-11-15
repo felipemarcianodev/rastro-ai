@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Core.Graph;
 using Rastro.Extractor.Database;
@@ -19,7 +20,7 @@ public class TSqlProposalCheckerTests
         """;
 
     private static QueryProposalReview Review(string original, string? rewritten, params IndexSuggestion[] indexes) =>
-        new TSqlProposalChecker().Review(original, new QueryProposal(rewritten, [new QueryChange("Trocou YEAR por faixa", "Usa o índice")], indexes, ProposalOrigin.Provider), Loja.Value);
+        new TSqlProposalChecker().Review(original, new QueryProposal(rewritten, [new QueryChange("Trocou YEAR por faixa", "Usa o índice")], indexes, ProposalOrigin.Provider), Loja.Value, UiLanguage.Portuguese);
 
     private static RewriteReview Rewrite(string original, string rewritten) => Review(original, rewritten).Rewrite!;
 

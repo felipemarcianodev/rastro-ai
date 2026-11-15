@@ -72,7 +72,7 @@ static async Task<int> ExportC4(string graphFile, string[] rest)
     }
 
     var graph = FlowGraphJson.Deserialize(await File.ReadAllTextAsync(graphFile));
-    var dsl = C4WorkspaceBuilder.Build(new PromptContext(name, Path.GetFileName(graphFile), graph.EntryPoint, null), graph, []);
+    var dsl = C4WorkspaceBuilder.Build(new PromptContext(name, Path.GetFileName(graphFile), graph.EntryPoint, null), Rastro.Core.Localization.UiLanguages.FromSystem(), graph, []);
     if (outPath is null) Console.WriteLine(dsl);
     else await File.WriteAllTextAsync(outPath, dsl);
     return 0;

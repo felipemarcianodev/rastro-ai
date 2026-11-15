@@ -5,6 +5,8 @@ using SqlParser;
 using SqlParser.Ast;
 using SqlParser.Dialects;
 using SqlParser.Tokens;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -50,7 +52,7 @@ internal sealed class PgSqlText
     }
 
     // Nulo quando o texto nem vira tokens (aspas sem fechar); error diz onde.
-    public static PgSqlText? Read(string sql, out PgParseError? error)
+    public static PgSqlText? Read(string sql, out PgParseError? error, UiLanguage language = UiLanguage.English)
     {
         error = null;
         IList<Token> raw;
@@ -60,7 +62,7 @@ internal sealed class PgSqlText
         }
         catch (TokenizeException ex)
         {
-            error = new PgParseError(Clean(ex.Message), (int)Math.Max(ex.Line, 1), (int)Math.Max(ex.Column, 1));
+            error = new PgParseError(Clean(ex.Message, language), (int)Math.Max(ex.Line, 1), (int)Math.Max(ex.Column, 1));
             return null;
         }
 
@@ -114,7 +116,7 @@ internal sealed class PgSqlText
     }
 
     // As instruções da árvore; nulo quando o leitor não entendeu (error diz onde).
-    public static Sequence<Statement>? Parse(string sql, out PgParseError? error)
+    public static Sequence<Statement>? Parse(string sql, out PgParseError? error, UiLanguage language = UiLanguage.English)
     {
         error = null;
         try
@@ -123,25 +125,25 @@ internal sealed class PgSqlText
         }
         catch (ParserException ex)
         {
-            error = new PgParseError(Clean(ex.Message), (int)Math.Max(ex.Line, 1), (int)Math.Max(ex.Column, 1));
+            error = new PgParseError(Clean(ex.Message, language), (int)Math.Max(ex.Line, 1), (int)Math.Max(ex.Column, 1));
         }
         catch (TokenizeException ex)
         {
-            error = new PgParseError(Clean(ex.Message), (int)Math.Max(ex.Line, 1), (int)Math.Max(ex.Column, 1));
+            error = new PgParseError(Clean(ex.Message, language), (int)Math.Max(ex.Line, 1), (int)Math.Max(ex.Column, 1));
         }
         catch (Exception ex) when (ex is InvalidOperationException or ArgumentException or IndexOutOfRangeException or NullReferenceException)
         {
             // Defeito do leitor num texto que ele não previu: vale como texto não entendido, sem derrubar a análise.
-            error = new PgParseError("o leitor de SQL do PostgreSQL não conseguiu ler o texto", 1, 1);
+            error = new PgParseError(Txt.Get("Pg.ReaderFailed", language), 1, 1);
         }
         return null;
     }
 
     // "Expected end of statement, found x, Line: 1, Col: 5": a posição vai à parte.
-    private static string Clean(string message)
+    private static string Clean(string message, UiLanguage language)
     {
         var at = message.IndexOf(", Line:", StringComparison.Ordinal);
-        return SqlMessageTranslator.Translate((at > 0 ? message[..at] : message).Trim());
+        return SqlMessageTranslator.Translate((at > 0 ? message[..at] : message).Trim(), language);
     }
 
     // O trecho de um nó da árvore dentro dos tokens [from, to). avoid: começos já usados por outro achado

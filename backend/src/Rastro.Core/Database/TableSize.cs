@@ -1,4 +1,5 @@
 using System.Globalization;
+using Rastro.Core.Localization;
 
 namespace Rastro.Core.Database;
 
@@ -17,6 +18,7 @@ public static class TableSize
 
     public static bool IsLarge(DbTable table) => table.EstimatedRows is { } rows && rows >= LargeRows;
 
-    // "250.000" (separador de milhar do português, sem depender da cultura da máquina).
-    public static string Format(long rows) => rows.ToString("N0", CultureInfo.InvariantCulture).Replace(',', '.');
+    // "250.000" em português, "250,000" em inglês e "250.000" em espanhol: o separador de milhar sai da cultura
+    // do idioma pedido (explícita), nunca da cultura da máquina.
+    public static string Format(long rows, UiLanguage language) => rows.ToString("N0", language.Culture());
 }

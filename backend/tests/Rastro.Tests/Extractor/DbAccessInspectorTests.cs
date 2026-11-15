@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Graph;
 using Rastro.Extractor;
 
@@ -8,7 +9,7 @@ namespace Rastro.Tests.Extractor;
 public class DbAccessInspectorTests
 {
     private static Task<FlowGraph> GraphAsync(string entry) =>
-        FlowExtractor.ExtractAsync(FixtureWorkspace.Load("LojaFluxo"), entry, new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot });
+        FlowExtractor.ExtractAsync(FixtureWorkspace.Load("LojaFluxo"), entry, new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot });
 
     private static FlowNode Node(FlowGraph graph, string label) => graph.Nodes.Single(n => n.Label == label);
 
@@ -93,7 +94,7 @@ public class DbAccessInspectorTests
         var schema = Rastro.Extractor.Database.DbSchemaExtractor.Extract(files);
 
         var graph = await FlowExtractor.ExtractAsync(FixtureWorkspace.Load("LojaFluxo"), "PedidosController.Fechar",
-            new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot, Schema = schema });
+            new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot, Schema = schema });
 
         var fechar = Node(graph, "PedidosController.Fechar").Db!;
         Assert.Contains(fechar, a => a is { Target: "pedidos", Operation: DbOperation.Insert });
@@ -105,7 +106,7 @@ public class DbAccessInspectorTests
     public async Task FluxoSemEf_NenhumPassoComBanco()
     {
         var graph = await FlowExtractor.ExtractAsync(FixtureWorkspace.Load("Quality"), "PedidoAppService.AprovarAsync",
-            new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot });
+            new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot });
 
         Assert.All(graph.Nodes, n => Assert.Null(n.Db));
         Assert.DoesNotContain(graph.Findings!, f => QualityThresholds.CategoryOf(f.Kind) == FindingCategory.Database);
