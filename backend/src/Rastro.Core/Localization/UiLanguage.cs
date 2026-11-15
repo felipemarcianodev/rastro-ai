@@ -46,7 +46,8 @@ public static class UiLanguages
 
     public static UiLanguage FromCulture(CultureInfo culture) => FromCode(culture.Name) ?? UiLanguage.English;
 
-    // Idioma do sistema operacional; inglês quando não é um dos três.
+    // Idioma do sistema operacional; inglês quando não é um dos três. Lê a cultura instalada, e não a
+    // da thread: dentro de um pedido, a da thread já é a do Accept-Language.
     public static UiLanguage FromSystem(CultureInfo? culture = null) =>
-        FromCulture(culture ?? CultureInfo.CurrentUICulture);
+        FromCulture(culture ?? CultureInfo.InstalledUICulture);
 }
