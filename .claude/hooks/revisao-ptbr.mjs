@@ -30,6 +30,9 @@ const EXT_PROSA = new Set(['.md', '.mdx', '.txt', '.adoc', '.rst']);
 // mecânica, porque misturam texto com identificador.
 const EXT_COPIA = new Set(['.html', '.htm', '.ftl', '.hbs']);
 const IGNORAR = /(^|[\\/])(node_modules|dist|bin|obj|\.git|\.angular|coverage)[\\/]/;
+// Arquivo marcado com outro idioma no nome (README.es.md, guia.en-US.md): a tradução não
+// passa pela revisão de português. Em espanhol, "usuario" e "repositorio" estão certos.
+const OUTRO_IDIOMA = /\.(?!pt\b)[a-z]{2}(-[A-Za-z]{2,4})?\.[a-z]+$/;
 
 // ---------------------------------------------------------------------------
 // Dicionário: grafia sem acento -> grafia correta. Só entra o que é inequívoco;
@@ -299,7 +302,7 @@ function textoEscrito(entrada) {
 
 function posEdicao(entrada) {
   const caminho = entrada.tool_input?.file_path;
-  if (!caminho || IGNORAR.test(caminho) || !ehTexto(caminho)) return;
+  if (!caminho || IGNORAR.test(caminho) || OUTRO_IDIOMA.test(caminho) || !ehTexto(caminho)) return;
   const relativo = relativoDaRaiz(caminho).replace(/\\/g, '/');
   if (relativo.startsWith('..')) return;
 

@@ -1080,6 +1080,84 @@ O dono quer que o `rastro` abra como um app, numa janela própria, sem passar pe
 - [x] Documentação do ambiente do cliente no mesmo PR (README, README do pacote, `visao.md`, `SECURITY.md`, `CLAUDE.md`).
 - [ ] "Procurar…" no navegador, por uma rota local da API com a proteção de origem, se o dono quiser. A janela no macOS e no Linux só foi decidida pela documentação do Photino; falta conferir numa máquina de cada.
 
+## Rastro multilíngue (Fases 45 a 53) (pedido do dono em 2026-11-15)
+
+O Rastro passa a existir em três idiomas: inglês (`en-US`, o principal da documentação), português (`pt-BR`, o de hoje) e espanhol (`es`, neutro latino-americano). O chinês foi proposto e retirado pelo dono. O padrão segue o de outro projeto do dono, com `IStringLocalizer` e `.resx` no backend, ngx-translate no frontend e o idioma no cabeçalho `Accept-Language`, acrescido de teste de paridade no CI, idioma no `config.json`, plural com ICU e formatação pelo idioma ativo.
+
+Decisões do dono (2026-11-15), registradas na ADR-009:
+- **Primeira abertura:** no idioma do sistema operacional, se for um dos três; se não for, em inglês. A escolha nas Configurações vale depois.
+- **Documentação:** o que quem usa lê vai para os três idiomas (README da raiz, README do pacote, `SECURITY.md` e o texto do NuGet), com o inglês na frente. O plano, as ADRs, os planos de UX, o `CLAUDE.md` e as skills ficam em português.
+- **Espanhol:** neutro latino-americano, código `es`.
+- **Prompt gerado para a IA:** no idioma da tela. Mesmo código, mesmo rascunho e mesmo idioma dão o mesmo prompt.
+- **Revisão:** a tradução sai da IA a partir de um glossário único; o README convida correção por PR.
+
+Regras da tradução:
+- Dado estruturado (status, tipo de achado, gravidade, código de erro, motivo de recusa): o servidor manda código e parâmetros e a tela traduz pelo `Record`.
+- Prosa gerada (prompt, documentação do fluxo, relatório da validação, perguntas, C4, saída do MCP): o servidor traduz pelo `.resx`, no idioma do pedido, de forma determinística.
+- Texto gravado (regra escrita pela IA, nota do usuário, prosa já gerada): fica no idioma em que nasceu.
+- Código do cliente (nomes, trechos, caminhos, mensagem do compilador ou do banco): nunca se traduz.
+
+## Fase 45: ADR-009, glossário e governança `[x]`
+
+- [x] ADR-009 com as decisões acima e as alternativas recusadas (`@angular/localize`, porque um build por idioma não cabe num `dotnet tool` com troca na hora; Transloco, sem ganho que pague destoar do padrão conhecido).
+- [x] Glossário dos termos do produto nos três idiomas, usado em toda tradução depois.
+- [x] `CLAUDE.md`: texto novo de tela entra nos três JSON no mesmo PR; a regra de português vale para o `pt-BR.json` e os documentos em português.
+- [x] Hook `revisao-ptbr` sem cobrar os arquivos de outro idioma (`en-US.json`, `es.json`, `README.*.md`).
+- [x] Skill `traduzir-texto`: do pt-BR para os outros dois idiomas, pelo glossário.
+- **Registro (2026-11-15):**
+  - **ADR e glossário:** [ADR-009](../adr/adr-009-multilingue.md) e [`docs/i18n/glossario.md`](../i18n/glossario.md). O levantamento passa a se chamar *trace* em inglês e *rastreo* em espanhol (combina com o nome Rastro); o espanhol trata por "tú". O glossário pode ser ajustado pelo dono a qualquer momento: as telas leem os termos dos JSON.
+  - **Recurso do servidor:** o `.resx` neutro é o inglês (a reserva), com `pt-BR` e `es` ao lado.
+  - **Hook:** a regra nasceu no repositório de origem da governança (branch `chore/revisao-ptbr-outro-idioma`, à espera do PR do dono lá) e foi replicada aqui. Arquivo com outro idioma no nome (`README.es.md`, `guia.en-US.md`) sai da varredura; `pt` e `pt-BR` continuam. Os outros repositórios irmãos com o hook não têm documento em outro idioma e ficam como estão.
+
+## Fase 46: infraestrutura da tela e o seletor `[ ]` (depende da Fase 45)
+
+- [ ] ngx-translate com o compilador de ICU; `pt-BR.json`, `en-US.json` e `es.json` servidos pela própria API.
+- [ ] Seletor de idioma nas Configurações, ao lado da paleta; idioma ativo aplicado ao `lang` da página, à formatação de data e número e ao `Accept-Language`.
+- [ ] Teste de paridade dos JSON (mesmas chaves e mesmos marcadores) no Karma.
+- [ ] Testes de tela existentes carregam o `pt-BR.json`; testes novos conferem o inglês.
+- [ ] Piloto: cabeçalho, Configurações e diálogos do tema.
+
+## Fase 47: telas do levantamento e do grafo `[ ]` (depende da Fase 46)
+
+- [ ] Lista de levantamentos, tela do levantamento, painel do passo, canvas, mapa do fluxo, regras e perguntas.
+- [ ] `models.ts`, `API_ERROR_MESSAGE` e títulos das rotas viram chaves; frases com plural e concordância passam para ICU.
+
+## Fase 48: banco, diagrama e o resto da tela `[ ]` (depende da Fase 46)
+
+- [ ] Tela do banco, diagrama Mermaid, C4, cadastro de repositório, aviso de IA e os `Record` de rótulo restantes.
+- [ ] Teste que varre os templates atrás de texto fixo fora do `translate`.
+
+## Fase 49: idioma no servidor e mensagens da API `[ ]` (depende da Fase 46)
+
+- [ ] `Language` no `config.json`, com rota para ler e gravar sob a proteção de `Origin`.
+- [ ] `RequestLocalization` com as três culturas: `Accept-Language` primeiro, `config.json` depois, sistema operacional por último.
+- [ ] Erro do levantamento e motivo de recusa de proposta com código e parâmetros (migration); o texto antigo continua aparecendo.
+- [ ] Mensagens dos controllers em `.resx`; teste de paridade dos `.resx`; testes existentes fixam `pt-BR`.
+- [ ] Documentação do cliente no mesmo PR.
+
+## Fase 50: textos que o núcleo gera `[ ]` (depende da Fase 49)
+
+- [ ] Prompt da mudança e da refatoração, documentação do fluxo, relatório da validação, perguntas, C4, achados do extrator e do acesso ao banco, motivos do extrator TypeScript.
+- [ ] Cultura como parâmetro explícito no núcleo, sem referência à API nem à IA; teste de determinismo por idioma.
+- [ ] Erro do banco em inglês original quando o idioma é inglês.
+
+## Fase 51: MCP, provedores de IA e CLI `[ ]` (depende da Fase 50)
+
+- [ ] Instruções e descrições das ferramentas do MCP em inglês, pedindo a resposta no idioma do usuário; saída das ferramentas no idioma do `config.json`.
+- [ ] Os prompts dos provedores recebem o idioma; o validador de prova não muda.
+- [ ] CLI no idioma do `config.json` ou do sistema.
+
+## Fase 52: documentação em três idiomas, inglês na frente `[ ]` (depende da Fase 51)
+
+- [ ] `README.md` em inglês, com `README.pt-BR.md` e `README.es.md`; README do pacote e `<Description>` em inglês; `SECURITY.md` nos três.
+- [ ] Prints do README em inglês, de repositório público.
+- [ ] `scripts/verificar-traducoes.mjs` no workflow de PR (os três README com as mesmas seções); hook de ambiente do cliente aceitando os três.
+
+## Fase 53: conferência visual e versão `[ ]` (depende das Fases 47 a 52)
+
+- [ ] Todas as telas nos três idiomas, nas três paletas, em 360 px e na largura cheia; `levantamento-ux` com foco em texto que estoura.
+- [ ] Release `0.10.0` pela skill `gerar-release`.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).
