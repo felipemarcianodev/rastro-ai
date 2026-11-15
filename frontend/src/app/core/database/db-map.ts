@@ -1,5 +1,6 @@
+import { tr } from '../i18n/locale';
 import { DiagramColors } from '../mermaid-render';
-import { Cardinality, DIVERGENT_TEXT, DbRelation, DbTable, KEY_MARK_LABEL, KeyMark, columnKeys, hasPrimaryKey, keyMark, tableKey } from './db-schema';
+import { Cardinality, DbRelation, DbTable, KEY_MARK_LABEL, KeyMark, columnKeys, divergentText, hasPrimaryKey, keyMark, tableKey } from './db-schema';
 
 // Mapa relacional (Fase 38): as tabelas em colunas pela FK (quem é apontado fica à esquerda, quem
 // aponta à direita) e as ligações saindo da linha da coluna da FK até a chave da tabela de destino.
@@ -152,8 +153,8 @@ export function dbMapGeometry(tables: readonly DbTable[], relations: readonly Db
         const mark = keyMark(columnKeys(table, col.name));
         return {
           name: col.name,
-          type: col.type == null ? DIVERGENT_TEXT : shortType(col.type),
-          fullType: col.type ?? DIVERGENT_TEXT,
+          type: col.type == null ? divergentText() : shortType(col.type),
+          fullType: col.type ?? divergentText(),
           mark,
           markLabel: KEY_MARK_LABEL[mark],
           isPrimaryKey: hasPrimaryKey(mark),
@@ -225,7 +226,7 @@ export function dbMapSvg(geometry: DbMapGeometry, colors: DiagramColors, badges:
         `<text x="${card.x + w - 10}" y="${y}" font-size="11" text-anchor="end" fill="${colors.inkSoft}">${xml(clip(r.type, 16))}</text>`
       );
     });
-    const more = card.more > 0 ? `<text x="${card.x + 50}" y="${card.y + header + card.rows.length * row + row / 2 + 4}" font-size="11" fill="${colors.inkSoft}">+${card.more} campos</text>` : '';
+    const more = card.more > 0 ? `<text x="${card.x + 50}" y="${card.y + header + card.rows.length * row + row / 2 + 4}" font-size="11" fill="${colors.inkSoft}">${xml(tr('dbSchema.moreFieldsSvg', { count: card.more }))}</text>` : '';
     return (
       `<g><rect x="${card.x}" y="${card.y}" width="${w}" height="${card.height}" rx="8" fill="${colors.surface}" stroke="${colors.lineStrong}"/>` +
       `<rect x="${card.x}" y="${card.y}" width="${w}" height="${header}" rx="8" fill="${colors.surfaceSunk}"/>` +

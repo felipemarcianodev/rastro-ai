@@ -1,7 +1,9 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, input, signal } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
 import { SqlDialect } from '../../core/database/db-schema';
 import { MissingIndex, PLAN_NOTE, PlanOperation, QueryPlan, missingIndexText, operatorLabel } from '../../core/database/live-database';
+import { LanguageService } from '../../core/i18n/i18n';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 
 const MIN_PERCENT = 1;
@@ -10,12 +12,14 @@ const MIN_PERCENT = 1;
 // ANALYZE do PostgreSQL (Fase 42b), pedido só pelo botão. O banco diz como faria; a consulta não é executada.
 @Component({
   selector: 'app-query-plan',
+  imports: [TranslatePipe],
   templateUrl: './query-plan.component.html',
   styleUrl: './query-plan.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QueryPlanComponent {
   private readonly api = inject(RastroApi);
+  private readonly i18n = inject(LanguageService);
   private sub?: Subscription;
 
   readonly repository = input.required<string>();
@@ -37,13 +41,11 @@ export class QueryPlanComponent {
   protected readonly summary = computed(() => {
     const plan = this.plan();
     if (!plan) return '';
-    const ops = plan.operations.length;
-    const missing = plan.missingIndexes.length;
-    return `Plano estimado recebido: ${ops === 1 ? '1 operação' : ops + ' operações'}, ${missing === 0 ? 'nenhum índice sugerido' : missing === 1 ? '1 índice sugerido' : missing + ' índices sugeridos'}.`;
+    return this.i18n.t('queryPlan.received', { ops: plan.operations.length, missing: plan.missingIndexes.length });
   });
 
   // O que o leitor de tela ouve: a espera, e depois o resumo do plano.
-  protected readonly announcement = computed(() => (this.busy() ? 'Pedindo o plano…' : this.summary()));
+  protected readonly announcement = computed(() => (this.busy() ? this.i18n.t('queryPlan.requesting') : this.summary()));
 
   constructor() {
     inject(DestroyRef).onDestroy(() => this.sub?.unsubscribe());

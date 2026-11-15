@@ -1,14 +1,15 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { CopyFeedback } from '../../core/copy-feedback';
+import { LanguageService } from '../../core/i18n/i18n';
 import { DB_CARD, DB_CARD_MAX_ROWS, dbMapGeometry, dbMapSvg } from '../../core/database/db-map';
 import {
   DbSchema,
   DbUsageReport,
   KeyMark,
   sameName,
-  SCHEMA_FINDING_BADGE,
-  SCHEMA_SOURCE_LABEL,
+  SCHEMA_FINDING_BADGE_KEY,
+  SCHEMA_SOURCE_LABEL_KEY,
   SQL_DIALECT_LABEL,
   SchemaSourceKind,
   SqlDialect,
@@ -29,6 +30,7 @@ import { DB_PANEL_TITLE_SELECTOR, DbItemKind, DbPick, DbPanelComponent } from '.
 import { LiveConnectionView } from '../../core/database/live-database';
 import { LiveConnectionDialogComponent } from './live-connection-dialog.component';
 import { QueryAnalysisComponent } from './query-analysis.component';
+import { TranslatePipe } from '@ngx-translate/core';
 
 const MESSAGE_MS = 4000;
 const REVEAL_MARGIN = 16;
@@ -53,15 +55,15 @@ export enum DbTab {
   Query = 1,
 }
 
-const DB_TAB_LABEL: Record<DbTab, string> = {
-  [DbTab.Map]: 'Mapa do banco',
-  [DbTab.Query]: 'Analisar consulta',
+const DB_TAB_LABEL_KEY: Record<DbTab, string> = {
+  [DbTab.Map]: 'database.tab.map',
+  [DbTab.Query]: 'database.tab.query',
 };
 
 // A linha que explica cada aba (B05).
-const DB_TAB_HINT: Record<DbTab, string> = {
-  [DbTab.Map]: 'Tabelas, chaves e índices lidos do código',
-  [DbTab.Query]: 'Cole um SQL e veja os gargalos, sem executar',
+const DB_TAB_HINT_KEY: Record<DbTab, string> = {
+  [DbTab.Map]: 'database.tabHint.map',
+  [DbTab.Query]: 'database.tabHint.query',
 };
 
 const DB_TAB_ID: Record<DbTab, string> = {
@@ -76,7 +78,7 @@ const DB_TABS = [DbTab.Map, DbTab.Query];
 // consulta um banco nem usa IA.
 @Component({
   selector: 'app-database-page',
-  imports: [RouterLink, DbPanelComponent, QueryAnalysisComponent, LiveConnectionDialogComponent],
+  imports: [RouterLink, TranslatePipe, DbPanelComponent, QueryAnalysisComponent, LiveConnectionDialogComponent],
   templateUrl: './database.page.html',
   styleUrl: './database.page.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -84,6 +86,7 @@ const DB_TABS = [DbTab.Map, DbTab.Query];
 })
 export class DatabasePage {
   private readonly api = inject(RastroApi);
+  private readonly i18n = inject(LanguageService);
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly scroller = viewChild<ElementRef<HTMLElement>>('scroller');
@@ -102,15 +105,15 @@ export class DatabasePage {
     const id = this.levantamento();
     return id ? ['/surveys', id] : ['/'];
   });
-  protected readonly backLabel = computed(() => (this.levantamento() ? 'Voltar ao levantamento de origem' : 'Voltar aos levantamentos'));
+  protected readonly backLabel = computed(() => this.i18n.t(this.levantamento() ? 'database.backToSurvey' : 'database.backToSurveys'));
   // O seletor só aparece quando o repositório da URL está na lista: com um nome que não existe, ele mostraria outro.
   protected readonly canSwitch = computed(() => this.repositories().length > 1 && this.repositories().some((r) => r.name === this.nome()));
 
   protected readonly DbTab = DbTab;
   protected readonly KeyMark = KeyMark;
   protected readonly tabs = DB_TABS;
-  protected readonly tabLabel = DB_TAB_LABEL;
-  protected readonly tabHint = DB_TAB_HINT;
+  protected readonly tabLabelKey = DB_TAB_LABEL_KEY;
+  protected readonly tabHintKey = DB_TAB_HINT_KEY;
   protected readonly tabId = DB_TAB_ID;
   private readonly lastRepository = inject(LastRepositoryService);
   protected readonly tab = computed(() => (this.aba() === DB_TAB_QUERY_PARAM ? DbTab.Query : DbTab.Map));
@@ -160,7 +163,7 @@ export class DatabasePage {
   protected readonly card = DB_CARD;
   protected readonly maxRows = DB_CARD_MAX_ROWS;
   protected readonly dialectLabel = SQL_DIALECT_LABEL;
-  protected readonly badgeLabel = SCHEMA_FINDING_BADGE;
+  protected readonly badgeKey = SCHEMA_FINDING_BADGE_KEY;
 
   protected readonly relations = computed(() => {
     const schema = this.schema();
@@ -174,7 +177,7 @@ export class DatabasePage {
     const kinds = new Set<SchemaSourceKind>();
     for (const table of schema.tables) for (const s of table.sources) kinds.add(s.kind);
     for (const item of [...schema.views, ...schema.procedures]) kinds.add(item.source.kind);
-    return [...kinds].sort().map((k) => SCHEMA_SOURCE_LABEL[k]).join(', ');
+    return [...kinds].sort().map((k) => this.i18n.t(SCHEMA_SOURCE_LABEL_KEY[k])).join(', ');
   });
 
   protected readonly list = computed(() => this.filtered(this.schema(), this.filter()));
@@ -182,7 +185,7 @@ export class DatabasePage {
   // A contagem anunciada ao leitor de tela, com o atraso maior (UX-G-B18).
   protected readonly foundAnnouncement = computed(() => {
     const found = this.filtered(this.schema(), this.announceFilter());
-    return found ? `${found.tables.length + found.views.length + found.procedures.length} itens encontrados` : '';
+    return found ? this.i18n.t('database.foundAnnouncement', { count: found.tables.length + found.views.length + found.procedures.length }) : '';
   });
 
   protected readonly selectedTable = computed(() => {
@@ -239,7 +242,7 @@ export class DatabasePage {
       const flows = (this.usage()?.findings ?? []).filter((f) => sameName(f.target, key));
       const total = own.length + flows.length;
       if (total === 0) continue;
-      map.set(key, own.length > 0 ? this.badgeLabel[own[0].kind] + (total > 1 ? ` +${total - 1}` : '') : total === 1 ? '1 achado' : `${total} achados`);
+      map.set(key, own.length > 0 ? this.i18n.t(this.badgeKey[own[0].kind]) + (total > 1 ? ` +${total - 1}` : '') : this.i18n.t('database.findingsCount', { count: total }));
     }
     return map;
   });
@@ -256,8 +259,8 @@ export class DatabasePage {
     const labels = new Map<string, string>();
     for (const key of new Set([...out.keys(), ...into.keys()])) {
       const parts: string[] = [];
-      if (out.has(key)) parts.push(`aponta para ${out.get(key)!.join(', ')}`);
-      if (into.has(key)) parts.push(`referenciada por ${into.get(key)!.join(', ')}`);
+      if (out.has(key)) parts.push(this.i18n.t('database.pointsTo', { list: out.get(key)!.join(', ') }));
+      if (into.has(key)) parts.push(this.i18n.t('database.referencedBy', { list: into.get(key)!.join(', ') }));
       labels.set(key, parts.join('; '));
     }
     return labels;
@@ -488,7 +491,7 @@ export class DatabasePage {
   }
 
   protected connectionRemoved(): void {
-    this.show({ ok: true, text: 'Conexão removida. O Rastro volta a ler só o código.' });
+    this.show({ ok: true, text: this.i18n.t('database.connectionRemoved') });
   }
 
   protected onEscape(): void {
@@ -542,7 +545,7 @@ export class DatabasePage {
 
   protected cardLabel(key: string, columns: number, badge: string | undefined): string {
     const relations = this.relationLabels().get(key);
-    return `Tabela ${key}, ${columns === 1 ? '1 campo' : columns + ' campos'}${relations ? ', ' + relations : ''}${badge ? ', achado: ' + badge : ''}`;
+    return this.i18n.t('database.cardLabel', { key, columns }) + (relations ? ', ' + relations : '') + (badge ? ', ' + this.i18n.t('database.cardBadge', { badge }) : '');
   }
 
   // Exportar o que está no mapa (o recorte, se houver) --------------------------------------
@@ -563,7 +566,7 @@ export class DatabasePage {
     this.closeExport();
     if (!schema) return;
     downloadBlob(new Blob([toErMermaid(schema, this.shownKeys())], { type: 'text/plain' }), `${this.fileName()}.mmd`);
-    this.show({ ok: true, text: `Download iniciado: ${this.fileName()}.mmd` });
+    this.show({ ok: true, text: this.i18n.t('database.downloadStarted', { file: `${this.fileName()}.mmd` }) });
   }
 
   protected exportImage(format: 'png' | 'svg'): void {
@@ -574,7 +577,7 @@ export class DatabasePage {
     const name = this.fileName();
     if (format === 'svg') {
       downloadBlob(new Blob([svg], { type: 'image/svg+xml' }), `${name}.svg`);
-      this.show({ ok: true, text: `Download iniciado: ${name}.svg` });
+      this.show({ ok: true, text: this.i18n.t('database.downloadStarted', { file: `${name}.svg` }) });
       return;
     }
     this.pngBusy.set(true);
@@ -582,11 +585,11 @@ export class DatabasePage {
       (blob) => {
         this.pngBusy.set(false);
         downloadBlob(blob, `${name}.png`);
-        this.show({ ok: true, text: `Download iniciado: ${name}.png` });
+        this.show({ ok: true, text: this.i18n.t('database.downloadStarted', { file: `${name}.png` }) });
       },
       (error: Error) => {
         this.pngBusy.set(false);
-        this.show({ ok: false, text: `Não exportou a imagem: ${error.message} Tente o SVG.` });
+        this.show({ ok: false, text: this.i18n.t('database.exportFailed', { error: error.message }) });
       },
     );
   }

@@ -2,10 +2,10 @@
   <header class="page-bar">
     <a class="page-back" [routerLink]="backLink()" [attr.aria-label]="backLabel()" [title]="backLabel()">←</a>
     <div class="page-bar-title">
-      <h1>Banco</h1>
+      <h1>{{ 'database.title' | translate }}</h1>
       <div class="page-bar-meta">
         @if (canSwitch()) {
-          <label class="visually-hidden" for="db-repo">Repositório</label>
+          <label class="visually-hidden" for="db-repo">{{ 'database.repository' | translate }}</label>
           <select id="db-repo" class="input is-small" [value]="nome()" (change)="switchRepository($any($event.target).value)">
             @for (repo of repositories(); track repo.name) {
               <option [value]="repo.name" [selected]="repo.name === nome()">{{ repo.name }}</option>
@@ -15,33 +15,33 @@
           <span>{{ nome() }}</span>
         }
         @if (schema(); as s) {
-          <span class="muted">{{ dialectLabel[s.dialect] }}@if (sourcesText()) {, lido de {{ sourcesText() }}}</span>
+          <span class="muted">{{ sourcesText() ? ('database.dialectReadFrom' | translate: { dialect: dialectLabel[s.dialect], sources: sourcesText() }) : dialectLabel[s.dialect] }}</span>
         }
       </div>
     </div>
     <div class="page-bar-side">
       @if (live(); as l) {
-        <span class="pill db-live-pill" [title]="'Banco vivo: ' + l.server + '/' + l.database + ', só leitura'">Banco vivo: {{ l.server }}/{{ l.database }}, só leitura</span>
+        <span class="pill db-live-pill" [title]="'database.livePill' | translate: { server: l.server, database: l.database }">{{ 'database.livePill' | translate: { server: l.server, database: l.database } }}</span>
       } @else if (connectionError()) {
-        <span class="muted db-promise" role="alert">Não deu para ler a conexão do banco vivo.</span>
-        <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button>
+        <span class="muted db-promise" role="alert">{{ 'database.connectionReadFailed' | translate }}</span>
+        <button type="button" class="btn btn-g btn-small" (click)="retry()">{{ 'common.retry' | translate }}</button>
       }
       @if (!error()) {
-        <button type="button" class="btn btn-g btn-small" (click)="connectionOpen.set(true)" aria-haspopup="dialog">{{ live() ? 'Banco vivo' : 'Conectar banco vivo' }}</button>
+        <button type="button" class="btn btn-g btn-small" (click)="connectionOpen.set(true)" aria-haspopup="dialog">{{ (live() ? 'database.liveButton' : 'database.connectLive') | translate }}</button>
       }
       @if (geometry() && tab() === DbTab.Map) {
         <span class="popover">
           <button type="button" class="btn btn-g btn-small" id="db-export-button" (click)="toggleExport()" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'db-export-menu' : null">
-            {{ copy.label('Exportar o mapa') }}
+            {{ copy.label('database.exportMap' | translate) }}
           </button>
           @if (exportOpen()) {
             <div class="menu-backdrop" (click)="closeExport()"></div>
             <ul id="db-export-menu" class="popover-menu" (keydown.arrowdown)="onExportKey($event, 1)" (keydown.arrowup)="onExportKey($event, -1)" (focusout)="onExportFocusOut($event)">
-              <li class="popover-group" role="presentation">Exportar o que está no mapa</li>
-              <li><button type="button" (click)="exportImage('png')" [disabled]="pngBusy()">Imagem PNG</button></li>
-              <li><button type="button" (click)="exportImage('svg')">Imagem SVG</button></li>
-              <li><button type="button" (click)="copyMermaid()">Copiar como Mermaid (erDiagram)</button></li>
-              <li><button type="button" (click)="downloadMermaid()">Baixar como Mermaid (.mmd)</button></li>
+              <li class="popover-group" role="presentation">{{ 'database.exportGroup' | translate }}</li>
+              <li><button type="button" (click)="exportImage('png')" [disabled]="pngBusy()">{{ 'database.exportPng' | translate }}</button></li>
+              <li><button type="button" (click)="exportImage('svg')">{{ 'database.exportSvg' | translate }}</button></li>
+              <li><button type="button" (click)="copyMermaid()">{{ 'database.copyMermaid' | translate }}</button></li>
+              <li><button type="button" (click)="downloadMermaid()">{{ 'database.downloadMermaid' | translate }}</button></li>
             </ul>
           }
         </span>
@@ -50,44 +50,44 @@
   </header>
 
   <!-- As abas ficam mesmo com erro no esquema: a análise de consulta funciona sem ele (UX-G-B03). -->
-  <div class="db-tabs" role="tablist" aria-label="Partes da tela do banco">
+  <div class="db-tabs" role="tablist" [attr.aria-label]="'database.tabsAria' | translate">
     @for (t of tabs; track t) {
       <button type="button" role="tab" class="db-tab" [id]="tabId[t]" [attr.aria-selected]="tab() === t" [attr.aria-controls]="(schema() || (error() && t === DbTab.Query)) ? 'db-panel-' + t : null"
         [attr.tabindex]="tab() === t ? 0 : -1" (click)="selectTab(t)" (keydown.arrowright)="onTabKey($event, t, 1)" (keydown.arrowleft)="onTabKey($event, t, -1)" (keydown.home)="onTabEdge($event, false)" (keydown.end)="onTabEdge($event, true)">
-        <span class="db-tab-label">{{ tabLabel[t] }}</span>
-        <span class="db-tab-hint">{{ tabHint[t] }}</span>
+        <span class="db-tab-label">{{ tabLabelKey[t] | translate }}</span>
+        <span class="db-tab-hint">{{ tabHintKey[t] | translate }}</span>
       </button>
     }
   </div>
   <!-- A promessa do que o Rastro lê sai da barra e fica sob as abas (UX-G-B15). -->
   @if (live()) {
-    <p class="muted db-promise">Lido do código e do catálogo do banco vivo. Nenhum dado das tabelas é lido.</p>
+    <p class="muted db-promise">{{ 'database.promiseLive' | translate }}</p>
   } @else if (!connectionError()) {
-    <p class="muted db-promise">Lido do código. Nenhum banco é consultado, a menos que você conecte um banco vivo, só de leitura.</p>
+    <p class="muted db-promise">{{ 'database.promiseCode' | translate }}</p>
   }
 
   @if (error(); as message) {
     @if (tab() === DbTab.Map) {
       <div class="page-state">
         <p class="notice is-error" role="alert">{{ message }}</p>
-        <p class="muted">A análise de consulta funciona mesmo assim, só sem os achados de índice e de nulo.</p>
+        <p class="muted">{{ 'database.queryStillWorks' | translate }}</p>
         <div class="page-state-actions">
-          <button type="button" class="btn btn-g" (click)="retry()">Tentar de novo</button>
-          <button type="button" class="btn btn-g" (click)="selectTab(DbTab.Query)">Analisar uma consulta mesmo assim</button>
-          <a class="btn btn-g" routerLink="/">Voltar aos levantamentos</a>
-          <a class="btn btn-g" routerLink="/configuracoes">Abrir as configurações</a>
+          <button type="button" class="btn btn-g" (click)="retry()">{{ 'common.retry' | translate }}</button>
+          <button type="button" class="btn btn-g" (click)="selectTab(DbTab.Query)">{{ 'database.analyzeAnyway' | translate }}</button>
+          <a class="btn btn-g" routerLink="/">{{ 'database.backToSurveys' | translate }}</a>
+          <a class="btn btn-g" routerLink="/configuracoes">{{ 'database.openSettings' | translate }}</a>
         </div>
       </div>
     } @else {
-      <p class="notice is-warning db-schema-off" role="status">O esquema do banco não foi lido, então a análise segue sem os achados de índice e de nulo.
-        <button type="button" class="btn btn-g btn-small" (click)="retry()">Tentar de novo</button></p>
+      <p class="notice is-warning db-schema-off" role="status">{{ 'database.schemaOff' | translate }}
+        <button type="button" class="btn btn-g btn-small" (click)="retry()">{{ 'common.retry' | translate }}</button></p>
     }
   } @else if (!schema()) {
     <div class="page-state" role="status">
       <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
         <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
       </svg>
-      <p class="muted">Lendo o esquema do banco no código do repositório…</p>
+      <p class="muted">{{ 'database.loading' | translate }}</p>
     </div>
   }
 
@@ -95,57 +95,57 @@
     <!-- Os estados de erro e de carga acima valem para as duas abas. -->
   } @else if (schema()!.tables.length === 0 && schema()!.views.length === 0 && schema()!.procedures.length === 0) {
     <div class="page-state" role="tabpanel" id="db-panel-0" aria-labelledby="db-tab-map" [hidden]="tab() !== DbTab.Map">
-      <p>Nenhum banco encontrado no código de {{ nome() }}.</p>
-      <p class="muted">O Rastro procura um DbContext do EF Core, as migrations e arquivos .sql (SQL Server ou PostgreSQL).</p>
-      <p class="muted">A análise de consulta funciona mesmo assim, só sem os achados de índice e de nulo.</p>
+      <p>{{ 'database.noneFound' | translate: { name: nome() } }}</p>
+      <p class="muted">{{ 'database.lookFor' | translate }}</p>
+      <p class="muted">{{ 'database.queryStillWorks' | translate }}</p>
       <div class="page-state-actions">
-        <button type="button" class="btn btn-g" (click)="selectTab(DbTab.Query)">Analisar uma consulta mesmo assim</button>
-        <a class="btn btn-g" routerLink="/configuracoes" fragment="editor">Conferir a pasta do repositório</a>
+        <button type="button" class="btn btn-g" (click)="selectTab(DbTab.Query)">{{ 'database.analyzeAnyway' | translate }}</button>
+        <a class="btn btn-g" routerLink="/configuracoes" fragment="editor">{{ 'database.checkFolder' | translate }}</a>
       </div>
     </div>
   } @else {
     <div class="db-body" role="tabpanel" id="db-panel-0" aria-labelledby="db-tab-map" [hidden]="tab() !== DbTab.Map" [class.has-panel]="!!selection()">
-      <aside class="db-side" aria-label="Tabelas, views e procedures">
-        <label class="visually-hidden" for="db-search">Buscar tabela, view, procedure ou campo</label>
-        <input id="db-search" class="input is-small" type="search" placeholder="Buscar tabela ou campo" autocomplete="off"
+      <aside class="db-side" [attr.aria-label]="'database.sideAria' | translate">
+        <label class="visually-hidden" for="db-search">{{ 'database.searchLabel' | translate }}</label>
+        <input id="db-search" class="input is-small" type="search" [placeholder]="'database.searchPlaceholder' | translate" autocomplete="off"
           [value]="query()" (input)="onSearch($any($event.target).value)" />
         @if (list(); as l) {
           <p class="visually-hidden" role="status">{{ foundAnnouncement() }}</p>
-          <h2 class="db-group">Tabelas <span class="muted">{{ l.tables.length }}</span></h2>
+          <h2 class="db-group">{{ 'database.groupTables' | translate }} <span class="muted">{{ l.tables.length }}</span></h2>
           <ul class="db-items">
             @for (key of l.tables; track key) {
               <li><button type="button" class="db-item code" [class.is-active]="selectedTable() === key" [attr.aria-pressed]="selectedTable() === key"
                 [attr.data-item]="itemId(DbItemKind.Table, key)" (click)="choose({ kind: DbItemKind.Table, key })">{{ key }}@if (badges().get(key); as b) { <span class="db-alert">{{ b }}</span> }</button></li>
             } @empty {
-              <li class="muted db-none">Nenhuma tabela com esse nome ou campo.</li>
+              <li class="muted db-none">{{ 'database.noTable' | translate }}</li>
             }
           </ul>
           @if (schema()!.views.length > 0) {
-            <h2 class="db-group">Views <span class="muted">{{ l.views.length }}</span></h2>
+            <h2 class="db-group">{{ 'database.groupViews' | translate }} <span class="muted">{{ l.views.length }}</span></h2>
             <ul class="db-items">
               @for (key of l.views; track key) {
                 <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.View && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.View && selection()?.key === key"
                   [attr.data-item]="itemId(DbItemKind.View, key)" (click)="choose({ kind: DbItemKind.View, key })">{{ key }}</button></li>
               } @empty {
-                <li class="muted db-none">Nenhuma view com esse nome ou campo.</li>
+                <li class="muted db-none">{{ 'database.noView' | translate }}</li>
               }
             </ul>
           }
           @if (schema()!.procedures.length > 0) {
-            <h2 class="db-group">Procedures <span class="muted">{{ l.procedures.length }}</span></h2>
+            <h2 class="db-group">{{ 'database.groupProcedures' | translate }} <span class="muted">{{ l.procedures.length }}</span></h2>
             <ul class="db-items">
               @for (key of l.procedures; track key) {
                 <li><button type="button" class="db-item code" [class.is-active]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key" [attr.aria-pressed]="selection()?.kind === DbItemKind.Procedure && selection()?.key === key"
                   [attr.data-item]="itemId(DbItemKind.Procedure, key)" (click)="choose({ kind: DbItemKind.Procedure, key })">{{ key }}</button></li>
               } @empty {
-                <li class="muted db-none">Nenhuma procedure com esse nome.</li>
+                <li class="muted db-none">{{ 'database.noProcedure' | translate }}</li>
               }
             </ul>
           }
         }
         @if (schema()!.notes.length > 0) {
           <details class="db-notes">
-            <summary>O que não deu para ler ({{ schema()!.notes.length }})</summary>
+            <summary>{{ 'database.notes' | translate: { count: schema()!.notes.length } }}</summary>
             <ul>
               @for (n of schema()!.notes; track $index) {
                 <li>{{ n.message }}@if (n.file) { <code>{{ n.file }}:{{ n.line }}</code> }</li>
@@ -155,31 +155,31 @@
         }
       </aside>
 
-      <section class="db-map" aria-label="Mapa relacional">
-        <div class="db-map-bar" role="group" aria-label="Recorte do mapa">
-          <label for="db-hops">Mostrar</label>
+      <section class="db-map" [attr.aria-label]="'database.mapAria' | translate">
+        <div class="db-map-bar" role="group" [attr.aria-label]="'database.cutAria' | translate">
+          <label for="db-hops">{{ 'database.show' | translate }}</label>
           <select id="db-hops" class="input is-small" [value]="hops()" (change)="setHops($any($event.target).value)" [disabled]="!selectedTable()"
-            [title]="selectedTable() ? 'Recorta o mapa na tabela escolhida' : 'Escolha uma tabela para recortar o mapa nela'" [attr.aria-describedby]="selectedTable() ? null : 'db-hops-help'">
-            <option value="0" [selected]="hops() === 0">o banco inteiro</option>
+            [title]="(selectedTable() ? 'database.hopsTitleOn' : 'database.hopsHelp') | translate" [attr.aria-describedby]="selectedTable() ? null : 'db-hops-help'">
+            <option value="0" [selected]="hops() === 0">{{ 'database.hopsWhole' | translate }}</option>
             @for (n of hopChoices; track n) {
-              <option [value]="n" [selected]="hops() === n">{{ selectedTable() ?? 'a tabela' }} e vizinhas até {{ n === 1 ? '1 salto' : n + ' saltos' }}</option>
+              <option [value]="n" [selected]="hops() === n">{{ 'database.hopsOption' | translate: { table: selectedTable() ?? ('database.theTable' | translate), count: n } }}</option>
             }
           </select>
           @if (!selectedTable()) {
-            <span id="db-hops-help" class="muted db-hops-help">Escolha uma tabela para recortar o mapa nela.</span>
+            <span id="db-hops-help" class="muted db-hops-help">{{ 'database.hopsHelp' | translate }}</span>
           }
           @if (hiddenCount() > 0) {
-            <span class="muted">{{ hiddenCount() === 1 ? '1 tabela fora do recorte' : hiddenCount() + ' tabelas fora do recorte' }}</span>
-            <button type="button" class="btn btn-g btn-small" (click)="showAll()">Mostrar tudo</button>
+            <span class="muted">{{ 'database.hiddenCount' | translate: { count: hiddenCount() } }}</span>
+            <button type="button" class="btn btn-g btn-small" (click)="showAll()">{{ 'database.showAll' | translate }}</button>
           }
-          <span class="db-zoom-tools" role="group" aria-label="Zoom do mapa">
-            <button type="button" class="btn btn-icon" (click)="zoomBy(-1)" [disabled]="zoom() <= zoomMin" aria-label="Diminuir o mapa" title="Diminuir">−</button>
-            <button type="button" class="btn btn-g btn-small" (click)="zoom.set(1)" [disabled]="zoom() === 1" aria-label="Voltar o mapa a 100%" title="Voltar ao tamanho normal">{{ zoomPercent() }}</button>
-            <button type="button" class="btn btn-g btn-small" (click)="fitZoom()" title="Ajusta o mapa à largura da área">Ajustar</button>
-            <span class="visually-hidden" role="status" aria-live="polite">Zoom do mapa em {{ zoomPercent() }}</span>
-            <button type="button" class="btn btn-icon" (click)="zoomBy(1)" [disabled]="zoom() >= zoomMax" aria-label="Aumentar o mapa" title="Aumentar">+</button>
+          <span class="db-zoom-tools" role="group" [attr.aria-label]="'database.zoomAria' | translate">
+            <button type="button" class="btn btn-icon" (click)="zoomBy(-1)" [disabled]="zoom() <= zoomMin" [attr.aria-label]="'database.zoomOutAria' | translate" [title]="'database.zoomOutTitle' | translate">−</button>
+            <button type="button" class="btn btn-g btn-small" (click)="zoom.set(1)" [disabled]="zoom() === 1" [attr.aria-label]="'database.zoomResetAria' | translate" [title]="'database.zoomResetTitle' | translate">{{ zoomPercent() }}</button>
+            <button type="button" class="btn btn-g btn-small" (click)="fitZoom()" [title]="'database.fitTitle' | translate">{{ 'database.fit' | translate }}</button>
+            <span class="visually-hidden" role="status" aria-live="polite">{{ 'database.zoomStatus' | translate: { percent: zoomPercent() } }}</span>
+            <button type="button" class="btn btn-icon" (click)="zoomBy(1)" [disabled]="zoom() >= zoomMax" [attr.aria-label]="'database.zoomInAria' | translate" [title]="'database.zoomInTitle' | translate">+</button>
           </span>
-          <span class="muted db-legend">Setas pela chave estrangeira, com a cardinalidade. <span class="db-key is-pk">PK</span> <span class="db-key is-fk">FK</span> <span class="db-personal">pessoal</span> pelo nome da coluna.</span>
+          <span class="muted db-legend">{{ 'database.legendArrows' | translate }} <span class="db-key is-pk">PK</span> <span class="db-key is-fk">FK</span> <span class="db-personal">{{ 'database.personal' | translate }}</span> {{ 'database.legendByName' | translate }}</span>
         </div>
         @if (geometry(); as g) {
           <div class="db-scroll" #scroller>
@@ -196,7 +196,7 @@
                 }
               </svg>
               @for (l of g.links; track l.index) {
-                <span class="db-label" aria-hidden="true" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [title]="l.relation.from + '.' + l.relation.fk.columns.join(', ') + ' aponta para ' + l.relation.to">{{ l.text }}</span>
+                <span class="db-label" aria-hidden="true" [style.left.px]="l.labelX" [style.top.px]="l.labelY" [title]="'database.linkTitle' | translate: { from: l.relation.from, columns: l.relation.fk.columns.join(', '), to: l.relation.to }">{{ l.text }}</span>
               }
               @for (c of g.cards; track c.key) {
                 <button type="button" class="db-card" [attr.data-table]="c.key" [style.left.px]="c.x" [style.top.px]="c.y" [style.width.px]="card.width" [style.height.px]="c.height"
@@ -214,9 +214,9 @@
                       <span class="db-key" [class.is-pk]="r.isPrimaryKey" [class.is-fk]="r.mark === KeyMark.Fk">{{ r.markLabel || '·' }}</span>
                       <span class="db-row-name">{{ r.name }}</span>
                       @if (r.personal) {
-                        <span class="db-personal">pessoal</span>
+                        <span class="db-personal">{{ 'database.personal' | translate }}</span>
                       }
-                      <span class="db-row-type" [class.is-divergent]="r.divergent" [title]="r.divergent ? 'As fontes divergem: veja no painel' : r.fullType">{{ r.type }}</span>
+                      <span class="db-row-type" [class.is-divergent]="r.divergent" [title]="r.divergent ? ('database.divergentTitle' | translate) : r.fullType">{{ r.type }}</span>
                     </span>
                   }
                 </button>
@@ -224,8 +224,8 @@
                   <!-- Fora do cartão, que já é um botão: fica por cima da última linha dele. -->
                   <button type="button" class="db-more" [attr.data-more]="c.key" [style.left.px]="c.x" [style.top.px]="c.y + card.header + c.rows.length * card.row" [style.width.px]="card.width"
                     [class.is-dim]="(!!matching() && !matching()!.has(c.key)) || (!!lit() && !selectedTable() && !lit()!.has(c.key))"
-                    [attr.tabindex]="matching() && !matching()!.has(c.key) ? -1 : null" [attr.aria-expanded]="c.open" [attr.aria-label]="(c.open ? 'Mostrar só os primeiros campos de ' : 'Mostrar os ' + c.table.columns.length + ' campos de ') + c.key" (click)="toggleFields(c.key)">
-                    {{ c.open ? 'Mostrar menos' : '+' + c.more + ' campos, mostrar todos' }}
+                    [attr.tabindex]="matching() && !matching()!.has(c.key) ? -1 : null" [attr.aria-expanded]="c.open" [attr.aria-label]="c.open ? ('database.fieldsCollapseAria' | translate: { table: c.key }) : ('database.fieldsExpandAria' | translate: { count: c.table.columns.length, table: c.key })" (click)="toggleFields(c.key)">
+                    {{ c.open ? ('database.fieldsLess' | translate) : ('database.fieldsMore' | translate: { count: c.more }) }}
                   </button>
                 }
               }
@@ -233,12 +233,12 @@
             </div>
           </div>
         } @else {
-          <p class="muted db-empty">O esquema tem views ou procedures, mas nenhuma tabela para desenhar.</p>
+          <p class="muted db-empty">{{ 'database.emptyDraw' | translate }}</p>
         }
       </section>
 
       @if (selection(); as pick) {
-        <aside class="db-panel" [attr.aria-label]="'Painel de ' + pick.key">
+        <aside class="db-panel" [attr.aria-label]="'database.panelAria' | translate: { key: pick.key }">
           <app-db-panel [repository]="nome()" [schema]="schema()!" [relations]="relations()" [selection]="pick" [usage]="usage()" [usageError]="usageError()" (pick)="choose($event)" [fromAnalysis]="fromAnalysis()" (closed)="closePanel()" (backToAnalysis)="backToAnalysis()" />
         </aside>
       }
@@ -258,7 +258,7 @@
     <div class="toast is-fixed" [class.is-error]="!m.ok" [attr.role]="m.ok ? 'status' : 'alert'">
       <span>{{ m.text }}</span>
       @if (!m.ok) {
-        <button type="button" class="btn btn-g btn-small" (click)="message.set(null)">Fechar</button>
+        <button type="button" class="btn btn-g btn-small" (click)="message.set(null)">{{ 'common.close' | translate }}</button>
       }
     </div>
   }

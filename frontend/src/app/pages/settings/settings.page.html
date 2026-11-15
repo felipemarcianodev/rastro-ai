@@ -1,33 +1,33 @@
 <header class="page-bar">
-  <button type="button" class="page-back" (click)="back()" aria-label="Voltar" title="Voltar">←</button>
+  <button type="button" class="page-back" (click)="back()" [attr.aria-label]="'common.back' | translate" [title]="'common.back' | translate">←</button>
   <div class="page-bar-title">
-    <h1>Configurações</h1>
+    <h1>{{ 'settings.title' | translate }}</h1>
   </div>
 </header>
 <div class="page">
   <header class="head">
-    <p class="muted">O Rastro funciona sem IA. Com IA, ela completa os buracos do grafo e escreve as regras; tudo o que ela propõe passa pelo compilador antes de entrar.</p>
+    <p class="muted">{{ 'settings.intro' | translate }}</p>
   </header>
 
-  <nav class="toc" aria-label="Nesta página">
-    <a href="#editor" (click)="goTo($event, 'editor')">Repositórios</a>
-    <a href="#agente" (click)="goTo($event, 'agente')">Modo agente (MCP)</a>
-    <a href="#ia" (click)="goTo($event, 'ia')">IA (modo provedor)</a>
-    <a href="#aparencia" (click)="goTo($event, 'aparencia')">Aparência</a>
+  <nav class="toc" [attr.aria-label]="'settings.toc.label' | translate">
+    <a href="#editor" (click)="goTo($event, 'editor')">{{ 'settings.toc.repos' | translate }}</a>
+    <a href="#agente" (click)="goTo($event, 'agente')">{{ 'settings.toc.agent' | translate }}</a>
+    <a href="#ia" (click)="goTo($event, 'ia')">{{ 'settings.toc.ai' | translate }}</a>
+    <a href="#aparencia" (click)="goTo($event, 'aparencia')">{{ 'settings.appearance.title' | translate }}</a>
   </nav>
 
   <section id="editor" class="card" aria-labelledby="repos-title">
-    <h2 id="repos-title">Repositórios</h2>
-    <p>As pastas de código que o Rastro pode ler. A pasta cadastrada também serve ao botão "Abrir no VS Code", que vai direto ao arquivo e à linha.</p>
+    <h2 id="repos-title">{{ 'settings.repos.title' | translate }}</h2>
+    <p>{{ 'settings.repos.intro' | translate }}</p>
     @if (reposState() === 'loading') {
-      <p class="muted" aria-live="polite">Carregando os repositórios…</p>
+      <p class="muted" aria-live="polite">{{ 'settings.repos.loading' | translate }}</p>
     } @else if (reposState() === 'error') {
       <div class="notice is-error" role="alert">
-        <p>Não deu para listar os repositórios.</p>
-        <button type="button" class="btn btn-g btn-small" (click)="loadRepositories()">Tentar de novo</button>
+        <p>{{ 'settings.repos.loadError' | translate }}</p>
+        <button type="button" class="btn btn-g btn-small" (click)="loadRepositories()">{{ 'common.retry' | translate }}</button>
       </div>
     } @else if (repositories().length === 0) {
-      <p class="muted">Nenhum repositório cadastrado ainda. Use o formulário abaixo.</p>
+      <p class="muted">{{ 'settings.repos.empty' | translate }}</p>
     } @else {
       <ul class="repos">
         @for (repo of repositories(); track repo.name) {
@@ -36,44 +36,44 @@
               <strong>{{ repo.name }}</strong>
               <code class="repo-path">{{ repo.path }}</code>
               @if (!repo.hasGit) {
-                <span class="muted small">sem .git: o levantamento fica sem o commit</span>
+                <span class="muted small">{{ 'settings.repos.noGit' | translate }}</span>
               }
               @if (editingCommands()?.name === repo.name) {
                 <div class="commands-edit">
                   <div class="field">
-                    <label class="field-label" [for]="'build-' + repo.name">Build</label>
+                    <label class="field-label" [for]="'build-' + repo.name">{{ 'settings.repos.build' | translate }}</label>
                     <input [id]="'build-' + repo.name" class="input code" name="buildCommand" [(ngModel)]="buildDraft" placeholder="dotnet build"
                       autocomplete="off" spellcheck="false" [attr.aria-describedby]="'commands-help-' + repo.name" />
                   </div>
                   <div class="field">
-                    <label class="field-label" [for]="'test-' + repo.name">Testes</label>
+                    <label class="field-label" [for]="'test-' + repo.name">{{ 'settings.repos.tests' | translate }}</label>
                     <input [id]="'test-' + repo.name" class="input code" name="testCommand" [(ngModel)]="testDraft" placeholder="dotnet test"
                       autocomplete="off" spellcheck="false" [attr.aria-describedby]="'commands-help-' + repo.name" />
                   </div>
-                  <span [id]="'commands-help-' + repo.name" class="field-help">Roda na pasta do repositório. Escreva um comando só, sem encadear com <code>&amp;&amp;</code> nem usar <code>|</code> ou <code>&gt;</code>. Deixe vazio para não rodar.</span>
+                  <span [id]="'commands-help-' + repo.name" class="field-help">{{ 'settings.repos.commandsHelp' | translate }}</span>
                   @if (commandsError(); as error) {
                     <span class="field-error" role="alert">{{ error }}</span>
                   }
                   <div class="actions">
-                    <button type="button" class="btn btn-g btn-small" (click)="saveCommands(repo)" [disabled]="savingCommands()">{{ savingCommands() ? 'Salvando…' : 'Salvar comandos' }}</button>
-                    <button type="button" class="btn btn-g btn-small" (click)="cancelCommands(repo)" [disabled]="savingCommands()">Cancelar</button>
+                    <button type="button" class="btn btn-g btn-small" (click)="saveCommands(repo)" [disabled]="savingCommands()">{{ (savingCommands() ? 'common.saving' : 'settings.repos.saveCommands') | translate }}</button>
+                    <button type="button" class="btn btn-g btn-small" (click)="cancelCommands(repo)" [disabled]="savingCommands()">{{ 'common.cancel' | translate }}</button>
                   </div>
                 </div>
               } @else {
-                <span class="muted small">Build: @if (repo.buildCommand) { <code>{{ repo.buildCommand }}</code> } @else { sem comando }</span>
-                <span class="muted small">Testes: @if (repo.testCommand) { <code>{{ repo.testCommand }}</code> } @else { sem comando }</span>
+                <span class="muted small">{{ 'settings.repos.buildLine' | translate }} @if (repo.buildCommand) { <code>{{ repo.buildCommand }}</code> } @else { {{ 'settings.repos.noCommand' | translate }} }</span>
+                <span class="muted small">{{ 'settings.repos.testsLine' | translate }} @if (repo.testCommand) { <code>{{ repo.testCommand }}</code> } @else { {{ 'settings.repos.noCommand' | translate }} }</span>
                 @if (commandsSaved() === repo.name) {
-                  <span class="note-ok small" role="status">Comandos salvos</span>
+                  <span class="note-ok small" role="status">{{ 'settings.repos.commandsSaved' | translate }}</span>
                 }
               }
             </div>
             <div class="repo-actions">
               @if (editingCommands()?.name !== repo.name) {
-                <button type="button" class="btn btn-g btn-small" [id]="'edit-commands-' + repo.name" (click)="editCommands(repo)" [attr.aria-label]="'Editar build e testes de ' + repo.name">Editar build e testes</button>
+                <button type="button" class="btn btn-g btn-small" [id]="'edit-commands-' + repo.name" (click)="editCommands(repo)" [attr.aria-label]="'settings.repos.editCommandsAria' | translate: { name: repo.name }">{{ 'settings.repos.editCommands' | translate }}</button>
               }
-              <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repo.name, 'banco']" [attr.aria-label]="'Mapa do banco de ' + repo.name">Mapa do banco</a>
-              <a class="btn btn-g btn-small" routerLink="/" [queryParams]="newSurveyParams(repo)" [attr.aria-label]="'Novo levantamento em ' + repo.name">Novo levantamento</a>
-              <button type="button" class="btn btn-g btn-small" (click)="askRemove(repo)" [attr.aria-label]="'Remover ' + repo.name">Remover…</button>
+              <a class="btn btn-g btn-small" [routerLink]="['/repositorios', repo.name, 'banco']" [attr.aria-label]="'settings.repos.databaseMapAria' | translate: { name: repo.name }">{{ 'settings.repos.databaseMap' | translate }}</a>
+              <a class="btn btn-g btn-small" routerLink="/" [queryParams]="newSurveyParams(repo)" [attr.aria-label]="'settings.repos.newSurveyAria' | translate: { name: repo.name }">{{ 'settings.repos.newSurvey' | translate }}</a>
+              <button type="button" class="btn btn-g btn-small" (click)="askRemove(repo)" [attr.aria-label]="'settings.repos.removeAria' | translate: { name: repo.name }">{{ 'settings.repos.remove' | translate }}</button>
             </div>
           </li>
         }
@@ -85,86 +85,86 @@
     }
 
     <div class="repo-form">
-      <h3 id="add-repo-title">Adicionar repositório</h3>
-      <app-register-repository idPrefix="repo" label="Adicionar repositório" submitLabel="Adicionar repositório" (registered)="onRegistered($event)" />
+      <h3 id="add-repo-title">{{ 'settings.repos.addTitle' | translate }}</h3>
+      <app-register-repository idPrefix="repo" [label]="'settings.repos.addTitle' | translate" [submitLabel]="'settings.repos.addTitle' | translate" (registered)="onRegistered($event)" />
     </div>
   </section>
 
   @if (pendingRemoval()) {
-    <app-confirm-dialog [title]="'Remover o repositório ' + pendingRemoval()!.name + '?'" [text]="removalText()" [confirmLabel]="'Remover ' + pendingRemoval()!.name" [busy]="removing()"
+    <app-confirm-dialog [title]="'settings.repos.removeTitle' | translate: { name: pendingRemoval()!.name }" [text]="removalText()" [confirmLabel]="'settings.repos.removeConfirm' | translate: { name: pendingRemoval()!.name }" [busy]="removing()"
       (confirm)="confirmRemove()" (cancel)="cancelRemove()" />
   }
 
   @if (loadError(); as error) {
     <div class="notice is-error" role="alert">
       <p>{{ error }}</p>
-      <button type="button" class="btn btn-g btn-small" (click)="loadSettings()">Tentar de novo</button>
+      <button type="button" class="btn btn-g btn-small" (click)="loadSettings()">{{ 'common.retry' | translate }}</button>
     </div>
   } @else if (!loaded()) {
-    <p class="muted" aria-live="polite">Carregando a configuração…</p>
+    <p class="muted" aria-live="polite">{{ 'settings.loadingConfig' | translate }}</p>
   } @else {
     <section id="agente" class="card" aria-labelledby="agent-title">
-      <h2 id="agent-title">Modo agente (MCP)</h2>
-      <p>Um agente de código, como o Claude Code, usa o Rastro pelas ferramentas MCP e faz o papel da IA, com a assinatura dele. Não precisa de chave aqui.</p>
+      <h2 id="agent-title">{{ 'settings.agent.title' | translate }}</h2>
+      <p>{{ 'settings.agent.intro' | translate }}</p>
       <div class="command">
         <code>{{ mcpCommand }}</code>
-        <button type="button" class="btn btn-g btn-small" (click)="copyCommand()" aria-label="Copiar o comando do MCP">{{ commandCopy.label('Copiar') }}</button>
+        <button type="button" class="btn btn-g btn-small" (click)="copyCommand()" [attr.aria-label]="'settings.agent.copyAria' | translate">{{ commandCopy.label('common.copy' | translate) }}</button>
         <span class="visually-hidden" role="status">{{ commandCopy.status() === 'idle' ? '' : commandCopy.label('') }}</span>
       </div>
-      <p class="muted small">O agente usa os mesmos levantamentos e repositórios desta tela (veja a seção Repositórios). Tudo o que ele propõe aparece como inferido e espera você confirmar no fluxo.</p>
+      <p class="muted small">{{ 'settings.agent.hint' | translate }}</p>
     </section>
 
     <form id="ia" class="card" (ngSubmit)="save()" novalidate aria-labelledby="provider-title">
       <div class="card-head">
-        <h2 id="provider-title" tabindex="-1">IA (modo provedor)</h2>
+        <h2 id="provider-title" tabindex="-1">{{ 'settings.ai.title' | translate }}</h2>
         <label class="switch">
           <input type="checkbox" name="enabled" [(ngModel)]="enabled" />
-          <span>{{ enabled ? 'IA ligada' : 'IA desligada' }}</span>
+          <span>{{ (enabled ? 'settings.ai.on' : 'settings.ai.off') | translate }}</span>
         </label>
         @if (dirty()) {
-          <span class="note-pending" role="status">Alteração pendente, falta salvar</span>
+          <span class="note-pending" role="status">{{ 'settings.ai.pending' | translate }}</span>
         }
       </div>
-      <p>O próprio Rastro chama a IA com a sua chave de API. As chaves ficam cifradas no armazenamento local do Rastro e nunca voltam para a tela.</p>
+      <p>{{ 'settings.ai.intro' | translate }}</p>
 
       @if (!enabled) {
         <div class="ai-off-note">
-          <p class="muted">Ligue a IA para escolher o provedor, a chave e os usos. O que já estava configurado continua guardado. Ligada, ela faz:</p>
+          <p class="muted">{{ 'settings.ai.offIntro' | translate }}</p>
           <ul class="muted">
-            <li>completar os buracos do grafo, propondo o destino de chamadas que o compilador não resolveu;</li>
-            <li>escrever as regras de cada passo em português;</li>
-            <li>sugerir melhorias e consultas;</li>
-            <li>responder perguntas sobre o fluxo.</li>
+            <li>{{ 'settings.ai.offFillHoles' | translate }}</li>
+            <li>{{ 'settings.ai.offRules' | translate }}</li>
+            <li>{{ 'settings.ai.offSuggestions' | translate }}</li>
+            <li>{{ 'settings.ai.offQuestions' | translate }}</li>
           </ul>
-          <p class="muted">Tudo o que ela propõe passa pelo compilador e só entra depois que você confirma.</p>
+          <p class="muted">{{ 'settings.ai.offOutro' | translate }}</p>
         </div>
       }
       @if (enabled) {
       <fieldset class="providers">
-        <legend class="field-label">Provedor ativo</legend>
+        <legend class="field-label">{{ 'settings.ai.activeProvider' | translate }}</legend>
         @for (p of providers; track p) {
           <div class="provider" [class.is-active]="provider === p">
             <label class="provider-choice">
               <input type="radio" name="provider" [value]="p" [(ngModel)]="provider" />
               <span>{{ providerLabel[p] }}</span>
               @if (forms[p].hasKey && !forms[p].removeKey) {
-                <span class="key-state">chave salva</span>
+                <span class="key-state">{{ 'settings.ai.keySaved' | translate }}</span>
               }
             </label>
             @if (provider === p) {
             <div class="provider-fields">
               <div class="field">
-                <label class="field-label" [for]="'model-' + slug(p)">Modelo</label>
+                <label class="field-label" [for]="'model-' + slug(p)">{{ 'settings.ai.model' | translate }}</label>
                 <input class="input code" [id]="'model-' + slug(p)" [name]="'model-' + slug(p)" [(ngModel)]="forms[p].model" autocomplete="off" spellcheck="false" />
               </div>
               <div class="field">
-                <label class="field-label" [for]="'key-' + slug(p)">{{ forms[p].hasKey ? 'Trocar a chave' : 'Chave de API' }}</label>
+                <label class="field-label" [for]="'key-' + slug(p)">{{ (forms[p].hasKey ? 'settings.ai.changeKey' : 'settings.ai.apiKey') | translate }}</label>
                 <input class="input code" type="password" [id]="'key-' + slug(p)" [name]="'key-' + slug(p)" [(ngModel)]="forms[p].key"
-                  [placeholder]="forms[p].hasKey ? 'Deixe vazio para manter a atual' : 'Cole a chave'" autocomplete="off" [disabled]="forms[p].removeKey" />
+                  [placeholder]="(forms[p].hasKey ? 'settings.ai.keepKeyPlaceholder' : 'settings.ai.pasteKeyPlaceholder') | translate" autocomplete="off" [disabled]="forms[p].removeKey" />
                 @if (forms[p].hasKey) {
                   <label class="check small">
                     <input type="checkbox" [name]="'remove-' + slug(p)" [(ngModel)]="forms[p].removeKey" />
-                    Excluir a chave salva
+                    {{ 'settings.ai.deleteKey' | translate }}
                   </label>
                 }
               </div>
@@ -175,31 +175,31 @@
       </fieldset>
 
       <fieldset class="uses">
-        <legend class="field-label">Usos da IA</legend>
+        <legend class="field-label">{{ 'settings.ai.uses' | translate }}</legend>
         <label class="check"><input type="checkbox" name="useFillHoles" [(ngModel)]="useFillHoles" />
-          <span><strong>Completar buracos</strong><span class="muted"> Propor o destino de chamadas que o compilador não resolveu.</span></span></label>
+          <span><strong>{{ 'settings.ai.useFillHoles' | translate }}</strong><span class="muted"> {{ 'settings.ai.useFillHolesHint' | translate }}</span></span></label>
         <label class="check"><input type="checkbox" name="useDescribeRules" [(ngModel)]="useDescribeRules" />
-          <span><strong>Escrever regras</strong><span class="muted"> Descrever em português o que cada passo faz.</span></span></label>
+          <span><strong>{{ 'settings.ai.useDescribeRules' | translate }}</strong><span class="muted"> {{ 'settings.ai.useDescribeRulesHint' | translate }}</span></span></label>
         <label class="check"><input type="checkbox" name="useSuggestions" [(ngModel)]="useSuggestions" />
-          <span><strong>Sugestões de melhoria</strong><span class="muted"> Refatoração, complexidade, regras de domínio puladas.</span></span></label>
+          <span><strong>{{ 'settings.ai.useSuggestions' | translate }}</strong><span class="muted"> {{ 'settings.ai.useSuggestionsHint' | translate }}</span></span></label>
         <label class="check"><input type="checkbox" name="useContextSuggestions" [(ngModel)]="useContextSuggestions" />
-          <span><strong>Contexto do C4</strong><span class="muted"> Sugerir pessoas e sistemas externos no diagrama de contexto.</span></span></label>
+          <span><strong>{{ 'settings.ai.useContext' | translate }}</strong><span class="muted"> {{ 'settings.ai.useContextHint' | translate }}</span></span></label>
       </fieldset>
 
       <div class="field budget">
-        <label class="field-label" for="budget">Orçamento diário de tokens</label>
+        <label class="field-label" for="budget">{{ 'settings.ai.budget' | translate }}</label>
         <input id="budget" class="input" type="number" min="0" step="1000" name="budget" [(ngModel)]="budget" aria-describedby="budget-help" />
-        <span id="budget-help" class="field-help">Entrada mais saída de tokens por dia. O contador zera à meia-noite UTC (21h em Brasília). 0 = sem limite. {{ usageText() }}</span>
+        <span id="budget-help" class="field-help">{{ 'settings.ai.budgetHelp' | translate }} {{ usageText() }}</span>
       </div>
       }
 
       <div class="actions">
-        <button class="btn btn-p" type="submit" [disabled]="saving()">{{ saving() ? 'Salvando…' : 'Salvar configuração' }}</button>
+        <button class="btn btn-p" type="submit" [disabled]="saving()">{{ (saving() ? 'common.saving' : 'settings.ai.save') | translate }}</button>
         @if (saveMessage(); as message) {
           <span [class]="message.ok ? 'note-ok' : 'field-error'" role="status">{{ message.text }}</span>
         }
       </div>
-      <p class="muted small">Última alteração: {{ shortDate(loaded()!.updatedAt) }}</p>
+      <p class="muted small">{{ 'settings.ai.lastChange' | translate: { date: shortDate(loaded()!.updatedAt) } }}</p>
     </form>
   }
 

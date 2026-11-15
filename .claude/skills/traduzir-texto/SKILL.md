@@ -34,7 +34,7 @@ O arquivo neutro do `.resx` (`Messages.resx`) é o inglês, que é a reserva qua
 
 ## Conferir
 
-- Frontend: `npm run test:ci` roda o teste de paridade (mesmas chaves e mesmos marcadores nos três JSON).
+- Frontend: `npm run test:ci` roda o teste de paridade (mesmas chaves e mesmos marcadores nos três JSON), e `node frontend/scripts/verificar-texto-fixo.mjs` acusa texto escrito à mão no template.
 - Backend: `dotnet test` roda o teste de paridade dos `.resx`.
 - Documentação: `node scripts/verificar-traducoes.mjs` (os três README com as mesmas seções).
 - Termine dizendo, em uma linha, quantas chaves entraram ou mudaram e em quais arquivos.

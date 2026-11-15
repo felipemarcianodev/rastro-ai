@@ -85,4 +85,5 @@ A carga inicial avisa a partir de 550 kB (antes, 500 kB). Subiu na Fase 46 com a
 - Rótulo de enum: o `Record` guarda a chave (`PALETTE_LABEL_KEY`), nunca o texto.
 - Plural e variação vão em ICU no próprio texto. Nada de `count === 1 ? ... : ...` no código. No português, use `=1` (`{count, plural, =1 {# passo} other {# passos}}`): a categoria `one` do pt inclui o zero e daria "0 passo". No inglês e no espanhol, `one` e `other`.
 - Data e número: `currentLocale()` (`core/i18n/locale.ts`) no `toLocaleString` e no `Intl`, nunca `'pt-BR'` fixo.
+- Varredura: `node frontend/scripts/verificar-texto-fixo.mjs` (também no workflow de PR) falha se um template tiver texto visível escrito à mão. Exceção de propósito (sigla técnica, comando, exemplo de código) vai em `frontend/scripts/texto-fixo-permitido.txt`.
 - Testes: todo spec roda com o `pt-BR.json` de verdade (`i18n-test-setup.spec.ts`), então o texto em português que o teste confere continua valendo, e chave sem tradução aparece como a própria chave. O teste de paridade (`core/i18n/i18n.spec.ts`) confere chaves e marcadores nos três idiomas.

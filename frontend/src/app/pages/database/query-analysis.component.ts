@@ -1,8 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { TranslatePipe } from '@ngx-translate/core';
 import { Subscription } from 'rxjs';
-import { DbSchema, SQL_DIALECT_LABEL, SQL_READER_LABEL, SqlDialect, findTable, sameName, tableKey } from '../../core/database/db-schema';
+import { DbSchema, SQL_DIALECT_LABEL, SqlDialect, findTable, sameName, tableKey } from '../../core/database/db-schema';
 import {
   QUERY_FINDING_TITLE,
   QUERY_SEVERITY_LABEL,
@@ -17,6 +18,7 @@ import { QueryAiSuggestion } from '../../core/database/query-suggestion';
 import { AiUse, aiCan } from '../../core/models';
 import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { AiStatusService } from '../../core/ai-status.service';
+import { LanguageService } from '../../core/i18n/i18n';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { QueryPlanComponent } from './query-plan.component';
 import { QuerySuggestionComponent } from './query-suggestion.component';
@@ -25,6 +27,11 @@ import { QuerySuggestionComponent } from './query-suggestion.component';
 const AI_NOT_CONFIGURED_CODE = 'AI_NOT_CONFIGURED';
 const AI_BUDGET_EXCEEDED_CODE = 'AI_BUDGET_EXCEEDED';
 const SETTINGS_FIX_ERROR_CODES: ReadonlySet<string> = new Set([AI_NOT_CONFIGURED_CODE, AI_BUDGET_EXCEEDED_CODE]);
+
+const READER_LABEL_KEY: Record<SqlDialect, string> = {
+  [SqlDialect.SqlServer]: 'query.readerTsql',
+  [SqlDialect.PostgreSql]: 'query.readerPostgres',
+};
 
 interface Analyzed {
   sql: string;
@@ -36,13 +43,14 @@ interface Analyzed {
 // regras fixas. Sem IA e sem banco: a mesma consulta dá sempre o mesmo resultado.
 @Component({
   selector: 'app-query-analysis',
-  imports: [RouterLink, QueryPlanComponent, QuerySuggestionComponent, AiDisclosureComponent],
+  imports: [RouterLink, TranslatePipe, QueryPlanComponent, QuerySuggestionComponent, AiDisclosureComponent],
   templateUrl: './query-analysis.component.html',
   styleUrl: './query-analysis.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QueryAnalysisComponent {
   private readonly api = inject(RastroApi);
+  private readonly i18n = inject(LanguageService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly box = viewChild<ElementRef<HTMLTextAreaElement>>('box');
 
@@ -69,7 +77,7 @@ export class QueryAnalysisComponent {
   // O dialeto sai do repositório (Fase 42): o rótulo da caixa e a mensagem de erro de leitura.
   protected readonly dialect = computed(() => this.schema()?.dialect ?? SqlDialect.SqlServer);
   protected readonly dialectLabel = SQL_DIALECT_LABEL;
-  protected readonly readerLabel = SQL_READER_LABEL;
+  protected readonly readerLabel = (dialect: SqlDialect): string => this.i18n.t(READER_LABEL_KEY[dialect]);
   protected readonly title = QUERY_FINDING_TITLE;
   protected readonly severityLabel = QUERY_SEVERITY_LABEL;
   protected readonly severitySlug = QUERY_SEVERITY_SLUG;
@@ -84,8 +92,8 @@ export class QueryAnalysisComponent {
   protected readonly suggestion = signal<QueryAiSuggestion | null>(null);
   // Texto da região viva: a espera e a chegada da resposta (o erro tem o próprio role="alert").
   protected readonly suggestAnnouncement = computed(() => {
-    if (this.suggesting()) return 'Perguntando à IA…';
-    return this.suggestion() ? 'A sugestão da IA chegou.' : '';
+    if (this.suggesting()) return this.i18n.t('query.aiAsking');
+    return this.suggestion() ? this.i18n.t('query.aiArrived') : '';
   });
 
   // Chave ausente ou orçamento esgotado: repetir não adianta, o conserto está nas Configurações (UX-FIM-Q08).
@@ -102,12 +110,12 @@ export class QueryAnalysisComponent {
   });
 
   protected readonly analyzeHelp = computed(() =>
-    this.text().trim() ? 'Ctrl+Enter também analisa. A análise não consulta o banco.' : 'Escreva ou cole uma consulta, ou use o exemplo, para poder analisar. A análise não consulta o banco.',
+    this.i18n.t(this.text().trim() ? 'query.helpWithText' : 'query.helpEmpty'),
   );
 
   protected readonly countText = computed(() => {
-    const n = this.result()?.analysis.findings.length ?? 0;
-    return n === 0 ? 'Sem achados' : n === 1 ? '1 achado' : `${n} achados`;
+    const count = this.result()?.analysis.findings.length ?? 0;
+    return this.i18n.t('query.count', { count });
   });
 
   // "Veio do passo" só vale enquanto o texto é o que veio do passo: editado, a consulta é outra.

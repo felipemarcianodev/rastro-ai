@@ -1,3 +1,4 @@
+import { translatedRecord } from '../graph/translated';
 import { DbSchema, SqlDialect, tableKey } from './db-schema';
 
 // Análise de consulta pelo código (Fase 40a): regras fixas, sem IA e sem banco. O backend devolve
@@ -85,26 +86,31 @@ LIMIT ${EXAMPLE_LIMIT};`
 FROM ${source};`;
 }
 
-export const QUERY_FINDING_TITLE: Record<QueryFindingKind, string> = {
-  [QueryFindingKind.SelectStar]: 'SELECT *',
-  [QueryFindingKind.FunctionOnFilterColumn]: 'Função ou conversão na coluna do filtro',
-  [QueryFindingKind.LeadingWildcardLike]: 'Curinga no começo do LIKE ou ILIKE',
-  [QueryFindingKind.OrAcrossColumns]: 'OR entre colunas diferentes',
-  [QueryFindingKind.ColumnWithoutIndex]: 'Coluna sem índice no filtro ou na junção',
-  [QueryFindingKind.JoinWithoutCondition]: 'Junção sem condição',
-  [QueryFindingKind.DistinctOverJoin]: 'DISTINCT sobre junção',
-  [QueryFindingKind.CorrelatedSubquery]: 'Subconsulta correlacionada',
-  [QueryFindingKind.OrderByWithoutLimit]: 'ORDER BY sem limite',
-  [QueryFindingKind.NotInNullable]: 'NOT IN com coluna que aceita nulo',
-  [QueryFindingKind.WriteWithoutWhere]: 'UPDATE ou DELETE sem WHERE',
-  [QueryFindingKind.ReadWithoutLimit]: 'Leitura sem limite, filtrada só por igualdade',
+export const QUERY_FINDING_TITLE_KEY: Record<QueryFindingKind, string> = {
+  [QueryFindingKind.SelectStar]: 'enum.queryFindingKind.selectStar',
+  [QueryFindingKind.FunctionOnFilterColumn]: 'enum.queryFindingKind.functionOnFilterColumn',
+  [QueryFindingKind.LeadingWildcardLike]: 'enum.queryFindingKind.leadingWildcardLike',
+  [QueryFindingKind.OrAcrossColumns]: 'enum.queryFindingKind.orAcrossColumns',
+  [QueryFindingKind.ColumnWithoutIndex]: 'enum.queryFindingKind.columnWithoutIndex',
+  [QueryFindingKind.JoinWithoutCondition]: 'enum.queryFindingKind.joinWithoutCondition',
+  [QueryFindingKind.DistinctOverJoin]: 'enum.queryFindingKind.distinctOverJoin',
+  [QueryFindingKind.CorrelatedSubquery]: 'enum.queryFindingKind.correlatedSubquery',
+  [QueryFindingKind.OrderByWithoutLimit]: 'enum.queryFindingKind.orderByWithoutLimit',
+  [QueryFindingKind.NotInNullable]: 'enum.queryFindingKind.notInNullable',
+  [QueryFindingKind.WriteWithoutWhere]: 'enum.queryFindingKind.writeWithoutWhere',
+  [QueryFindingKind.ReadWithoutLimit]: 'enum.queryFindingKind.readWithoutLimit',
 };
 
-export const QUERY_SEVERITY_LABEL: Record<QuerySeverity, string> = {
-  [QuerySeverity.High]: 'Alta',
-  [QuerySeverity.Medium]: 'Média',
-  [QuerySeverity.Low]: 'Baixa',
+// Traduz na hora da leitura (idioma ativo).
+export const QUERY_FINDING_TITLE: Record<QueryFindingKind, string> = translatedRecord(QUERY_FINDING_TITLE_KEY);
+
+export const QUERY_SEVERITY_LABEL_KEY: Record<QuerySeverity, string> = {
+  [QuerySeverity.High]: 'enum.querySeverity.high',
+  [QuerySeverity.Medium]: 'enum.querySeverity.medium',
+  [QuerySeverity.Low]: 'enum.querySeverity.low',
 };
+
+export const QUERY_SEVERITY_LABEL: Record<QuerySeverity, string> = translatedRecord(QUERY_SEVERITY_LABEL_KEY);
 
 export const QUERY_SEVERITY_SLUG: Record<QuerySeverity, string> = {
   [QuerySeverity.High]: 'high',

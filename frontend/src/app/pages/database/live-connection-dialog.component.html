@@ -2,78 +2,78 @@
   <section class="dialog is-narrow" role="dialog" aria-modal="true" aria-labelledby="live-title" (click)="$event.stopPropagation()">
     <header class="dialog-head">
       <div>
-        <h2 id="live-title">Banco vivo</h2>
-        <p class="muted">Conexão só de leitura com o banco de {{ repository() }}.</p>
+        <h2 id="live-title">{{ 'liveDb.title' | translate }}</h2>
+        <p class="muted">{{ 'liveDb.subtitle' | translate: { repository: repository() } }}</p>
       </div>
-      <button type="button" class="btn btn-icon" data-dialog-close (click)="closed.emit()" aria-label="Fechar">×</button>
+      <button type="button" class="btn btn-icon" data-dialog-close (click)="closed.emit()" [attr.aria-label]="'common.close' | translate">×</button>
     </header>
 
     <div class="dialog-body live-body">
       @if (connection(); as c) {
         @if (c.configured) {
-          <p class="live-current">Conexão salva ({{ dialectLabel[c.dialect] }}): <strong class="code">{{ c.server }}</strong>, banco <strong class="code">{{ c.database }}</strong>.</p>
+          <p class="live-current">{{ 'liveDb.savedLead' | translate: { dialect: dialectLabel[c.dialect] } }} <strong class="code">{{ c.server }}</strong>{{ 'liveDb.savedDatabase' | translate }} <strong class="code">{{ c.database }}</strong>.</p>
         } @else {
-          <p class="muted">Nenhuma conexão salva. Sem ela, o Rastro lê só o código.</p>
+          <p class="muted">{{ 'liveDb.noConnection' | translate }}</p>
         }
       }
 
       <div class="field">
-        <label class="field-label" for="live-key">{{ connection()?.configured ? 'Trocar a string de conexão' : 'String de conexão' }}</label>
+        <label class="field-label" for="live-key">{{ (connection()?.configured ? 'liveDb.labelChange' : 'liveDb.label') | translate }}</label>
         <div class="field-row">
           <input id="live-key" class="input code" [type]="reveal() ? 'text' : 'password'" name="live-key" autocomplete="off" spellcheck="false"
             [value]="key()" (input)="key.set($any($event.target).value)" (keydown.enter)="save()"
-            [placeholder]="connection()?.configured ? 'Deixe vazio para manter a atual' : placeholder[dialect()]" />
-          <button type="button" class="btn btn-g" (click)="reveal.set(!reveal())" [attr.aria-pressed]="reveal()" aria-controls="live-key">Mostrar</button>
+            [placeholder]="connection()?.configured ? ('liveDb.keepPlaceholder' | translate) : placeholder[dialect()]" />
+          <button type="button" class="btn btn-g" (click)="reveal.set(!reveal())" [attr.aria-pressed]="reveal()" aria-controls="live-key">{{ 'liveDb.reveal' | translate }}</button>
         </div>
       </div>
 
       @if (connection()?.configured) {
-        <p id="live-test-help" class="muted live-test-help">{{ key().trim() ? 'O teste usa a conexão já salva. Salve a nova string para testá-la.' : 'O teste usa a conexão já salva, não o que está digitado.' }}</p>
+        <p id="live-test-help" class="muted live-test-help">{{ (key().trim() ? 'liveDb.testHelpTyped' : 'liveDb.testHelp') | translate }}</p>
       }
 
       @if (error(); as message) {
         <p class="notice is-error" role="alert">{{ message }}</p>
       }
       @if (saved()) {
-        <p class="notice" role="status">Conexão salva. O esquema foi lido de novo. Próximo passo: teste a conexão.</p>
+        <p class="notice" role="status">{{ 'liveDb.savedNotice' | translate }}</p>
       }
       @if (testResult(); as t) {
         <p class="notice" [class.is-error]="!t.ok" [attr.role]="t.ok ? 'status' : 'alert'">{{ t.message }}</p>
       }
       @if (confirmingRemove()) {
         <div class="notice is-warning" role="alertdialog" aria-labelledby="live-remove-title">
-          <p id="live-remove-title">Remover a conexão? O Rastro volta a ler só o código.</p>
+          <p id="live-remove-title">{{ 'liveDb.removeConfirm' | translate }}</p>
           <div class="live-confirm">
-            <button type="button" class="btn btn-danger btn-small" (click)="remove()" [disabled]="busy()">Remover</button>
-            <button type="button" class="btn btn-g btn-small" id="live-keep" (click)="keepConnection()">Manter</button>
+            <button type="button" class="btn btn-danger btn-small" (click)="remove()" [disabled]="busy()">{{ 'liveDb.remove' | translate }}</button>
+            <button type="button" class="btn btn-g btn-small" id="live-keep" (click)="keepConnection()">{{ 'liveDb.keep' | translate }}</button>
           </div>
         </div>
       }
 
       <section class="live-grants" aria-labelledby="live-grants-title">
-        <h3 id="live-grants-title">Permissões do usuário</h3>
-        <p>Use um usuário só de leitura, com a permissão mínima:</p>
+        <h3 id="live-grants-title">{{ 'liveDb.grantsTitle' | translate }}</h3>
+        <p>{{ 'liveDb.grantsLead' | translate }}</p>
         <ul class="live-commands">
           @for (command of commands(); track command) {
             <li><code>{{ command }}</code></li>
           }
         </ul>
         <div class="live-commands-copy">
-          <button type="button" class="btn btn-g btn-small" (click)="copyCommands()">{{ commandsCopy.label('Copiar') }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="copyCommands()">{{ commandsCopy.label('liveDb.copy' | translate) }}</button>
           <span class="visually-hidden" role="status" aria-live="polite">{{ commandsCopy.status() === 'idle' ? '' : commandsCopy.label('') }}</span>
         </div>
         @if (dialect() === SqlDialect.PostgreSql) {
           <ul>
-            <li>O CONNECT basta para o catálogo. O USAGE e o SELECT valem para o plano estimado, porque o PostgreSQL confere a permissão da instrução também no EXPLAIN. Se preferir, dê o SELECT só nas tabelas que você quer analisar.</li>
-            <li>O último deixa o usuário só de leitura também no banco.</li>
-            <li>O Rastro lê só o catálogo e pede o EXPLAIN sem ANALYZE, numa conexão só de leitura, sem executar a consulta.</li>
-            <li>Os dados das tabelas nunca são lidos. A string de conexão fica cifrada no armazenamento local do Rastro e nunca volta para a tela.</li>
+            <li>{{ 'liveDb.pg.connect' | translate }}</li>
+            <li>{{ 'liveDb.pg.readOnly' | translate }}</li>
+            <li>{{ 'liveDb.pg.reads' | translate }}</li>
+            <li>{{ 'liveDb.neverData' | translate }}</li>
           </ul>
         } @else {
           <ul>
-            <li>O VIEW DEFINITION basta para o catálogo. O SHOWPLAN e o SELECT valem para o plano estimado, porque o SQL Server só mostra o plano a quem pode rodar a instrução. Se preferir, dê o SELECT só nas tabelas que você quer analisar.</li>
-            <li>O Rastro lê só o catálogo (tabelas, colunas, chaves e índices) e pede o plano estimado, sem executar a consulta.</li>
-            <li>Os dados das tabelas nunca são lidos. A string de conexão fica cifrada no armazenamento local do Rastro e nunca volta para a tela.</li>
+            <li>{{ 'liveDb.sql.viewDefinition' | translate }}</li>
+            <li>{{ 'liveDb.sql.reads' | translate }}</li>
+            <li>{{ 'liveDb.neverData' | translate }}</li>
           </ul>
         }
       </section>
@@ -81,12 +81,12 @@
 
     <footer class="dialog-foot live-foot">
       @if (connection()?.configured && !confirmingRemove()) {
-        <button type="button" id="live-remove-ask" class="btn btn-g live-remove" (click)="askRemove()" [disabled]="busy()">Remover conexão</button>
+        <button type="button" id="live-remove-ask" class="btn btn-g live-remove" (click)="askRemove()" [disabled]="busy()">{{ 'liveDb.removeConnection' | translate }}</button>
         <button type="button" id="live-test" class="btn btn-g" (click)="test()" [disabled]="busy() || !!key().trim()" aria-describedby="live-test-help"
-          [title]="key().trim() ? 'Salve a nova string para testá-la' : 'Testa a conexão já salva'">{{ busy() ? 'Aguarde…' : 'Testar conexão' }}</button>
+          [title]="(key().trim() ? 'liveDb.testTitleTyped' : 'liveDb.testTitle') | translate">{{ (busy() ? 'liveDb.wait' : 'liveDb.test') | translate }}</button>
       }
-      <button type="button" class="btn btn-g" data-dialog-close (click)="closed.emit()">Fechar</button>
-      <button type="button" class="btn btn-p" (click)="save()" [disabled]="!key().trim() || busy() || confirmingRemove()">Salvar</button>
+      <button type="button" class="btn btn-g" data-dialog-close (click)="closed.emit()">{{ 'common.close' | translate }}</button>
+      <button type="button" class="btn btn-p" (click)="save()" [disabled]="!key().trim() || busy() || confirmingRemove()">{{ 'liveDb.save' | translate }}</button>
     </footer>
   </section>
 </div>

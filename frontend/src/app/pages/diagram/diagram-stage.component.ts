@@ -1,5 +1,7 @@
-import { ChangeDetectionStrategy, Component, ElementRef, effect, input, output, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, effect, inject, input, output, signal, viewChild } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { baseStepId, nodeIdFromSvg } from '../../core/graph/consolidated';
+import { LanguageService } from '../../core/i18n/i18n';
 
 // Escala do desenho: de 10% a 400%; os botões andam 20% por clique, como no grafo.
 const SCALE_MIN = 0.1;
@@ -34,6 +36,7 @@ interface View {
   selector: 'app-diagram-stage',
   templateUrl: './diagram-stage.component.html',
   styleUrl: './diagram-stage.component.scss',
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiagramStageComponent {
@@ -42,8 +45,12 @@ export class DiagramStageComponent {
   // Passo escolhido (id do Mermaid). Com "repeats", acende também as repetições (s1_r2).
   readonly selected = input<string | null>(null);
   readonly repeats = input(false);
-  readonly label = input('Desenho do fluxo');
+  // Vazio: vale o rótulo padrão do idioma ativo.
+  readonly label = input('');
   readonly pick = output<StagePick | null>();
+
+  private readonly i18n = inject(LanguageService);
+  protected readonly labelText = computed(() => this.label() || this.i18n.t('diagram.stage.label'));
 
   private readonly viewport = viewChild.required<ElementRef<HTMLElement>>('viewport');
   private readonly content = viewChild.required<ElementRef<HTMLElement>>('content');
@@ -85,7 +92,7 @@ export class DiagramStageComponent {
         node.classList.toggle('is-selected', hit);
         node.setAttribute('tabindex', '0');
         node.setAttribute('role', 'button');
-        node.setAttribute('aria-label', `Passo: ${(node.textContent ?? '').trim()}`);
+        node.setAttribute('aria-label', this.i18n.t('diagram.stage.stepAria', { name: (node.textContent ?? '').trim() }));
         node.setAttribute('aria-pressed', String(hit));
       }
     });

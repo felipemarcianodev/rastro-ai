@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import { AiStatusService } from './ai-status.service';
+import { LanguageService } from './i18n/i18n';
 import { AI_PROVIDER_LABEL } from './models';
 import { currentLocale } from './i18n/locale';
 
@@ -22,6 +23,7 @@ import { currentLocale } from './i18n/locale';
 })
 export class AiDisclosureComponent {
   protected readonly ai = inject(AiStatusService);
+  private readonly i18n = inject(LanguageService);
 
   // O que vai para o provedor, em uma oração sem ponto final (ex.: "a consulta e o esquema das tabelas citadas").
   readonly goes = input.required<string>();
@@ -34,7 +36,7 @@ export class AiDisclosureComponent {
   });
 
   protected readonly text = computed(() =>
-    [`Vai para ${this.provider()}: ${this.goes()}.`, this.never(), 'Cada pedido gasta tokens.', this.usage()].filter(Boolean).join(' '),
+    [this.i18n.t('aiDisclosure.goes', { provider: this.provider(), goes: this.goes() }), this.never(), this.i18n.t('aiDisclosure.cost'), this.usage()].filter(Boolean).join(' '),
   );
 
   private readonly usage = computed(() => {
@@ -42,7 +44,7 @@ export class AiDisclosureComponent {
     if (!status) return '';
     const used = status.tokensToday.toLocaleString(currentLocale());
     return status.dailyTokenBudget > 0
-      ? `Hoje: ${used} de ${status.dailyTokenBudget.toLocaleString(currentLocale())} tokens.`
-      : `Hoje: ${used} tokens (sem limite).`;
+      ? this.i18n.t('aiDisclosure.usageLimited', { used, budget: status.dailyTokenBudget.toLocaleString(currentLocale()) })
+      : this.i18n.t('aiDisclosure.usageUnlimited', { used });
   });
 }

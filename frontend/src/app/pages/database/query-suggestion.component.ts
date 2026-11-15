@@ -1,18 +1,23 @@
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { TranslatePipe } from '@ngx-translate/core';
 import { QUERY_FINDING_TITLE } from '../../core/database/query-analysis';
-import { QueryAiSuggestion, findingsText, formatCost } from '../../core/database/query-suggestion';
+import { QueryAiSuggestion, formatCost } from '../../core/database/query-suggestion';
 import { AI_PROVIDER_LABEL } from '../../core/models';
 import { CopyFeedback } from '../../core/copy-feedback';
+import { LanguageService } from '../../core/i18n/i18n';
 
 // Resultado da sugestão da IA para a consulta (Fase 41): a reescrita, as mudanças e os índices,
 // todos já conferidos pelo Rastro. A tela só mostra e copia: nada é aplicado.
 @Component({
   selector: 'app-query-suggestion',
+  imports: [TranslatePipe],
   templateUrl: './query-suggestion.component.html',
   styleUrl: './query-suggestion.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class QuerySuggestionComponent {
+  private readonly i18n = inject(LanguageService);
+
   readonly suggestion = input.required<QueryAiSuggestion>();
   // A consulta original, para o lado "Antes".
   readonly sql = input.required<string>();
@@ -28,7 +33,7 @@ export class QuerySuggestionComponent {
   protected readonly summary = computed(() => {
     const review = this.suggestion().review;
     const after = review.rewrite?.after;
-    return after ? `${findingsText(review.findingsBefore)} antes, ${findingsText(after.findings.length)} depois` : null;
+    return after ? this.i18n.t('querySuggestion.summary', { before: review.findingsBefore, after: after.findings.length }) : null;
   });
 
   protected readonly cost = computed(() => {
@@ -36,7 +41,7 @@ export class QuerySuggestionComponent {
     if (!plan) return null;
     const before = plan.costBefore;
     const after = plan.costAfter;
-    const text = before !== null && after !== null ? `Custo estimado pelo banco: ${formatCost(before)} antes, ${formatCost(after)} depois` : null;
+    const text = before !== null && after !== null ? this.i18n.t('querySuggestion.cost', { before: formatCost(before), after: formatCost(after) }) : null;
     return { text, problem: plan.problem };
   });
 
@@ -46,7 +51,8 @@ export class QuerySuggestionComponent {
   }
 
   protected indexLabel(index: number): string {
-    return this.copiedIndex === index ? this.indexCopy.label('Copiar') : 'Copiar';
+    const idle = this.i18n.t('common.copy');
+    return this.copiedIndex === index ? this.indexCopy.label(idle) : idle;
   }
 
   // Resposta sem reescrita, sem mudança e sem índice (UX-FIM-Q16).

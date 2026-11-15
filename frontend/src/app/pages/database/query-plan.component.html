@@ -1,10 +1,10 @@
 <section class="plan" aria-labelledby="plan-title">
-  <h2 id="plan-title" class="plan-title">Plano estimado pelo banco</h2>
+  <h2 id="plan-title" class="plan-title">{{ 'queryPlan.title' | translate }}</h2>
   <p class="muted plan-note">{{ note() }}</p>
 
   <!-- Região viva fixa (UX-G-B09): o anúncio da espera e da chegada do plano vale mesmo com o conteúdo aparecendo depois. -->
   <p class="visually-hidden" role="status" aria-live="polite">{{ announcement() }}</p>
-  <button type="button" class="btn btn-g btn-small" (click)="request()" [disabled]="busy()">{{ busy() ? 'Pedindo o plano…' : plan() ? 'Pedir o plano de novo' : 'Pedir o plano estimado' }}</button>
+  <button type="button" class="btn btn-g btn-small" (click)="request()" [disabled]="busy()">{{ (busy() ? 'queryPlan.requesting' : plan() ? 'queryPlan.requestAgain' : 'queryPlan.request') | translate }}</button>
 
   @if (error(); as message) {
     <p class="notice is-error" role="alert">{{ message }}</p>
@@ -13,7 +13,7 @@
   @if (plan(); as p) {
     <div>
       @if (p.operations.length === 0) {
-        <p class="muted">O banco não devolveu operações para esta consulta.</p>
+        <p class="muted">{{ 'queryPlan.empty' | translate }}</p>
       } @else {
         <ul class="plan-ops">
           @for (o of showAll() ? p.operations : main(); track $index) {
@@ -25,7 +25,7 @@
                     <code class="plan-object">{{ o.object }}</code>
                   }
                   @if (o.scan) {
-                    <span class="plan-scan">varredura</span>
+                    <span class="plan-scan">{{ 'queryPlan.scan' | translate }}</span>
                   }
                 </span>
                 <strong>{{ percentText(o) }}</strong>
@@ -35,7 +35,7 @@
           }
         </ul>
         @if (minor().length > 0 && !showAll()) {
-          <button type="button" class="btn btn-g btn-small" (click)="showAll.set(true)">{{ minor().length === 1 ? 'mais 1 operação abaixo de 1%' : 'mais ' + minor().length + ' operações abaixo de 1%' }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="showAll.set(true)">{{ 'queryPlan.moreOps' | translate: { count: minor().length } }}</button>
         }
       }
 
@@ -43,13 +43,13 @@
         <p class="plan-missing">
           {{ indexText(m) }}.
           @if (m.include.length > 0) {
-            <span class="muted">inclui: {{ m.include.join(', ') }}</span>
+            <span class="muted">{{ 'queryPlan.includes' | translate: { columns: m.include.join(', ') } }}</span>
           }
         </p>
       }
 
       @if (p.warnings.length > 0) {
-        <h3 id="plan-warnings-title" class="plan-warnings-title">Avisos do banco</h3>
+        <h3 id="plan-warnings-title" class="plan-warnings-title">{{ 'queryPlan.warnings' | translate }}</h3>
         <ul class="plan-warnings" aria-labelledby="plan-warnings-title">
           @for (w of p.warnings; track $index) {
             <li>{{ w }}</li>

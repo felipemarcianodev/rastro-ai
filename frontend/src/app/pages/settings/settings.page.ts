@@ -94,9 +94,7 @@ export class SettingsPage implements OnInit {
   protected readonly removing = signal(false);
   protected readonly removalText = computed(() => {
     const repo = this.pendingRemoval();
-    return repo
-      ? `O repositório "${repo.name}" sai desta lista e o Rastro perde os comandos de build e testes dele. Os levantamentos já feitos continuam guardados. A pasta no disco não é tocada.`
-      : '';
+    return repo ? this.languageService.t('settings.repos.removeText', { name: repo.name }) : '';
   });
 
   protected enabled = false;
@@ -122,8 +120,8 @@ export class SettingsPage implements OnInit {
     if (!status) return '';
     const used = status.tokensToday.toLocaleString(currentLocale());
     return status.dailyTokenBudget > 0
-      ? `Hoje: ${used} de ${status.dailyTokenBudget.toLocaleString(currentLocale())} tokens.`
-      : `Hoje: ${used} tokens (sem limite).`;
+      ? this.languageService.t('aiDisclosure.usageLimited', { used, budget: status.dailyTokenBudget.toLocaleString(currentLocale()) })
+      : this.languageService.t('aiDisclosure.usageUnlimited', { used });
   });
 
   // UX-G-L07: alteração pendente em qualquer campo da IA (não só ligar e desligar).
@@ -176,7 +174,7 @@ export class SettingsPage implements OnInit {
 
   protected save(): void {
     if (!Number.isInteger(Number(this.budget)) || Number(this.budget) < 0) {
-      this.saveMessage.set({ ok: false, text: 'O orçamento diário precisa ser um número inteiro a partir de 0.' });
+      this.saveMessage.set({ ok: false, text: this.languageService.t('settings.ai.budgetInvalid') });
       return;
     }
     const keyOf = (form: ProviderForm): string | null => (form.removeKey ? '' : form.key.trim() || null);
@@ -202,7 +200,7 @@ export class SettingsPage implements OnInit {
       next: (view) => {
         this.fill(view);
         this.saving.set(false);
-        this.saveMessage.set({ ok: true, text: 'Configuração salva.' });
+        this.saveMessage.set({ ok: true, text: this.languageService.t('settings.ai.saved') });
         this.ai.refresh();
       },
       error: (error) => {
@@ -293,7 +291,7 @@ export class SettingsPage implements OnInit {
         this.removing.set(false);
         this.pendingRemoval.set(null);
         this.applyList(this.repositories().filter((r) => r.name !== repo.name));
-        this.repoMessage.set({ ok: true, text: `Repositório "${repo.name}" removido. Os levantamentos continuam guardados.` });
+        this.repoMessage.set({ ok: true, text: this.languageService.t('settings.repos.removed', { name: repo.name }) });
         this.focusField('repo-name');
       },
       error: (error) => {
