@@ -1,8 +1,17 @@
+using System.Globalization;
 using Microsoft.CodeAnalysis;
+using Rastro.Core.Failures;
 
 namespace Rastro.Extractor;
 
-public class FlowEntryNotFoundException(string message) : Exception(message);
+// O ponto de entrada não existe ou não é único. Failure e Args dizem o motivo em código (a tela traduz);
+// a mensagem em português é a de FailureText, para o log.
+public class FlowEntryNotFoundException(SurveyFailure failure, IReadOnlyList<string> args)
+    : Exception(FailureText.Of(failure, args))
+{
+    public SurveyFailure Failure { get; } = failure;
+    public IReadOnlyList<string> Args { get; } = args;
+}
 
 // Acha o método de entrada a partir de "Tipo.Metodo" ou "Namespace.Tipo.Metodo".
 internal static class EntryPointResolver
@@ -14,7 +23,7 @@ internal static class EntryPointResolver
     {
         var lastDot = entryPoint.LastIndexOf('.');
         if (lastDot <= 0 || lastDot == entryPoint.Length - 1)
-            throw new FlowEntryNotFoundException($"Ponto de entrada inválido: \"{entryPoint}\". Use Tipo.Metodo ou Namespace.Tipo.Metodo.");
+            throw new FlowEntryNotFoundException(SurveyFailure.EntryInvalid, [entryPoint]);
 
         var typeName = entryPoint[..lastDot];
         var methodName = entryPoint[(lastDot + 1)..];
@@ -42,12 +51,11 @@ internal static class EntryPointResolver
         }
 
         if (found.Count == 0)
-            throw new FlowEntryNotFoundException(NotFoundMessage(entryPoint, methodName, sameName));
+            throw NotFound(entryPoint, methodName, sameName);
 
         var types = found.Values.Select(m => m.ContainingType.ToDisplayString()).Distinct().ToList();
         if (types.Count > 1)
-            throw new FlowEntryNotFoundException(
-                $"\"{entryPoint}\" é ambíguo. Use o nome completo: {string.Join(", ", types.Select(t => $"{t}.{methodName}"))}.");
+            throw new FlowEntryNotFoundException(SurveyFailure.EntryAmbiguous, [entryPoint, string.Join(", ", types.Select(t => $"{t}.{methodName}"))]);
 
         // Sobrecargas no mesmo tipo: a primeira declarada.
         return found.Values
@@ -57,14 +65,15 @@ internal static class EntryPointResolver
     }
 
     // Ex.: o usuário esqueceu a classe ("Namespace.Metodo") e o método existe em "Namespace.Classe.Metodo".
-    private static string NotFoundMessage(string entryPoint, string methodName, SortedSet<string> sameName)
+    private static FlowEntryNotFoundException NotFound(string entryPoint, string methodName, SortedSet<string> sameName)
     {
         if (sameName.Count == 0)
-            return $"Método \"{entryPoint}\" não encontrado na solution: nenhum método chamado {methodName}, com corpo, existe nela.";
+            return new(SurveyFailure.EntryNotFound, [entryPoint, methodName]);
 
         var shown = string.Join(", ", sameName.Take(MaxSuggestions));
-        var more = sameName.Count > MaxSuggestions ? $" e mais {sameName.Count - MaxSuggestions}" : "";
-        return $"Método \"{entryPoint}\" não encontrado na solution. Com o nome {methodName} existe: {shown}{more}. Use Tipo.Metodo ou Namespace.Tipo.Metodo.";
+        return sameName.Count > MaxSuggestions
+            ? new(SurveyFailure.EntryNotFoundSuggestMore, [entryPoint, methodName, shown, (sameName.Count - MaxSuggestions).ToString(CultureInfo.InvariantCulture)])
+            : new(SurveyFailure.EntryNotFoundSuggest, [entryPoint, methodName, shown]);
     }
 
     internal static bool HasBody(IMethodSymbol method) =>

@@ -1,3 +1,4 @@
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 
 namespace Rastro.Core.Surveys;
@@ -43,6 +44,10 @@ public class SurveyProposal
     public string Text { get; private set; } = string.Empty;
     public ProposalStatus Status { get; private set; }
     public string? RejectionReason { get; private set; }
+
+    // O motivo da recusa como código e parâmetros; RejectionReason guarda o texto em português.
+    public ProposalRefusal? Refusal { get; private set; }
+    public string? RefusalArgsJson { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? DecidedAt { get; private set; }
 
@@ -77,7 +82,12 @@ public class SurveyProposal
 
     public void Accept(string targetNodeId) => (Status, TargetNodeId) = (ProposalStatus.Accepted, targetNodeId);
 
-    public void Reject(string reason) => (Status, RejectionReason) = (ProposalStatus.Rejected, reason);
+    public void Reject(string reason, ProposalRefusal? refusal = null, IReadOnlyList<string>? args = null)
+    {
+        (Status, RejectionReason) = (ProposalStatus.Rejected, reason);
+        Refusal = refusal;
+        RefusalArgsJson = refusal is null ? null : FailureText.SerializeArgs(args);
+    }
 
     public void Decide(bool confirm, DateTimeOffset now) =>
         (Status, DecidedAt) = (confirm ? ProposalStatus.Confirmed : ProposalStatus.Dismissed, now);

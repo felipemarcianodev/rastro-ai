@@ -124,7 +124,7 @@
                     <span [class.has-holes]="survey.unresolvedCount > 0">{{ 'survey.unresolvedCount' | translate: { count: survey.unresolvedCount } }}</span>
                   </span>
                 } @else if (survey.status === SurveyStatus.Failed) {
-                  <span class="row-counts row-error" [title]="survey.error">{{ survey.error }}</span>
+                  <span class="row-counts row-error" [title]="failureText(survey.failure, survey.failureArgs, survey.error)">{{ failureText(survey.failure, survey.failureArgs, survey.error) }}</span>
                 }
                 <time class="muted" [attr.datetime]="survey.createdAt">{{ shortDate(survey.createdAt) }}</time>
               </span>

@@ -1,13 +1,17 @@
 using System.Reflection;
 using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Connections;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.Build.Locator;
 using Microsoft.EntityFrameworkCore;
 using Rastro.Ai;
 using Rastro.Api.Analysis;
+using Rastro.Api;
 using Rastro.Api.Cli;
 using Rastro.Api.Desktop;
 using Rastro.Core;
+using Rastro.Core.Localization;
 using Rastro.Infrastructure;
 using Rastro.Infrastructure.Database.Live;
 using Rastro.Infrastructure.Storage;
@@ -77,6 +81,18 @@ if (app.Configuration.GetValue("Rastro:MigrateOnStartup", true))
     RastroDatabase.UseWriteAheadLogAsync(db).GetAwaiter().GetResult();
     app.Services.MigrateRastroAiAsync().GetAwaiter().GetResult();
 }
+
+// Idioma de cada requisição (ADR-009): Accept-Language, config.json, sistema e, por reserva, en-US.
+var supportedCultures = UiLanguageRequestCultureProvider.Supported.Select(l => l.Culture()).ToList();
+var localization = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new RequestCulture(UiLanguage.English.Culture()),
+    SupportedCultures = supportedCultures,
+    SupportedUICultures = supportedCultures
+};
+localization.RequestCultureProviders.Clear();
+localization.RequestCultureProviders.Add(new UiLanguageRequestCultureProvider());
+app.UseRequestLocalization(localization);
 
 // Host filtering (AllowedHosts) já entra sozinho no WebApplication; o Origin é verificado aqui (ADR-003).
 app.UseMiddleware<Rastro.Api.OriginGuardMiddleware>();

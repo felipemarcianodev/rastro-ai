@@ -231,6 +231,9 @@
         </label>
       }
     </fieldset>
+    @if (languageService.saveFailed()) {
+      <p class="muted small" role="status">{{ 'settings.appearance.languageNotSaved' | translate }}</p>
+    }
     <span class="visually-hidden" role="status">{{ paletteNotice() }}</span>
   </section>
 </div>

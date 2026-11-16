@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Rastro.Core.Localization;
 
 namespace Rastro.Infrastructure.Repositories;
 
@@ -112,6 +113,30 @@ public sealed partial class RepositoryConfigFile(string configPath)
             return Repositories(Load()).OfType<JsonObject>()
                 .Select(e => ((string?)e["Name"] ?? string.Empty, (string?)e["Path"] ?? string.Empty))
                 .ToList();
+        }
+    }
+
+    // Idioma gravado (ADR-009): "Rastro:Language". Ausente ou desconhecido = nulo (segue o sistema).
+    public UiLanguage? GetLanguage()
+    {
+        lock (_gate)
+        {
+            return Load()["Rastro"] is JsonObject rastro && rastro["Language"] is JsonValue value && value.TryGetValue<string>(out var code)
+                ? UiLanguages.FromCode(code)
+                : null;
+        }
+    }
+
+    // Nulo apaga a chave (volta a seguir o sistema). Grava o código canônico do idioma.
+    public void SetLanguage(string? code)
+    {
+        lock (_gate)
+        {
+            var root = Load();
+            if (root["Rastro"] is not JsonObject rastro) root["Rastro"] = rastro = [];
+            if (UiLanguages.FromCode(code) is { } language) rastro["Language"] = language.Code();
+            else rastro.Remove("Language");
+            Save(root);
         }
     }
 

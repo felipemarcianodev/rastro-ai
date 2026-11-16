@@ -83,7 +83,7 @@ public class RastroTools(
         }
         catch (AnalysisException ex)
         {
-            survey.Fail(ex.Message, clock.GetUtcNow());
+            survey.Fail(ex.Failure, ex.Args, clock.GetUtcNow());
         }
 
         await db.SaveChangesAsync(ct);

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 
 namespace Rastro.Core.Validation;
@@ -21,6 +22,10 @@ public class SurveyValidation
     public ValidationStatus Status { get; private set; }
     public string? ResultJson { get; private set; }
     public string? Error { get; private set; }
+
+    // Código e parâmetros da falha (a tela traduz por eles); nulos nas validações antigas.
+    public ValidationFailure? Failure { get; private set; }
+    public string? FailureArgsJson { get; private set; }
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
     public DateTimeOffset? ApprovedAt { get; private set; }
@@ -41,9 +46,11 @@ public class SurveyValidation
         CompletedAt = now;
     }
 
-    public void Fail(string error, DateTimeOffset now)
+    public void Fail(ValidationFailure failure, IReadOnlyList<string>? args, DateTimeOffset now)
     {
-        Error = error;
+        Failure = failure;
+        FailureArgsJson = FailureText.SerializeArgs(args);
+        Error = FailureText.Of(failure, args);
         Status = ValidationStatus.Failed;
         CompletedAt = now;
     }
@@ -54,6 +61,8 @@ public class SurveyValidation
         DocumentMarkdown = markdown;
         ApprovedAt = now;
     }
+
+    public IReadOnlyList<string> ReadFailureArgs() => FailureText.ParseArgs(FailureArgsJson);
 
     public ChangeValidationResult? ReadResult() =>
         ResultJson is null ? null : JsonSerializer.Deserialize<ChangeValidationResult>(ResultJson, FlowGraphJson.Options);

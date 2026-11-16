@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 
 namespace Rastro.Core.Surveys;
@@ -34,6 +35,11 @@ public class Survey
 
     public SurveyStatus Status { get; private set; }
     public string? Error { get; private set; }
+
+    // Código e parâmetros da falha: a tela traduz por eles. Nulos nos levantamentos que falharam antes
+    // desta coluna existir (a tela cai no texto de Error).
+    public SurveyFailure? Failure { get; private set; }
+    public string? FailureArgsJson { get; private set; }
     public int SchemaVersion { get; private set; }
     public string? GraphJson { get; private set; }
     public int NodeCount { get; private set; }
@@ -66,6 +72,8 @@ public class Survey
         Status = SurveyStatus.Running;
         StartedAt = now;
         Error = null;
+        Failure = null;
+        FailureArgsJson = null;
     }
 
     public void Complete(FlowGraph graph, DateTimeOffset now)
@@ -91,12 +99,17 @@ public class Survey
         UnresolvedCount = graph.Nodes.Count(n => n.Kind == NodeKind.Unresolved && graph.Edges.All(e => e.From != n.Id));
     }
 
-    public void Fail(string error, DateTimeOffset now)
+    // Grava o texto em português (log, MCP) e o código com os parâmetros (tela).
+    public void Fail(SurveyFailure failure, IReadOnlyList<string>? args, DateTimeOffset now)
     {
         Status = SurveyStatus.Failed;
-        Error = error;
+        Failure = failure;
+        FailureArgsJson = FailureText.SerializeArgs(args);
+        Error = FailureText.Of(failure, args);
         CompletedAt = now;
     }
+
+    public IReadOnlyList<string> ReadFailureArgs() => FailureText.ParseArgs(FailureArgsJson);
 
     public IReadOnlyList<string> ReadCrossRepositories() =>
         CrossRepositoriesJson is null ? [] : JsonSerializer.Deserialize<List<string>>(CrossRepositoriesJson) ?? [];

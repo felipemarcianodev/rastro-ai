@@ -103,3 +103,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 48 | Rastro multilíngue: a visão consolidada, em português | [fase-48/telas-3-pt-BR.png](fase-48/telas-3-pt-BR.png) |
 | Fase 48 | Rastro multilíngue: a visão consolidada, em inglês | [fase-48/telas-3-en-US.png](fase-48/telas-3-en-US.png) |
 | Fase 48 | Rastro multilíngue: a visão consolidada, em espanhol | [fase-48/telas-3-es.png](fase-48/telas-3-es.png) |
+| Fase 49 | Rastro multilíngue: Aparência em português, com o idioma gravado no config.json (vale para a tela, a CLI e o MCP) | [fase-49/configuracoes-idioma-pt-BR.png](fase-49/configuracoes-idioma-pt-BR.png) |
+| Fase 49 | Rastro multilíngue: Aparência em inglês, com o idioma gravado no config.json (vale para a tela, a CLI e o MCP) | [fase-49/configuracoes-idioma-en-US.png](fase-49/configuracoes-idioma-en-US.png) |
+| Fase 49 | Rastro multilíngue: Aparência em espanhol, com o idioma gravado no config.json (vale para a tela, a CLI e o MCP) | [fase-49/configuracoes-idioma-es.png](fase-49/configuracoes-idioma-es.png) |

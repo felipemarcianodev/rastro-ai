@@ -32,6 +32,7 @@ import {
   C4Person,
   SurveySummary,
 } from './models';
+import { draftErrorText } from './failure-text';
 import { tr } from './i18n/locale';
 import { DbSchema, DbUsageReport } from './database/db-schema';
 import { QueryAnalysis } from './database/query-analysis';
@@ -280,7 +281,11 @@ export class RastroApi {
 // Mensagem para a tela a partir do erro da API (pelo código estável, nunca pelo texto).
 export function apiErrorMessage(error: unknown): string {
   if (error instanceof HttpErrorResponse) {
+    // Erros do rascunho: "issues" traz código e parâmetros (a tela traduz); "errors" é o texto em português, de reserva.
     const details = error.error?.errors as string[] | undefined;
+    const issues = error.error?.issues as { code: number; args: string[] }[] | undefined;
+    if (Array.isArray(issues) && issues.length > 0)
+      return issues.map((issue, index) => draftErrorText(issue.code, issue.args, details?.[index])).join(' ');
     if (Array.isArray(details) && details.length > 0) return details.join(' ');
     const code = error.error?.code as string | undefined;
     // O plano recusado e a falha do banco vivo trazem o motivo exato em pt-BR no title do problema.

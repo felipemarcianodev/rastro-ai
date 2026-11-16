@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 using Rastro.Core.Surveys;
 using Rastro.Infrastructure;
@@ -35,7 +36,7 @@ public class SurveyWorker(
 
         var interrupted = await db.Surveys.Where(s => s.Status == SurveyStatus.Running).ToListAsync(ct);
         foreach (var survey in interrupted)
-            survey.Fail("Análise interrompida: a API reiniciou durante o processamento.", clock.GetUtcNow());
+            survey.Fail(SurveyFailure.Interrupted, null, clock.GetUtcNow());
         if (interrupted.Count > 0)
         {
             await db.SaveChangesAsync(ct);
@@ -67,7 +68,7 @@ public class SurveyWorker(
         {
             var resolved = catalog.Resolve(survey.Repository, survey.SolutionPath);
             if (resolved.Target is null)
-                throw new AnalysisException("O repositório ou a solution não estão mais disponíveis na configuração.");
+                throw new AnalysisException(SurveyFailure.TargetUnavailable);
 
             var cross = survey.ReadCrossRepositories();
             FlowGraph graph;
@@ -94,13 +95,13 @@ public class SurveyWorker(
         }
         catch (AnalysisException ex)
         {
-            survey.Fail(ex.Message, clock.GetUtcNow());
+            survey.Fail(ex.Failure, ex.Args, clock.GetUtcNow());
             metrics.Failed("analysis");
             logger.LogWarning(ex, "Levantamento {SurveyId} falhou na análise.", surveyId);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            survey.Fail("Falha inesperada na análise. Detalhes no log da API.", clock.GetUtcNow());
+            survey.Fail(SurveyFailure.Unexpected, null, clock.GetUtcNow());
             metrics.Failed("unexpected");
             logger.LogError(ex, "Levantamento {SurveyId} falhou com erro inesperado.", surveyId);
         }

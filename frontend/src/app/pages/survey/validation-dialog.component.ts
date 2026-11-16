@@ -2,6 +2,7 @@ import { Component, inject, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { DialogDirective } from '../../core/dialog.directive';
+import { validationFailureText } from '../../core/failure-text';
 import { LanguageService } from '../../core/i18n/i18n';
 import {
   CHECK_STATUS_LABEL_KEY,
@@ -38,6 +39,7 @@ export class ValidationDialogComponent {
   protected readonly ValidationVerdict = ValidationVerdict;
   protected readonly CheckStatus = CheckStatus;
   protected readonly verdictKey = VALIDATION_VERDICT_LABEL_KEY;
+  protected readonly failureText = validationFailureText;
   protected readonly verdictSlug = VALIDATION_VERDICT_SLUG;
   protected readonly checkKey = CHECK_STATUS_LABEL_KEY;
   protected readonly checkSlug = CHECK_STATUS_SLUG;

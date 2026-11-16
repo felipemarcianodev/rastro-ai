@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
 import { DB_SURVEY_ORIGIN_PARAM } from '../../core/database/query-analysis';
+import { refusalText, surveyFailureText } from '../../core/failure-text';
 import { shortCommit, shortDate } from '../../core/format';
 import { LanguageService } from '../../core/i18n/i18n';
 import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
@@ -27,6 +28,7 @@ import {
   ChangeKind,
   ChangePrompt,
   EdgeDecision,
+  FillHoleResult,
   FlowEdge,
   FlowGraph,
   NodeKind,
@@ -177,6 +179,7 @@ export class SurveyPage {
   protected readonly statusSlug = SURVEY_STATUS_SLUG;
   protected readonly shortCommit = shortCommit;
   protected readonly shortDate = shortDate;
+  protected readonly failureText = surveyFailureText;
 
   // Chamadas do .NET (LINQ, EF Core, cache...) escondidas por padrão; a escolha fica no navegador.
   protected readonly showFramework = signal(readShowFramework());
@@ -703,13 +706,23 @@ export class SurveyPage {
   }
 
   // Modo provedor: a IA propõe destinos para o buraco; o grafo volta atualizado.
+  // Cada destino recusado vira o texto do motivo no idioma ativo; o resto (aceitos e avisos) segue como o servidor mandou.
+  private fillTexts(result: FillHoleResult): string[] {
+    const items = result.items ?? [];
+    return result.messages.map((message, index) => {
+      const item = items[index];
+      if (!item || item.refusal === null || item.refusal === undefined) return message;
+      return this.i18n.t('refusal.outcome', { target: item.target, reason: refusalText(item.refusal, item.refusalArgs, item.message) });
+    });
+  }
+
   protected fillHole(nodeId: string): void {
     this.filling.set(true);
     this.fillMessages.set([]);
     this.api.fillHole(this.id(), nodeId).subscribe({
       next: (response) => {
         this.detail.set(response.survey);
-        this.fillMessages.set(response.result.messages);
+        this.fillMessages.set(this.fillTexts(response.result));
         this.filling.set(false);
         this.ai.refresh();
       },

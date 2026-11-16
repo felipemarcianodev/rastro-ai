@@ -1154,13 +1154,22 @@ Regras da tradução:
   - **Navegador:** Configurações, tela do banco e visão consolidada nos três idiomas: nenhuma chave aparece no lugar do texto. O português que sobra no banco são os avisos do leitor de esquema, gerados pelo servidor (Fase 50). O caminho da pasta na máquina foi trocado por um genérico antes do print. Prints em `docs/telas/fase-48/`.
   - **UX:** o levantamento de UX fica para a Fase 53, com todas as telas nos três idiomas; em português, as telas das Fases 47 e 48 continuam iguais.
 
-## Fase 49: idioma no servidor e mensagens da API `[ ]` (depende da Fase 46)
+## Fase 49: idioma no servidor e mensagens da API `[x]` (depende da Fase 46)
 
-- [ ] `Language` no `config.json`, com rota para ler e gravar sob a proteção de `Origin`.
-- [ ] `RequestLocalization` com as três culturas: `Accept-Language` primeiro, `config.json` depois, sistema operacional por último.
-- [ ] Erro do levantamento e motivo de recusa de proposta com código e parâmetros (migration); o texto antigo continua aparecendo.
-- [ ] Mensagens dos controllers em `.resx`; teste de paridade dos `.resx`; testes existentes fixam `pt-BR`.
-- [ ] Documentação do cliente no mesmo PR.
+- [x] `Language` no `config.json`, com rota para ler e gravar sob a proteção de `Origin`.
+- [x] `RequestLocalization` com as três culturas: `Accept-Language` primeiro, `config.json` depois, sistema operacional por último.
+- [x] Erro do levantamento e motivo de recusa de proposta com código e parâmetros (migration); o texto antigo continua aparecendo.
+- [x] Mensagens dos controllers em `.resx`; teste de paridade dos `.resx`; testes existentes fixam `pt-BR`.
+- [x] Documentação do cliente no mesmo PR.
+- **Registro (2026-11-15):**
+  - **Idioma:** `Rastro:Language` no `config.json`, gravado pelo `RepositoryConfigFile` (mesmo lock e gravação atômica) e pela rota `GET/PUT api/settings/language` (`{ language, effective }`; `null` volta a seguir o sistema; valor fora do enum dá `LANGUAGE_INVALID`). O enum `UiLanguage` mora no `Rastro.Core`, com os mesmos valores do frontend. A tela pergunta o idioma gravado ao abrir e grava na troca; o `localStorage` virou só atalho da próxima abertura, e a falha ao gravar avisa sem desfazer a troca.
+  - **Por requisição:** um provedor de cultura próprio (`Accept-Language`, depois o `config.json`, depois o sistema, reserva `en-US`), antes da proteção de origem.
+  - **Recursos do servidor:** `LocalizedText` com `ResourceManager` e cultura explícita, `Resources/Messages.resx` em inglês com `pt-BR` e `es`; as culturas satélite saem no publish e, portanto, no pacote. O teste de paridade varre todo `Resources/Messages*.resx` do backend (chaves e marcadores `{n}`). Os controllers ainda não usam: a tela traduz pelo código, e os textos do núcleo entram na Fase 50.
+  - **Falhas com código:** 59 códigos em quatro enums (`SurveyFailure`, `ValidationFailure`, `ProposalRefusal`, `DraftError`), gravados com os parâmetros ao lado do texto antigo (migration `FalhasEmCodigo`, seis colunas anuláveis). A tela traduz pelo código e cai no texto antigo quando não há código. O texto em português de cada código mora em `FailureText`, a fonte única para o log, o MCP e os testes antigos.
+  - **Ficou de fora:** a mensagem de proposta aceita e a recusa de regra continuam em texto; o texto que o MCP devolve ao agente é da Fase 51.
+  - **Navegador:** a troca de idioma com clique de verdade grava `"Language": "es"` no `config.json` da pasta temporária, e a API devolve `{"language":2,"effective":2}`. Prints em `docs/telas/fase-49/`.
+  - **Documentação:** README, README do pacote (seção Idioma) e `SECURITY.md` (a rota nova).
+  - **Testes:** backend 762/762 (`API-LANG-001` a `007`, `CORE-LANG-001` a `005`, `CORE-FAIL-001` a `008`, `API-FAIL-001` a `006`), frontend 590/590.
 
 ## Fase 50: textos que o núcleo gera `[ ]` (depende da Fase 49)
 

@@ -55,7 +55,7 @@ public class CrossSystemAnalyzer(
             }
             catch (FlowEntryNotFoundException ex)
             {
-                throw new AnalysisException(ex.Message, ex);
+                throw AnalysisException.From(ex);
             }
         }
 
@@ -79,7 +79,7 @@ public class CrossSystemAnalyzer(
             }
             catch (FlowEntryNotFoundException ex)
             {
-                throw new AnalysisException(ex.Message, ex);
+                throw AnalysisException.From(ex);
             }
             finally
             {

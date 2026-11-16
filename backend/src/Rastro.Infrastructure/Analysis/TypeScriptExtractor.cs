@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 using Rastro.Extractor;
 using Rastro.Infrastructure.Configuration;
@@ -33,7 +34,7 @@ public sealed class TypeScriptExtractor(
         if (!File.Exists(script))
         {
             logger.LogError("Script do extrator Angular ausente em {Script}.", script);
-            throw new AnalysisException("O extrator Angular não veio no pacote desta instalação. Reinstale o Rastro.");
+            throw new AnalysisException(SurveyFailure.AngularScriptMissing);
         }
 
         var timeout = TimeSpan.FromSeconds(Math.Max(1, options.Value.Analysis.TypeScriptTimeoutSeconds));
@@ -47,12 +48,12 @@ public sealed class TypeScriptExtractor(
         catch (TimeoutException ex)
         {
             logger.LogWarning(ex, "Extrator Angular passou do tempo no repositório {Repository}.", target.RepositoryName);
-            throw new AnalysisException($"A leitura do Angular passou de {timeout.TotalSeconds:0} s. Aumente Rastro:Analysis:TypeScriptTimeoutSeconds ou reduza a profundidade.", ex);
+            throw new AnalysisException(SurveyFailure.AngularTimeout, [timeout.TotalSeconds.ToString("0", System.Globalization.CultureInfo.InvariantCulture)], ex);
         }
         catch (Win32Exception ex)
         {
             logger.LogWarning(ex, "Node não pôde ser iniciado para o repositório {Repository}.", target.RepositoryName);
-            throw new AnalysisException("O Node não foi encontrado nesta máquina. Instale o Node para levantar fluxos Angular.", ex);
+            throw new AnalysisException(SurveyFailure.NodeMissing, null, ex);
         }
 
         if (!string.IsNullOrWhiteSpace(result.Error))
@@ -67,17 +68,17 @@ public sealed class TypeScriptExtractor(
         {
             logger.LogError(ex, "Saída do extrator Angular não é JSON (repositório {Repository}, código {ExitCode}): {Error}",
                 target.RepositoryName, result.ExitCode, result.Error);
-            throw new AnalysisException("Não foi possível ler o código Angular. Veja o log da API para o detalhe.", ex);
+            throw new AnalysisException(SurveyFailure.AngularUnreadable, null, ex);
         }
 
         if (output?.Error is { Length: > 0 } message)
-            throw new AnalysisException(message);
+            throw new AnalysisException(SurveyFailure.AngularScriptError, [message]);
 
         if (result.ExitCode != 0 || output?.Graph is null)
         {
             logger.LogError("Extrator Angular falhou sem mensagem (repositório {Repository}, código {ExitCode}): {Error}",
                 target.RepositoryName, result.ExitCode, result.Error);
-            throw new AnalysisException("Não foi possível ler o código Angular. Veja o log da API para o detalhe.");
+            throw new AnalysisException(SurveyFailure.AngularUnreadable);
         }
 
         var calls = (output.HttpCalls ?? []).Select(c => new HttpCallSite(c.NodeId, c.Call, c.Depth)).ToList();

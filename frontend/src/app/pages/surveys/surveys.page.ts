@@ -6,6 +6,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { DB_TAB_QUERY_PARAM, HOME_FROM_DB_PARAM, HOME_FROM_DB_VALUE } from '../../core/database/query-analysis';
 import { DialogDirective } from '../../core/dialog.directive';
 import { EditorLinks } from '../../core/editor-links';
+import { surveyFailureText } from '../../core/failure-text';
 import { shortCommit, shortDate } from '../../core/format';
 import { LastRepositoryService } from '../../core/last-repository.service';
 import {
@@ -137,6 +138,7 @@ export class SurveysPage implements OnInit {
   protected readonly statusSlug = SURVEY_STATUS_SLUG;
   protected readonly SurveyStatus = SurveyStatus;
   protected readonly shortDate = shortDate;
+  protected readonly failureText = surveyFailureText;
   protected readonly shortCommit = shortCommit;
 
   protected readonly skeletonRows = SKELETON_ROWS;

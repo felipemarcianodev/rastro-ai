@@ -36,12 +36,13 @@
   "settings": {
     "appearance": {
       "title": "Apariencia",
-      "hint": "Tu elección se guarda en este navegador.",
+      "hint": "El idioma vale para la pantalla, la CLI y el MCP (se guarda en el config.json de tu máquina). La paleta y el tema se quedan en este navegador.",
       "language": "Idioma",
       "languageApplied": "Idioma aplicado: {name}.",
       "palette": "Paleta de colores",
       "paletteApplied": "Paleta aplicada: {name}.",
-      "theme": "Tema"
+      "theme": "Tema",
+      "languageNotSaved": "El idioma cambió en la pantalla, pero no se pudo guardar en el config.json. La CLI y el MCP siguen con el idioma anterior."
     },
     "title": "Configuración",
     "intro": "Rastro funciona sin IA. Con IA, completa los huecos del grafo y escribe las reglas; todo lo que propone pasa por el compilador antes de entrar.",
@@ -309,7 +310,8 @@
     "ORIGIN_NOT_ALLOWED": "Solicitud rechazada: solo la pantalla del propio Rastro puede modificar datos.",
     "noResponse": "Rastro no respondió. Comprueba que el comando rastro siga abierto en la terminal e inténtalo de nuevo.",
     "notFound": "No encontrado.",
-    "generic": "Algo salió mal en Rastro. Inténtalo de nuevo."
+    "generic": "Algo salió mal en Rastro. Inténtalo de nuevo.",
+    "LANGUAGE_INVALID": "Idioma no válido. Elige español, inglés o portugués."
   },
   "flowCanvas": {
     "mark": {
@@ -1602,5 +1604,75 @@
       "mergeJoin": "Unión por mezcla",
       "keyLookup": "Búsqueda de la clave"
     }
+  },
+  "failure": {
+    "survey": {
+      "unexpected": "Falla inesperada en el rastreo. Los detalles están en el registro de la API.",
+      "interrupted": "Rastreo interrumpido: la API se reinició durante el procesamiento.",
+      "targetUnavailable": "El repositorio o la solution ya no están disponibles en la configuración.",
+      "entryInvalid": "Punto de entrada inválido: \"{a0}\". Usa Tipo.Metodo o Namespace.Tipo.Metodo.",
+      "entryNotFound": "No se encontró el método \"{a0}\" en la solution: no existe en ella ningún método llamado {a1} con cuerpo.",
+      "entryNotFoundSuggest": "No se encontró el método \"{a0}\" en la solution. Con el nombre {a1} existe: {a2}. Usa Tipo.Metodo o Namespace.Tipo.Metodo.",
+      "entryNotFoundSuggestMore": "No se encontró el método \"{a0}\" en la solution. Con el nombre {a1} existe: {a2} y {a3} más. Usa Tipo.Metodo o Namespace.Tipo.Metodo.",
+      "entryAmbiguous": "\"{a0}\" es ambiguo. Usa el nombre completo: {a1}.",
+      "angularScriptMissing": "El extractor de Angular no vino en el paquete de esta instalación. Reinstala Rastro.",
+      "angularTimeout": "La lectura de Angular superó los {a0} s. Aumenta Rastro:Analysis:TypeScriptTimeoutSeconds o reduce la profundidad.",
+      "nodeMissing": "No se encontró Node en esta máquina. Instala Node para rastrear flujos de Angular.",
+      "angularUnreadable": "No fue posible leer el código de Angular. Mira el registro de la API para ver el detalle.",
+      "angularScriptError": "{a0}",
+      "restoreFailed": "El dotnet restore de la solution falló. Comprueba que compile en la máquina."
+    },
+    "validation": {
+      "unexpected": "Falla inesperada en la validación. Los detalles están en el registro.",
+      "interrupted": "Validación interrumpida: la API se reinició durante el procesamiento.",
+      "draftDeleted": "El borrador se eliminó antes de la validación.",
+      "targetUnavailable": "El repositorio o la solution ya no están disponibles en la configuración.",
+      "angularUnsupported": "La validación del cambio todavía no lee código Angular.",
+      "entryGone": "El punto de entrada \"{a0}\" ya no existe en el código.",
+      "analysis": "{reason}"
+    }
+  },
+  "refusal": {
+    "outcome": "{target}: rechazada. {reason}",
+    "surveyNotFound": "Rastreo no encontrado o todavía sin grafo.",
+    "nodeNotFound": "Paso no encontrado en este rastreo.",
+    "ruleLength": "La regla debe tener de {a0} a {a1} caracteres.",
+    "notUnresolved": "Solo los pasos no resueltos reciben propuesta de destino; este ya lo resolvió el compilador.",
+    "targetUnavailable": "El repositorio o la solution ya no están disponibles en la configuración.",
+    "angularUnsupported": "La verificación de evidencia todavía no lee código Angular: solo los pasos .NET reciben propuesta de destino.",
+    "codeChanged": "El código cambió desde este rastreo. Rastrea el flujo de nuevo antes de proponer.",
+    "analysisFailed": "{reason}",
+    "duplicateTarget": "Ese destino ya fue propuesto para este paso. Para cambiarlo, descarta el actual en la pantalla.",
+    "httpNeedsSystemNoCross": "Este paso es una llamada HTTP sin destino. Indica el repositorio de destino (system); este rastreo no sigue llamadas HTTP a otros repositorios.",
+    "httpNeedsSystem": "Este paso es una llamada HTTP sin destino. Indica el repositorio de destino (system); repositorios del puente: {a0}.",
+    "httpCallMissing": "La llamada HTTP de este paso no está registrada en el grafo; rastrea el flujo de nuevo.",
+    "destinationUnavailable": "El repositorio {a0} no está disponible o no tiene solution en la configuración.",
+    "destinationCodeChanged": "El código de {a0} cambió desde este rastreo. Rastrea el flujo de nuevo antes de proponer.",
+    "proofIncomplete": "Evidencia incompleta: indica el método de destino, el archivo y la línea.",
+    "proofTargetInvalid": "El método de destino no coincide: {reason}",
+    "proofNoBody": "{a0} no tiene cuerpo en el código (abstracto, externo o generado).",
+    "proofWrongFile": "La evidencia no coincide: {a0} está en {a1}:{a2}, no en {a3}.",
+    "proofLineOutside": "La evidencia no coincide: {a0} va de la línea {a1} a la {a2} de {a3}; la línea {a4} queda fuera.",
+    "routeNotIndexed": "{a0} no atiende ninguna ruta HTTP del repositorio (no está en el índice de rutas).",
+    "verbMismatch": "{a0} no atiende {a1}: el verbo de la llamada no coincide con el del destino.",
+    "routeMismatch": "{a0} atiende {a1}, que no coincide con la ruta llamada ({a2} {a3})."
+  },
+  "draftError": {
+    "entryChanged": "El borrador debe mantener la misma entrada del rastreo.",
+    "duplicateNodes": "Pasos repetidos en el borrador: {a0}.",
+    "codeStepMissing": "El paso \"{a0}\" del código desapareció del borrador. Para quitarlo, márcalo como eliminado.",
+    "codeStepAltered": "El paso \"{a0}\" del código fue alterado. Solo puedes marcarlo como eliminado o modificado.",
+    "codeStepMarkedNew": "El paso \"{a0}\" ya existe en el código; no se puede marcar como nuevo.",
+    "codeStepModifiedNoIntent": "El paso \"{a0}\" se marcó como modificado sin decir qué cambia.",
+    "tooManyAdded": "Como máximo {a0} pasos nuevos por borrador.",
+    "newStepBadId": "El paso nuevo \"{a0}\" necesita un id que empiece con \"{a1}\" y la marca de nuevo.",
+    "newStepNoName": "Paso nuevo sin nombre (o con más de {a0} caracteres).",
+    "newStepNoIntent": "El paso nuevo \"{a0}\" necesita decir qué debe hacer.",
+    "newStepBadKind": "El paso nuevo \"{a0}\" solo puede ser un método o una decisión.",
+    "intentTooLong": "La intención de \"{a0}\" supera los {a1} caracteres.",
+    "edgeMissing": "Un enlace del código ({a0} → {a1}) desapareció. Para quitarlo, márcalo como eliminado.",
+    "edgeMarkedNew": "El enlace {a0} → {a1} ya existe en el código; no se puede marcar como nuevo.",
+    "edgeDangling": "Un enlace nuevo apunta a un paso que no está en el borrador.",
+    "foreignSystem": "Solo se puede editar el primer sistema del flujo."
   }
 }

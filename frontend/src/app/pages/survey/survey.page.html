@@ -309,7 +309,7 @@
       <div class="page-state">
         <div class="notice is-error" role="alert">
           <h2>{{ 'survey.failed.title' | translate }}</h2>
-          <p>{{ d.survey.error }}</p>
+          <p>{{ failureText(d.survey.failure, d.survey.failureArgs, d.survey.error) }}</p>
         </div>
         <div class="page-state-actions">
           <button type="button" class="btn btn-p" (click)="retryWithChanges()">{{ 'survey.failed.fix' | translate }}</button>

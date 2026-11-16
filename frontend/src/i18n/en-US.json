@@ -36,12 +36,13 @@
   "settings": {
     "appearance": {
       "title": "Appearance",
-      "hint": "Your choice is saved in this browser.",
+      "hint": "The language applies to the screen, the CLI and the MCP (it is saved in the config.json on your machine). The palette and the theme stay in this browser.",
       "language": "Language",
       "languageApplied": "Language set to {name}.",
       "palette": "Color palette",
       "paletteApplied": "Palette set to {name}.",
-      "theme": "Theme"
+      "theme": "Theme",
+      "languageNotSaved": "The language changed on screen, but it could not be saved to config.json. The CLI and the MCP keep the previous language."
     },
     "title": "Settings",
     "intro": "Rastro works without AI. With AI, it fills the gaps in the graph and writes the rules; everything it proposes goes through the compiler before it is accepted.",
@@ -309,7 +310,8 @@
     "ORIGIN_NOT_ALLOWED": "Request refused: only Rastro's own screen can change data.",
     "noResponse": "Rastro did not respond. Check that the rastro command is still open in the terminal and try again.",
     "notFound": "Not found.",
-    "generic": "Something went wrong in Rastro. Try again."
+    "generic": "Something went wrong in Rastro. Try again.",
+    "LANGUAGE_INVALID": "Invalid language. Choose English, Portuguese or Spanish."
   },
   "flowCanvas": {
     "mark": {
@@ -1602,5 +1604,75 @@
       "mergeJoin": "Merge join",
       "keyLookup": "Key lookup"
     }
+  },
+  "failure": {
+    "survey": {
+      "unexpected": "Unexpected failure during the trace. Details are in the API log.",
+      "interrupted": "Trace interrupted: the API restarted while it was processing.",
+      "targetUnavailable": "The repository or the solution is no longer available in the configuration.",
+      "entryInvalid": "Invalid entry point: \"{a0}\". Use Type.Method or Namespace.Type.Method.",
+      "entryNotFound": "Method \"{a0}\" was not found in the solution: no method named {a1} with a body exists in it.",
+      "entryNotFoundSuggest": "Method \"{a0}\" was not found in the solution. A method named {a1} exists in: {a2}. Use Type.Method or Namespace.Type.Method.",
+      "entryNotFoundSuggestMore": "Method \"{a0}\" was not found in the solution. A method named {a1} exists in: {a2} and {a3} more. Use Type.Method or Namespace.Type.Method.",
+      "entryAmbiguous": "\"{a0}\" is ambiguous. Use the full name: {a1}.",
+      "angularScriptMissing": "The Angular extractor did not come in this installation package. Reinstall Rastro.",
+      "angularTimeout": "Reading the Angular code took longer than {a0} s. Raise Rastro:Analysis:TypeScriptTimeoutSeconds or reduce the depth.",
+      "nodeMissing": "Node was not found on this machine. Install Node to trace Angular flows.",
+      "angularUnreadable": "The Angular code could not be read. See the API log for details.",
+      "angularScriptError": "{a0}",
+      "restoreFailed": "dotnet restore failed for the solution. Check that it builds on this machine."
+    },
+    "validation": {
+      "unexpected": "Unexpected failure during validation. Details are in the log.",
+      "interrupted": "Validation interrupted: the API restarted while it was processing.",
+      "draftDeleted": "The draft was deleted before the validation.",
+      "targetUnavailable": "The repository or the solution is no longer available in the configuration.",
+      "angularUnsupported": "Change validation does not read Angular code yet.",
+      "entryGone": "The entry point \"{a0}\" no longer exists in the code.",
+      "analysis": "{reason}"
+    }
+  },
+  "refusal": {
+    "outcome": "{target}: rejected. {reason}",
+    "surveyNotFound": "Trace not found or it has no graph yet.",
+    "nodeNotFound": "Step not found in this trace.",
+    "ruleLength": "The rule must be between {a0} and {a1} characters long.",
+    "notUnresolved": "Only unresolved steps receive a target proposal; this one was already resolved by the compiler.",
+    "targetUnavailable": "The repository or the solution is no longer available in the configuration.",
+    "angularUnsupported": "The evidence check does not read Angular code yet: only .NET steps receive a target proposal.",
+    "codeChanged": "The code changed since this trace. Trace the flow again before proposing.",
+    "analysisFailed": "{reason}",
+    "duplicateTarget": "This target was already proposed for this step. To change it, dismiss the current one on screen.",
+    "httpNeedsSystemNoCross": "This step is an HTTP call with no target. Provide the target repository (system); this trace does not follow HTTP calls to other repositories.",
+    "httpNeedsSystem": "This step is an HTTP call with no target. Provide the target repository (system); repositories in the bridge: {a0}.",
+    "httpCallMissing": "The HTTP call of this step is not recorded in the graph; trace the flow again.",
+    "destinationUnavailable": "The repository {a0} is not available or has no solution in the configuration.",
+    "destinationCodeChanged": "The code of {a0} changed since this trace. Trace the flow again before proposing.",
+    "proofIncomplete": "Incomplete evidence: provide the target method, the file and the line.",
+    "proofTargetInvalid": "The target method does not match: {reason}",
+    "proofNoBody": "{a0} has no body in the code (abstract, extern or generated).",
+    "proofWrongFile": "The evidence does not match: {a0} is in {a1}:{a2}, not in {a3}.",
+    "proofLineOutside": "The evidence does not match: {a0} goes from line {a1} to {a2} of {a3}; line {a4} is outside it.",
+    "routeNotIndexed": "{a0} does not serve any HTTP route of the repository (it is not in the route index).",
+    "verbMismatch": "{a0} does not serve {a1}: the verb of the call does not match the one of the target.",
+    "routeMismatch": "{a0} serves {a1}, which does not match the called route ({a2} {a3})."
+  },
+  "draftError": {
+    "entryChanged": "The draft must keep the same entry as the trace.",
+    "duplicateNodes": "Repeated steps in the draft: {a0}.",
+    "codeStepMissing": "The code step \"{a0}\" is missing from the draft. To remove it, mark it as removed.",
+    "codeStepAltered": "The code step \"{a0}\" was changed. You can only mark it as removed or modified.",
+    "codeStepMarkedNew": "The step \"{a0}\" already exists in the code; it cannot be marked as new.",
+    "codeStepModifiedNoIntent": "The step \"{a0}\" was marked as modified without saying what changes.",
+    "tooManyAdded": "At most {a0} new steps per draft.",
+    "newStepBadId": "The new step \"{a0}\" needs an id starting with \"{a1}\" and the new mark.",
+    "newStepNoName": "New step with no name (or with more than {a0} characters).",
+    "newStepNoIntent": "The new step \"{a0}\" needs to say what it should do.",
+    "newStepBadKind": "The new step \"{a0}\" can only be a method or a decision.",
+    "intentTooLong": "The intent of \"{a0}\" is longer than {a1} characters.",
+    "edgeMissing": "A link from the code ({a0} → {a1}) is missing. To remove it, mark it as removed.",
+    "edgeMarkedNew": "The link {a0} → {a1} already exists in the code; it cannot be marked as new.",
+    "edgeDangling": "A new link points to a step that is not in the draft.",
+    "foreignSystem": "Editing is allowed only in the first system of the flow."
   }
 }
