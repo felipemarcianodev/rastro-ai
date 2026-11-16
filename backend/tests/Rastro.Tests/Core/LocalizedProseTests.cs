@@ -195,7 +195,7 @@ public partial class LocalizedProseTests
     {
         var graph = FlowMapBuilderTests.Loja();
         var map = FlowMapBuilder.Build(graph);
-        var rules = FlowRuleExtractor.Extract(graph, map);
+        var rules = FlowRuleExtractor.Extract(graph, map, language);
 
         var first = FlowQuestions.Suggest(graph, map, rules, language);
         var second = FlowQuestions.Suggest(graph, map, rules, language);
@@ -204,9 +204,8 @@ public partial class LocalizedProseTests
         Assert.NotEmpty(first);
         foreach (var question in first)
         {
-            // A resposta das regras traz o texto de FlowRuleExtractor, que ainda é só em português.
             AssertClean(question.Text, language);
-            AssertClean(question.Answer.Text, language, "encerra o fluxo com exceção");
+            AssertClean(question.Answer.Text, language);
             if (question.Answer.Gap is not null) AssertClean(question.Answer.Gap, language);
         }
         var none = FlowQuestions.Verify(graph, new FlowAnswer("ok", AnswerSeal.Inferred, ["m:inventado"]), language);
@@ -220,7 +219,7 @@ public partial class LocalizedProseTests
         var graph = FlowMapBuilderTests.Loja();
         var map = FlowMapBuilder.Build(graph);
 
-        var questions = FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map), UiLanguage.English);
+        var questions = FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map, UiLanguage.English), UiLanguage.English);
 
         Assert.Contains(questions, q => q.Text == "In which situations is the flow refused or ended before the end?");
         Assert.Contains(questions, q => q.Text == "Which systems does the feature go through?");

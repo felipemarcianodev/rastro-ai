@@ -18,7 +18,7 @@ dotnet tool install -g rastro-ai
 rastro
 ```
 
-O Rastro abre numa janela própria, como um app, e a tela também fica em http://127.0.0.1:7450 para o navegador (só nesta máquina; troque a porta com `--porta`). Fechar a janela encerra o Rastro; `rastro --sem-janela` sobe só o console e o endereço. Na janela, o campo da pasta do repositório ganha o botão "Procurar…", com a caixa "Escolher pasta" do sistema.
+O Rastro abre numa janela própria, como um app, e a tela também fica em http://127.0.0.1:7450 para o navegador (só nesta máquina; troque a porta com `--porta`). Fechar a janela encerra o Rastro; `rastro --sem-janela` (ou `--no-window`) sobe só o console e o endereço. Na janela, o campo da pasta do repositório ganha o botão "Procurar…", com a caixa "Escolher pasta" do sistema.
 
 A janela usa o WebView do sistema: no Windows, o WebView2 Runtime (já vem no Windows 11 e nas versões atuais do Windows 10); no Linux, a `libwebkit2gtk-4.1` (`sudo apt install libwebkit2gtk-4.1-0`) e uma sessão com tela; no macOS, nada a instalar. Sem isso, o Rastro avisa no console e segue no navegador. A janela vem do Photino.NET (Apache-2.0).
 
@@ -33,6 +33,8 @@ Para o build e os testes entrarem na validação de uma mudança, edite os coman
 ```
 rastro repo add minha-api C:\codigo\minha-api --build "dotnet build MinhaApi.slnx" --testes "dotnet test MinhaApi.slnx"
 ```
+
+Os nomes dos comandos e das opções (`rastro repo add`, `--build`, `--testes`, `--sem-janela`, `--porta`) são os mesmos em qualquer idioma. Valem também os apelidos em inglês `--tests`, `--no-window` e `--port`, ao lado dos nomes em português. A ajuda (`rastro --help`) e as mensagens do terminal saem no idioma do `config.json`.
 
 ## Fluxo entre sistemas
 
@@ -82,6 +84,8 @@ O Rastro funciona sem IA. Com um agente que fala MCP, como o Claude Code, o agen
 claude mcp add rastro -- rastro mcp
 ```
 
+As instruções do MCP e as descrições das ferramentas são em inglês, porque o agente as lê uma vez, ao conectar, e as entende melhor assim. O que as ferramentas devolvem sai no idioma que você escolheu no Rastro (lido de novo a cada chamada, então trocar na tela vale na resposta seguinte), e o agente responde a você no idioma em que você escreve.
+
 Para o fluxo entre sistemas, a ferramenta `list_cross_edges` lista as ligações HTTP e as chamadas ainda sem destino, e `propose_edge` aceita o parâmetro `system`, com o repositório de destino.
 
 Para perguntas sobre o fluxo, `get_flow_map` mostra o mapa por sistema (blocos, decisões, chamadas e caminhos) e `get_flow_rules` as regras tiradas das decisões, para o agente responder citando os passos.
@@ -96,7 +100,7 @@ Código aberto, licença MIT: <https://github.com/felipemarcianodev/rastro-ai>.
 
 ## Idioma
 
-O Rastro fala inglês, português do Brasil e espanhol, na tela, na API, na CLI e no MCP. Escolha em Configurações, em Aparência: a escolha fica no `config.json` (`Rastro:Language`, com `en-US`, `pt-BR` ou `es`). Sem ela, vale o idioma do sistema operacional, com o inglês de reserva. A paleta e o tema ficam só no navegador.
+O Rastro fala inglês, português do Brasil e espanhol, na tela, na API, na CLI e no MCP. Escolha em Configurações, em Aparência: a escolha fica no `config.json` (`Rastro:Language`, com `en-US`, `pt-BR` ou `es`). Sem ela, vale o idioma do sistema operacional, com o inglês de reserva. A CLI (ajuda e mensagens) segue esse mesmo `config.json`; no MCP, só as instruções e as descrições das ferramentas ficam em inglês fixo. A paleta e o tema ficam só no navegador.
 
 ## Seus dados
 

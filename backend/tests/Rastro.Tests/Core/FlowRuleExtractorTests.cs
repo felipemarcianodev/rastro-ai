@@ -1,12 +1,13 @@
 using Rastro.Core;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 
 namespace Rastro.Tests.Core;
 
 // Cenários CORE-RULE-NNN: as regras do fluxo (Fase 32), na loja fictícia do mapa (CORE-MAP).
 public class FlowRuleExtractorTests
 {
-    private static IReadOnlyList<FlowRule> Rules(FlowGraph graph) => FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph));
+    private static IReadOnlyList<FlowRule> Rules(FlowGraph graph) => FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph), UiLanguage.Portuguese);
 
     [Fact] // CORE-RULE-001
     public void Extract_DecisaoQueLancaExcecao_ViraBloqueiaComAFonte()
@@ -97,5 +98,21 @@ public class FlowRuleExtractorTests
     public void Normalize_IgnoraThisEspacosEMaiusculas()
     {
         Assert.Equal(FlowRuleExtractor.Normalize("this.pedido.Enviado "), FlowRuleExtractor.Normalize("pedido . enviado"));
+    }
+
+    [Theory] // AI-LANG-005
+    [InlineData(UiLanguage.English, "If pedido.Enviado, ends the flow with an exception.", "When meio is Cartao, calls GatewayCartao.Estornar.")]
+    [InlineData(UiLanguage.Portuguese, "Se pedido.Enviado, encerra o fluxo com exceção.", "Quando meio é Cartao, chama GatewayCartao.Estornar.")]
+    [InlineData(UiLanguage.Spanish, "Si pedido.Enviado, termina el flujo con una excepción.", "Cuando meio es Cartao, llama a GatewayCartao.Estornar.")]
+    public void Extract_TextoGeradoSaiNoIdiomaDoPedido(UiLanguage language, string blocks, string sideEffect)
+    {
+        var graph = FlowMapBuilderTests.Loja();
+
+        var rules = FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph), language);
+
+        Assert.Equal(blocks, Assert.Single(rules, r => r.Condition == "pedido.Enviado").Text);
+        Assert.Equal(sideEffect, Assert.Single(rules, r => r.Condition == "meio").Text);
+        if (language == UiLanguage.English)
+            Assert.DoesNotContain(rules, r => r.Text.Contains("encerra") || r.Text.Contains("chama ") || r.Text.Contains("Quando"));
     }
 }

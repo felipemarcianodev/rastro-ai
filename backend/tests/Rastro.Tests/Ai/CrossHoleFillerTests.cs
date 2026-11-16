@@ -122,7 +122,7 @@ public class CrossHoleFillerTests(ApiFixture fixture) : IAsyncLifetime
         await FillAsync(id, hole);
 
         var user = FakeAiTextService.LastRequest!.User;
-        Assert.Contains("Repositórios da costura", user);
+        Assert.Contains("Repositories of the seam", user);
         Assert.Contains(_pagamentos.Name, user);
         Assert.Contains("EstornosController.Obter", user);
         Assert.Contains("<codigo>", user);

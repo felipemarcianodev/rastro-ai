@@ -131,8 +131,9 @@ public class PgSchemaEndpointTests(ApiFixture fixture) : IAsyncLifetime
         Assert.False(review["rewrite"]!["accepted"]!.GetValue<bool>());
         Assert.Contains(review["rewrite"]!["refusals"]!.AsArray(), r => r!.GetValue<string>().Contains("LIMIT, FETCH ou OFFSET"));
         var request = FakeAiTextService.LastRequest!;
-        Assert.Contains("especialista em desempenho de PostgreSQL", request.System);
-        Assert.Contains("Não acrescente LIMIT, OFFSET nem FETCH", request.System);
-        Assert.Contains("Dialeto: PostgreSQL.", request.User);
+        // O prompt de sistema vai em inglês para o modelo (ADR-009); o dialeto continua nele.
+        Assert.Contains("PostgreSQL performance specialist", request.System);
+        Assert.Contains("Do not add LIMIT, OFFSET or FETCH", request.System);
+        Assert.Contains("Dialect: PostgreSQL.", request.User);
     }
 }

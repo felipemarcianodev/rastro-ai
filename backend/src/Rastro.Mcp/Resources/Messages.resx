@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Repos.None" xml:space="preserve"><value>No repository configured (Rastro:Repositories).</value></data>
+  <data name="Repos.NoSolution" xml:space="preserve"><value>no solution found</value></data>
+  <data name="Analyze.DepthRange" xml:space="preserve"><value>maxDepth must be between 1 and {0}.</value></data>
+  <data name="Analyze.SolutionError" xml:space="preserve"><value>I could not use that solution: {0}.</value></data>
+  <data name="Analyze.AngularNotHere" xml:space="preserve"><value>Angular code is traced from the Rastro screen, not by this tool.</value></data>
+  <data name="Analyze.Failed" xml:space="preserve"><value>The analysis failed: {0}</value></data>
+  <data name="Analyze.Done" xml:space="preserve"><value>Trace {0} ready: {1} nodes, {2} unresolved.
+Use list_unresolved to see the gaps and get_flow for the whole flow.</value></data>
+  <data name="Surveys.NotFound" xml:space="preserve"><value>Trace not found or it has no graph yet. Use list_surveys.</value></data>
+  <data name="Surveys.None" xml:space="preserve"><value>No traces yet. Use analyze_flow.</value></data>
+  <data name="Surveys.Row" xml:space="preserve"><value>- {0} | {1} | {2}/{3} | {4} | {5} nodes, {6} unresolved</value></data>
+  <data name="Flow.Header" xml:space="preserve"><value>Flow of {0} ({1} nodes). Legend: [inferred] = proposal waiting for the user; [confirmed].</value></data>
+  <data name="Flow.AlreadyListed" xml:space="preserve"><value>already listed above</value></data>
+  <data name="Flow.Cut" xml:space="preserve"><value>… outline cut at {0} lines.</value></data>
+  <data name="Map.Lane" xml:space="preserve"><value>Lane {0}{1}:</value></data>
+  <data name="Map.Block" xml:space="preserve"><value>  {0} {1} {2} {3} ({4} nodes)</value></data>
+  <data name="Map.Outcome" xml:space="preserve"><value>    outcome {0} -&gt; {1}{2}</value></data>
+  <data name="Map.Continues" xml:space="preserve"><value>continues</value></data>
+  <data name="Map.Fails" xml:space="preserve"><value>[exception]</value></data>
+  <data name="Map.Ends" xml:space="preserve"><value>[ends]</value></data>
+  <data name="Map.Links" xml:space="preserve"><value>Links:</value></data>
+  <data name="Map.Paths" xml:space="preserve"><value>Paths{0}:</value></data>
+  <data name="Map.PathsMore" xml:space="preserve"><value> (the first {0}; there are more)</value></data>
+  <data name="Rules.None" xml:space="preserve"><value>No decision in the flow changes the outcome: there are no rules to list.</value></data>
+  <data name="Rules.Duplicated" xml:space="preserve"><value>[duplicated]</value></data>
+  <data name="Rules.FromUser" xml:space="preserve"><value>[written by the user]</value></data>
+  <data name="Rules.Source" xml:space="preserve"><value>  source: {0} in {1}{2}</value></data>
+  <data name="Unresolved.None" xml:space="preserve"><value>No gaps: the compiler resolved every call in this flow.</value></data>
+  <data name="Unresolved.Call" xml:space="preserve"><value>- {0} call `{1}` at {2}</value></data>
+  <data name="Unresolved.Reason" xml:space="preserve"><value>  reason: {0}{1}</value></data>
+  <data name="Unresolved.Proposed" xml:space="preserve"><value>  targets already proposed: {0}. Propose others only if they can also run here.</value></data>
+  <data name="Unresolved.Next" xml:space="preserve"><value>To fill a gap: read the code (get_node_code), find the target (search_methods) and propose it with evidence (propose_edge).</value></data>
+  <data name="Where.Unknown" xml:space="preserve"><value>unknown position</value></data>
+  <data name="Cross.Links" xml:space="preserve"><value>HTTP links between systems: {0}.</value></data>
+  <data name="Cross.Open" xml:space="preserve"><value>HTTP calls with no target: {0}.</value></data>
+  <data name="Cross.OpenRow" xml:space="preserve"><value>- {0} in {1}, {2}: {3}</value></data>
+  <data name="Cross.NoBridge" xml:space="preserve"><value>This trace does not follow HTTP calls to other repositories (no repository in the bridge).</value></data>
+  <data name="Node.NotFound" xml:space="preserve"><value>Node {0} not found.</value></data>
+  <data name="Node.NoLocation" xml:space="preserve"><value>{0} has no position in the code (external or structural).</value></data>
+  <data name="Node.FileMissing" xml:space="preserve"><value>File not found in the repository.</value></data>
+  <data name="Node.System" xml:space="preserve"><value>  (system {0})</value></data>
+  <data name="Node.UnresolvedTag" xml:space="preserve"><value>  ← unresolved: {0}</value></data>
+  <data name="Node.RuleLine" xml:space="preserve"><value>
+    rule: {0}</value></data>
+  <data name="Common.None" xml:space="preserve"><value>none</value></data>
+  <data name="Search.NotInBridge" xml:space="preserve"><value>{0} is not in the bridge of this trace. Repositories in the bridge: {1}.</value></data>
+  <data name="Search.Unavailable" xml:space="preserve"><value>The repository or the solution is no longer available.</value></data>
+  <data name="Search.Angular" xml:space="preserve"><value>Method search does not read Angular code yet.</value></data>
+  <data name="Search.NoMethod" xml:space="preserve"><value>No method with a body contains "{0}".</value></data>
+  <data name="Propose.Accepted" xml:space="preserve"><value>Accepted.</value></data>
+  <data name="Propose.Refused" xml:space="preserve"><value>Refused.</value></data>
+  <data name="Propose.EdgeAccepted" xml:space="preserve"><value>Evidence checked: {0} at {1}:{2}. Inferred edge added with {3} node(s) from the target; waiting for the user's confirmation.</value></data>
+  <data name="Propose.HttpEdgeAccepted" xml:space="preserve"><value>Evidence checked: {0} at {1}:{2}. Inferred HTTP edge added with {3} node(s) of {4} from the target; waiting for the user's confirmation.</value></data>
+  <data name="Propose.RuleSaved" xml:space="preserve"><value>Rule saved on the node.</value></data>
+  <data name="Propose.Written" xml:space="preserve"><value>Saved.</value></data>
+  <data name="Impact.Title" xml:space="preserve"><value>Impact of {0}{1}</value></data>
+  <data name="Impact.NoPath" xml:space="preserve"><value>It is not reachable from the entry.</value></data>
+  <data name="Impact.Paths" xml:space="preserve"><value>It is reached by {0} path(s):</value></data>
+  <data name="Impact.NoDown" xml:space="preserve"><value>Nothing runs after it in this flow.</value></data>
+  <data name="Impact.Down" xml:space="preserve"><value>{0} step(s) run after it and may be affected:</value></data>
+  <data name="Change.NoDraft" xml:space="preserve"><value>This trace has no change draft. The user designs the change in the "Edit flow" mode of the screen.</value></data>
+  <data name="Check.NoDraft" xml:space="preserve"><value>This trace has no draft with changes. The user designs the change in the "Edit flow" mode of the screen.</value></data>
+  <data name="Check.Running" xml:space="preserve"><value>A validation is already running for this trace. Wait and check again.</value></data>
+  <data name="Check.Failed" xml:space="preserve"><value>The validation failed: {0}</value></data>
+  <data name="Check.Done" xml:space="preserve"><value>
+New trace: {0}. Approval (which generates the documentation) belongs to the user, on the screen.</value></data>
+  <data name="Findings.OldSurvey" xml:space="preserve"><value>This trace predates the quality inspection. Trace the flow again (analyze_flow).</value></data>
+  <data name="Findings.None" xml:space="preserve"><value>No quality findings in this flow.</value></data>
+  <data name="Findings.Count" xml:space="preserve"><value>{0} finding(s):
+</value></data>
+  <data name="Findings.OutOfList" xml:space="preserve"><value>Index outside the list. Use list_findings.</value></data>
+  <data name="Db.NotRegistered" xml:space="preserve"><value>Repository not registered. Use list_repositories.</value></data>
+  <data name="Db.NoTables" xml:space="preserve"><value>No table found in the code of this repository (EF Core DbContext, migrations or .sql files).</value></data>
+  <data name="Query.TooLong" xml:space="preserve"><value>Provide a query of up to 100 thousand characters.</value></data>
+  <data name="Rewrite.TooLong" xml:space="preserve"><value>Provide the original query, of up to 100 thousand characters.</value></data>
+  <data name="Rewrite.Nothing" xml:space="preserve"><value>Nothing to check: provide the rewritten query, the indexes or both.</value></data>
+  <data name="Plan.NoLive" xml:space="preserve"><value>This repository has no live database registered. The user registers the connection on the database screen of Rastro (the registration and the connection string are screen-only); then the estimated plan comes through here. Without the live database, use analyze_query, which reads only the code.</value></data>
+  <data name="Plan.Undecipherable" xml:space="preserve"><value>the MCP server could not open the registered connection (the encryption key belongs to the Rastro API). Ask the user to open Rastro once and register the connection again on the database screen.</value></data>
+  <data name="Plan.CannotPlan" xml:space="preserve"><value>Could not ask for the plan: {0}</value></data>
+  <data name="Plan.NotAllowed" xml:space="preserve"><value>Rastro refused the query before asking for the plan: {0}. Nothing was sent to the database.</value></data>
+  <data name="Plan.NotAllowedDefault" xml:space="preserve"><value>query not allowed</value></data>
+  <data name="Plan.NoAnswer" xml:space="preserve"><value>The plan did not come from the live database: {0}.</value></data>
+  <data name="Plan.NoAnswerDefault" xml:space="preserve"><value>the database did not answer</value></data>
+  <data name="Kind.Entry" xml:space="preserve"><value>entry</value></data>
+  <data name="Kind.Method" xml:space="preserve"><value>method</value></data>
+  <data name="Kind.Decision" xml:space="preserve"><value>decision</value></data>
+  <data name="Kind.Loop" xml:space="preserve"><value>loop</value></data>
+  <data name="Kind.Try" xml:space="preserve"><value>try</value></data>
+  <data name="Kind.Return" xml:space="preserve"><value>return</value></data>
+  <data name="Kind.Throw" xml:space="preserve"><value>exception</value></data>
+  <data name="Kind.External" xml:space="preserve"><value>external</value></data>
+  <data name="Kind.Unresolved" xml:space="preserve"><value>unresolved</value></data>
+  <data name="Kind.Jump" xml:space="preserve"><value>jump</value></data>
+  <data name="Reason.MultipleImplementations" xml:space="preserve"><value>more than one implementation and no DI registration decides</value></data>
+  <data name="Reason.NoImplementation" xml:space="preserve"><value>no implementation in the solution</value></data>
+  <data name="Reason.DynamicDispatch" xml:space="preserve"><value>dynamic call or a call that did not compile</value></data>
+  <data name="Reason.Delegate" xml:space="preserve"><value>delegate or event</value></data>
+  <data name="Reason.MessageDispatch" xml:space="preserve"><value>message to a mediator or bus (the detail is the message type)</value></data>
+  <data name="Reason.Reflection" xml:space="preserve"><value>reflection</value></data>
+  <data name="Reason.DepthLimit" xml:space="preserve"><value>depth limit</value></data>
+  <data name="Reason.RouteNotResolved" xml:space="preserve"><value>HTTP call with a route built at run time</value></data>
+  <data name="Reason.NoMatchingEndpoint" xml:space="preserve"><value>HTTP call with no target in any repository of the bridge</value></data>
+  <data name="Reason.MultipleEndpoints" xml:space="preserve"><value>HTTP call that matches more than one target</value></data>
+  <data name="Reason.Unknown" xml:space="preserve"><value>unknown</value></data>
+  <data name="Edge.Inferred" xml:space="preserve"><value>inferred</value></data>
+  <data name="Edge.Confirmed" xml:space="preserve"><value>confirmed</value></data>
+  <data name="Edge.Extracted" xml:space="preserve"><value>extracted</value></data>
+  <data name="Schema.TableNotFound" xml:space="preserve"><value>Table {0} not found in the schema. Call get_db_schema without table to see them all.</value></data>
+  <data name="Schema.Header" xml:space="preserve"><value>Database: {0}. {1} tables, {2} views, {3} procedures, {4} divergences between sources, {5} findings.</value></data>
+  <data name="Schema.Table" xml:space="preserve"><value>Table {0} ({1})</value></data>
+  <data name="Schema.Identity" xml:space="preserve"><value>identity</value></data>
+  <data name="Schema.Personal" xml:space="preserve"><value>personal data by name</value></data>
+  <data name="Schema.TypeDivergent" xml:space="preserve"><value>divergent type</value></data>
+  <data name="Schema.Nullable" xml:space="preserve"><value>accepts null</value></data>
+  <data name="Schema.NotNullable" xml:space="preserve"><value>does not accept null</value></data>
+  <data name="Schema.NullDivergent" xml:space="preserve"><value>divergent nullability</value></data>
+  <data name="Schema.Default" xml:space="preserve"><value>, default {0}</value></data>
+  <data name="Schema.NoPrimaryKey" xml:space="preserve"><value>No primary key.</value></data>
+  <data name="Schema.ForeignKey" xml:space="preserve"><value>FK {0} -&gt; {1} ({2}), on delete: {3} ({4})</value></data>
+  <data name="Schema.Index" xml:space="preserve"><value>Index</value></data>
+  <data name="Schema.IndexNoName" xml:space="preserve"><value>unnamed</value></data>
+  <data name="Schema.IndexUnique" xml:space="preserve"><value> (unique)</value></data>
+  <data name="Schema.IndexIncludes" xml:space="preserve"><value> includes {0}</value></data>
+  <data name="Schema.IndexConvention" xml:space="preserve"><value>EF convention on the FK,</value></data>
+  <data name="Schema.Finding" xml:space="preserve"><value>  Finding: {0} ({1})</value></data>
+  <data name="Schema.FindingFkNoIndex" xml:space="preserve"><value>foreign key {0} without an index: looking up by the FK scans the table</value></data>
+  <data name="Schema.Divergence" xml:space="preserve"><value>  Divergence in {0}{1}: {2}. Rastro does not choose: check the code.</value></data>
+  <data name="Schema.DivergenceIn" xml:space="preserve"><value> in {0}</value></data>
+  <data name="Schema.SourceSays" xml:space="preserve"><value>{0} says {1} ({2})</value></data>
+  <data name="Schema.View" xml:space="preserve"><value>View {0} ({1}): columns {2}; reads {3}.</value></data>
+  <data name="Schema.Procedure" xml:space="preserve"><value>Procedure {0} ({1}): parameters {2}; reads {3}; writes {4}.</value></data>
+  <data name="Schema.ParamOutput" xml:space="preserve"><value> output</value></data>
+  <data name="Schema.Nothing" xml:space="preserve"><value>nothing</value></data>
+  <data name="Schema.Notes" xml:space="preserve"><value>What Rastro could not read:</value></data>
+  <data name="Schema.Cut" xml:space="preserve"><value>(cut at {0} lines: ask for one table with the table parameter)</value></data>
+  <data name="Schema.Source.EfModel" xml:space="preserve"><value>EF model</value></data>
+  <data name="Schema.Source.EfMigration" xml:space="preserve"><value>migration</value></data>
+  <data name="Schema.Source.SqlScript" xml:space="preserve"><value>.sql</value></data>
+  <data name="Schema.Source.LiveDatabase" xml:space="preserve"><value>live database</value></data>
+  <data name="Schema.Delete.NoAction" xml:space="preserve"><value>no action</value></data>
+  <data name="Schema.Delete.Cascade" xml:space="preserve"><value>cascade</value></data>
+  <data name="Schema.Delete.SetNull" xml:space="preserve"><value>sets null</value></data>
+  <data name="Schema.Delete.SetDefault" xml:space="preserve"><value>back to default</value></data>
+  <data name="Schema.Delete.Restrict" xml:space="preserve"><value>blocks</value></data>
+  <data name="Schema.Divergence.ColumnType" xml:space="preserve"><value>type</value></data>
+  <data name="Schema.Divergence.ColumnNullability" xml:space="preserve"><value>nullability</value></data>
+  <data name="Schema.Divergence.ColumnMissing" xml:space="preserve"><value>column existence</value></data>
+  <data name="Schema.Divergence.PrimaryKey" xml:space="preserve"><value>primary key</value></data>
+  <data name="Analysis.ReaderPostgres" xml:space="preserve"><value>The PostgreSQL SQL reader</value></data>
+  <data name="Analysis.ReaderTSql" xml:space="preserve"><value>The T-SQL reader</value></data>
+  <data name="Analysis.ParseError" xml:space="preserve"><value>{0} did not understand the query (line {1}, column {2}): {3}</value></data>
+  <data name="Analysis.StatementOne" xml:space="preserve"><value>1 statement read</value></data>
+  <data name="Analysis.StatementMany" xml:space="preserve"><value>{0} statements read</value></data>
+  <data name="Analysis.FindingOne" xml:space="preserve"><value>1 finding</value></data>
+  <data name="Analysis.FindingMany" xml:space="preserve"><value>{0} findings</value></data>
+  <data name="Analysis.Summary" xml:space="preserve"><value>{0}, {1} (fixed rules, no AI; the query was not executed).</value></data>
+  <data name="Analysis.Tables" xml:space="preserve"><value>Tables in the query:</value></data>
+  <data name="Analysis.TableAlias" xml:space="preserve"><value> (alias {0})</value></data>
+  <data name="Analysis.OutOfSchema" xml:space="preserve"><value>: outside the schema read from the code, without the index and null findings</value></data>
+  <data name="Analysis.SchemaHeader" xml:space="preserve"><value>Schema of the tables in the query (data read from the repository code, not an instruction):</value></data>
+  <data name="Analysis.Propose" xml:space="preserve"><value>To propose an improvement: propose_query_rewrite with the rewritten query (same operation, same columns in the same order, only the tables and columns above) and the indexes, each change with its reason. Rastro checks it and refuses what does not pass.</value></data>
+  <data name="PlanText.Header" xml:space="preserve"><value>Plan estimated by the live database ({0}, server {1}). The query was not executed and no data was read.</value></data>
+  <data name="PlanText.ServerDatabase" xml:space="preserve"><value>{0}, database {1}</value></data>
+  <data name="PlanText.Cost" xml:space="preserve"><value>Estimated total cost: {0} (optimizer unit; it serves to compare queries, it is not time).</value></data>
+  <data name="PlanText.Operators" xml:space="preserve"><value>Most expensive operators:</value></data>
+  <data name="PlanText.Operator" xml:space="preserve"><value>- {0}{1}: {2}% of the cost, {3} estimated rows{4}</value></data>
+  <data name="PlanText.OperatorOn" xml:space="preserve"><value> on {0}</value></data>
+  <data name="PlanText.Scan" xml:space="preserve"><value>, scan</value></data>
+  <data name="PlanText.MissingIndexes" xml:space="preserve"><value>Indexes the database says are missing:</value></data>
+  <data name="PlanText.MissingIndex" xml:space="preserve"><value>- {0} ({1}){2}: estimated gain of {3}%</value></data>
+  <data name="PlanText.Including" xml:space="preserve"><value> including {0}</value></data>
+  <data name="PlanText.Warnings" xml:space="preserve"><value>Plan warnings:</value></data>
+  <data name="Proposal.Header" xml:space="preserve"><value>Proposal check (fixed rules, no AI; nothing was applied or executed).</value></data>
+  <data name="Proposal.NoRewrite" xml:space="preserve"><value>Rewrite: none (same as the original or empty).</value></data>
+  <data name="Proposal.RewriteAccepted" xml:space="preserve"><value>Rewrite: accepted. Findings from the fixed rules: {0} before, {1} after.</value></data>
+  <data name="Proposal.RewriteRefused" xml:space="preserve"><value>Rewrite: refused.</value></data>
+  <data name="Proposal.IndexAccepted" xml:space="preserve"><value>Index accepted on {0} ({1}): {2}</value></data>
+  <data name="Proposal.IndexRefused" xml:space="preserve"><value>Index refused on {0} ({1}): {2}</value></data>
+  <data name="Proposal.CostProblem" xml:space="preserve"><value>Estimated cost on the live database: could not compare. {0}</value></data>
+  <data name="Proposal.Cost" xml:space="preserve"><value>Estimated cost on the live database (estimated plan, not executed): {0} for the original, {1} for the rewrite. A lower cost is no guarantee of lower time; it is a hint.</value></data>
+  <data name="Proposal.Footer" xml:space="preserve"><value>Show the user the accepted rewritten query and the accepted index commands, so they can review and copy them. What was refused: fix it and propose again, without inventing a table or a column. Applying is always up to the user.</value></data>
+</root>

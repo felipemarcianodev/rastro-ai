@@ -58,15 +58,17 @@ rastro repo add minha-api C:\codigo\minha-api --build "dotnet build MinhaApi.sln
 | Comando | O que faz |
 |---|---|
 | `rastro` | Sobe a tela (API e front embutidos), só em `127.0.0.1`, e abre a janela própria |
-| `rastro --sem-janela` | Sobe a tela sem abrir a janela (só o navegador) |
+| `rastro --sem-janela` | Sobe a tela sem abrir a janela (só o navegador). Apelido em inglês: `--no-window` |
 | `rastro repo add/remove/list` | Repositórios que o Rastro pode ler (`~/.rastro/config.json`) |
 | `rastro mcp` | Servidor MCP para o seu agente de IA |
+
+Os nomes dos comandos e das opções (`rastro repo add`, `--build`, `--testes`, `--sem-janela`, `--porta`) são interface estável e não mudam com o idioma. Para quem prefere inglês, valem também os apelidos `--tests`, `--no-window` e `--port`, ao lado dos nomes em português. A ajuda (`rastro --help`) e as mensagens do terminal saem no idioma do `config.json`.
 
 Os dados ficam em `~/.rastro` (banco SQLite `rastro.db`, `config.json` e, depois da primeira janela, `janela/` com o cache do WebView); a variável `RASTRO_HOME` troca a pasta.
 
 ### Idioma
 
-O Rastro fala inglês, português do Brasil e espanhol. O idioma vale para a tela, a API, a CLI e o MCP, e se escolhe em Configurações, em Aparência. A escolha fica no `config.json` (`Rastro:Language`, com `en-US`, `pt-BR` ou `es`); sem ela, vale o idioma do sistema operacional, com o inglês de reserva quando o sistema está em outro idioma. A tela manda o idioma em cada chamada (`Accept-Language`); sem o cabeçalho (curl, agente), a API usa o do `config.json`. A paleta e o tema continuam só no navegador.
+O Rastro fala inglês, português do Brasil e espanhol. O idioma vale para a tela, a API, a CLI e o MCP, e se escolhe em Configurações, em Aparência. A escolha fica no `config.json` (`Rastro:Language`, com `en-US`, `pt-BR` ou `es`); sem ela, vale o idioma do sistema operacional, com o inglês de reserva quando o sistema está em outro idioma. A tela manda o idioma em cada chamada (`Accept-Language`); sem o cabeçalho (curl, agente), a API usa o do `config.json`. A CLI (ajuda e mensagens, inclusive `rastro repo`) também segue o `config.json`, e o MCP lê o idioma de novo a cada chamada: trocar na tela vale na resposta seguinte, sem reiniciar o agente. Os nomes de comando e de opção não mudam. A paleta e o tema continuam só no navegador.
 
 ## IA opcional e plugável
 
@@ -93,7 +95,7 @@ Regra que não se quebra: `Rastro.Core` e `Rastro.Extractor` **nunca** referenci
 claude mcp add rastro -- rastro mcp
 ```
 
-Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt`, `get_c4`, `get_db_schema`, `analyze_query`, `propose_query_rewrite` e `get_query_plan`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
+As instruções do MCP e as descrições das ferramentas são em inglês, porque o agente as lê uma vez, ao conectar, e as entende melhor assim. O que as ferramentas devolvem sai no idioma que você escolheu no Rastro, e o agente responde a você no idioma em que você escreve. Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt`, `get_c4`, `get_db_schema`, `analyze_query`, `propose_query_rewrite` e `get_query_plan`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
 
 - Toda proposta passa pelo validador de prova: o compilador confere o método de destino e o `arquivo:linha`. Prova errada volta recusada, com o motivo.
 - Proposta aceita entra como **inferida**. **Só você confirma ou descarta**, na tela; o agente não tem ferramenta para isso.

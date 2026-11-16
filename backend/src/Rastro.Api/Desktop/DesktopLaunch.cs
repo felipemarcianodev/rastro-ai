@@ -18,12 +18,15 @@ public enum WindowSkipReason
 public static class DesktopLaunch
 {
     public const string NoWindowFlag = "--sem-janela";
+    // Apelido em inglês (ADR-009): o nome em português continua valendo.
+    public const string NoWindowFlagEnglish = "--no-window";
 
     // Tira o --sem-janela dos argumentos antes da configuração: sem valor, o leitor de linha de comando do .NET
     // tomaria o argumento seguinte (--porta) como valor dele.
     public static (bool NoWindow, string[] HostArgs) ExtractFlag(string[] args)
     {
-        var hostArgs = args.Where(a => !string.Equals(a, NoWindowFlag, StringComparison.Ordinal)).ToArray();
+        var hostArgs = args.Where(a => !string.Equals(a, NoWindowFlag, StringComparison.Ordinal)
+            && !string.Equals(a, NoWindowFlagEnglish, StringComparison.Ordinal)).ToArray();
         return (hostArgs.Length != args.Length, hostArgs);
     }
 

@@ -440,7 +440,7 @@ public class SurveysController(
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
         if (survey?.ReadGraph() is not { } graph) return NotFound();
-        return Ok(FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph)));
+        return Ok(FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph), RequestLanguage.Current));
     }
 
     // Perguntas prontas sobre o fluxo (Fase 33), respondidas pelo mapa e pelas regras, sem IA.
@@ -450,7 +450,7 @@ public class SurveysController(
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
         if (survey?.ReadGraph() is not { } graph) return NotFound();
         var map = FlowMapBuilder.Build(graph);
-        return Ok(FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map), RequestLanguage.Current));
+        return Ok(FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map, RequestLanguage.Current), RequestLanguage.Current));
     }
 
     // Regra cruzada entre fluxos (Fase 13): compara com o levantamento pronto mais recente de cada

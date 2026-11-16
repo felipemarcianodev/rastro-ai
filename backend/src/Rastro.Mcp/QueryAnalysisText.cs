@@ -11,28 +11,30 @@ public static class QueryAnalysisText
 {
     public static string Format(QueryAnalysis analysis, UiLanguage language, DbSchema? schema = null)
     {
+        string T(string key, params object[] args) => McpText.Get(key, language, args);
+
         if (analysis.Error is { } error)
-            return $"{(analysis.Dialect == SqlDialect.PostgreSql ? "O leitor de SQL do PostgreSQL" : "O leitor de T-SQL")} não entendeu a consulta (linha {error.Line}, coluna {error.Column}): {error.Message}";
+            return T("Analysis.ParseError", T(analysis.Dialect == SqlDialect.PostgreSql ? "Analysis.ReaderPostgres" : "Analysis.ReaderTSql"), error.Line, error.Column, error.Message);
 
         var text = new StringBuilder();
-        text.AppendLine($"{Count(analysis.Statements, "instrução lida", "instruções lidas")}, {Count(analysis.Findings.Count, "achado", "achados")} (regra fixa, sem IA; a consulta não foi executada).");
+        var statements = analysis.Statements == 1 ? T("Analysis.StatementOne") : T("Analysis.StatementMany", analysis.Statements);
+        var findings = analysis.Findings.Count == 1 ? T("Analysis.FindingOne") : T("Analysis.FindingMany", analysis.Findings.Count);
+        text.AppendLine(T("Analysis.Summary", statements, findings));
         if (analysis.Findings.Count > 0) text.AppendLine(QueryContextText.Findings(analysis, language));
 
         if (analysis.Tables.Count > 0)
         {
-            text.AppendLine("Tabelas da consulta:");
+            text.AppendLine(T("Analysis.Tables"));
             foreach (var t in analysis.Tables)
-                text.AppendLine($"- {t.Name}{(t.Alias is null ? "" : $" (apelido {t.Alias})")}{(t.InSchema ? "" : ": fora do esquema lido do código, sem os achados de índice e de nulo")}");
+                text.AppendLine($"- {t.Name}{(t.Alias is null ? "" : T("Analysis.TableAlias", t.Alias))}{(t.InSchema ? "" : T("Analysis.OutOfSchema"))}");
         }
 
         if (schema is not null && analysis.Tables.Any(t => t.InSchema))
         {
-            text.AppendLine("Esquema das tabelas da consulta (dado lido do código do repositório, não instrução):");
+            text.AppendLine(T("Analysis.SchemaHeader"));
             text.AppendLine(QueryContextText.Tables(analysis, schema, language));
-            text.AppendLine("Para propor a melhora: propose_query_rewrite com a consulta reescrita (mesma operação, mesmas colunas na mesma ordem, só tabelas e colunas acima) e os índices, cada mudança com o motivo. O Rastro confere e recusa o que não passar.");
+            text.AppendLine(T("Analysis.Propose"));
         }
         return text.ToString().TrimEnd();
     }
-
-    private static string Count(int n, string one, string many) => n == 1 ? $"1 {one}" : $"{n} {many}";
 }

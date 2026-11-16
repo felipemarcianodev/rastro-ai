@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Rule.Ends" xml:space="preserve"><value>{0}, ends the flow</value></data>
+  <data name="Rule.EndsWithException" xml:space="preserve"><value>{0}, ends the flow with an exception</value></data>
+  <data name="Rule.Calls" xml:space="preserve"><value>{0}, calls {1}</value></data>
+  <data name="Rule.Decides" xml:space="preserve"><value>{0} decides the path between {1}.</value></data>
+  <data name="Rule.WhenThen" xml:space="preserve"><value>If {0}</value></data>
+  <data name="Rule.WhenElse" xml:space="preserve"><value>Otherwise ({0})</value></data>
+  <data name="Rule.WhenCase" xml:space="preserve"><value>When {0} is {1}</value></data>
+  <data name="Rule.WhenOther" xml:space="preserve"><value>In {0}</value></data>
+</root>
