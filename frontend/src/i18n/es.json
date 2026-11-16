@@ -470,7 +470,7 @@
       "goes": "tu pregunta, el mapa del flujo (nombres de métodos y archivo:línea), las reglas y hasta 8 fragmentos de código alrededor de las entradas y las decisiones",
       "answerLabel": "Respuesta",
       "providerAnswer": "respuesta de la IA ({provider})",
-      "gap": "Laguna:",
+      "gap": "Hueco:",
       "sources": "Fuentes:",
       "pickStepTitle": "Elegir el paso en el flujo"
     }
@@ -554,8 +554,8 @@
         "break": "Sale del bucle",
         "continue": "Salta al siguiente"
       },
-      "branchThen": "Si sí",
-      "branchElse": "Si no",
+      "branchThen": "Si se cumple",
+      "branchElse": "Si no se cumple",
       "branchDefault": "En los demás casos",
       "branchCase": "Caso {value}",
       "branchOr": "{text} o {part}",
@@ -743,7 +743,7 @@
     "buildTests": "Compilación y pruebas del repositorio",
     "viewOutput": "Ver la salida",
     "docTitle": "Documentación del flujo",
-    "openNew": "Abrir el flujo nuevo comparado",
+    "openNew": "Abrir el flujo nuevo de la comparación",
     "openNewTitle": "Abre el flujo nuevo con el original encima: lo que entró en azul, lo que salió en rojo (allí puedes dejar de comparar)",
     "revalidate": "Validar de nuevo",
     "download": "Descargar documentación",
@@ -846,7 +846,7 @@
     "loadingList": "Cargando rastreos…",
     "empty": {
       "none": "Aún no hay rastreos.",
-      "hint": "Usa \"Rastrear flujo\" en un repositorio para seguir tu primer rastro."
+      "hint": "Usa \"Rastrear flujo\" en un repositorio para seguir tu primer rastreo."
     },
     "searchLabel": "Buscar rastreo",
     "searchPlaceholder": "Buscar por punto de entrada, repositorio o proyecto",
@@ -1282,7 +1282,7 @@
     "aiNever": "Los datos de las tablas y la cadena de conexión nunca se envían.",
     "aiGone": "La IA está desactivada ahora. La sugerencia de abajo se recibió antes y sigue aquí; para pedir otra, activa el uso de sugerencias en",
     "aiOffBefore": "¿Quieres una sugerencia de mejora hecha por la IA? Activa el uso de sugerencias en",
-    "aiOffAfter": ". Sin eso, el análisis sigue solo con las reglas fijas.",
+    "aiOffAfter": ". Sin las sugerencias, el análisis sigue solo con las reglas fijas.",
     "openSettings": "Abrir la configuración",
     "sideAria": "Plan y tablas de la consulta",
     "tablesTitle": "Tablas de la consulta",

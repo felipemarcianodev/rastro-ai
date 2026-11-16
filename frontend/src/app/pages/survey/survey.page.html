@@ -12,7 +12,7 @@
     <header class="page-bar">
       <a class="page-back" routerLink="/" [attr.aria-label]="'survey.backToList' | translate">←</a>
       <div class="page-bar-title">
-        <h1 class="code">{{ d.survey.entryPoint }}</h1>
+        <h1 class="code" [title]="d.survey.entryPoint">{{ d.survey.entryPoint }}</h1>
         <div class="page-bar-meta">
           <span>{{ d.survey.repository }}</span>
           <span class="code muted meta-path" [title]="d.survey.solutionPath">{{ d.survey.solutionPath }}</span>

@@ -111,3 +111,15 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 50 | Rastro multilíngue: o mapa do banco em espanhol, com os avisos do leitor de esquema no idioma da tela | [fase-50/banco-1-es.png](fase-50/banco-1-es.png) |
 | Fase 52 | Print do README em inglês: um levantamento do próprio Rastro na tela em inglês | [readme/fluxo-en-US.png](readme/fluxo-en-US.png) |
 | Fase 52 | Print do README em espanhol: o mesmo fluxo na tela em espanhol | [readme/fluxo-es.png](readme/fluxo-es.png) |
+| Fase 53 | Conferência visual: a lista de levantamentos em espanhol, em 1440 px | [fase-53/tela-1-1440-es.png](fase-53/tela-1-1440-es.png) |
+| Fase 53 | Conferência visual: a lista de levantamentos em espanhol, em 360 px | [fase-53/tela-1-360-es.png](fase-53/tela-1-360-es.png) |
+| Fase 53 | Conferência visual: o levantamento em espanhol, em 1440 px | [fase-53/tela-2-1440-es.png](fase-53/tela-2-1440-es.png) |
+| Fase 53 | Conferência visual: o levantamento em espanhol, em 360 px | [fase-53/tela-2-360-es.png](fase-53/tela-2-360-es.png) |
+| Fase 53 | Conferência visual: a visão consolidada em espanhol, em 1440 px | [fase-53/tela-3-1440-es.png](fase-53/tela-3-1440-es.png) |
+| Fase 53 | Conferência visual: a visão consolidada em espanhol, em 360 px | [fase-53/tela-3-360-es.png](fase-53/tela-3-360-es.png) |
+| Fase 53 | Conferência visual: o mapa do banco em espanhol, em 1440 px | [fase-53/tela-4-1440-es.png](fase-53/tela-4-1440-es.png) |
+| Fase 53 | Conferência visual: o mapa do banco em espanhol, em 360 px | [fase-53/tela-4-360-es.png](fase-53/tela-4-360-es.png) |
+| Fase 53 | Conferência visual: as Configurações em espanhol, em 1440 px | [fase-53/tela-5-1440-es.png](fase-53/tela-5-1440-es.png) |
+| Fase 53 | Conferência visual: as Configurações em espanhol, em 360 px | [fase-53/tela-5-360-es.png](fase-53/tela-5-360-es.png) |
+| Fase 53 | Conferência visual: o levantamento em 360 px, em português | [fase-53/tela-2-360-pt-BR.png](fase-53/tela-2-360-pt-BR.png) |
+| Fase 53 | Conferência visual: o levantamento em 360 px, em inglês | [fase-53/tela-2-360-en-US.png](fase-53/tela-2-360-en-US.png) |

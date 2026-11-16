@@ -79,7 +79,7 @@ public sealed class CliLanguageTests : IDisposable
         Assert.Contains("Ya existe un repositorio llamado loja", repeated.Error);
         Assert.Contains("rastro repo remove loja", repeated.Error);
         Assert.StartsWith("Invalid name", badName.Error);
-        Assert.StartsWith("Repositorio loja quitado", removed.Output);
+        Assert.StartsWith("Repositorio loja eliminado", removed.Output);
         Assert.Equal("No repository named loja.\n", unknown.Error.Replace("\r\n", "\n"));
     }
 
