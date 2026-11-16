@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Rastro.Core.Validation;
@@ -19,7 +20,7 @@ public sealed class LocalCommandRunnerTests : IDisposable
     {
         var repo = new RepositoryOptions { Name = "fixture", Path = _repo, BuildCommand = "dotnet --version" };
 
-        var check = await Runner().RunAsync("Build", repo, ValidationCommand.Build, _repo, CancellationToken.None);
+        var check = await Runner().RunAsync("Build", repo, ValidationCommand.Build, _repo, UiLanguage.Portuguese, CancellationToken.None);
 
         Assert.Equal(CheckStatus.Passed, check.Status);
     }
@@ -35,7 +36,7 @@ public sealed class LocalCommandRunnerTests : IDisposable
             Environment = { ["GIT_DIR"] = "pasta-que-nao-existe-rastro" }
         };
 
-        var check = await Runner().RunAsync("Testes", repo, ValidationCommand.Test, _repo, CancellationToken.None);
+        var check = await Runner().RunAsync("Testes", repo, ValidationCommand.Test, _repo, UiLanguage.Portuguese, CancellationToken.None);
 
         Assert.Equal(CheckStatus.Failed, check.Status);
         Assert.Contains("pasta-que-nao-existe-rastro", check.Detail);
@@ -46,7 +47,7 @@ public sealed class LocalCommandRunnerTests : IDisposable
     {
         var repo = new RepositoryOptions { Name = "fixture", Path = _repo };
 
-        var check = await Runner().RunAsync("Testes", repo, ValidationCommand.Test, _repo, CancellationToken.None);
+        var check = await Runner().RunAsync("Testes", repo, ValidationCommand.Test, _repo, UiLanguage.Portuguese, CancellationToken.None);
 
         Assert.Equal(CheckStatus.Skipped, check.Status);
     }

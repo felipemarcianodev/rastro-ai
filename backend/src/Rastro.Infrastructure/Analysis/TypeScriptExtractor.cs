@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Rastro.Core.Failures;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 using Rastro.Extractor;
 using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Processes;
@@ -13,7 +14,7 @@ namespace Rastro.Infrastructure.Analysis;
 
 public interface ITypeScriptExtractor
 {
-    Task<ExtractionResult> ExtractAsync(ResolvedTarget target, string entryPoint, int maxDepth, CancellationToken ct);
+    Task<ExtractionResult> ExtractAsync(ResolvedTarget target, string entryPoint, int maxDepth, UiLanguage language, CancellationToken ct);
 }
 
 // Extrator Angular (ADR-005): roda o script Node (extractor-ts/extract.mjs) pelo ProcessRunner, sem shell e com
@@ -28,7 +29,7 @@ public sealed class TypeScriptExtractor(
 
     private sealed record ScriptOutput(FlowGraph? Graph, List<ScriptHttpCall>? HttpCalls, string? Error);
 
-    public async Task<ExtractionResult> ExtractAsync(ResolvedTarget target, string entryPoint, int maxDepth, CancellationToken ct)
+    public async Task<ExtractionResult> ExtractAsync(ResolvedTarget target, string entryPoint, int maxDepth, UiLanguage language, CancellationToken ct)
     {
         var script = scriptPath ?? Path.Combine(AppContext.BaseDirectory, "extractor-ts", "extract.mjs");
         if (!File.Exists(script))
@@ -42,7 +43,7 @@ public sealed class TypeScriptExtractor(
         try
         {
             result = await ProcessRunner.RunAsync(NodeCommand.FileName,
-                [script, "--root", target.RepositoryRoot, "--project", target.SolutionRelativePath, "--entry", entryPoint, "--depth", maxDepth.ToString(System.Globalization.CultureInfo.InvariantCulture)],
+                [script, "--root", target.RepositoryRoot, "--project", target.SolutionRelativePath, "--entry", entryPoint, "--depth", maxDepth.ToString(System.Globalization.CultureInfo.InvariantCulture), "--lang", language.Code()],
                 target.RepositoryRoot, timeout, ct);
         }
         catch (TimeoutException ex)

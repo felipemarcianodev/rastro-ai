@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Quality.CatchAny" xml:space="preserve"><value>tudo</value></data>
+  <data name="Quality.HighComplexity" xml:space="preserve"><value>{0} tem complexidade ciclomática {1} (limite {2}): caminhos demais para testar e entender.</value></data>
+  <data name="Quality.LongMethod" xml:space="preserve"><value>{0} tem {1} linhas (limite {2}): faz coisas demais.</value></data>
+  <data name="Quality.DeepNesting" xml:space="preserve"><value>{0} tem {1} níveis de blocos um dentro do outro (limite {2}).</value></data>
+  <data name="Quality.TooManyDependencies" xml:space="preserve"><value>{0} recebe {1} dependências no construtor (limite {2}): sinal de responsabilidades demais.</value></data>
+  <data name="Quality.PublicSetter" xml:space="preserve"><value>{0} tem setter público em {1} propriedade(s) ({2}): qualquer camada muda o estado sem passar pela regra da entidade.</value></data>
+  <data name="Quality.CatchEmpty" xml:space="preserve"><value>catch ({0}) vazio: a falha some sem log nem tratamento.</value></data>
+  <data name="Quality.CatchSilent" xml:space="preserve"><value>catch ({0}) sem log, sem relançar e sem usar a exceção: a causa da falha se perde.</value></data>
+  <data name="Quality.LocatorHosted" xml:space="preserve"><value>{0} resolve dependência com {1} (comum em job e serviço em segundo plano, que abrem escopo): confira se não dá para injetar.</value></data>
+  <data name="Quality.Locator" xml:space="preserve"><value>{0} resolve dependência com {1} (service locator): a dependência fica escondida do construtor.</value></data>
+  <data name="Quality.EntityChangedOutsideDomain" xml:space="preserve"><value>{0} altera {1}.{2} direto, fora da entidade e do serviço de domínio que a valida.</value></data>
+  <data name="Quality.PersistenceOutsideDomain" xml:space="preserve"><value>{0} grava {1} com {2}.{3} direto, sem passar por um serviço de domínio que valide a entidade.</value></data>
+  <data name="Flow.DepthLimit" xml:space="preserve"><value>limite de profundidade</value></data>
+  <data name="Db.RawSql" xml:space="preserve"><value>SQL cru</value></data>
+  <data name="Db.QueryInLoop" xml:space="preserve"><value>{0} consulta {1} dentro de um laço: uma ida ao banco a cada volta (N+1). Traga os dados antes do laço, com Include ou com um Where que use Contains.</value></data>
+  <data name="Db.QueryInLoopCall" xml:space="preserve"><value>{0} chama {1} dentro de um laço, e ele consulta {2}: uma ida ao banco a cada volta (N+1). Traga os dados antes do laço.</value></data>
+  <data name="Db.QueryInLoopChain" xml:space="preserve"><value>{0} chama {1} dentro de um laço, e ele chega a {2}, que consulta {3}: uma ida ao banco a cada volta (N+1). Traga os dados antes do laço.</value></data>
+  <data name="Db.WriteInLoop" xml:space="preserve"><value>{0} grava em {1} com {2} dentro de um laço: uma ida ao banco a cada volta (N+1 de escrita). Agrupe a gravação fora do laço, com um Where que use Contains sobre os ids.</value></data>
+  <data name="Db.WriteInLoopCall" xml:space="preserve"><value>{0} chama {1} dentro de um laço, e ele grava em {2} com {3}: uma ida ao banco a cada volta (N+1 de escrita). Agrupe a gravação fora do laço.</value></data>
+  <data name="Db.WriteInLoopChain" xml:space="preserve"><value>{0} chama {1} dentro de um laço, e ele chega a {2}, que grava em {3} com {4}: uma ida ao banco a cada volta (N+1 de escrita). Agrupe a gravação fora do laço.</value></data>
+  <data name="Db.LoadToDelete" xml:space="preserve"><value>{0} traz {1} com {2} só para apagar com {3}: o EF lê cada linha e depois manda um DELETE por linha. Use ExecuteDeleteAsync sobre o Where (ele devolve quantas linhas apagou) e apaga numa instrução só.</value></data>
+  <data name="Db.MaterializeBeforeFilter" xml:space="preserve"><value>{0} traz {1} com {2} e só depois aplica {3}: o filtro roda na memória, depois de ler a tabela. Ponha o {3} antes do {2}.</value></data>
+  <data name="Db.MaterializeBeforeFilterCall" xml:space="preserve"><value>{0} recebe {1} de {2}, que já a trouxe com {4} (a tabela inteira, sem este filtro), e só depois aplica {5}: o filtro roda na memória. Passe o critério para {3} filtrar antes do {4}.</value></data>
+  <data name="Db.MaterializeBeforeFilterChain" xml:space="preserve"><value>{0} recebe {1} de {2}, que repassa o resultado de {3}, e este já a trouxe com {4} (a tabela inteira, sem este filtro), e só depois aplica {5}: o filtro roda na memória. Passe o critério para {3} filtrar antes do {4}.</value></data>
+  <data name="Db.LeadingWildcardLike" xml:space="preserve"><value>{0} busca em {1} com um LIKE que começa por curinga ({2}): o banco não usa índice B-tree e lê a tabela inteira. Se a busca é por prefixo, tire o % do começo; no meio do texto, use índice trigram (PostgreSQL) ou busca de texto completo.</value></data>
+  <data name="Db.ReadWithoutNoTracking" xml:space="preserve"><value>{0} só lê {1} e não pede AsNoTracking: o EF rastreia entidades que este método não grava. Se a leitura não alimenta uma gravação, use AsNoTracking.</value></data>
+  <data name="Db.ProcedureByRawSql" xml:space="preserve"><value>{0} chama a procedure {1} por {2}: o compilador não confere o nome nem os parâmetros.{3}</value></data>
+  <data name="Db.ProcedureMissing" xml:space="preserve"><value> Ela não aparece nos arquivos .sql do repositório.</value></data>
+</root>

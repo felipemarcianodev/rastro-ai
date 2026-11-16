@@ -3,6 +3,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 using static Rastro.Extractor.Database.CsSyntax;
 
 namespace Rastro.Extractor.Database;
@@ -14,7 +16,7 @@ namespace Rastro.Extractor.Database;
 // O índice que o EF cria por convenção em cada chave estrangeira é deduzido e marcado (Convention).
 // Limites, que viram nota quando aparecem: tipo próprio (OwnsOne, OwnsMany) e configuração montada em
 // tempo de execução.
-internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
+internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect, UiLanguage language)
 {
     private const SchemaSourceKind Kind = SchemaSourceKind.EfModel;
 
@@ -37,7 +39,7 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
             }
 
         var tables = _entities.Values
-            .Where(e => e.Ready(code, _notes))
+            .Where(e => e.Ready(code, _notes, language))
             .ToList();
         foreach (var entity in tables) Resolve(entity);
         var relations = tables.SelectMany(Relations).ToList();
@@ -183,7 +185,7 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
                     property = null; index = null;
                     break;
                 case "OwnsOne" or "OwnsMany":
-                    _notes.Add(new SchemaNote($"Tipo próprio ({name}) em {entity.ClrName} não é lido: as colunas dele ficam de fora.", file, source.Line));
+                    _notes.Add(new SchemaNote(Txt.Get("Schema.OwnedType", language, name, entity.ClrName), file, source.Line));
                     return;
                 default:
                     if (property is not null) ApplyProperty(property, name, call, source);
@@ -287,7 +289,7 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
                 // com ou sem HasConversion, ou [Column(TypeName)]): é uma coluna só.
                 entity.Scalars.Add(new Scalar(name, element is null ? typeName : $"{typeName}<{element}>", nullableAnnotated, property, propertyFile));
             else if (element is null && code.FindClass(typeName) is not null)
-                _notes.Add(new SchemaNote($"{entity.ClrName}.{name} é do tipo {typeName}, que não é entidade do modelo: a propriedade ficou de fora.", propertyFile, Line(property)));
+                _notes.Add(new SchemaNote(Txt.Get("Schema.PropertyNotEntity", language, entity.ClrName, name, typeName), propertyFile, Line(property)));
         }
 
         if (entity.Key is null && !entity.NoKey)
@@ -448,7 +450,7 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
         var type = config?.Type ?? columnAttrType
             ?? ClrTypeMap.Map(dialect, new ClrColumn(scalar.Type, code.EnumUnderlying(scalar.Type), maxLength, precision, scale, unicode, keyLike));
         if (type is null)
-            _notes.Add(new SchemaNote($"{entity.ClrName}.{scalar.Name}: o tipo da coluna sai da convenção do provedor, e o Rastro ainda não conhece a do {dialect}.", scalar.File, Line(declaration)));
+            _notes.Add(new SchemaNote(Txt.Get("Schema.ColumnTypeConvention", language, entity.ClrName, scalar.Name, dialect), scalar.File, Line(declaration)));
 
         var required = config?.Required ?? (Attr(declaration, "Required", out _) is not null ? true : null);
         var nullable = !isKey && (required is { } r ? !r : scalar.NullableAnnotated);
@@ -587,11 +589,11 @@ internal sealed class EfModelReader(CodeIndex code, SqlDialect dialect)
         }
 
         // A classe da entidade precisa estar no repositório; sem ela, a tabela fica de fora com uma nota.
-        public bool Ready(CodeIndex code, List<SchemaNote> notes)
+        public bool Ready(CodeIndex code, List<SchemaNote> notes, UiLanguage language)
         {
             Declaration = code.FindClass(ClrName);
             if (Declaration is null)
-                notes.Add(new SchemaNote($"A entidade {ClrName} não foi encontrada no repositório: a tabela dela ficou de fora.", Source.File, Source.Line));
+                notes.Add(new SchemaNote(Txt.Get("Schema.EntityNotFound", language, ClrName), Source.File, Source.Line));
             return Declaration is not null;
         }
     }

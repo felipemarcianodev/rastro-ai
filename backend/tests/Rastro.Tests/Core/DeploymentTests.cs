@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Microsoft.Extensions.Logging.Abstractions;
 using Rastro.Core;
 using Rastro.Core.Architecture;
@@ -85,7 +86,7 @@ public class DeploymentTests : IDisposable
             [new FlowEdge("m:post", "m:save", 1, EdgeConfidence.Extracted)]);
         var map = new DeploymentMap([new DeployedService("api", ["Shop.Api", "Shop.Domain"], ".NET")], "db (postgres:16-alpine)");
 
-        var dsl = C4WorkspaceBuilder.Build(new PromptContext("shop", "Shop.slnx", "OrderController.Post", null), graph, [], map);
+        var dsl = C4WorkspaceBuilder.Build(new PromptContext("shop", "Shop.slnx", "OrderController.Post", null), UiLanguage.Portuguese, graph, [], map);
 
         Assert.Contains("cont1 = container \"api\" \"Serviço do docker-compose com Shop.Api, Shop.Domain.\"", dsl);
         Assert.DoesNotContain("container \"Shop.Domain\"", dsl);

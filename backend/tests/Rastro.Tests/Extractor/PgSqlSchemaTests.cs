@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -10,14 +11,14 @@ namespace Rastro.Tests.Extractor;
 // COPY e um arquivo quebrado).
 public class PgSqlSchemaTests
 {
-    private static readonly Lazy<DbSchema> Loja = new(() => DbSchemaExtractor.Extract(LojaBancoPg.Files()));
+    private static readonly Lazy<DbSchema> Loja = new(() => DbSchemaExtractor.Extract(LojaBancoPg.Files(), null, UiLanguage.Portuguese));
 
     private static DbTable Table(string name) => Assert.Single(Loja.Value.Tables, t => t.Name == name);
 
     private static DbColumn Column(string table, string column) => Assert.Single(Table(table).Columns, c => c.Name == column);
 
     private static DbSchema FromSql(params (string File, string Text)[] files) =>
-        DbSchemaExtractor.Extract(files.Select(f => new SchemaFile(f.File, f.Text)).ToList());
+        DbSchemaExtractor.Extract(files.Select(f => new SchemaFile(f.File, f.Text)).ToList(), null, UiLanguage.Portuguese);
 
     [Fact] // EXT-PG-001
     public void Extract_LojaComUseNpgsql_DialetoPostgreSqlComAsTresFontes()

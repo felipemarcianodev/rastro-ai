@@ -1,4 +1,5 @@
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
 
 namespace Rastro.Extractor;
 
@@ -19,4 +20,8 @@ public record ExtractionOptions
     // Fase 39: o esquema do banco do repositório inteiro (o mesmo da tela do banco), para dar o nome da
     // tabela de cada DbSet e saber quais procedures estão nos .sql. Nulo: lido dos documentos da solution.
     public DbSchema? Schema { get; init; }
+
+    // ADR-009: o idioma do texto dos achados que o levantamento grava no grafo (qualidade e acesso ao banco).
+    // O texto fica gravado no idioma em que nasceu. Quem chama passa o idioma efetivo do Rastro; sem isso, inglês.
+    public UiLanguage Language { get; init; } = UiLanguage.English;
 }

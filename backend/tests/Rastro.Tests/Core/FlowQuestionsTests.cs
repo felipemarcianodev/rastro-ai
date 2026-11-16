@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core;
 using Rastro.Core.Graph;
 
@@ -9,7 +10,7 @@ public class FlowQuestionsTests
     private static IReadOnlyList<FlowQuestion> Questions(FlowGraph graph)
     {
         var map = FlowMapBuilder.Build(graph);
-        return FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map));
+        return FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map), UiLanguage.Portuguese);
     }
 
     [Fact] // CORE-ASK-001
@@ -109,8 +110,8 @@ public class FlowQuestionsTests
     {
         var graph = FlowMapBuilderTests.Loja();
 
-        var partial = FlowQuestions.Verify(graph, new FlowAnswer("ok", AnswerSeal.Inferred, ["m:svc", "m:inventado"]));
-        var none = FlowQuestions.Verify(graph, new FlowAnswer("ok", AnswerSeal.Inferred, ["m:inventado"]));
+        var partial = FlowQuestions.Verify(graph, new FlowAnswer("ok", AnswerSeal.Inferred, ["m:svc", "m:inventado"]), UiLanguage.Portuguese);
+        var none = FlowQuestions.Verify(graph, new FlowAnswer("ok", AnswerSeal.Inferred, ["m:inventado"]), UiLanguage.Portuguese);
 
         Assert.Equal(["m:svc"], partial.Sources);
         Assert.Equal(AnswerSeal.Inferred, partial.Seal);

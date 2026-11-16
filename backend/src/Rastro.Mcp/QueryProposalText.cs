@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Text;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
 
 namespace Rastro.Mcp;
 
@@ -19,7 +20,7 @@ public record QueryIndexInput(
 // A conferência da proposta em texto para o agente: o que passou, o que foi recusado e por quê.
 public static class QueryProposalText
 {
-    public static string Format(QueryProposalReview review)
+    public static string Format(QueryProposalReview review, UiLanguage language)
     {
         var text = new StringBuilder("Conferência da proposta (regra fixa, sem IA; nada foi aplicado nem executado).\n");
         switch (review.Rewrite)
@@ -29,7 +30,7 @@ public static class QueryProposalText
                 break;
             case { Accepted: true, After: var after }:
                 text.AppendLine($"Reescrita: aceita. Achados das regras fixas: {review.FindingsBefore} antes, {after?.Findings.Count ?? 0} depois.");
-                if (after is { Findings.Count: > 0 }) text.AppendLine(QueryContextText.Findings(after));
+                if (after is { Findings.Count: > 0 }) text.AppendLine(QueryContextText.Findings(after, language));
                 break;
             case var refused:
                 text.AppendLine("Reescrita: recusada.");

@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -10,7 +11,7 @@ public class PgSqlQueryAnalyzerTests
 {
     private static readonly Lazy<DbSchema> Loja = new(() => DbSchemaExtractor.Extract(LojaBancoPg.Files()));
 
-    private static QueryAnalysis Analyze(string sql) => new PgSqlQueryAnalyzer().Analyze(sql, Loja.Value);
+    private static QueryAnalysis Analyze(string sql) => new PgSqlQueryAnalyzer().Analyze(sql, Loja.Value, UiLanguage.Portuguese);
 
     private static QueryFinding One(string sql, QueryFindingKind kind) => Assert.Single(Analyze(sql).Findings, f => f.Kind == kind);
 
@@ -252,6 +253,6 @@ public class PgSqlQueryAnalyzerTests
         Assert.Equal([QueryFindingKind.FunctionOnFilterColumn, QueryFindingKind.LeadingWildcardLike, QueryFindingKind.ColumnWithoutIndex], findings.Select(f => f.Kind));
         Assert.Equal("c.email ILIKE '%@gmail.com'", Marked(sql, findings[1]));
         Assert.Equal("c.nome", Marked(sql, findings[2]));
-        Assert.True(PgSqlPlanGuard.Check("SELECT id FROM clientes WHERE email LIKE '%a' AND id BETWEEN 1 AND 2 OR nome = 'x'").Allowed);
+        Assert.True(PgSqlPlanGuard.Check("SELECT id FROM clientes WHERE email LIKE '%a' AND id BETWEEN 1 AND 2 OR nome = 'x'", UiLanguage.Portuguese).Allowed);
     }
 }

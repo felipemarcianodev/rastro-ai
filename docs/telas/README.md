@@ -106,3 +106,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 49 | Rastro multilíngue: Aparência em português, com o idioma gravado no config.json (vale para a tela, a CLI e o MCP) | [fase-49/configuracoes-idioma-pt-BR.png](fase-49/configuracoes-idioma-pt-BR.png) |
 | Fase 49 | Rastro multilíngue: Aparência em inglês, com o idioma gravado no config.json (vale para a tela, a CLI e o MCP) | [fase-49/configuracoes-idioma-en-US.png](fase-49/configuracoes-idioma-en-US.png) |
 | Fase 49 | Rastro multilíngue: Aparência em espanhol, com o idioma gravado no config.json (vale para a tela, a CLI e o MCP) | [fase-49/configuracoes-idioma-es.png](fase-49/configuracoes-idioma-es.png) |
+| Fase 50 | Rastro multilíngue: o mapa do banco em português, com os avisos do leitor de esquema no idioma da tela | [fase-50/banco-1-pt-BR.png](fase-50/banco-1-pt-BR.png) |
+| Fase 50 | Rastro multilíngue: o mapa do banco em inglês, com os avisos do leitor de esquema no idioma da tela | [fase-50/banco-1-en-US.png](fase-50/banco-1-en-US.png) |
+| Fase 50 | Rastro multilíngue: o mapa do banco em espanhol, com os avisos do leitor de esquema no idioma da tela | [fase-50/banco-1-es.png](fase-50/banco-1-es.png) |

@@ -1,6 +1,8 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 using static Rastro.Extractor.Database.CsSyntax;
 
 namespace Rastro.Extractor.Database;
@@ -9,7 +11,7 @@ namespace Rastro.Extractor.Database;
 // ([Migration("20261012_Pedidos")]), aplicado num estado só. O resultado é o banco que as migrations
 // constroem, com a migration e a linha de cada coluna, chave e índice. O SQL solto (migrationBuilder.Sql)
 // passa pelo leitor de SQL do dialeto. Os argumentos são lidos pelo nome, como o EF gera.
-internal sealed class EfMigrationReader(CodeIndex code, SqlDialect dialect)
+internal sealed class EfMigrationReader(CodeIndex code, SqlDialect dialect, UiLanguage language)
 {
     private const SchemaSourceKind Kind = SchemaSourceKind.EfMigration;
 
@@ -123,10 +125,10 @@ internal sealed class EfMigrationReader(CodeIndex code, SqlDialect dialect)
                 if (Arg(call, "sql", 0) is { } sqlArg && String(sqlArg) is { } sql)
                 {
                     if (SqlSchemaReaders.For(dialect) is { } reader)
-                        _sql.Add(reader.Read(sql, file, Line(sqlArg), Kind));
+                        _sql.Add(reader.Read(sql, file, Line(sqlArg), Kind, language));
                 }
                 else
-                    _notes.Add(new SchemaNote("SQL montado em tempo de execução numa migration: o Rastro não lê.", file, source.Line));
+                    _notes.Add(new SchemaNote(Txt.Get("Schema.MigrationRawSql", language), file, source.Line));
                 break;
         }
     }

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Rastro.Core.Localization;
 using Rastro.Core.Graph;
 using Rastro.Infrastructure.Analysis;
 using Rastro.Infrastructure.Configuration;
@@ -30,7 +31,7 @@ public sealed class TypeScriptExtractorTests : IAsyncLifetime
     [Fact] // INF-TS-001
     public async Task Extrair_ComponenteDaFixture_DevolveEntradaGuardaDoTemplateEChamadaHttp()
     {
-        var result = await Extractor().ExtractAsync(Target(), AngularRepo.Entry, 15, CancellationToken.None);
+        var result = await Extractor().ExtractAsync(Target(), AngularRepo.Entry, 15, UiLanguage.Portuguese, CancellationToken.None);
 
         var entry = result.Graph.Nodes.Single(n => n.Id == result.Graph.EntryNodeId);
         Assert.Equal(NodeKind.Entry, entry.Kind);
@@ -48,7 +49,7 @@ public sealed class TypeScriptExtractorTests : IAsyncLifetime
     public async Task Extrair_PontoDeEntradaInexistente_LevantaAnalysisExceptionLegivel()
     {
         var ex = await Assert.ThrowsAsync<AnalysisException>(() =>
-            Extractor().ExtractAsync(Target(), "DetalhePedidoComponent.naoExiste", 15, CancellationToken.None));
+            Extractor().ExtractAsync(Target(), "DetalhePedidoComponent.naoExiste", 15, UiLanguage.Portuguese, CancellationToken.None));
 
         Assert.False(string.IsNullOrWhiteSpace(ex.Message));
         Assert.DoesNotContain("Error:", ex.Message, StringComparison.Ordinal); // nada de stack do Node
@@ -58,7 +59,7 @@ public sealed class TypeScriptExtractorTests : IAsyncLifetime
     public async Task Extrair_ScriptAusente_LevantaAnalysisException()
     {
         var ex = await Assert.ThrowsAsync<AnalysisException>(() =>
-            Extractor(Path.Combine(_loja.Root, "nao-existe.mjs")).ExtractAsync(Target(), AngularRepo.Entry, 15, CancellationToken.None));
+            Extractor(Path.Combine(_loja.Root, "nao-existe.mjs")).ExtractAsync(Target(), AngularRepo.Entry, 15, UiLanguage.Portuguese, CancellationToken.None));
 
         Assert.Contains("extrator Angular", ex.Message, StringComparison.Ordinal);
     }

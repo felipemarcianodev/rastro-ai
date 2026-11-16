@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Microsoft.CodeAnalysis;
 using Rastro.Core.Graph;
 using Rastro.Extractor;
@@ -11,7 +12,7 @@ public class FluxoRealDbTests
     private static Solution Load() => FixtureWorkspace.LoadLayered("TarefasMulti", "TarefasMulti.Infra");
 
     private static Task<FlowGraph> GraphAsync(string entry) =>
-        FlowExtractor.ExtractAsync(Load(), entry, new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot });
+        FlowExtractor.ExtractAsync(Load(), entry, new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot });
 
     private static List<Finding> Of(FlowGraph graph, FindingKind kind) => graph.Findings!.Where(f => f.Kind == kind).ToList();
 

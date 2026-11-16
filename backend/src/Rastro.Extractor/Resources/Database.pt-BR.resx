@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Query.EmptyText" xml:space="preserve"><value>Texto vazio.</value></data>
+  <data name="Query.TheTable" xml:space="preserve"><value>a tabela</value></data>
+  <data name="Query.WriteUpdates" xml:space="preserve"><value>altera</value></data>
+  <data name="Query.WriteDeletes" xml:space="preserve"><value>apaga</value></data>
+  <data name="Query.WriteWithoutWhere" xml:space="preserve"><value>{0} sem WHERE {1} todas as linhas de {2}. Se é isso mesmo, deixe escrito; se não, falta o filtro.</value></data>
+  <data name="Query.DistinctOverJoin" xml:space="preserve"><value>DISTINCT numa consulta com junção costuma esconder linhas repetidas pela junção: o banco junta tudo e depois ordena para tirar as repetidas. Confira a condição da junção ou troque a junção por EXISTS.</value></data>
+  <data name="Query.OrderByTop" xml:space="preserve"><value>Ordena todas as linhas que o filtro deixou, sem TOP nem OFFSET/FETCH: o custo cresce com a tabela. Se a tela mostra uma página, limite.</value></data>
+  <data name="Query.OrderByLimit" xml:space="preserve"><value>Ordena todas as linhas que o filtro deixou, sem LIMIT nem FETCH: o custo cresce com a tabela. Se a tela mostra uma página, limite.</value></data>
+  <data name="Query.SelectStarKnown" xml:space="preserve"><value>Traz todas as {0} colunas de {1}{2}. Liste só as colunas que a tela usa: menos dado lido e trafegado, e a consulta não muda quando entra coluna nova.</value></data>
+  <data name="Query.SelectStarPersonalOne" xml:space="preserve"><value>, inclusive {0}, marcada como dado pessoal</value></data>
+  <data name="Query.SelectStarPersonalMany" xml:space="preserve"><value>, inclusive {0}, marcadas como dado pessoal</value></data>
+  <data name="Query.SelectStarUnknown" xml:space="preserve"><value>Traz todas as colunas, inclusive as que ninguém usa, e muda sozinha quando entra coluna nova. Liste só as colunas que a tela usa.</value></data>
+  <data name="Query.SubqueryName" xml:space="preserve"><value>(subconsulta)</value></data>
+  <data name="Query.JoinOnWithoutLink" xml:space="preserve"><value>O ON não compara uma coluna de {0} com as das outras tabelas: a junção vira o produto das tabelas, cada linha com cada linha.</value></data>
+  <data name="Query.CrossJoin" xml:space="preserve"><value>CROSS JOIN junta cada linha de {0} com cada linha de {1}: o resultado é o produto das tabelas. Se não é isso, use JOIN com ON.</value></data>
+  <data name="Query.CommaJoin" xml:space="preserve"><value>{0} entra no FROM pela vírgula, sem uma comparação no WHERE que a ligue às outras tabelas: o resultado é o produto das tabelas, cada linha com cada linha. Use JOIN com ON.</value></data>
+  <data name="Query.OrAcrossColumnsTsql" xml:space="preserve"><value>O OR liga filtros em colunas diferentes ({0}): um índice só não atende os dois lados, e o banco costuma ler a tabela inteira. Separe em consultas ligadas por UNION ALL, ou confira o plano.</value></data>
+  <data name="Query.OrAcrossColumnsPg" xml:space="preserve"><value>O OR liga filtros em colunas diferentes ({0}): um índice só não atende os dois lados, e o banco pode ler a tabela inteira. Separe em consultas ligadas por UNION ALL, ou confira o plano.{1}</value></data>
+  <data name="Query.OrInAdvice" xml:space="preserve"><value> As comparações de {0} com valores cabem num IN.</value></data>
+  <data name="Query.NoIndexTail" xml:space="preserve"><value> E {0}.{1} nem tem índice.</value></data>
+  <data name="Query.FunctionOnColumn" xml:space="preserve"><value>{0} roda em cada linha e impede o uso de índice em {1}: compare a coluna pura (com uma faixa, no caso de data).{2}</value></data>
+  <data name="Query.IndexExistsNoHelp" xml:space="preserve"><value>: o índice {0} existe, mas não ajuda.</value></data>
+  <data name="Query.LeadingWildcardTsql" xml:space="preserve"><value>Com o curinga no começo ('{0}'), o banco pode ler todos os valores de {1}{2} Se a busca é pelo fim do texto, guarde uma coluna com o texto invertido ou use a busca de texto completo.</value></data>
+  <data name="Query.LeadingWildcardPg" xml:space="preserve"><value>Com o curinga no começo ('{0}'), o {1} pode ler todos os valores de {2}{3}{4}</value></data>
+  <data name="Query.LikeSearchIlike" xml:space="preserve"><value> Se a busca é por um pedaço do texto, um índice trigrama (pg_trgm, GIN) atende o ILIKE.</value></data>
+  <data name="Query.LikeSearchLike" xml:space="preserve"><value> Se a busca é pelo fim do texto, guarde uma coluna com o texto invertido ou use a busca de texto completo.</value></data>
+  <data name="Query.NotInNullable" xml:space="preserve"><value>{0}.{1} aceita nulo: se a subconsulta trouxer um nulo, o NOT IN não devolve linha nenhuma. Use NOT EXISTS ou tire o nulo na subconsulta (WHERE {1} IS NOT NULL).</value></data>
+  <data name="Query.NoIndexAtAll" xml:space="preserve"><value>a tabela não tem índice nenhum</value></data>
+  <data name="Query.SchemaHas" xml:space="preserve"><value>o esquema tem {0}</value></data>
+  <data name="Query.InJoin" xml:space="preserve"><value>na junção</value></data>
+  <data name="Query.InFilter" xml:space="preserve"><value>no filtro</value></data>
+  <data name="Query.ColumnWithoutIndex" xml:space="preserve"><value>{0}.{1} está {2} e não tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade ({3}): o banco pode ler a tabela inteira para achar as linhas. Confira o plano.</value></data>
+  <data name="Query.ColumnsWithoutIndex" xml:space="preserve"><value>{0}: {1} estão {2} e nenhuma tem índice que comece por ela, nem um composto cujas colunas iniciais estejam todas no filtro com igualdade ({3}): o banco pode ler a tabela inteira para achar as linhas. Confira o plano.</value></data>
+  <data name="Query.CorrelatedKeyed" xml:space="preserve"><value>A subconsulta busca {0} pela chave ({1}) usando {2}, da consulta de fora: é uma busca pontual por linha, de custo baixo. Se a consulta devolve muitas linhas, um JOIN faz o mesmo numa passada só.</value></data>
+  <data name="Query.CorrelatedTsql" xml:space="preserve"><value>A subconsulta cita {0}, da consulta de fora: o banco pode rodá-la uma vez para cada linha. Troque por uma junção (JOIN com GROUP BY) ou por OUTER APPLY.</value></data>
+  <data name="Query.CorrelatedPg" xml:space="preserve"><value>A subconsulta cita {0}, da consulta de fora: o banco pode rodá-la uma vez para cada linha. Troque por uma junção (JOIN com GROUP BY) ou por LEFT JOIN LATERAL.</value></data>
+  <data name="Query.MainEntityNote" xml:space="preserve"><value> {0} é apontada por {1} tabelas: a lista filtrada por {2} de um pai tende a crescer, então o filtro pela chave estrangeira não limita o resultado.</value></data>
+  <data name="Query.ReadWithoutLimitTsql" xml:space="preserve"><value>A consulta não tem TOP nem OFFSET/FETCH e filtra {0} só por igualdade em {1}, que não identifica uma linha (não é chave primária nem única): o resultado cresce com a tabela.{2}{3} Se a tela mostra uma página, limite.</value></data>
+  <data name="Query.ReadWithoutLimitPg" xml:space="preserve"><value>A consulta não tem LIMIT e filtra {0} só por igualdade em {1}, que não identifica uma linha (não é chave primária nem única): o resultado cresce com a tabela.{2}{3} Se a tela mostra uma página, limite.</value></data>
+  <data name="Query.EstimatedRows" xml:space="preserve"><value>{0} tem cerca de {1} linhas</value></data>
+  <data name="Query.EstimatedByLive" xml:space="preserve"><value> Pela estimativa do banco vivo, {0}.</value></data>
+  <data name="Query.IndexOfColumn" xml:space="preserve"><value>de {0}</value></data>
+  <data name="Query.OfThePrimaryKey" xml:space="preserve"><value>da chave primária</value></data>
+  <data name="Query.ThePrimaryKey" xml:space="preserve"><value>a chave primária</value></data>
+  <data name="Query.AnIndex" xml:space="preserve"><value>um índice</value></data>
+  <data name="Query.WrapperArithmetic" xml:space="preserve"><value>A conta</value></data>
+  <data name="Query.WrapperExpression" xml:space="preserve"><value>A expressão</value></data>
+  <data name="Query.WrapperPgCast" xml:space="preserve"><value>A conversão ::{0}</value></data>
+  <data name="Query.WrapperJsonb" xml:space="preserve"><value>O operador jsonb {0}</value></data>
+  <data name="Query.JoinAnd" xml:space="preserve"><value> e </value></data>
+  <data name="Query.ArrayColumn" xml:space="preserve"><value>{0} lê a lista {1} de cada linha, e um índice B-tree não atende. Para achar linhas pelo elemento da lista, use o operador @&gt; (ou &amp;&amp;) com um índice GIN na coluna.</value></data>
+  <data name="Query.AdviceJsonIndex" xml:space="preserve"><value>crie um índice na própria expressão (CREATE INDEX ... (({0} {1} 'chave'))) ou, para achar valores dentro do documento, use @&gt; com um índice GIN</value></data>
+  <data name="Query.AdviceCast" xml:space="preserve"><value>compare a coluna pura e converta o valor, não a coluna (com uma faixa, no caso de data)</value></data>
+  <data name="Query.AdvicePlain" xml:space="preserve"><value>compare a coluna pura (com uma faixa, no caso de data)</value></data>
+  <data name="Query.EffectJson" xml:space="preserve"><value>extrai o valor do documento em cada linha e não usa o índice B-tree comum de</value></data>
+  <data name="Query.EffectFunction" xml:space="preserve"><value>roda em cada linha e impede o uso de índice em</value></data>
+  <data name="Sql.Expected" xml:space="preserve"><value>esperava {0}, mas encontrou {1}</value></data>
+  <data name="Sql.Unclosed" xml:space="preserve"><value>aspas sem fechar depois do texto '{0}'</value></data>
+  <data name="Sql.NearKeyword" xml:space="preserve"><value>sintaxe incorreta perto da palavra-chave '{0}'</value></data>
+  <data name="Sql.Near" xml:space="preserve"><value>sintaxe incorreta perto de '{0}'</value></data>
+  <data name="Sql.UnterminatedIdentifier" xml:space="preserve"><value>identificador entre aspas sem fechar</value></data>
+  <data name="Sql.UnterminatedComment" xml:space="preserve"><value>comentário sem fechar</value></data>
+  <data name="Sql.UnterminatedString" xml:space="preserve"><value>texto entre aspas sem fechar</value></data>
+  <data name="Sql.EndOfInput" xml:space="preserve"><value>o texto terminou antes da hora</value></data>
+  <data name="Sql.Parentheses" xml:space="preserve"><value>parênteses sem par</value></data>
+  <data name="Sql.ThingExpression" xml:space="preserve"><value>uma expressão</value></data>
+  <data name="Sql.ThingEndOfStatement" xml:space="preserve"><value>o fim da instrução</value></data>
+  <data name="Sql.ThingEndOfText" xml:space="preserve"><value>o fim do texto</value></data>
+  <data name="Sql.ThingIdentifier" xml:space="preserve"><value>um identificador</value></data>
+  <data name="Sql.ThingLiteral" xml:space="preserve"><value>um valor literal</value></data>
+  <data name="Sql.ThingDataType" xml:space="preserve"><value>um tipo de dado</value></data>
+  <data name="Sql.ThingKeyword" xml:space="preserve"><value>uma palavra-chave</value></data>
+  <data name="Sql.ThingTableName" xml:space="preserve"><value>um nome de tabela</value></data>
+  <data name="Sql.ThingCloseParenthesis" xml:space="preserve"><value>o parêntese de fechamento ')'</value></data>
+  <data name="Sql.ThingOpenParenthesis" xml:space="preserve"><value>o parêntese de abertura '('</value></data>
+  <data name="Sql.ThingComma" xml:space="preserve"><value>uma vírgula</value></data>
+  <data name="Sql.ThingSelect" xml:space="preserve"><value>um SELECT</value></data>
+  <data name="Pg.ReaderFailed" xml:space="preserve"><value>o leitor de SQL do PostgreSQL não conseguiu ler o texto</value></data>
+  <data name="Guard.EmptyText" xml:space="preserve"><value>texto vazio</value></data>
+  <data name="Guard.TSqlNotUnderstood" xml:space="preserve"><value>O leitor de T-SQL não entendeu a consulta (linha {0}): {1}.</value></data>
+  <data name="Guard.PgNotUnderstood" xml:space="preserve"><value>O leitor de SQL do PostgreSQL não entendeu a consulta (linha {0}): {1}.</value></data>
+  <data name="Guard.TSqlSingleStatement" xml:space="preserve"><value>O plano estimado sai para uma instrução só (sem GO e sem ponto e vírgula separando outras).</value></data>
+  <data name="Guard.PgSingleStatement" xml:space="preserve"><value>O plano estimado sai para uma instrução só (sem ponto e vírgula separando outras).</value></data>
+  <data name="Guard.TSqlOnlyDml" xml:space="preserve"><value>O plano estimado só sai para SELECT, INSERT, UPDATE, DELETE ou MERGE: SET, EXEC, DECLARE e DDL não vão ao banco.</value></data>
+  <data name="Guard.PgOnlyDml" xml:space="preserve"><value>O plano estimado só sai para SELECT, INSERT, UPDATE, DELETE ou MERGE: SET, COPY, CALL, DO, EXPLAIN e DDL não vão ao banco.</value></data>
+  <data name="Guard.TSqlVariable" xml:space="preserve"><value>Nome de variável que o Rastro não declara: {0}.</value></data>
+  <data name="Guard.PgParameter" xml:space="preserve"><value>Parâmetro que o Rastro não declara: {0}.</value></data>
+  <data name="Guard.SelectInto" xml:space="preserve"><value>SELECT INTO cria uma tabela: não vai ao banco vivo.</value></data>
+  <data name="Guard.NestedWrite" xml:space="preserve"><value>Instrução que grava dentro de outra (no WITH ou numa subconsulta): não vai ao banco vivo.</value></data>
+  <data name="Guard.FunctionEffect" xml:space="preserve"><value>A função {0} tem efeito fora da consulta: não vai ao banco vivo.</value></data>
+  <data name="Guard.OutputInto" xml:space="preserve"><value>OUTPUT INTO grava em outra tabela: não vai ao banco vivo.</value></data>
+  <data name="Guard.Exec" xml:space="preserve"><value>EXEC não vai ao banco vivo.</value></data>
+  <data name="Guard.OpenRowset" xml:space="preserve"><value>OPENROWSET acessa outro servidor: não vai ao banco vivo.</value></data>
+  <data name="Guard.OpenQuery" xml:space="preserve"><value>OPENQUERY acessa outro servidor: não vai ao banco vivo.</value></data>
+  <data name="Guard.OpenDataSource" xml:space="preserve"><value>OPENDATASOURCE acessa outro servidor: não vai ao banco vivo.</value></data>
+  <data name="Guard.OpenRowsetBulk" xml:space="preserve"><value>OPENROWSET(BULK) lê arquivo: não vai ao banco vivo.</value></data>
+  <data name="Check.RewriteTooLong" xml:space="preserve"><value>A consulta reescrita passa de 100 mil caracteres.</value></data>
+  <data name="Check.RewriteNotUnderstoodTsql" xml:space="preserve"><value>O leitor de T-SQL não entendeu a consulta reescrita ({0}).</value></data>
+  <data name="Check.RewriteNotUnderstoodPg" xml:space="preserve"><value>O leitor de SQL do PostgreSQL não entendeu a consulta reescrita (linha {0}, coluna {1}: {2}).</value></data>
+  <data name="Check.ErrorAt" xml:space="preserve"><value>linha {0}, coluna {1}: {2}</value></data>
+  <data name="Check.FailsGuard" xml:space="preserve"><value>A consulta reescrita não passa pela conferência do Rastro: {0}</value></data>
+  <data name="Check.OriginalNotReadTsql" xml:space="preserve"><value>A consulta original não foi lida pelo leitor de T-SQL: não há com o que comparar.</value></data>
+  <data name="Check.OriginalNotReadPg" xml:space="preserve"><value>A consulta original não foi lida pelo leitor de SQL do PostgreSQL: não há com o que comparar.</value></data>
+  <data name="Check.OriginalMultiple" xml:space="preserve"><value>A consulta original tem {0} instruções: a conferência compara uma instrução só.</value></data>
+  <data name="Check.DifferentOperation" xml:space="preserve"><value>A consulta original é um {0} e a reescrita é um {1}: a reescrita precisa fazer a mesma operação.</value></data>
+  <data name="Check.DifferentTable" xml:space="preserve"><value>A consulta original muda {0} e a reescrita muda {1}: a reescrita precisa mudar a mesma tabela.</value></data>
+  <data name="Check.LimitsRowsTsql" xml:space="preserve"><value>A reescrita limita as linhas (TOP ou OFFSET/FETCH) e a original não: o resultado muda. Se a tela mostra uma página, isso é decisão sua, fora da reescrita.</value></data>
+  <data name="Check.LimitsRowsPg" xml:space="preserve"><value>A reescrita limita as linhas (LIMIT, FETCH ou OFFSET) e a original não: o resultado muda. Se a tela mostra uma página, isso é decisão sua, fora da reescrita.</value></data>
+  <data name="Check.TemporaryTable" xml:space="preserve"><value>A reescrita usa {0}, que a consulta original não usa.</value></data>
+  <data name="Check.TableNotInSchema" xml:space="preserve"><value>A reescrita cita a tabela {0}, que não está no esquema lido do código.</value></data>
+  <data name="Check.QualifierUnknown" xml:space="preserve"><value>A reescrita cita {0}, mas {1} não é tabela nem apelido da consulta.</value></data>
+  <data name="Check.ColumnNotInTable" xml:space="preserve"><value>A reescrita cita {0}, e a coluna {1} não existe em {2}.</value></data>
+  <data name="Check.ColumnNowhere" xml:space="preserve"><value>A reescrita cita a coluna {0}, que não existe em nenhuma tabela da consulta ({1}).</value></data>
+  <data name="Check.WrittenColumnMissing" xml:space="preserve"><value>A reescrita grava a coluna {0}, que não existe em {1}.</value></data>
+  <data name="Check.StarUnknown" xml:space="preserve"><value>Não dá para conferir que a reescrita devolve as mesmas colunas: um SELECT * cita uma tabela de colunas desconhecidas. Liste as colunas na consulta.</value></data>
+  <data name="Check.ColumnCountDiffers" xml:space="preserve"><value>A consulta original devolve {0} ({1}) e a reescrita devolve {2}: a reescrita precisa devolver as mesmas colunas, na mesma ordem.</value></data>
+  <data name="Check.ColumnChanged" xml:space="preserve"><value>A coluna {0} muda: a original devolve {1} e a reescrita devolve {2}. Mantenha os mesmos nomes, na mesma ordem.</value></data>
+  <data name="Check.ColumnCountOne" xml:space="preserve"><value>1 coluna</value></data>
+  <data name="Check.ColumnCountMany" xml:space="preserve"><value>{0} colunas</value></data>
+  <data name="Check.NoName" xml:space="preserve"><value>(sem nome)</value></data>
+  <data name="Check.UnnamedExpression" xml:space="preserve"><value>uma expressão sem nome</value></data>
+  <data name="Check.Unnamed" xml:space="preserve"><value>sem nome</value></data>
+  <data name="Check.IndexOnView" xml:space="preserve"><value>{0} é uma view: o índice vai na tabela.</value></data>
+  <data name="Check.IndexTableMissing" xml:space="preserve"><value>A tabela {0} não está no esquema lido do código.</value></data>
+  <data name="Check.IndexNoColumn" xml:space="preserve"><value>O índice não tem coluna.</value></data>
+  <data name="Check.IndexColumnMissing" xml:space="preserve"><value>A coluna {0} não existe em {1}.</value></data>
+  <data name="Check.IndexExists" xml:space="preserve"><value>Já existe {0}, que começa por essas colunas.</value></data>
+  <data name="Check.IndexRepeated" xml:space="preserve"><value>Repete outro índice desta proposta.</value></data>
+  <data name="Check.ExistingPrimaryKey" xml:space="preserve"><value>a chave primária ({0})</value></data>
+  <data name="Check.ExistingPrimaryKeyNamed" xml:space="preserve"><value>a chave primária {0} ({1})</value></data>
+  <data name="Check.ExistingIndex" xml:space="preserve"><value>o índice {0} ({1})</value></data>
+  <data name="Schema.TSqlFileNotUnderstood" xml:space="preserve"><value>O leitor de T-SQL não entendeu o arquivo ({0}); o que vem depois do erro pode ter ficado de fora.</value></data>
+  <data name="Schema.PgFileNotUnderstood" xml:space="preserve"><value>O leitor de SQL do PostgreSQL não entendeu o arquivo ({0}): ele ficou de fora.</value></data>
+  <data name="Schema.PgStatementNotUnderstood" xml:space="preserve"><value>O leitor de SQL do PostgreSQL não entendeu uma instrução ({0}){1}: ela ficou de fora.</value></data>
+  <data name="Schema.PgMoreStatements" xml:space="preserve"><value> (e mais {0} instrução(ões) do mesmo arquivo)</value></data>
+  <data name="Schema.PgEmptyStatement" xml:space="preserve"><value>instrução vazia</value></data>
+  <data name="Schema.OwnedType" xml:space="preserve"><value>Tipo próprio ({0}) em {1} não é lido: as colunas dele ficam de fora.</value></data>
+  <data name="Schema.PropertyNotEntity" xml:space="preserve"><value>{0}.{1} é do tipo {2}, que não é entidade do modelo: a propriedade ficou de fora.</value></data>
+  <data name="Schema.ColumnTypeConvention" xml:space="preserve"><value>{0}.{1}: o tipo da coluna sai da convenção do provedor, e o Rastro ainda não conhece a do {2}.</value></data>
+  <data name="Schema.EntityNotFound" xml:space="preserve"><value>A entidade {0} não foi encontrada no repositório: a tabela dela ficou de fora.</value></data>
+  <data name="Schema.MigrationRawSql" xml:space="preserve"><value>SQL montado em tempo de execução numa migration: o Rastro não lê.</value></data>
+  <data name="Schema.SqlFilesNotRead" xml:space="preserve"><value>Os arquivos .sql do {0} não são lidos ({1} arquivo(s)).</value></data>
+</root>

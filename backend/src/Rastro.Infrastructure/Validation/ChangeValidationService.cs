@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Rastro.Core.Failures;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 using Rastro.Core.Prompts;
 using Rastro.Core.Surveys;
 using Rastro.Core.Validation;
@@ -39,7 +40,7 @@ public class ChangeValidationService(
     RepositoryCatalog catalog,
     IGitInfo git,
     ISolutionSource solutions,
-    IOptions<RastroOptions> options,
+    IOptionsMonitor<RastroOptions> options,
     TimeProvider clock,
     IValidationCommandRunner commands,
     ILogger<ChangeValidationService> logger)
@@ -63,7 +64,12 @@ public class ChangeValidationService(
         return new(validation, null);
     }
 
-    public async Task RunAsync(Guid validationId, CancellationToken ct)
+    // O texto do relatório (descrição dos critérios, build e testes) é gravado junto com o resultado e roda fora
+    // do pedido (fila ou MCP), então usa o idioma que vale sem cabeçalho: o do config.json ou o do sistema (ADR-009).
+    public async Task RunAsync(Guid validationId, CancellationToken ct) =>
+        await RunAsync(validationId, EffectiveLanguage.Of(options.CurrentValue), ct);
+
+    public async Task RunAsync(Guid validationId, UiLanguage language, CancellationToken ct)
     {
         var validation = await db.SurveyValidations.FirstOrDefaultAsync(v => v.Id == validationId, ct);
         if (validation is null || validation.Status != ValidationStatus.Pending)
@@ -80,7 +86,7 @@ public class ChangeValidationService(
             var survey = await db.Surveys.AsNoTracking().FirstAsync(s => s.Id == validation.SurveyId, ct);
             var draft = await db.SurveyDrafts.AsNoTracking().FirstOrDefaultAsync(d => d.SurveyId == survey.Id, ct)
                         ?? throw new ValidationFailureException(ValidationFailure.DraftDeleted);
-            var (newSurvey, result) = await ValidateAsync(survey, survey.ReadGraph()!, draft.ReadGraph(), ct);
+            var (newSurvey, result) = await ValidateAsync(survey, survey.ReadGraph()!, draft.ReadGraph(), language, ct);
 
             validation.Complete(newSurvey.Id, result, clock.GetUtcNow());
             logger.LogInformation("Validação {ValidationId} concluída: {Verdict}, nota {Score}.", validationId, result.Verdict, result.Score);
@@ -104,7 +110,7 @@ public class ChangeValidationService(
         await db.SaveChangesAsync(CancellationToken.None);
     }
 
-    private async Task<(Survey NewSurvey, ChangeValidationResult Result)> ValidateAsync(Survey survey, FlowGraph original, FlowGraph draft, CancellationToken ct)
+    private async Task<(Survey NewSurvey, ChangeValidationResult Result)> ValidateAsync(Survey survey, FlowGraph original, FlowGraph draft, UiLanguage language, CancellationToken ct)
     {
         var target = catalog.Resolve(survey.Repository, survey.SolutionPath).Target
                      ?? throw new ValidationFailureException(ValidationFailure.TargetUnavailable);
@@ -131,14 +137,14 @@ public class ChangeValidationService(
         newSurvey.Complete(after, clock.GetUtcNow());
         db.Surveys.Add(newSurvey);
 
-        var repository = options.Value.Repositories.First(r => string.Equals(r.Name, survey.Repository, StringComparison.OrdinalIgnoreCase));
-        var build = await commands.RunAsync("Build do repositório", repository, ValidationCommand.Build, handle.BaseDirectory, ct);
+        var repository = options.CurrentValue.Repositories.First(r => string.Equals(r.Name, survey.Repository, StringComparison.OrdinalIgnoreCase));
+        var build = await commands.RunAsync(LocalizedText.Get("Validation.Report.BuildName", language), repository, ValidationCommand.Build, handle.BaseDirectory, language, ct);
         // Sem build não há o que testar.
         var tests = build.Status == CheckStatus.Failed
-            ? new ValidationCheck("Testes do repositório", CheckStatus.Skipped, "Não rodaram: o build falhou.")
-            : await commands.RunAsync("Testes do repositório", repository, ValidationCommand.Test, handle.BaseDirectory, ct);
+            ? new ValidationCheck(LocalizedText.Get("Validation.Report.TestsName", language), CheckStatus.Skipped, LocalizedText.Get("Validation.Report.TestsSkipped", language))
+            : await commands.RunAsync(LocalizedText.Get("Validation.Report.TestsName", language), repository, ValidationCommand.Test, handle.BaseDirectory, language, ct);
 
-        var (expectations, unexpected) = ChangeValidator.Compare(original, draft, after);
+        var (expectations, unexpected) = ChangeValidator.Compare(original, draft, after, language);
         var (verdict, score) = ChangeValidator.Judge(expectations, unexpected, build, tests);
         var result = new ChangeValidationResult(expectations, unexpected,
             ChangeValidator.DecisionPoints(original), ChangeValidator.DecisionPoints(after), build, tests, verdict, score);
@@ -146,7 +152,7 @@ public class ChangeValidationService(
     }
 
     // Aprovação do usuário: gera a documentação do fluxo novo. Validação reprovada não vira documentação.
-    public async Task<SurveyValidation?> ApproveAsync(Guid validationId, CancellationToken ct)
+    public async Task<SurveyValidation?> ApproveAsync(Guid validationId, UiLanguage language, CancellationToken ct)
     {
         var validation = await db.SurveyValidations.FirstOrDefaultAsync(v => v.Id == validationId, ct);
         if (validation?.ReadResult() is not { } result || validation.NewSurveyId is not { } newSurveyId || result.Verdict == ValidationVerdict.Rejected)
@@ -160,7 +166,7 @@ public class ChangeValidationService(
         var now = clock.GetUtcNow();
         var context = new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash);
         var notes = await db.NodeNotes.AsNoTracking().Where(n => n.Repository == survey.Repository).ToDictionaryAsync(n => n.NodeId, n => n.Text, ct);
-        validation.Approve(FlowDocumentBuilder.Build(context, newSurvey.ReadGraph()!, survey.ReadGraph()!, draft.ReadGraph(), result, newSurvey.CommitHash, now, notes), now);
+        validation.Approve(FlowDocumentBuilder.Build(context, language, newSurvey.ReadGraph()!, survey.ReadGraph()!, draft.ReadGraph(), result, newSurvey.CommitHash, now, notes), now);
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Validação {ValidationId} aprovada; documentação gerada.", validationId);
         return validation;

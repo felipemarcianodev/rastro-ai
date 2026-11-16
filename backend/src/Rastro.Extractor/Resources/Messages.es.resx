@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Quality.CatchAny" xml:space="preserve"><value>todo</value></data>
+  <data name="Quality.HighComplexity" xml:space="preserve"><value>{0} tiene complejidad ciclomática {1} (límite {2}): demasiados caminos para probar y entender.</value></data>
+  <data name="Quality.LongMethod" xml:space="preserve"><value>{0} tiene {1} líneas (límite {2}): hace demasiadas cosas.</value></data>
+  <data name="Quality.DeepNesting" xml:space="preserve"><value>{0} tiene {1} niveles de bloques anidados (límite {2}).</value></data>
+  <data name="Quality.TooManyDependencies" xml:space="preserve"><value>{0} recibe {1} dependencias en el constructor (límite {2}): señal de demasiadas responsabilidades.</value></data>
+  <data name="Quality.PublicSetter" xml:space="preserve"><value>{0} tiene setter público en {1} propiedad(es) ({2}): cualquier capa cambia el estado sin pasar por la regla de la entidad.</value></data>
+  <data name="Quality.CatchEmpty" xml:space="preserve"><value>catch ({0}) vacío: el fallo desaparece sin log ni manejo.</value></data>
+  <data name="Quality.CatchSilent" xml:space="preserve"><value>catch ({0}) sin log, sin relanzar y sin usar la excepción: se pierde la causa del fallo.</value></data>
+  <data name="Quality.LocatorHosted" xml:space="preserve"><value>{0} resuelve una dependencia con {1} (común en jobs y servicios en segundo plano, que abren un ámbito): revisa si no se puede inyectar.</value></data>
+  <data name="Quality.Locator" xml:space="preserve"><value>{0} resuelve una dependencia con {1} (service locator): la dependencia queda oculta del constructor.</value></data>
+  <data name="Quality.EntityChangedOutsideDomain" xml:space="preserve"><value>{0} modifica {1}.{2} directamente, fuera de la entidad y del servicio de dominio que la valida.</value></data>
+  <data name="Quality.PersistenceOutsideDomain" xml:space="preserve"><value>{0} guarda {1} con {2}.{3} directamente, sin pasar por un servicio de dominio que valide la entidad.</value></data>
+  <data name="Flow.DepthLimit" xml:space="preserve"><value>límite de profundidad</value></data>
+  <data name="Db.RawSql" xml:space="preserve"><value>SQL directo</value></data>
+  <data name="Db.QueryInLoop" xml:space="preserve"><value>{0} consulta {1} dentro de un bucle: un viaje a la base de datos en cada vuelta (N+1). Trae los datos antes del bucle, con Include o con un Where que use Contains.</value></data>
+  <data name="Db.QueryInLoopCall" xml:space="preserve"><value>{0} llama a {1} dentro de un bucle, y este consulta {2}: un viaje a la base de datos en cada vuelta (N+1). Trae los datos antes del bucle.</value></data>
+  <data name="Db.QueryInLoopChain" xml:space="preserve"><value>{0} llama a {1} dentro de un bucle, y este llega a {2}, que consulta {3}: un viaje a la base de datos en cada vuelta (N+1). Trae los datos antes del bucle.</value></data>
+  <data name="Db.WriteInLoop" xml:space="preserve"><value>{0} escribe en {1} con {2} dentro de un bucle: un viaje a la base de datos en cada vuelta (N+1 de escritura). Agrupa la escritura fuera del bucle, con un Where que use Contains sobre los ids.</value></data>
+  <data name="Db.WriteInLoopCall" xml:space="preserve"><value>{0} llama a {1} dentro de un bucle, y este escribe en {2} con {3}: un viaje a la base de datos en cada vuelta (N+1 de escritura). Agrupa la escritura fuera del bucle.</value></data>
+  <data name="Db.WriteInLoopChain" xml:space="preserve"><value>{0} llama a {1} dentro de un bucle, y este llega a {2}, que escribe en {3} con {4}: un viaje a la base de datos en cada vuelta (N+1 de escritura). Agrupa la escritura fuera del bucle.</value></data>
+  <data name="Db.LoadToDelete" xml:space="preserve"><value>{0} trae {1} con {2} solo para borrar con {3}: EF lee cada fila y luego manda un DELETE por fila. Usa ExecuteDeleteAsync sobre el Where (devuelve cuántas filas borró) y borra en una sola instrucción.</value></data>
+  <data name="Db.MaterializeBeforeFilter" xml:space="preserve"><value>{0} trae {1} con {2} y solo después aplica {3}: el filtro corre en memoria, después de leer la tabla. Pon el {3} antes del {2}.</value></data>
+  <data name="Db.MaterializeBeforeFilterCall" xml:space="preserve"><value>{0} recibe {1} de {2}, que ya la trajo con {4} (la tabla completa, sin este filtro), y solo después aplica {5}: el filtro corre en memoria. Pasa el criterio a {3} para que filtre antes del {4}.</value></data>
+  <data name="Db.MaterializeBeforeFilterChain" xml:space="preserve"><value>{0} recibe {1} de {2}, que reenvía el resultado de {3}, y este ya la trajo con {4} (la tabla completa, sin este filtro), y solo después aplica {5}: el filtro corre en memoria. Pasa el criterio a {3} para que filtre antes del {4}.</value></data>
+  <data name="Db.LeadingWildcardLike" xml:space="preserve"><value>{0} busca en {1} con un LIKE que empieza con comodín ({2}): la base de datos no usa un índice B-tree y lee la tabla completa. Si la búsqueda es por prefijo, quita el % del inicio; para coincidencias dentro del texto, usa un índice trigram (PostgreSQL) o búsqueda de texto completo.</value></data>
+  <data name="Db.ReadWithoutNoTracking" xml:space="preserve"><value>{0} solo lee {1} y no pide AsNoTracking: EF rastrea entidades que este método no guarda. Si la lectura no alimenta una escritura, usa AsNoTracking.</value></data>
+  <data name="Db.ProcedureByRawSql" xml:space="preserve"><value>{0} llama al procedure {1} mediante {2}: el compilador no verifica el nombre ni los parámetros.{3}</value></data>
+  <data name="Db.ProcedureMissing" xml:space="preserve"><value> No aparece en los archivos .sql del repositorio.</value></data>
+</root>

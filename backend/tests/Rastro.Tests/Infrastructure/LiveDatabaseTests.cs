@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 using Rastro.Infrastructure.Database.Live;
@@ -11,13 +12,13 @@ public class LiveDatabaseTests
     [Fact] // EXT-DBP-001
     public void Guard_UmaInstrucaoDeLeituraOuEscrita_PassaComAsVariaveis()
     {
-        var select = TSqlPlanGuard.Check("SELECT * FROM pedidos WHERE criado_em >= @p0 AND cliente_id = @cliente AND total > @p0");
+        var select = TSqlPlanGuard.Check("SELECT * FROM pedidos WHERE criado_em >= @p0 AND cliente_id = @cliente AND total > @p0", UiLanguage.Portuguese);
         Assert.True(select.Allowed);
         Assert.Equal(["@p0", "@cliente"], select.Variables);
 
-        Assert.True(TSqlPlanGuard.Check("UPDATE produtos SET estoque = 0 WHERE id = @id").Allowed);
-        Assert.True(TSqlPlanGuard.Check("DELETE FROM log_eventos").Allowed);
-        Assert.True(TSqlPlanGuard.Check("WITH c AS (SELECT id FROM clientes) SELECT * FROM c;").Allowed);
+        Assert.True(TSqlPlanGuard.Check("UPDATE produtos SET estoque = 0 WHERE id = @id", UiLanguage.Portuguese).Allowed);
+        Assert.True(TSqlPlanGuard.Check("DELETE FROM log_eventos", UiLanguage.Portuguese).Allowed);
+        Assert.True(TSqlPlanGuard.Check("WITH c AS (SELECT id FROM clientes) SELECT * FROM c;", UiLanguage.Portuguese).Allowed);
     }
 
     [Theory] // EXT-DBP-002
@@ -34,7 +35,7 @@ public class LiveDatabaseTests
     [InlineData("SELECT FROM WHERE", "não entendeu a consulta")]
     public void Guard_InstrucaoQueNaoPodeIrAoBanco_RecusadaComOMotivo(string sql, string reason)
     {
-        var result = TSqlPlanGuard.Check(sql);
+        var result = TSqlPlanGuard.Check(sql, UiLanguage.Portuguese);
 
         Assert.False(result.Allowed);
         Assert.Contains(reason, result.Reason!, StringComparison.OrdinalIgnoreCase);
@@ -78,7 +79,7 @@ public class LiveDatabaseTests
     [Fact] // INF-DBL-001
     public void ShowPlan_OperacoesPeloCustoProprioVarreduraIndiceFaltandoEAviso()
     {
-        var plan = ShowPlanReader.Read(Plan + "\n");
+        var plan = ShowPlanReader.Read(Plan + "\n", UiLanguage.Portuguese);
 
         Assert.Equal(1.0, plan.TotalCost);
         Assert.Equal(["Clustered Index Scan", "Sort", "Hash Match", "Index Seek"], plan.Operations.Select(o => o.PhysicalOp));

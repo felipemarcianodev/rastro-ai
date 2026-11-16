@@ -1,12 +1,15 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
 using Rastro.Core.Surveys;
 using Rastro.Infrastructure;
 using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Database;
 using Rastro.Infrastructure.Repositories;
+using Txt = Rastro.Infrastructure.Resources.Database;
 
 namespace Rastro.Api.Controllers;
 
@@ -102,7 +105,7 @@ public class RepositoriesController(
     // com as divergências entre fontes. Só lê arquivos; nenhum banco é consultado.
     [HttpGet("{name}/schema")]
     public async Task<ActionResult<DbSchema>> Schema(string name, CancellationToken ct) =>
-        await schemas.ReadAsync(name, ct) is { } schema
+        await schemas.ReadAsync(name, UiLanguages.FromCulture(CultureInfo.CurrentUICulture), ct) is { } schema
             ? Ok(schema)
             : Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");
 
@@ -112,9 +115,10 @@ public class RepositoriesController(
     public async Task<ActionResult<QueryAnalysis>> AnalyzeQuery(string name, [FromBody] AnalyzeQueryRequest request,
         [FromServices] QueryAnalysisService analysis, CancellationToken ct)
     {
+        var language = UiLanguages.FromCulture(CultureInfo.CurrentUICulture);
         if (string.IsNullOrWhiteSpace(request.Sql) || request.Sql.Length > QueryLimits.MaxSqlLength)
-            return Error(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, "Cole uma consulta de até 100 mil caracteres.");
-        return await analysis.AnalyzeAsync(name, request.Sql, ct) is { } result
+            return Error(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, Txt.Get("Live.QueryInvalid", language));
+        return await analysis.AnalyzeAsync(name, request.Sql, language, ct) is { } result
             ? Ok(result)
             : Error(StatusCodes.Status404NotFound, ErrorCodes.RepositoryNotFound, "Repositório não cadastrado.");
     }

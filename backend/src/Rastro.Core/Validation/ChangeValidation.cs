@@ -1,4 +1,5 @@
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 
 namespace Rastro.Core.Validation;
 
@@ -42,8 +43,10 @@ public static class ChangeValidator
     private static readonly HashSet<NodeKind> DecisionKinds = [NodeKind.Decision, NodeKind.Loop, NodeKind.Try];
 
     public static (IReadOnlyList<ValidationCheck> Expectations, IReadOnlyList<string> Unexpected) Compare(
-        FlowGraph original, FlowGraph draft, FlowGraph after)
+        FlowGraph original, FlowGraph draft, FlowGraph after, UiLanguage language)
     {
+        string T(string key, params object[] args) => LocalizedText.Get(key, language, args);
+
         var draftNodes = draft.Nodes.ToDictionary(n => n.Id);
         string? Resolve(string draftNodeId, string? caller = null)
         {
@@ -64,35 +67,35 @@ public static class ChangeValidator
         var expectations = new List<ValidationCheck>();
         foreach (var edge in draft.Edges.Where(e => e.Change == ChangeKind.Added))
         {
-            var description = $"{draftNodes[edge.From].Label} chama {draftNodes[edge.To].Label}" + (edge.Label is null ? "" : $" ({edge.Label})");
+            var description = T("Validation.Check.Calls", draftNodes[edge.From].Label, draftNodes[edge.To].Label) + (edge.Label is null ? "" : $" ({edge.Label})");
             var from = Resolve(edge.From);
             var to = Resolve(edge.To, from);
             expectations.Add(from is not null && to is not null && HasEdge(from, to, edge.Label)
                 ? new ValidationCheck(description, CheckStatus.Passed)
                 : new ValidationCheck(description, CheckStatus.Failed,
-                    to is null ? $"{draftNodes[edge.To].Label} não aparece no fluxo levantado." : "A chamada não aparece no fluxo levantado."));
+                    to is null ? T("Validation.Check.StepMissing", draftNodes[edge.To].Label) : T("Validation.Check.CallMissing")));
         }
 
         foreach (var edge in draft.Edges.Where(e => e.Change == ChangeKind.Removed))
         {
-            var description = $"{draftNodes[edge.From].Label} não chama mais {draftNodes[edge.To].Label}" + (edge.Label is null ? "" : $" ({edge.Label})");
+            var description = T("Validation.Check.NoLongerCalls", draftNodes[edge.From].Label, draftNodes[edge.To].Label) + (edge.Label is null ? "" : $" ({edge.Label})");
             var from = Resolve(edge.From);
             var to = Resolve(edge.To);
             expectations.Add(from is not null && to is not null && HasEdge(from, to, edge.Label)
-                ? new ValidationCheck(description, CheckStatus.Failed, "A chamada continua no fluxo.")
+                ? new ValidationCheck(description, CheckStatus.Failed, T("Validation.Check.CallRemains"))
                 : new ValidationCheck(description, CheckStatus.Passed));
         }
 
         foreach (var node in draft.Nodes.Where(n => n.Change == ChangeKind.Modified))
             expectations.Add(Resolve(node.Id) is not null
-                ? new ValidationCheck($"{node.Label} continua no fluxo (regra nova a conferir por você)", CheckStatus.Passed, node.Intent)
-                : new ValidationCheck($"{node.Label} continua no fluxo", CheckStatus.Failed, "O passo sumiu do fluxo."));
+                ? new ValidationCheck(T("Validation.Check.StaysReview", node.Label), CheckStatus.Passed, node.Intent)
+                : new ValidationCheck(T("Validation.Check.Stays", node.Label), CheckStatus.Failed, T("Validation.Check.StepGone")));
 
-        return (expectations, Unexpected(original, draft, after));
+        return (expectations, Unexpected(original, draft, after, language));
     }
 
     // Ligações que mudaram entre o fluxo original e o novo sem estar no rascunho (por nome dos passos).
-    private static IReadOnlyList<string> Unexpected(FlowGraph original, FlowGraph draft, FlowGraph after)
+    private static IReadOnlyList<string> Unexpected(FlowGraph original, FlowGraph draft, FlowGraph after, UiLanguage language)
     {
         static HashSet<(string, string)> Keys(FlowGraph graph)
         {
@@ -109,9 +112,9 @@ public static class ChangeValidator
         var now = Keys(after);
         var lines = new List<string>();
         foreach (var (from, to) in now.Except(before).Where(k => !requested.Contains(k) && !touched.Contains(k.Item1) && !touched.Contains(k.Item2)).Order())
-            lines.Add($"nova chamada fora do pedido: {from} → {to}");
+            lines.Add(LocalizedText.Get("Validation.Check.NewCall", language, from, to));
         foreach (var (from, to) in before.Except(now).Where(k => !requested.Contains(k) && !touched.Contains(k.Item1) && !touched.Contains(k.Item2)).Order())
-            lines.Add($"chamada sumiu sem pedido: {from} → {to}");
+            lines.Add(LocalizedText.Get("Validation.Check.CallGone", language, from, to));
         return lines.Take(MaxUnexpectedListed).ToList();
     }
 

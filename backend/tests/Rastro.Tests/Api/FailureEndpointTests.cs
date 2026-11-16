@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Rastro.Core.Localization;
 using Rastro.Api.Controllers;
 using Rastro.Core.Failures;
 using Rastro.Core.Graph;
@@ -49,7 +50,7 @@ public class FailureEndpointTests(ApiFixture fixture)
 
     private sealed class ThrowingAnalyzer : ISolutionAnalyzer
     {
-        public Task<FlowGraph> AnalyzeAsync(ResolvedTarget target, string entryPoint, int maxDepth, CancellationToken ct) =>
+        public Task<FlowGraph> AnalyzeAsync(ResolvedTarget target, string entryPoint, int maxDepth, UiLanguage language, CancellationToken ct) =>
             throw new InvalidOperationException("detalhe técnico que não pode ir para a tela");
     }
 

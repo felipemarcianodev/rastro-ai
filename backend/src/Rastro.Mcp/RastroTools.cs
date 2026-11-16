@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using ModelContextProtocol.Server;
 using Rastro.Core.Architecture;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 using Rastro.Core.Prompts;
 using Rastro.Core.Surveys;
 using Rastro.Extractor;
@@ -45,6 +46,10 @@ public class RastroTools(
 {
     private const int MaxOutlineLines = 400;
 
+    // Idioma da prosa que o núcleo gera para o agente (prompts, resumo da validação, esquema): o do config.json ou
+    // o do sistema. O texto próprio do MCP segue em português até a Fase 51.
+    private UiLanguage Language => EffectiveLanguage.Of(options.Value);
+
     [McpServerTool(Name = "list_repositories"), Description("Lista os repositórios que o Rastro pode ler e as solutions de cada um.")]
     public string ListRepositories()
     {
@@ -79,7 +84,7 @@ public class RastroTools(
 
         try
         {
-            survey.Complete(await analyzer.AnalyzeAsync(target, survey.EntryPoint, maxDepth, ct), clock.GetUtcNow());
+            survey.Complete(await analyzer.AnalyzeAsync(target, survey.EntryPoint, maxDepth, Language, ct), clock.GetUtcNow());
         }
         catch (AnalysisException ex)
         {
@@ -366,7 +371,7 @@ public class RastroTools(
         if (survey?.ReadGraph() is not { } original) return NotFound;
         if (draft is null) return "Este levantamento não tem rascunho de mudança. O usuário desenha a mudança no modo \"Editar fluxo\" da tela.";
 
-        return ChangePromptBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), original, draft.ReadGraph());
+        return ChangePromptBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), Language, original, draft.ReadGraph());
     }
 
     [McpServerTool(Name = "check_change"), Description("Depois de aplicar a mudança do get_change_prompt: levanta o fluxo de novo no código atual, confere os critérios do rascunho, procura mudanças fora do pedido e roda o build e os testes configurados do repositório. Devolve a nota. Demora: carrega a solution e compila.")]
@@ -385,7 +390,7 @@ public class RastroTools(
         var done = await db.SurveyValidations.AsNoTracking().FirstAsync(v => v.Id == validation.Id, ct);
         if (done.ReadResult() is not { } result) return $"A validação falhou: {done.Error}";
 
-        return FlowDocumentBuilder.Summary(result) +
+        return FlowDocumentBuilder.Summary(result, Language) +
                $"\nLevantamento novo: {done.NewSurveyId}. A aprovação (que gera a documentação) é do usuário, na tela.";
     }
 
@@ -401,7 +406,7 @@ public class RastroTools(
         foreach (var (finding, index) in graph.Findings.Select((f, i) => (f, i)))
         {
             var where = finding.Location is null ? "" : $"  [{finding.Location.File}:{finding.Location.Line}]";
-            text.AppendLine($"{index}. {RefactorPromptBuilder.SeverityText(finding.Severity)} ({handles.GetValueOrDefault(finding.NodeId, finding.NodeId)}): {finding.Message}{where}");
+            text.AppendLine($"{index}. {RefactorPromptBuilder.SeverityText(finding.Severity, Language)} ({handles.GetValueOrDefault(finding.NodeId, finding.NodeId)}): {finding.Message}{where}");
         }
         return text.ToString();
     }
@@ -416,7 +421,7 @@ public class RastroTools(
         if (survey?.ReadGraph() is not { } graph) return NotFound;
         if (graph.Findings is not { } findings || index < 0 || index >= findings.Count) return "Índice fora da lista. Use list_findings.";
 
-        return RefactorPromptBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), graph, findings[index]);
+        return RefactorPromptBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), Language, graph, findings[index]);
     }
 
     [McpServerTool(Name = "get_db_schema"), Description("Esquema do banco de um repositório, lido do código (modelo do EF Core, migrations e arquivos .sql; SQL Server ou PostgreSQL, conforme o repositório): tabelas, colunas, chaves, índices, views e procedures, com arquivo:linha de cada item e as divergências entre fontes. Só lê arquivos: nenhum banco é consultado e nenhum dado das tabelas é lido.")]
@@ -425,7 +430,7 @@ public class RastroTools(
         [Description("Opcional: só uma tabela (ex.: pedidos ou dbo.pedidos). Sem ela, o esquema inteiro.")] string? table = null,
         CancellationToken ct = default)
     {
-        var schema = await schemas.ReadAsync(repository, ct);
+        var schema = await schemas.ReadAsync(repository, Language, ct);
         if (schema is null) return "Repositório não cadastrado. Use list_repositories.";
         if (schema.Tables.Count == 0 && schema.Views.Count == 0 && schema.Procedures.Count == 0)
             return "Nenhuma tabela encontrada no código deste repositório (DbContext do EF Core, migrations ou arquivos .sql).";
@@ -440,8 +445,8 @@ public class RastroTools(
     {
         if (string.IsNullOrWhiteSpace(sql) || sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
             return "Informe uma consulta de até 100 mil caracteres.";
-        var context = await queryProposals.ContextAsync(repository, sql, ct);
-        return context is null ? "Repositório não cadastrado. Use list_repositories." : QueryAnalysisText.Format(context.Analysis, context.Schema);
+        var context = await queryProposals.ContextAsync(repository, sql, Language, ct);
+        return context is null ? "Repositório não cadastrado. Use list_repositories." : QueryAnalysisText.Format(context.Analysis, Language, context.Schema);
     }
 
     [McpServerTool(Name = "propose_query_rewrite"), Description("Propõe a melhora de uma consulta SQL (SQL Server ou PostgreSQL) já vista no analyze_query: a consulta reescrita e os índices sugeridos, com o motivo de cada mudança. O Rastro confere antes de aceitar, sem IA: a reescrita precisa ser lida pelo leitor de SQL do dialeto, ser uma instrução só da mesma operação na mesma tabela (sem SET, EXEC, COPY, CALL nem DDL), citar só tabelas e colunas que existem e devolver as mesmas colunas, com os mesmos nomes e na mesma ordem, sem acrescentar TOP, LIMIT, OFFSET nem FETCH; o índice só usa colunas que existem e não repete um índice nem a chave primária que já começa pelas mesmas colunas. O que não passa volta recusado com o motivo: corrija e proponha de novo. Nada é aplicado nem executado: quem copia e aplica é o usuário.")]
@@ -462,16 +467,16 @@ public class RastroTools(
             (changes ?? []).Select(c => new Rastro.Core.Database.QueryChange(c.What ?? string.Empty, c.Why ?? string.Empty)).ToList(),
             (indexes ?? []).Select(i => new Rastro.Core.Database.IndexSuggestion(i.Table ?? string.Empty, i.Columns ?? [], i.Include ?? [], i.Unique, i.Reason ?? string.Empty)).ToList(),
             ProposalOrigin.Agent);
-        var context = await queryProposals.ContextAsync(repository, sql, ct);
+        var context = await queryProposals.ContextAsync(repository, sql, Language, ct);
         if (context is null) return "Repositório não cadastrado. Use list_repositories.";
-        if (context.Analysis.Error is not null) return QueryAnalysisText.Format(context.Analysis);
-        var review = queryProposals.Review(repository, context, sql, proposal);
+        if (context.Analysis.Error is not null) return QueryAnalysisText.Format(context.Analysis, Language);
+        var review = queryProposals.Review(repository, context, sql, proposal, Language);
         // Com banco vivo, o custo estimado do plano da original e da reescrita aceita, como a tela mostra.
         if (review.Rewrite is { Accepted: true } rewrite && (await liveConnections.ViewAsync(repository, ct)).Configured)
         {
             try
             {
-                review = review with { Plan = await liveDatabase.ComparePlansAsync(repository, sql, rewrite.Sql, ct) };
+                review = review with { Plan = await liveDatabase.ComparePlansAsync(repository, sql, rewrite.Sql, Language, ct) };
             }
             catch (CryptographicException ex)
             {
@@ -479,7 +484,7 @@ public class RastroTools(
                 review = review with { Plan = new Rastro.Core.Database.PlanComparison(null, null, UndecipherableConnection) };
             }
         }
-        return QueryProposalText.Format(review);
+        return QueryProposalText.Format(review, Language);
     }
 
     private const string NoLiveDatabase = "Este repositório não tem banco vivo cadastrado. O usuário cadastra a conexão na tela do banco do Rastro (o cadastro e a string de conexão são só pela tela); depois o plano estimado vem por aqui. Sem o banco vivo, use analyze_query, que lê só o código.";
@@ -501,7 +506,7 @@ public class RastroTools(
         Rastro.Infrastructure.Database.Live.LivePlanResult result;
         try
         {
-            result = await liveDatabase.PlanAsync(repository, sql, ct);
+            result = await liveDatabase.PlanAsync(repository, sql, Language, ct);
         }
         catch (CryptographicException ex)
         {
@@ -528,7 +533,7 @@ public class RastroTools(
         // C2 pelos serviços do docker-compose do repositório, quando ele existe (Fase 13).
         var root = catalog.Resolve(survey.Repository, survey.SolutionPath).Target?.RepositoryRoot;
         var deployment = root is null ? null : deployments.Read(root);
-        return C4WorkspaceBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), graph, people, deployment);
+        return C4WorkspaceBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), Language, graph, people, deployment);
     }
 
     private const string NotFound = "Levantamento não encontrado ou ainda sem grafo. Use list_surveys.";
