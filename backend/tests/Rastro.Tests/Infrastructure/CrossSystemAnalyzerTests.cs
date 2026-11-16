@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rastro.Core.Localization;
 using Rastro.Core.Graph;
 using Rastro.Infrastructure.Analysis;
 using Rastro.Tests.Api;
@@ -106,7 +107,7 @@ public class CrossSystemAnalyzerTests(ApiFixture fixture) : IAsyncLifetime
         await using var provider = CrossKit.Services(fixture, source, _pedidos, _pagamentos);
         using var scope = provider.CreateScope();
 
-        var plain = await new SolutionAnalyzer(source).AnalyzeAsync(CrossKit.TargetOf(scope, _pedidos), Cancelar, 15, CancellationToken.None);
+        var plain = await new SolutionAnalyzer(source).AnalyzeAsync(CrossKit.TargetOf(scope, _pedidos), Cancelar, 15, UiLanguage.Portuguese, CancellationToken.None);
         var analysis = await CrossKit.AnalyzeAsync(scope, _pedidos, Cancelar, 15);
 
         Assert.Equal(FlowGraphJson.Serialize(plain), FlowGraphJson.Serialize(analysis.Graph));
@@ -213,5 +214,24 @@ public class CrossSystemAnalyzerTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(UnresolvedReason.NoMatchingEndpoint, hole.Reason);
         Assert.Contains("não tem solution", hole.Detail);
         Assert.Empty(analysis.Segments);
+    }
+
+    [Theory] // CORE-LANG-204
+    [InlineData(UiLanguage.English, "has no solution to open")]
+    [InlineData(UiLanguage.Spanish, "no tiene solution para abrir")]
+    [InlineData(UiLanguage.Portuguese, "não tem solution para abrir")]
+    public async Task Analisar_ExplicacaoDoBuraco_SaiNoIdiomaPedidoESemChaveCrua(UiLanguage language, string expected)
+    {
+        var source = new FixtureSolutionSource();
+        await using var provider = CrossKit.Services(fixture, source, _pedidos, _pagamentos);
+        using var scope = provider.CreateScope();
+        File.Delete(Path.Combine(_pagamentos.Root, _pagamentos.Solution));
+
+        var analysis = await CrossKit.AnalyzeInAsync(scope, language, _pedidos, Cancelar, 15, _pagamentos);
+
+        var hole = Assert.Single(analysis.Graph.Nodes, n => n.Label == "POST api/estornos");
+        Assert.Contains(expected, hole.Detail);
+        Assert.Contains(_pagamentos.Name, hole.Detail);
+        Assert.DoesNotContain("Cross.", hole.Detail, StringComparison.Ordinal);
     }
 }

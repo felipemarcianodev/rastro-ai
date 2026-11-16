@@ -1,53 +1,56 @@
 using System.ComponentModel;
 using System.Text;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
 
 namespace Rastro.Mcp;
 
-// Entrada do propose_query_rewrite (Fase 41): o agente propõe, o núcleo confere.
+// Entrada do propose_query_rewrite (Fase 41): o agente propõe, o núcleo confere. Descrições em inglês fixo (ADR-009).
 public record QueryChangeInput(
-    [property: Description("O que mudou.")] string? What,
-    [property: Description("Por que mudou.")] string? Why);
+    [property: Description("What changed.")] string? What,
+    [property: Description("Why it changed.")] string? Why);
 
 public record QueryIndexInput(
-    [property: Description("Tabela do índice, ex.: pedidos ou dbo.pedidos.")] string? Table,
-    [property: Description("Colunas da chave, na ordem.")] string[]? Columns,
-    [property: Description("Colunas incluídas (INCLUDE), opcional.")] string[]? Include,
-    [property: Description("Índice único.")] bool Unique,
-    [property: Description("Por que o índice ajuda esta consulta.")] string? Reason);
+    [property: Description("Table of the index, e.g. orders or dbo.orders.")] string? Table,
+    [property: Description("Key columns, in order.")] string[]? Columns,
+    [property: Description("Included columns (INCLUDE), optional.")] string[]? Include,
+    [property: Description("Unique index.")] bool Unique,
+    [property: Description("Why the index helps this query.")] string? Reason);
 
-// A conferência da proposta em texto para o agente: o que passou, o que foi recusado e por quê.
+// A conferência da proposta em texto para o agente: o que passou, o que foi recusado e por quê, no idioma de quem usa.
 public static class QueryProposalText
 {
-    public static string Format(QueryProposalReview review)
+    public static string Format(QueryProposalReview review, UiLanguage language)
     {
-        var text = new StringBuilder("Conferência da proposta (regra fixa, sem IA; nada foi aplicado nem executado).\n");
+        string T(string key, params object[] args) => McpText.Get(key, language, args);
+
+        var text = new StringBuilder(T("Proposal.Header") + "\n");
         switch (review.Rewrite)
         {
             case null:
-                text.AppendLine("Reescrita: nenhuma (igual à original ou vazia).");
+                text.AppendLine(T("Proposal.NoRewrite"));
                 break;
             case { Accepted: true, After: var after }:
-                text.AppendLine($"Reescrita: aceita. Achados das regras fixas: {review.FindingsBefore} antes, {after?.Findings.Count ?? 0} depois.");
-                if (after is { Findings.Count: > 0 }) text.AppendLine(QueryContextText.Findings(after));
+                text.AppendLine(T("Proposal.RewriteAccepted", review.FindingsBefore, after?.Findings.Count ?? 0));
+                if (after is { Findings.Count: > 0 }) text.AppendLine(QueryContextText.Findings(after, language));
                 break;
             case var refused:
-                text.AppendLine("Reescrita: recusada.");
+                text.AppendLine(T("Proposal.RewriteRefused"));
                 foreach (var reason in refused.Refusals) text.AppendLine($"- {reason}");
                 break;
         }
 
         foreach (var index in review.Indexes)
             text.AppendLine(index.Accepted
-                ? $"Índice aceito em {index.Table} ({string.Join(", ", index.Columns)}): {index.CreateSql}"
-                : $"Índice recusado em {index.Table} ({string.Join(", ", index.Columns)}): {index.Refusal}");
+                ? T("Proposal.IndexAccepted", index.Table, string.Join(", ", index.Columns), index.CreateSql ?? string.Empty)
+                : T("Proposal.IndexRefused", index.Table, string.Join(", ", index.Columns), index.Refusal ?? string.Empty));
 
         if (review.Plan is { } plan)
             text.AppendLine(plan.Problem is not null
-                ? $"Custo estimado no banco vivo: não foi possível comparar. {plan.Problem}"
-                : $"Custo estimado no banco vivo (plano estimado, sem executar): {QueryPlanText.Cost(plan.CostBefore ?? 0)} na original, {QueryPlanText.Cost(plan.CostAfter ?? 0)} na reescrita. Custo menor não é garantia de tempo menor; é um indício.");
+                ? T("Proposal.CostProblem", plan.Problem)
+                : T("Proposal.Cost", QueryPlanText.Cost(plan.CostBefore ?? 0, language), QueryPlanText.Cost(plan.CostAfter ?? 0, language)));
 
-        text.Append("Mostre ao usuário a consulta reescrita aceita e os comandos dos índices aceitos, para ele avaliar e copiar. O que foi recusado: corrija e proponha de novo, sem inventar tabela nem coluna. Aplicar é sempre do usuário.");
+        text.Append(T("Proposal.Footer"));
         return text.ToString();
     }
 }

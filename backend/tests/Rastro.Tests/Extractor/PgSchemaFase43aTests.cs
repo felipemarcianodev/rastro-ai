@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -8,12 +9,12 @@ namespace Rastro.Tests.Extractor;
 // migrationBuilder.Sql, e propriedade de classe guardada em jsonb.
 public class PgSchemaFase43aTests
 {
-    private static readonly Lazy<DbSchema> Loja = new(() => DbSchemaExtractor.Extract(LojaMultiTenantPg.Files()));
+    private static readonly Lazy<DbSchema> Loja = new(() => DbSchemaExtractor.Extract(LojaMultiTenantPg.Files(), null, UiLanguage.Portuguese));
 
     private static DbTable Table(string name) => Assert.Single(Loja.Value.Tables, t => t.Name == name);
 
     private static DbSchema FromFiles(params (string File, string Text)[] files) =>
-        DbSchemaExtractor.Extract(files.Select(f => new SchemaFile(f.File, f.Text)).ToList());
+        DbSchemaExtractor.Extract(files.Select(f => new SchemaFile(f.File, f.Text)).ToList(), null, UiLanguage.Portuguese);
 
     [Fact] // EXT-PG-040
     public void Extract_CreateIndexComMetodoEClasseDeOperador_GuardaOMetodoESemNota()

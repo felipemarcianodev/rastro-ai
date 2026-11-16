@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Microsoft.Extensions.DependencyInjection;
 using Rastro.Core.Architecture;
 using Rastro.Core.Prompts;
@@ -37,7 +38,7 @@ public class CrossDocumentsTests(ApiFixture fixture) : IAsyncLifetime
     {
         var graph = await GraphAsync();
 
-        var dsl = C4WorkspaceBuilder.Build(new PromptContext(_pedidos.Name, _pedidos.Solution, "PedidosController.Cancelar", null), graph, []);
+        var dsl = C4WorkspaceBuilder.Build(new PromptContext(_pedidos.Name, _pedidos.Solution, "PedidosController.Cancelar", null), UiLanguage.Portuguese, graph, []);
 
         Assert.Contains($"sis1 = softwareSystem \"{_pagamentos.Name}\"", dsl);
         Assert.Contains("-> sis1 \"chama por HTTP: POST api/estornos\" \"HTTP\"", dsl);
@@ -54,7 +55,7 @@ public class CrossDocumentsTests(ApiFixture fixture) : IAsyncLifetime
         var ok = new ValidationCheck("build", CheckStatus.Passed);
         var result = new ChangeValidationResult([], [], 0, 0, ok, ok, ValidationVerdict.Approved, 100);
 
-        var doc = FlowDocumentBuilder.Build(new PromptContext(_pedidos.Name, _pedidos.Solution, "PedidosController.Cancelar", null),
+        var doc = FlowDocumentBuilder.Build(new PromptContext(_pedidos.Name, _pedidos.Solution, "PedidosController.Cancelar", null), UiLanguage.Portuguese,
             graph, graph, graph, result, null, DateTimeOffset.UtcNow);
 
         Assert.Contains($"subgraph sistema1[\"{_pedidos.Name}\"]", doc);
@@ -71,7 +72,7 @@ public class CrossDocumentsTests(ApiFixture fixture) : IAsyncLifetime
         var ok = new ValidationCheck("build", CheckStatus.Passed);
         var result = new ChangeValidationResult([], [], 0, 0, ok, ok, ValidationVerdict.Approved, 100);
 
-        var doc = FlowDocumentBuilder.Build(new PromptContext(_pedidos.Name, _pedidos.Solution, "PedidosController.Cancelar", null),
+        var doc = FlowDocumentBuilder.Build(new PromptContext(_pedidos.Name, _pedidos.Solution, "PedidosController.Cancelar", null), UiLanguage.Portuguese,
             graph, graph, graph, result, null, DateTimeOffset.UtcNow);
 
         Assert.DoesNotContain("subgraph", doc);

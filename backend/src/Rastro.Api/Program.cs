@@ -41,9 +41,9 @@ var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 });
 builder.Configuration.AddRastroHome();
 
-// Sem endereço configurado (o pacote), só nesta máquina: a porta padrão ou a do --porta.
+// Sem endereço configurado (o pacote), só nesta máquina: a porta padrão ou a do --porta (apelido: --port).
 int? packagePort = string.IsNullOrWhiteSpace(builder.Configuration["urls"])
-    ? builder.Configuration.GetValue("porta", RastroCommandLine.DefaultPort)
+    ? builder.Configuration.GetValue<int?>("porta") ?? builder.Configuration.GetValue("port", RastroCommandLine.DefaultPort)
     : null;
 if (packagePort is not null)
     builder.WebHost.UseUrls($"http://127.0.0.1:{packagePort}");
@@ -70,7 +70,7 @@ if (standalone && packagePort is int port)
 {
     var check = PortProbe.CheckAsync(port, app.Logger).GetAwaiter().GetResult();
     if (check.State != PortState.Free)
-        return PortProbe.Report(check, port, Console.Out, Console.Error);
+        return PortProbe.Report(check, port, Console.Out, Console.Error, ApiText.CliLanguage(RastroHome.ConfigPath));
 }
 
 if (app.Configuration.GetValue("Rastro:MigrateOnStartup", true))
@@ -115,8 +115,10 @@ if (hasEmbeddedScreen)
     app.MapFallbackToFile("index.html");
     app.Lifetime.ApplicationStarted.Register(() =>
     {
-        Console.WriteLine($"Rastro {RastroVersion.Current} aberto em {string.Join(", ", app.Urls)}");
-        Console.WriteLine($"Dados em {RastroHome.Folder}. Ctrl+C para sair.");
+        // Idioma lido na hora: o config.json pode ter mudado desde que o processo subiu.
+        var consoleLanguage = ApiText.CliLanguage(RastroHome.ConfigPath);
+        Console.WriteLine(ApiText.Get("Cli.Run.Opened", consoleLanguage, RastroVersion.Current, string.Join(", ", app.Urls)));
+        Console.WriteLine(ApiText.Get("Cli.Run.DataFolder", consoleLanguage, RastroHome.Folder));
     });
 }
 
@@ -125,15 +127,16 @@ var window = DesktopLaunch.Decide(standalone, configuredUrls: packagePort is nul
 try
 {
     if (window == WindowSkipReason.None)
-        return DesktopWindow.Run(app, app.Logger);
+        return DesktopWindow.Run(app, app.Logger, ApiText.CliLanguage(RastroHome.ConfigPath));
     app.Run();
 }
 catch (IOException ex) when (ex.InnerException is AddressInUseException)
 {
     // A porta foi tomada depois da conferência, ou o endereço veio da configuração (--urls), que não passa por ela.
     // O detalhe vai para o stderr porque o app.Logger não serve aqui: o Run já descartou o host, e escrever nele estoura ObjectDisposedException.
-    Console.Error.WriteLine("O endereço do Rastro já está em uso. Se for outro Rastro, use a tela dele; se não, escolha outra porta: rastro --porta N");
-    Console.Error.WriteLine($"Detalhe: {ex.Message}");
+    var errorLanguage = ApiText.CliLanguage(RastroHome.ConfigPath);
+    Console.Error.WriteLine(ApiText.Get("Cli.Run.AddressInUse", errorLanguage));
+    Console.Error.WriteLine(ApiText.Get("Cli.Run.Detail", errorLanguage, ex.Message));
     return 1;
 }
 return 0;

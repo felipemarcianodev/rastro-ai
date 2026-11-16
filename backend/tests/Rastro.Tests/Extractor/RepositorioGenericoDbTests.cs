@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Graph;
 using Rastro.Extractor;
 
@@ -8,7 +9,7 @@ namespace Rastro.Tests.Extractor;
 public class RepositorioGenericoDbTests
 {
     private static Task<FlowGraph> GraphAsync(string entry) =>
-        FlowExtractor.ExtractAsync(FixtureWorkspace.Load("TarefasRepo"), entry, new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot });
+        FlowExtractor.ExtractAsync(FixtureWorkspace.Load("TarefasRepo"), entry, new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot });
 
     private static FlowNode Node(FlowGraph graph, string label) => graph.Nodes.Single(n => n.Label == label);
 

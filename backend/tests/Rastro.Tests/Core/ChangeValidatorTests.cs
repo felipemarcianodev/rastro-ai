@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core;
 using Rastro.Core.Graph;
 using Rastro.Core.Prompts;
@@ -32,7 +33,7 @@ public class ChangeValidatorTests
             [.. Original.Edges, Edge("m:job", "new:audit", ChangeKind.Added)]);
         var after = Graph([Job, Send, Log, Method("m:audit", "Audit.Record")], [.. Original.Edges, Edge("m:job", "m:audit")]);
 
-        var (expectations, unexpected) = ChangeValidator.Compare(Original, draft, after);
+        var (expectations, unexpected) = ChangeValidator.Compare(Original, draft, after, UiLanguage.Portuguese);
 
         Assert.Equal(CheckStatus.Passed, Assert.Single(expectations).Status);
         Assert.Empty(unexpected);
@@ -44,7 +45,7 @@ public class ChangeValidatorTests
         var draft = Graph([Job, Send, Log, new FlowNode("new:audit", NodeKind.Method, "Audit.Record", Change: ChangeKind.Added, Intent: "registrar")],
             [.. Original.Edges, Edge("m:job", "new:audit", ChangeKind.Added)]);
 
-        var (expectations, _) = ChangeValidator.Compare(Original, draft, Original);
+        var (expectations, _) = ChangeValidator.Compare(Original, draft, Original, UiLanguage.Portuguese);
 
         var check = Assert.Single(expectations);
         Assert.Equal(CheckStatus.Failed, check.Status);
@@ -57,8 +58,8 @@ public class ChangeValidatorTests
         var draft = Graph([Job, Send, Log], [Edge("m:job", "m:send"), Edge("m:job", "m:log", ChangeKind.Removed)]);
         var after = Graph([Job, Send], [Edge("m:job", "m:send")]);
 
-        Assert.Equal(CheckStatus.Failed, Assert.Single(ChangeValidator.Compare(Original, draft, Original).Expectations).Status);
-        Assert.Equal(CheckStatus.Passed, Assert.Single(ChangeValidator.Compare(Original, draft, after).Expectations).Status);
+        Assert.Equal(CheckStatus.Failed, Assert.Single(ChangeValidator.Compare(Original, draft, Original, UiLanguage.Portuguese).Expectations).Status);
+        Assert.Equal(CheckStatus.Passed, Assert.Single(ChangeValidator.Compare(Original, draft, after, UiLanguage.Portuguese).Expectations).Status);
     }
 
     [Fact] // CORE-VAL-004
@@ -67,7 +68,7 @@ public class ChangeValidatorTests
         var draft = Original with { Nodes = [Job, Send with { Change = ChangeKind.Modified, Intent = "enviar só em dia útil" }, Log] };
         var after = Graph([Job, Send, Log, Method("m:cache", "Cache.Clear")], [.. Original.Edges, Edge("m:send", "m:cache")]);
 
-        var (expectations, unexpected) = ChangeValidator.Compare(Original, draft, after);
+        var (expectations, unexpected) = ChangeValidator.Compare(Original, draft, after, UiLanguage.Portuguese);
 
         Assert.Equal(CheckStatus.Passed, Assert.Single(expectations).Status);
         Assert.Equal("nova chamada fora do pedido: Sender.Send → Cache.Clear", Assert.Single(unexpected));
@@ -121,8 +122,8 @@ public class ChangeValidatorTests
         var onlyWrong = Graph([Job, Send, Log, wrongOverload], [.. Original.Edges, Edge("m:job", "m:audit1")]);
         var withRight = Graph([Job, Send, Log, wrongOverload, rightOverload], [.. Original.Edges, Edge("m:job", "m:audit2")]);
 
-        Assert.Equal(CheckStatus.Failed, Assert.Single(ChangeValidator.Compare(Original, draft, onlyWrong).Expectations).Status);
-        Assert.Equal(CheckStatus.Passed, Assert.Single(ChangeValidator.Compare(Original, draft, withRight).Expectations).Status);
+        Assert.Equal(CheckStatus.Failed, Assert.Single(ChangeValidator.Compare(Original, draft, onlyWrong, UiLanguage.Portuguese).Expectations).Status);
+        Assert.Equal(CheckStatus.Passed, Assert.Single(ChangeValidator.Compare(Original, draft, withRight, UiLanguage.Portuguese).Expectations).Status);
     }
 
     [Fact] // CORE-VAL-011
@@ -134,7 +135,7 @@ public class ChangeValidatorTests
         var sendRepo = new FlowNode("m:repoB", NodeKind.Method, "Repo.Save", Symbol: "B.Repo.Save()");
         var after = Graph([Job, Send, Log, otherRepo, sendRepo], [.. Original.Edges, Edge("m:log", "m:repoA"), Edge("m:send", "m:repoB")]);
 
-        Assert.Equal(CheckStatus.Passed, Assert.Single(ChangeValidator.Compare(Original, draft, after).Expectations).Status);
+        Assert.Equal(CheckStatus.Passed, Assert.Single(ChangeValidator.Compare(Original, draft, after, UiLanguage.Portuguese).Expectations).Status);
     }
 
     [Theory] // CORE-VAL-012
@@ -153,10 +154,10 @@ public class ChangeValidatorTests
     {
         var draft = Original with { Nodes = [Job, Send with { Change = ChangeKind.Modified, Intent = "enviar só em dia útil" }, Log] };
         var flow = Original with { Nodes = [Job with { Rule = new NodeRule("roda de hora em hora", ProposalOrigin.Agent) }, Send, Log] };
-        var (expectations, unexpected) = ChangeValidator.Compare(Original, draft, flow);
+        var (expectations, unexpected) = ChangeValidator.Compare(Original, draft, flow, UiLanguage.Portuguese);
         var result = new ChangeValidationResult(expectations, unexpected, 0, 0, Ok, Skipped, ValidationVerdict.Approved, 100);
 
-        var doc = FlowDocumentBuilder.Build(new PromptContext("repo", "App.slnx", "Job.Run", "abc"), flow, Original, draft, result,
+        var doc = FlowDocumentBuilder.Build(new PromptContext("repo", "App.slnx", "Job.Run", "abc"), UiLanguage.Portuguese, flow, Original, draft, result,
             "0123456789", new DateTimeOffset(2026, 10, 16, 12, 0, 0, TimeSpan.Zero));
 
         Assert.Contains("# Fluxo `Job.Run`", doc);
@@ -175,7 +176,7 @@ public class ChangeValidatorTests
         var result = new ChangeValidationResult([], [], 0, 0, Ok, Skipped, ValidationVerdict.Approved, 100);
         var notes = new Dictionary<string, string> { ["m:send"] = "chamado também pelo webhook", ["m:fora"] = "não está no fluxo" };
 
-        var doc = FlowDocumentBuilder.Build(new PromptContext("repo", "App.slnx", "Job.Run", "abc"), Original, Original, Original, result,
+        var doc = FlowDocumentBuilder.Build(new PromptContext("repo", "App.slnx", "Job.Run", "abc"), UiLanguage.Portuguese, Original, Original, Original, result,
             null, new DateTimeOffset(2026, 10, 16, 12, 0, 0, TimeSpan.Zero), notes);
 
         Assert.Contains("## Anotações", doc);

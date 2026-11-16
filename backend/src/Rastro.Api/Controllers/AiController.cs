@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Rastro.Ai;
@@ -5,7 +6,9 @@ using Rastro.Ai.Providers;
 using Rastro.Ai.Rules;
 using Rastro.Ai.Settings;
 using Rastro.Ai.Suggestions;
+using Rastro.Core.Localization;
 using Rastro.Infrastructure;
+using Txt = Rastro.Infrastructure.Resources.Database;
 
 namespace Rastro.Api.Controllers;
 
@@ -54,7 +57,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
 
         return await RunAsync(async () =>
         {
-            var result = await filler.FillAsync(id, request.NodeId, ct);
+            var result = await filler.FillAsync(id, request.NodeId, RequestLanguage.Current, ct);
             return new FillHoleResponse(result, await DetailAsync(db, id, ct));
         });
     }
@@ -67,7 +70,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
 
         return await RunAsync(async () =>
         {
-            var result = await writer.DescribeAsync(id, request.NodeIds, request.Overwrite, ct);
+            var result = await writer.DescribeAsync(id, request.NodeIds, request.Overwrite, RequestLanguage.Current, ct);
             return new DescribeResponse(result, await DetailAsync(db, id, ct));
         });
     }
@@ -78,7 +81,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
     {
         try
         {
-            return await RunAsync(() => advisor.SuggestAsync(id, index, ct));
+            return await RunAsync(() => advisor.SuggestAsync(id, index, RequestLanguage.Current, ct));
         }
         catch (FindingNotFoundException)
         {
@@ -92,7 +95,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
     {
         try
         {
-            return await RunAsync(() => advisor.SuggestPeopleAsync(id, ct));
+            return await RunAsync(() => advisor.SuggestPeopleAsync(id, RequestLanguage.Current, ct));
         }
         catch (FindingNotFoundException)
         {
@@ -106,7 +109,7 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
     {
         try
         {
-            return await RunAsync(() => advisor.AskAsync(id, request.Question, ct));
+            return await RunAsync(() => advisor.AskAsync(id, request.Question, RequestLanguage.Current, ct));
         }
         catch (QuestionInvalidException ex)
         {
@@ -125,15 +128,16 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
     public async Task<ActionResult<QueryAiSuggestion>> SuggestQuery(string name, AnalyzeQueryRequest request,
         [FromServices] QueryAdvisor advisor, [FromServices] Rastro.Infrastructure.Database.Live.LiveDatabaseService live, CancellationToken ct)
     {
+        var language = UiLanguages.FromCulture(CultureInfo.CurrentUICulture);
         if (string.IsNullOrWhiteSpace(request.Sql) || request.Sql.Length > Rastro.Core.Database.QueryLimits.MaxSqlLength)
-            return Problem(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, "Cole uma consulta de até 100 mil caracteres.");
+            return Problem(StatusCodes.Status400BadRequest, ErrorCodes.QueryInvalid, Txt.Get("Live.QueryInvalid", language));
         try
         {
             return await RunAsync(async () =>
             {
-                var suggestion = await advisor.SuggestAsync(name, request.Sql, ct);
+                var suggestion = await advisor.SuggestAsync(name, request.Sql, language, ct);
                 if (suggestion.Review.Rewrite is not { Accepted: true } rewrite) return suggestion;
-                var plan = await live.ComparePlansAsync(name, request.Sql, rewrite.Sql, ct);
+                var plan = await live.ComparePlansAsync(name, request.Sql, rewrite.Sql, language, ct);
                 return suggestion with { Review = suggestion.Review with { Plan = plan } };
             });
         }

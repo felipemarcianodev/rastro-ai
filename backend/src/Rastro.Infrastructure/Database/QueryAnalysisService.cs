@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
 using Rastro.Extractor.Database;
 
 namespace Rastro.Infrastructure.Database;
@@ -11,13 +12,13 @@ namespace Rastro.Infrastructure.Database;
 public class QueryAnalysisService(DbSchemaService schemas, ILogger<QueryAnalysisService> logger)
 {
     // Nulo quando o repositório não está cadastrado.
-    public async Task<QueryAnalysis?> AnalyzeAsync(string repositoryName, string sql, CancellationToken ct)
+    public async Task<QueryAnalysis?> AnalyzeAsync(string repositoryName, string sql, UiLanguage language, CancellationToken ct)
     {
-        var schema = await schemas.ReadAsync(repositoryName, ct);
+        var schema = await schemas.ReadAsync(repositoryName, language, ct);
         if (schema is null) return null;
 
         var analyzer = SqlQueryAnalyzers.For(schema.Dialect) ?? new TSqlQueryAnalyzer();
-        var analysis = analyzer.Analyze(sql, schema);
+        var analysis = analyzer.Analyze(sql, schema, language);
         logger.LogInformation("Consulta analisada no repositório {Repository}: {Statements} instruções, {Findings} achados, leitura com erro: {ParseError}.",
             repositoryName, analysis.Statements, analysis.Findings.Count, analysis.Error is not null);
         return analysis;

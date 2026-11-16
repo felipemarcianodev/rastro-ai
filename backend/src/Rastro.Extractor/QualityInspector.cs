@@ -2,6 +2,8 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
+using Rastro.Extractor.Resources;
 
 namespace Rastro.Extractor;
 
@@ -23,7 +25,7 @@ internal static class QualityInspector
 
     private const int MaxSettersListed = 5;
 
-    public static async Task<FlowGraph> InspectAsync(FlowGraph graph, FlowWalker walker, CancellationToken ct)
+    public static async Task<FlowGraph> InspectAsync(FlowGraph graph, FlowWalker walker, UiLanguage language, CancellationToken ct)
     {
         var metrics = new Dictionary<string, MethodMetrics>(StringComparer.Ordinal);
         var findings = new List<Finding>();
@@ -41,9 +43,9 @@ internal static class QualityInspector
             var measured = new MethodMetrics(Cyclomatic(body.Node), Lines(body.Node), MaxNesting(body.Node), Dependencies(method.ContainingType));
             metrics[nodeId] = measured;
 
-            findings.AddRange(MetricFindings(nodeId, method, measured, reportedTypes));
-            findings.AddRange(CleanCodeFindings(nodeId, method, body.Node, model, walker));
-            findings.AddRange(DddFindings(nodeId, method, body.Node, model, walker, touchedEntities));
+            findings.AddRange(MetricFindings(nodeId, method, measured, reportedTypes, language));
+            findings.AddRange(CleanCodeFindings(nodeId, method, body.Node, model, walker, language));
+            findings.AddRange(DddFindings(nodeId, method, body.Node, model, walker, touchedEntities, language));
         }
 
         foreach (var (entity, nodeId) in touchedEntities.Values)
@@ -52,7 +54,7 @@ internal static class QualityInspector
             if (setters.Count == 0) continue;
             var listed = string.Join(", ", setters.Take(MaxSettersListed)) + (setters.Count > MaxSettersListed ? ", …" : "");
             findings.Add(new Finding(FindingKind.PublicSetterOnEntity, FindingSeverity.Info, nodeId,
-                $"{entity.Name} tem setter público em {setters.Count} propriedade(s) ({listed}): qualquer camada muda o estado sem passar pela regra da entidade.",
+                ExtractorText.Get("Quality.PublicSetter", language, entity.Name, setters.Count, listed),
                 walker.LocationOf(entity.Locations.FirstOrDefault(l => l.IsInSource))));
         }
 
@@ -120,40 +122,40 @@ internal static class QualityInspector
         || type is INamedTypeSymbol { TypeKind: TypeKind.Class, SpecialType: SpecialType.None, IsRecord: false } named && !IsEntity(named)
             && named.ContainingNamespace?.ToDisplayString() is not ("System" or "System.IO");
 
-    private static IEnumerable<Finding> MetricFindings(string nodeId, IMethodSymbol method, MethodMetrics m, HashSet<string> reportedTypes)
+    private static IEnumerable<Finding> MetricFindings(string nodeId, IMethodSymbol method, MethodMetrics m, HashSet<string> reportedTypes, UiLanguage language)
     {
         var name = $"{method.ContainingType.Name}.{method.Name}";
         if (m.Cyclomatic > QualityThresholds.ComplexityWarning)
             yield return new Finding(FindingKind.HighComplexity,
                 m.Cyclomatic > QualityThresholds.ComplexityCritical ? FindingSeverity.Critical : FindingSeverity.Warning, nodeId,
-                $"{name} tem complexidade ciclomática {m.Cyclomatic} (limite {QualityThresholds.ComplexityWarning}): caminhos demais para testar e entender.");
+                ExtractorText.Get("Quality.HighComplexity", language, name, m.Cyclomatic, QualityThresholds.ComplexityWarning));
         if (m.Lines > QualityThresholds.LinesWarning)
             yield return new Finding(FindingKind.LongMethod,
                 m.Lines > QualityThresholds.LinesCritical ? FindingSeverity.Critical : FindingSeverity.Warning, nodeId,
-                $"{name} tem {m.Lines} linhas (limite {QualityThresholds.LinesWarning}): faz coisas demais.");
+                ExtractorText.Get("Quality.LongMethod", language, name, m.Lines, QualityThresholds.LinesWarning));
         if (m.MaxNesting > QualityThresholds.NestingWarning)
             yield return new Finding(FindingKind.DeepNesting, FindingSeverity.Warning, nodeId,
-                $"{name} tem {m.MaxNesting} níveis de blocos um dentro do outro (limite {QualityThresholds.NestingWarning}).");
+                ExtractorText.Get("Quality.DeepNesting", language, name, m.MaxNesting, QualityThresholds.NestingWarning));
         if (m.Dependencies > QualityThresholds.DependenciesWarning && reportedTypes.Add(method.ContainingType.ToDisplayString()))
             yield return new Finding(FindingKind.TooManyDependencies, FindingSeverity.Warning, nodeId,
-                $"{method.ContainingType.Name} recebe {m.Dependencies} dependências no construtor (limite {QualityThresholds.DependenciesWarning}): sinal de responsabilidades demais.");
+                ExtractorText.Get("Quality.TooManyDependencies", language, method.ContainingType.Name, m.Dependencies, QualityThresholds.DependenciesWarning));
     }
 
-    private static IEnumerable<Finding> CleanCodeFindings(string nodeId, IMethodSymbol method, SyntaxNode body, SemanticModel model, FlowWalker walker)
+    private static IEnumerable<Finding> CleanCodeFindings(string nodeId, IMethodSymbol method, SyntaxNode body, SemanticModel model, FlowWalker walker, UiLanguage language)
     {
         foreach (var clause in body.DescendantNodes().OfType<CatchClauseSyntax>())
         {
             var block = clause.Block;
-            var caught = clause.Declaration?.Type.ToString() ?? "tudo";
+            var caught = clause.Declaration?.Type.ToString() ?? ExtractorText.Get("Quality.CatchAny", language);
             if (block.Statements.Count == 0)
                 yield return new Finding(FindingKind.SilentCatch, FindingSeverity.Critical, nodeId,
-                    $"catch ({caught}) vazio: a falha some sem log nem tratamento.", walker.LocationOf(clause.CatchKeyword.GetLocation()));
+                    ExtractorText.Get("Quality.CatchEmpty", language, caught), walker.LocationOf(clause.CatchKeyword.GetLocation()));
             // Traduzir a exceção (usar a variável dela num retorno de erro) não é engolir a falha.
             else if (!block.DescendantNodes().Any(n => n is ThrowStatementSyntax or ThrowExpressionSyntax)
                      && !block.DescendantNodes().OfType<InvocationExpressionSyntax>().Any(i => InvokedName(i).Contains("Log", StringComparison.OrdinalIgnoreCase))
                      && !UsesException(clause))
                 yield return new Finding(FindingKind.SilentCatch, FindingSeverity.Warning, nodeId,
-                    $"catch ({caught}) sem log, sem relançar e sem usar a exceção: a causa da falha se perde.", walker.LocationOf(clause.CatchKeyword.GetLocation()));
+                    ExtractorText.Get("Quality.CatchSilent", language, caught), walker.LocationOf(clause.CatchKeyword.GetLocation()));
         }
 
         if (IsCompositionRoot(method.ContainingType)) yield break;
@@ -167,14 +169,14 @@ internal static class QualityInspector
             var hosted = IsHostedOrJob(method.ContainingType);
             yield return new Finding(FindingKind.ServiceLocator, hosted ? FindingSeverity.Info : FindingSeverity.Warning, nodeId,
                 hosted
-                    ? $"{method.ContainingType.Name} resolve dependência com {called.Name} (comum em job e serviço em segundo plano, que abrem escopo): confira se não dá para injetar."
-                    : $"{method.ContainingType.Name} resolve dependência com {called.Name} (service locator): a dependência fica escondida do construtor.",
+                    ? ExtractorText.Get("Quality.LocatorHosted", language, method.ContainingType.Name, called.Name)
+                    : ExtractorText.Get("Quality.Locator", language, method.ContainingType.Name, called.Name),
                 walker.LocationOf(invocation.GetLocation()));
         }
     }
 
     private static IEnumerable<Finding> DddFindings(string nodeId, IMethodSymbol method, SyntaxNode body, SemanticModel model, FlowWalker walker,
-        Dictionary<string, (INamedTypeSymbol Type, string NodeId)> touchedEntities)
+        Dictionary<string, (INamedTypeSymbol Type, string NodeId)> touchedEntities, UiLanguage language)
     {
         var caller = method.ContainingType;
         // O próprio repositório (ou DbContext) é quem grava: não é ele que pula o domínio.
@@ -198,7 +200,7 @@ internal static class QualityInspector
             touchedEntities.TryAdd(owner.ToDisplayString(), (owner, nodeId));
             if (!reported.Add($"set:{owner.Name}.{member.Name}")) continue;
             yield return new Finding(FindingKind.EntityChangedOutsideDomain, FindingSeverity.Warning, nodeId,
-                $"{where} altera {owner.Name}.{member.Name} direto, fora da entidade e do serviço de domínio que a valida.",
+                ExtractorText.Get("Quality.EntityChangedOutsideDomain", language, where, owner.Name, member.Name),
                 walker.LocationOf(target.GetLocation()));
         }
 
@@ -214,7 +216,7 @@ internal static class QualityInspector
             touchedEntities.TryAdd(entity.ToDisplayString(), (entity, nodeId));
             if (!reported.Add($"store:{entity.Name}.{called.Name}")) continue;
             yield return new Finding(FindingKind.PersistenceOutsideDomain, FindingSeverity.Info, nodeId,
-                $"{where} grava {entity.Name} com {store.Name}.{called.Name} direto, sem passar por um serviço de domínio que valide a entidade.",
+                ExtractorText.Get("Quality.PersistenceOutsideDomain", language, where, entity.Name, store.Name, called.Name),
                 walker.LocationOf(invocation.GetLocation()));
         }
     }

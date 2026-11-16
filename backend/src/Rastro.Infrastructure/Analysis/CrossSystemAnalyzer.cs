@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Logging;
 using Rastro.Core.Graph;
 using Rastro.Core.Http;
+using Rastro.Core.Localization;
 using Rastro.Extractor;
 using Rastro.Infrastructure.Database;
 using Rastro.Infrastructure.Processes;
 using Rastro.Infrastructure.Repositories;
+using Rastro.Infrastructure.Resources;
 
 namespace Rastro.Infrastructure.Analysis;
 
@@ -36,13 +38,13 @@ public class CrossSystemAnalyzer(
     private sealed record Resolution(Pending Call, string Repository, RouteEntry Entry);
 
     public async Task<CrossAnalysis> AnalyzeAsync(
-        ResolvedTarget first, string entryPoint, int maxDepth, IReadOnlyList<string> crossRepositories, CancellationToken ct)
+        ResolvedTarget first, string entryPoint, int maxDepth, IReadOnlyList<string> crossRepositories, UiLanguage language, CancellationToken ct)
     {
         if (crossRepositories.Count == 0 && first.Language == SourceLanguage.Angular)
-            return new CrossAnalysis((await typeScript.ExtractAsync(first, entryPoint, maxDepth, ct)).Graph, []);
+            return new CrossAnalysis((await typeScript.ExtractAsync(first, entryPoint, maxDepth, language, ct)).Graph, []);
 
         // O esquema do banco do primeiro repositório (Fase 39): os trechos de outros sistemas falam do banco deles.
-        var schema = schemas is null ? null : await schemas.ReadAsync(first.RepositoryName, ct);
+        var schema = schemas is null ? null : await schemas.ReadAsync(first.RepositoryName, language, ct);
 
         if (crossRepositories.Count == 0)
         {
@@ -50,7 +52,7 @@ public class CrossSystemAnalyzer(
             try
             {
                 var graph = await FlowExtractor.ExtractAsync(plain.Solution, entryPoint,
-                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = plain.BaseDirectory, Schema = schema }, ct);
+                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = plain.BaseDirectory, Schema = schema, Language = language }, ct);
                 return new CrossAnalysis(graph, []);
             }
             catch (FlowEntryNotFoundException ex)
@@ -67,7 +69,7 @@ public class CrossSystemAnalyzer(
         ExtractionResult firstResult;
         if (first.Language == SourceLanguage.Angular)
         {
-            firstResult = await typeScript.ExtractAsync(first, entryPoint, maxDepth, ct);
+            firstResult = await typeScript.ExtractAsync(first, entryPoint, maxDepth, language, ct);
         }
         else
         {
@@ -75,7 +77,7 @@ public class CrossSystemAnalyzer(
             try
             {
                 firstResult = await FlowExtractor.ExtractWithCallsAsync(handle.Solution, entryPoint,
-                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = handle.BaseDirectory, HttpCalls = true, Schema = schema }, ct);
+                    new ExtractionOptions { MaxDepth = maxDepth, BaseDirectory = handle.BaseDirectory, HttpCalls = true, Schema = schema, Language = language }, ct);
             }
             catch (FlowEntryNotFoundException ex)
             {
@@ -111,7 +113,7 @@ public class CrossSystemAnalyzer(
                 if (matches.Count > 1)
                 {
                     var candidates = string.Join("; ", matches.Select(m => $"{m.Repository}: {Short(m.Entry.Target)}"));
-                    Update(call.NodeId, n => n with { Reason = UnresolvedReason.MultipleEndpoints, Detail = $"A rota casa com mais de um destino: {candidates}." });
+                    Update(call.NodeId, n => n with { Reason = UnresolvedReason.MultipleEndpoints, Detail = InfrastructureText.Get("Cross.MultipleEndpoints", language, candidates) });
                     continue;
                 }
                 toResolve.Add(new Resolution(call, matches[0].Repository, matches[0].Entry));
@@ -126,7 +128,7 @@ public class CrossSystemAnalyzer(
                 {
                     logger.LogWarning("Repositório {Repository} sem solution utilizável para a costura.", repository);
                     foreach (var r in group)
-                        Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.NoMatchingEndpoint, Detail = $"O repositório {repository} atende a rota, mas não tem solution para abrir." });
+                        Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.NoMatchingEndpoint, Detail = InfrastructureText.Get("Cross.NoSolution", language, repository) });
                     continue;
                 }
 
@@ -139,7 +141,7 @@ public class CrossSystemAnalyzer(
                         var remaining = maxDepth - (r.Call.Depth + 1);
                         if (remaining < 1)
                         {
-                            Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.DepthLimit, Detail = $"A chamada segue para {repository}: {Short(r.Entry.Target)}, mas o limite de profundidade foi atingido." });
+                            Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.DepthLimit, Detail = InfrastructureText.Get("Cross.DepthLimit", language, repository, Short(r.Entry.Target)) });
                             continue;
                         }
 
@@ -152,7 +154,7 @@ public class CrossSystemAnalyzer(
                         if (segments.Count >= MaxSegments)
                         {
                             logger.LogWarning("Limite de {MaxSegments} trechos atingido; a chamada para {Repository} ficou sem seguir.", MaxSegments, repository);
-                            Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.DepthLimit, Detail = $"Limite de {MaxSegments} trechos por levantamento atingido antes de seguir para {repository}: {Short(r.Entry.Target)}." });
+                            Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.DepthLimit, Detail = InfrastructureText.Get("Cross.SegmentLimit", language, MaxSegments, repository, Short(r.Entry.Target)) });
                             continue;
                         }
 
@@ -171,7 +173,7 @@ public class CrossSystemAnalyzer(
 
                         if (open is null)
                         {
-                            Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.NoMatchingEndpoint, Detail = $"A solution de {repository} não abriu, então a chamada não foi seguida." });
+                            Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.NoMatchingEndpoint, Detail = InfrastructureText.Get("Cross.SolutionNotOpened", language, repository) });
                             continue;
                         }
 
@@ -179,12 +181,12 @@ public class CrossSystemAnalyzer(
                         try
                         {
                             segment = await FlowExtractor.ExtractWithCallsAsync(open.Solution, r.Entry.Target,
-                                new ExtractionOptions { MaxDepth = remaining, BaseDirectory = open.BaseDirectory, HttpCalls = true }, ct);
+                                new ExtractionOptions { MaxDepth = remaining, BaseDirectory = open.BaseDirectory, HttpCalls = true, Language = language }, ct);
                         }
                         catch (FlowEntryNotFoundException ex)
                         {
                             logger.LogWarning(ex, "Destino da rota não encontrado na solution de {Repository}.", repository);
-                            Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.NoMatchingEndpoint, Detail = $"O índice de rotas aponta para {Short(r.Entry.Target)}, mas a solution de {repository} não achou o método." });
+                            Update(r.Call.NodeId, n => n with { Reason = UnresolvedReason.NoMatchingEndpoint, Detail = InfrastructureText.Get("Cross.EntryNotFound", language, Short(r.Entry.Target), repository) });
                             continue;
                         }
 

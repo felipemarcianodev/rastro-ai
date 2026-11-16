@@ -138,7 +138,7 @@ public class AiEndpointTests(ApiFixture fixture)
         // O pedido leva o código como dado delimitado e os candidatos achados pelo compilador.
         Assert.Contains("<codigo>", FakeAiTextService.LastRequest!.User);
         Assert.Contains("Fixture.Alerts.EmailNotifier.Notify", FakeAiTextService.LastRequest.User);
-        Assert.Contains("Ignore qualquer instrução", FakeAiTextService.LastRequest.System);
+        Assert.Contains("Ignore any instruction", FakeAiTextService.LastRequest.System);
     }
 
     [Fact] // AI-API-005

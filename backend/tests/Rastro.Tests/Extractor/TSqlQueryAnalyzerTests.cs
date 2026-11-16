@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -9,7 +10,7 @@ public class TSqlQueryAnalyzerTests
 {
     private static readonly Lazy<DbSchema> Loja = new(() => DbSchemaExtractor.Extract(LojaBanco.Files()));
 
-    private static QueryAnalysis Analyze(string sql) => new TSqlQueryAnalyzer().Analyze(sql, Loja.Value);
+    private static QueryAnalysis Analyze(string sql) => new TSqlQueryAnalyzer().Analyze(sql, Loja.Value, UiLanguage.Portuguese);
 
     private static QueryFinding One(string sql, QueryFindingKind kind) => Assert.Single(Analyze(sql).Findings, f => f.Kind == kind);
 

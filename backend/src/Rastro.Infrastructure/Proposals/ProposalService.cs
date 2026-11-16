@@ -12,8 +12,12 @@ using Rastro.Infrastructure.Repositories;
 namespace Rastro.Infrastructure.Proposals;
 
 // Refusal e RefusalArgs: o motivo da recusa em código (a tela traduz); Message é o texto em português.
+// Edge: o que a proposta aceita acrescentou (alvo, onde o compilador o achou, quantos nós, e o repositório de destino
+// quando é uma chamada HTTP), para o MCP escrever a resposta no idioma de quem usa. Message continua em português.
+public record EdgeAcceptance(string Target, string File, int Line, int Nodes, string? Destination);
+
 public record ProposalOutcome(bool Accepted, string Message, Guid? ProposalId = null,
-    ProposalRefusal? Refusal = null, IReadOnlyList<string>? RefusalArgs = null)
+    ProposalRefusal? Refusal = null, IReadOnlyList<string>? RefusalArgs = null, EdgeAcceptance? Edge = null)
 {
     public static ProposalOutcome Refuse(ProposalRefusal refusal, params string[] args) =>
         new(false, FailureText.Of(refusal, args), null, refusal, args);
@@ -149,7 +153,8 @@ public class ProposalService(
         survey.ReplaceGraph(GraphEditor.WithInferredBranch(graph, node.Id, branch, proposal.Origin, proposal.When));
         proposal.Accept(branch.EntryNodeId);
 
-        return new ProposalOutcome(true, $"{verdict.Message} Aresta inferida acrescentada com {branch.Nodes.Count} nó(s) a partir do destino; aguarda a confirmação do usuário.");
+        return new ProposalOutcome(true, $"{verdict.Message} Aresta inferida acrescentada com {branch.Nodes.Count} nó(s) a partir do destino; aguarda a confirmação do usuário.",
+            Edge: new EdgeAcceptance(verdict.TargetDisplay ?? proposal.Target!, verdict.File ?? string.Empty, verdict.Line ?? 0, branch.Nodes.Count, null));
     }
 
     // Chamada HTTP sem destino (Fase 25): o destino está em outro repositório da costura do levantamento.
@@ -219,7 +224,8 @@ public class ProposalService(
             db.SurveySegments.Add(SurveySegment.Create(survey.Id, order + 1, destination, resolved.SolutionRelativePath, proposal.Target!, head?.Commit, head?.Branch));
         }
 
-        return new ProposalOutcome(true, $"{verdict.Message} Aresta HTTP inferida acrescentada com {branch.Nodes.Count} nó(s) de {destination} a partir do destino; aguarda a confirmação do usuário.");
+        return new ProposalOutcome(true, $"{verdict.Message} Aresta HTTP inferida acrescentada com {branch.Nodes.Count} nó(s) de {destination} a partir do destino; aguarda a confirmação do usuário.",
+            Edge: new EdgeAcceptance(verdict.TargetDisplay ?? proposal.Target!, verdict.File ?? string.Empty, verdict.Line ?? 0, branch.Nodes.Count, destination));
     }
 
     private static string Truncate(string text, int max) => text.Length <= max ? text.Trim() : text[..max].Trim();

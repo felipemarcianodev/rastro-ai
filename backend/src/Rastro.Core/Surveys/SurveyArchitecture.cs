@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Rastro.Core.Architecture;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 
 namespace Rastro.Core.Surveys;
 
@@ -35,19 +36,21 @@ public class SurveyArchitecture
         JsonSerializer.Deserialize<List<C4Person>>(PeopleJson, FlowGraphJson.Options) ?? [];
 
     // Nome obrigatório, sem repetir; descrição opcional. Devolve os problemas em linguagem do usuário.
-    public static IReadOnlyList<string> Validate(IReadOnlyList<C4Person> people)
+    public static IReadOnlyList<string> Validate(IReadOnlyList<C4Person> people, UiLanguage language)
     {
+        string T(string key, params object[] args) => LocalizedText.Get(key, language, args);
+
         var errors = new List<string>();
-        if (people.Count > MaxPeople) errors.Add($"No máximo {MaxPeople} pessoas.");
+        if (people.Count > MaxPeople) errors.Add(T("C4.People.Max", MaxPeople));
         foreach (var person in people)
         {
             if (string.IsNullOrWhiteSpace(person.Name) || person.Name.Length > MaxNameLength)
-                errors.Add($"Cada pessoa precisa de um nome com até {MaxNameLength} caracteres.");
+                errors.Add(T("C4.People.NameRequired", MaxNameLength));
             if (person.Description is { Length: > MaxDescriptionLength })
-                errors.Add($"A descrição de \"{person.Name}\" passa de {MaxDescriptionLength} caracteres.");
+                errors.Add(T("C4.People.DescriptionTooLong", person.Name, MaxDescriptionLength));
         }
         if (people.GroupBy(p => p.Name.Trim(), StringComparer.OrdinalIgnoreCase).Any(g => g.Count() > 1))
-            errors.Add("Há pessoas com o mesmo nome.");
+            errors.Add(T("C4.People.Duplicate"));
         return errors.Distinct().ToList();
     }
 }

@@ -2,6 +2,8 @@ using SqlParser;
 using SqlParser.Ast;
 using SqlParser.Tokens;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -17,14 +19,14 @@ public sealed class PgSqlSchemaReader : ISqlSchemaReader
 
     public SqlDialect Dialect => Pg;
 
-    public SchemaFragment Read(string text, string file, int firstLine, SchemaSourceKind kind)
+    public SchemaFragment Read(string text, string file, int firstLine, SchemaSourceKind kind, UiLanguage language)
     {
         var notes = new List<SchemaNote>();
         text = PgSqlText.WithoutCopyData(text);
-        var tokens = PgSqlText.Read(text, out var tokenError);
+        var tokens = PgSqlText.Read(text, out var tokenError, language);
         if (tokens is null)
         {
-            notes.Add(new SchemaNote($"O leitor de SQL do PostgreSQL não entendeu o arquivo ({tokenError?.Message}): ele ficou de fora.", file, firstLine + (tokenError?.Line ?? 1) - 1));
+            notes.Add(new SchemaNote(Txt.Get("Schema.PgFileNotUnderstood", language, tokenError?.Message ?? string.Empty), file, firstLine + (tokenError?.Line ?? 1) - 1));
             return new SchemaFragment([], [], [], notes);
         }
 
@@ -46,10 +48,10 @@ public sealed class PgSqlSchemaReader : ISqlSchemaReader
 
             var start = tokens.Tokens[from].Start;
             var end = tokens.Tokens[to - 1].Start + tokens.Tokens[to - 1].Length;
-            var parsed = PgSqlText.Parse(text[start..end], out var error);
+            var parsed = PgSqlText.Parse(text[start..end], out var error, language);
             if (parsed is null || parsed.Count == 0)
             {
-                failures.Add((line + (error?.Line ?? 1) - 1, error?.Message ?? "instrução vazia"));
+                failures.Add((line + (error?.Line ?? 1) - 1, error?.Message ?? Txt.Get("Schema.PgEmptyStatement", language)));
                 continue;
             }
             foreach (var statement in parsed) builder.Add(statement, line);
@@ -58,8 +60,8 @@ public sealed class PgSqlSchemaReader : ISqlSchemaReader
         if (failures.Count > 0)
         {
             var (failLine, message) = failures[0];
-            var more = failures.Count == 1 ? "" : $" (e mais {failures.Count - 1} instrução(ões) do mesmo arquivo)";
-            notes.Add(new SchemaNote($"O leitor de SQL do PostgreSQL não entendeu uma instrução ({message}){more}: ela ficou de fora.", file, firstLine + failLine - 1));
+            var more = failures.Count == 1 ? "" : Txt.Get("Schema.PgMoreStatements", language, failures.Count - 1);
+            notes.Add(new SchemaNote(Txt.Get("Schema.PgStatementNotUnderstood", language, message, more), file, firstLine + failLine - 1));
         }
         return new SchemaFragment(builder.Tables(), builder.Views, builder.Procedures, notes);
     }

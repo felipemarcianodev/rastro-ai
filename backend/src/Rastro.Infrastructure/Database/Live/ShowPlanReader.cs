@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Xml.Linq;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Infrastructure.Resources.Database;
 
 namespace Rastro.Infrastructure.Database.Live;
 
@@ -11,7 +13,7 @@ public static class ShowPlanReader
     private static readonly XNamespace Ns = "http://schemas.microsoft.com/sqlserver/2004/07/showplan";
     private static readonly HashSet<string> Scans = new(StringComparer.OrdinalIgnoreCase) { "Table Scan", "Clustered Index Scan", "Index Scan" };
 
-    public static QueryPlan Read(string xml)
+    public static QueryPlan Read(string xml, UiLanguage language)
     {
         var operations = new List<PlanOperation>();
         var missing = new List<MissingIndex>();
@@ -45,7 +47,7 @@ public static class ShowPlanReader
                             Math.Round(Number(group, "Impact"), 1)));
 
                 foreach (var warning in plan.Descendants(Ns + "Warnings").Elements())
-                    warnings.Add(Warning(warning));
+                    warnings.Add(Warning(warning, language));
             }
         }
 
@@ -85,14 +87,14 @@ public static class ShowPlanReader
             .Select(c => Unquote((string?)c.Attribute("Name")))
             .ToList();
 
-    private static string Warning(XElement warning) => warning.Name.LocalName switch
+    private static string Warning(XElement warning, UiLanguage language) => warning.Name.LocalName switch
     {
-        "PlanAffectingConvert" => $"Conversão implícita que pode impedir a busca no índice: {(string?)warning.Attribute("Expression")}",
-        "ColumnsWithNoStatistics" => "Coluna sem estatística: " + string.Join(", ", warning.Descendants(Ns + "ColumnReference").Select(c => Unquote((string?)c.Attribute("Column")))),
-        "NoJoinPredicate" => "Junção sem predicado: o banco junta cada linha com cada linha.",
-        "UnmatchedIndexes" => "Índice filtrado que o banco não pôde usar.",
-        "SpillToTempDb" => "O banco estima usar o tempdb por falta de memória.",
-        var other => $"Aviso do plano: {other}"
+        "PlanAffectingConvert" => Txt.Get("Plan.ImplicitConvert", language, (string?)warning.Attribute("Expression") ?? string.Empty),
+        "ColumnsWithNoStatistics" => Txt.Get("Plan.NoStatistics", language, string.Join(", ", warning.Descendants(Ns + "ColumnReference").Select(c => Unquote((string?)c.Attribute("Column"))))),
+        "NoJoinPredicate" => Txt.Get("Plan.NoJoinPredicate", language),
+        "UnmatchedIndexes" => Txt.Get("Plan.UnmatchedIndexes", language),
+        "SpillToTempDb" => Txt.Get("Plan.SpillToTempDb", language),
+        var other => Txt.Get("Plan.Other", language, other)
     };
 
     private static double Number(XElement element, string attribute) =>

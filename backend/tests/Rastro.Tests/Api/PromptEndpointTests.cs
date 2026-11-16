@@ -48,6 +48,41 @@ public class PromptEndpointTests(ApiFixture fixture)
         Assert.Contains("chamado por `AlertJob.ExecuteAsync` (Alerts/AlertJob.cs:11)", prompt.Prompt);
     }
 
+    private HttpClient ClientIn(string language)
+    {
+        var client = fixture.Factory.CreateClient();
+        client.DefaultRequestHeaders.AcceptLanguage.Clear();
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd(language);
+        return client;
+    }
+
+    [Fact] // API-LANG-101
+    public async Task Prompt_AcceptLanguageIngles_DevolveOPromptEmIngles()
+    {
+        var (id, _) = await SurveyWithDraftAsync();
+
+        var english = (await ClientIn("en-US").GetFromJsonAsync<ChangePrompt>($"/api/surveys/{id}/prompt", Json))!.Prompt;
+        var spanish = (await ClientIn("es-MX").GetFromJsonAsync<ChangePrompt>($"/api/surveys/{id}/prompt", Json))!.Prompt;
+        var portuguese = (await Client.GetFromJsonAsync<ChangePrompt>($"/api/surveys/{id}/prompt", Json))!.Prompt;
+
+        Assert.Contains("# Change in the flow `AlertJob.ExecuteAsync`", english);
+        Assert.Contains("Create the step `AlertAudit.Registrar`", english);
+        Assert.DoesNotContain("Criar o passo", english);
+        Assert.Contains("# Cambio en el flujo `AlertJob.ExecuteAsync`", spanish);
+        Assert.Contains("Crear el paso `AlertAudit.Registrar`", spanish);
+        Assert.Contains("# Mudança no fluxo `AlertJob.ExecuteAsync`", portuguese);
+    }
+
+    [Fact] // API-LANG-102
+    public async Task PerguntasProntas_AcceptLanguageEspanhol_SaemEmEspanhol()
+    {
+        var (id, _) = await SurveyWithDraftAsync(withDraft: false);
+
+        var questions = await ClientIn("es").GetFromJsonAsync<List<FlowQuestion>>($"/api/surveys/{id}/questions", Json);
+
+        Assert.Contains(questions!, q => q.Text == "¿En qué situaciones se rechaza o se termina el flujo antes del final?");
+    }
+
     [Fact] // API-PROMPT-002
     public async Task Prompt_SemRascunho_Retorna404()
     {

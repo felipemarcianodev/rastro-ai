@@ -84,6 +84,9 @@ jobs:
       - name: Texto fixo nos templates (ADR-009)
         run: node scripts/verificar-texto-fixo.mjs
 
+      - name: Documentação nos três idiomas (ADR-009)
+        run: node ../scripts/verificar-traducoes.mjs
+
       - name: Testes
         run: npm run test:ci
 

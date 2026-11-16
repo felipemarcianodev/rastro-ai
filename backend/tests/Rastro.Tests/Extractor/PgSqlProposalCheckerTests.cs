@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Core.Graph;
 using Rastro.Extractor.Database;
@@ -20,7 +21,7 @@ public class PgSqlProposalCheckerTests
         """;
 
     private static QueryProposalReview Review(string original, string? rewritten, params IndexSuggestion[] indexes) =>
-        new PgSqlProposalChecker().Review(original, new QueryProposal(rewritten, [new QueryChange("Trocou a conversão por faixa", "Usa o índice")], indexes, ProposalOrigin.Agent), Loja.Value);
+        new PgSqlProposalChecker().Review(original, new QueryProposal(rewritten, [new QueryChange("Trocou a conversão por faixa", "Usa o índice")], indexes, ProposalOrigin.Agent), Loja.Value, UiLanguage.Portuguese);
 
     private static RewriteReview Rewrite(string original, string rewritten) => Review(original, rewritten).Rewrite!;
 
@@ -129,14 +130,14 @@ public class PgSqlProposalCheckerTests
     [Fact] // EXT-PGP-001
     public void PlanGuard_UmaInstrucaoDeLeituraOuEscrita_PassaComOsParametros()
     {
-        var select = PgSqlPlanGuard.Check("SELECT id FROM pedidos WHERE cliente_id = @cliente AND id > $1 AND status = $2");
+        var select = PgSqlPlanGuard.Check("SELECT id FROM pedidos WHERE cliente_id = @cliente AND id > $1 AND status = $2", UiLanguage.Portuguese);
         Assert.True(select.Allowed, select.Reason);
         Assert.Equal(["@cliente", "$1", "$2"], select.Variables);
 
-        Assert.True(PgSqlPlanGuard.Check("UPDATE produtos SET estoque = estoque - 1 WHERE id = $1").Allowed);
-        Assert.True(PgSqlPlanGuard.Check("DELETE FROM log_eventos WHERE ocorrido_em < now()").Allowed);
-        Assert.True(PgSqlPlanGuard.Check("INSERT INTO log_eventos (ocorrido_em, mensagem) SELECT now(), 'x'").Allowed);
-        Assert.True(SqlPlanGuards.Check(SqlDialect.PostgreSql, "SELECT 1").Allowed);
+        Assert.True(PgSqlPlanGuard.Check("UPDATE produtos SET estoque = estoque - 1 WHERE id = $1", UiLanguage.Portuguese).Allowed);
+        Assert.True(PgSqlPlanGuard.Check("DELETE FROM log_eventos WHERE ocorrido_em < now()", UiLanguage.Portuguese).Allowed);
+        Assert.True(PgSqlPlanGuard.Check("INSERT INTO log_eventos (ocorrido_em, mensagem) SELECT now(), 'x'", UiLanguage.Portuguese).Allowed);
+        Assert.True(SqlPlanGuards.Check(SqlDialect.PostgreSql, "SELECT 1", UiLanguage.Portuguese).Allowed);
     }
 
     [Theory] // EXT-PGP-002
@@ -157,7 +158,7 @@ public class PgSqlProposalCheckerTests
     [InlineData("DO $$ BEGIN DELETE FROM pedidos; END $$", "não entendeu")]
     public void PlanGuard_ForaDaPorta_RecusadaComOMotivo(string sql, string reason)
     {
-        var result = PgSqlPlanGuard.Check(sql);
+        var result = PgSqlPlanGuard.Check(sql, UiLanguage.Portuguese);
 
         Assert.False(result.Allowed);
         Assert.Contains(reason, result.Reason);

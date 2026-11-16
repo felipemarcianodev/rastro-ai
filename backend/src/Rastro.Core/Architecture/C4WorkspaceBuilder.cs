@@ -1,11 +1,12 @@
 using System.Text;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 using Rastro.Core.Prompts;
 
 namespace Rastro.Core.Architecture;
 
 // Pessoa do C1 (contexto): o compilador não sabe quem usa o sistema, então quem diz é o usuário.
-// FromAi: veio de uma sugestão da IA e ninguém editou depois (sai no C1 com a tag "Inferida").
+// FromAi: veio de uma sugestão da IA e ninguém editou depois (sai no C1 com a tag "Inferida", no idioma do pedido).
 public record C4Person(string Name, string? Description, bool? FromAi = null);
 
 // Diagramas C4 do fluxo em Structurizr DSL (Fase 11). Sem IA: o mesmo grafo gera sempre o mesmo texto.
@@ -17,14 +18,16 @@ public record C4Person(string Name, string? Description, bool? FromAi = null);
 public static class C4WorkspaceBuilder
 {
     public const int MaxDynamicSteps = 40;
-    public const string InferredTag = "Inferida";
 
     private static readonly string[] FrameworkAssemblies = ["System", "Microsoft", "netstandard", "mscorlib"];
 
     private sealed record Component(string Key, string Id, string Name, string Project, string Description);
 
-    public static string Build(PromptContext context, FlowGraph graph, IReadOnlyList<C4Person> people, DeploymentMap? deployment = null)
+    public static string Build(PromptContext context, UiLanguage language, FlowGraph graph, IReadOnlyList<C4Person> people, DeploymentMap? deployment = null)
     {
+        string T(string key, params object[] args) => LocalizedText.Get(key, language, args);
+        var inferredTag = T("C4.Tag.Inferred");
+
         // Container de cada projeto: o serviço do compose que o publica ou, sem mapa, o próprio projeto.
         string Box(string project) => deployment?.ServiceOf(project)?.Name ?? project;
 
@@ -41,12 +44,12 @@ public static class C4WorkspaceBuilder
         var componentOf = new Dictionary<string, Component>(StringComparer.Ordinal);
         foreach (var method in methods)
         {
-            var project = method.Project ?? "Código";
+            var project = method.Project ?? T("C4.DefaultProject");
             var type = TypeOf(method.Label);
             var key = $"{project}/{type}";
             if (!components.TryGetValue(key, out var component))
             {
-                component = new Component(key, $"comp{components.Count + 1}", type, project, Role(type));
+                component = new Component(key, $"comp{components.Count + 1}", type, project, Role(type, language));
                 components[key] = component;
             }
             componentOf[method.Id] = component;
@@ -85,9 +88,9 @@ public static class C4WorkspaceBuilder
                 else if (node.Kind == NodeKind.External && IsDatabase(node))
                 {
                     databaseUsers.Add(from);
-                    flowSteps.Add((method.Id, "db", "lê e grava"));
+                    flowSteps.Add((method.Id, "db", T("C4.Rel.ReadsWritesFlow")));
                 }
-                else if (node.Kind == NodeKind.External && ExternalSystem(node) is { } system)
+                else if (node.Kind == NodeKind.External && ExternalSystem(node, language) is { } system)
                 {
                     externalLinks.Add((from, system, MethodOf(node.Label)));
                     flowSteps.Add((method.Id, "ext:" + system, MethodOf(node.Label)));
@@ -104,7 +107,10 @@ public static class C4WorkspaceBuilder
 
         var text = new StringBuilder();
         var title = Quote($"{context.Repository}: {context.EntryPoint}");
-        text.AppendLine($"workspace {title} {Quote($"Gerado pelo Rastro AI a partir do fluxo levantado pelo compilador (solution {context.SolutionPath}{(context.CommitHash is null ? "" : $", commit {context.CommitHash[..Math.Min(7, context.CommitHash.Length)]}")}).")} {{");
+        var generated = context.CommitHash is null
+            ? T("C4.Workspace.Description", context.SolutionPath)
+            : T("C4.Workspace.DescriptionCommit", context.SolutionPath, context.CommitHash[..Math.Min(7, context.CommitHash.Length)]);
+        text.AppendLine($"workspace {title} {Quote(generated)} {{");
         text.AppendLine();
         text.AppendLine("    !identifiers hierarchical");
         text.AppendLine();
@@ -113,30 +119,30 @@ public static class C4WorkspaceBuilder
         var peopleIds = people.Select((p, i) => (Person: p, Id: $"pessoa{i + 1}")).ToList();
         foreach (var (person, id) in peopleIds)
             text.AppendLine(person.FromAi == true
-                ? $"        {id} = person {Quote(person.Name)} {Quote(person.Description ?? "")} {Quote(InferredTag)}"
+                ? $"        {id} = person {Quote(person.Name)} {Quote(person.Description ?? "")} {Quote(inferredTag)}"
                 : $"        {id} = person {Quote(person.Name)} {Quote(person.Description ?? "")}");
 
-        text.AppendLine($"        sistema = softwareSystem {Quote(context.Repository)} {Quote($"Fluxo {context.EntryPoint}.")} {{");
+        text.AppendLine($"        sistema = softwareSystem {Quote(context.Repository)} {Quote(T("C4.System.Description", context.EntryPoint))} {{");
         foreach (var project in projects)
         {
             var service = deployment?.Applications.FirstOrDefault(a => a.Name == project);
-            var about = service is null ? "" : $"Serviço do docker-compose com {string.Join(", ", components.Values.Where(c => Box(c.Project) == project).Select(c => c.Project).Distinct().Order(StringComparer.Ordinal))}.";
+            var about = service is null ? "" : T("C4.Container.ComposeService", string.Join(", ", components.Values.Where(c => Box(c.Project) == project).Select(c => c.Project).Distinct().Order(StringComparer.Ordinal)));
             text.AppendLine($"            {containerIds[project]} = container {Quote(project)} {Quote(about)} \".NET\" {{");
             foreach (var component in components.Values.Where(c => Box(c.Project) == project))
                 text.AppendLine($"                {component.Id} = component {Quote(component.Name)} {Quote(component.Description)} \"C#\"");
             text.AppendLine("            }");
         }
         if (usesDatabase)
-            text.AppendLine($"            db = container {Quote(deployment?.DatabaseService ?? "Banco de dados")} \"Lido e gravado pelo fluxo.\" \"EF Core\" \"Database\"");
+            text.AppendLine($"            db = container {Quote(deployment?.DatabaseService ?? T("C4.Database.Name"))} {Quote(T("C4.Database.Description"))} \"EF Core\" \"Database\"");
         text.AppendLine("        }");
 
         foreach (var system in systems)
-            text.AppendLine($"        {systemIds[system]} = softwareSystem {Quote(system)} \"Sistema externo chamado pelo fluxo.\" \"Externo\"");
+            text.AppendLine($"        {systemIds[system]} = softwareSystem {Quote(system)} {Quote(T("C4.External.Description"))} {Quote(T("C4.External.Tag"))}");
         foreach (var system in crossSystems)
         {
-            text.AppendLine($"        {crossIds[system]} = softwareSystem {Quote(system)} {Quote("Sistema do fluxo, alcançado por chamada HTTP.")} {{");
+            text.AppendLine($"        {crossIds[system]} = softwareSystem {Quote(system)} {Quote(T("C4.Cross.Description"))} {{");
             var crossProjects = graph.Nodes.Where(n => n.System == system && n.Kind is NodeKind.Entry or NodeKind.Method && n.Change is null)
-                .Select(n => n.Project ?? "Código").Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+                .Select(n => n.Project ?? T("C4.DefaultProject")).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
             foreach (var (project, i) in crossProjects.Select((p, i) => (p, i)))
                 text.AppendLine($"            c{i + 1} = container {Quote(project)} \"\" \".NET\"");
             text.AppendLine("        }");
@@ -145,41 +151,41 @@ public static class C4WorkspaceBuilder
 
         var entryContainer = entryProject is null ? null : $"sistema.{containerIds[entryProject]}";
         foreach (var (_, id) in peopleIds)
-            text.AppendLine(entryContainer is null ? $"        {id} -> sistema \"Usa\"" : $"        {id} -> {entryContainer} \"Usa\"");
+            text.AppendLine(entryContainer is null ? $"        {id} -> sistema {Quote(T("C4.Rel.Uses"))}" : $"        {id} -> {entryContainer} {Quote(T("C4.Rel.Uses"))}");
 
         string Ref(Component c) => $"sistema.{containerIds[Box(c.Project)]}.{c.Id}";
         foreach (var group in componentLinks.GroupBy(l => (l.From.Key, l.To.Key)))
         {
             var first = group.First();
-            text.AppendLine($"        {Ref(first.From)} -> {Ref(first.To)} {Quote(Describe(group.Select(l => l.Method)))}");
+            text.AppendLine($"        {Ref(first.From)} -> {Ref(first.To)} {Quote(Describe(group.Select(l => l.Method), language))}");
         }
         foreach (var user in databaseUsers.DistinctBy(c => c.Key))
-            text.AppendLine($"        {Ref(user)} -> sistema.db \"Lê e grava\"");
+            text.AppendLine($"        {Ref(user)} -> sistema.db {Quote(T("C4.Rel.ReadsWrites"))}");
         foreach (var group in externalLinks.GroupBy(l => (l.From.Key, l.System)))
         {
             var first = group.First();
-            text.AppendLine($"        {Ref(first.From)} -> {systemIds[first.System]} {Quote(Describe(group.Select(l => l.What)))}");
+            text.AppendLine($"        {Ref(first.From)} -> {systemIds[first.System]} {Quote(Describe(group.Select(l => l.What), language))}");
         }
         foreach (var group in crossLinks.GroupBy(l => (l.From.Key, l.System)))
         {
             var first = group.First();
-            text.AppendLine($"        {Ref(first.From)} -> {crossIds[first.System]} {Quote($"chama por HTTP: {Describe(group.Select(l => l.What))}")} \"HTTP\"");
+            text.AppendLine($"        {Ref(first.From)} -> {crossIds[first.System]} {Quote(T("C4.Rel.CallsByHttp", Describe(group.Select(l => l.What), language)))} \"HTTP\"");
         }
         text.AppendLine("    }");
         text.AppendLine();
 
         text.AppendLine("    views {");
-        text.AppendLine("        systemContext sistema \"C1-contexto\" \"C1: contexto do fluxo.\" {");
+        text.AppendLine($"        systemContext sistema \"C1-contexto\" {Quote(T("C4.View.C1"))} {{");
         text.AppendLine("            include *");
         text.AppendLine("            autolayout lr");
         text.AppendLine("        }");
-        text.AppendLine("        container sistema \"C2-containers\" \"C2: projetos e banco usados pelo fluxo.\" {");
+        text.AppendLine($"        container sistema \"C2-containers\" {Quote(T("C4.View.C2"))} {{");
         text.AppendLine("            include *");
         text.AppendLine("            autolayout lr");
         text.AppendLine("        }");
         foreach (var project in projects)
         {
-            text.AppendLine($"        component sistema.{containerIds[project]} {Quote($"C3-{containerIds[project]}")} {Quote($"C3: componentes de {project}.")} {{");
+            text.AppendLine($"        component sistema.{containerIds[project]} {Quote($"C3-{containerIds[project]}")} {Quote(T("C4.View.C3", project))} {{");
             text.AppendLine("            include *");
             text.AppendLine("            autolayout lr");
             text.AppendLine("        }");
@@ -187,7 +193,7 @@ public static class C4WorkspaceBuilder
 
         foreach (var system in crossSystems)
         {
-            text.AppendLine($"        container {crossIds[system]} {Quote($"C2-{crossIds[system]}")} {Quote($"C2: projetos de {system}.")} {{");
+            text.AppendLine($"        container {crossIds[system]} {Quote($"C2-{crossIds[system]}")} {Quote(T("C4.View.C2System", system))} {{");
             text.AppendLine("            include *");
             text.AppendLine("            autolayout lr");
             text.AppendLine("        }");
@@ -195,7 +201,7 @@ public static class C4WorkspaceBuilder
 
         if (entryProject is not null)
         {
-            text.AppendLine($"        dynamic sistema.{containerIds[entryProject]} \"C4-fluxo\" \"C4: ordem das chamadas a partir de {Escape(context.EntryPoint)}.\" {{");
+            text.AppendLine($"        dynamic sistema.{containerIds[entryProject]} \"C4-fluxo\" {Quote(T("C4.View.C4", context.EntryPoint))} {{");
             var written = new HashSet<string>(StringComparer.Ordinal);
             var count = 0;
             foreach (var (fromId, toId, what) in OrderSteps(flowSteps, graph))
@@ -229,11 +235,11 @@ public static class C4WorkspaceBuilder
         text.AppendLine("            }");
         if (people.Any(p => p.FromAi == true))
         {
-            text.AppendLine($"            element {Quote(InferredTag)} {{");
+            text.AppendLine($"            element {Quote(inferredTag)} {{");
             text.AppendLine("                border dashed");
             text.AppendLine("            }");
         }
-        text.AppendLine("            element \"Externo\" {");
+        text.AppendLine($"            element {Quote(T("C4.External.Tag"))} {{");
         text.AppendLine("                background #8a8f98");
         text.AppendLine("                color #ffffff");
         text.AppendLine("            }");
@@ -277,10 +283,10 @@ public static class C4WorkspaceBuilder
         type.EndsWith("DbContext", StringComparison.Ordinal) || type.Contains("Repositor", StringComparison.OrdinalIgnoreCase);
 
     // Sistema externo: chamada HTTP ou SDK de terceiro. Chamadas do próprio .NET ficam de fora.
-    private static string? ExternalSystem(FlowNode node)
+    private static string? ExternalSystem(FlowNode node, UiLanguage language)
     {
         var symbol = node.Symbol ?? "";
-        if (symbol.StartsWith("System.Net.Http.", StringComparison.Ordinal)) return "Serviço HTTP externo";
+        if (symbol.StartsWith("System.Net.Http.", StringComparison.Ordinal)) return LocalizedText.Get("C4.HttpExternalService", language);
         var assembly = node.Project;
         if (string.IsNullOrEmpty(assembly) || FrameworkAssemblies.Any(f => assembly == f || assembly.StartsWith(f + ".", StringComparison.Ordinal))) return null;
         return assembly;
@@ -295,21 +301,25 @@ public static class C4WorkspaceBuilder
         return dot < 0 ? label : label[(dot + 1)..];
     }
 
-    private static string Role(string type) =>
-        type.EndsWith("Controller", StringComparison.Ordinal) ? "Controller da API."
-        : type.EndsWith("Job", StringComparison.Ordinal) ? "Job agendado."
-        : type.EndsWith("Handler", StringComparison.Ordinal) || type.EndsWith("Consumer", StringComparison.Ordinal) ? "Tratador de mensagem."
-        : IsStoreType(type) ? "Acesso a dados."
-        : type.EndsWith("Service", StringComparison.Ordinal) || type.EndsWith("AppService", StringComparison.Ordinal) ? "Serviço."
-        : "";
+    private static string Role(string type, UiLanguage language)
+    {
+        string? key =
+            type.EndsWith("Controller", StringComparison.Ordinal) ? "C4.Role.Controller"
+            : type.EndsWith("Job", StringComparison.Ordinal) ? "C4.Role.Job"
+            : type.EndsWith("Handler", StringComparison.Ordinal) || type.EndsWith("Consumer", StringComparison.Ordinal) ? "C4.Role.MessageHandler"
+            : IsStoreType(type) ? "C4.Role.DataAccess"
+            : type.EndsWith("Service", StringComparison.Ordinal) || type.EndsWith("AppService", StringComparison.Ordinal) ? "C4.Role.Service"
+            : null;
+        return key is null ? "" : LocalizedText.Get(key, language);
+    }
 
     private const int MaxMethodsInDescription = 3;
 
-    private static string Describe(IEnumerable<string> methods)
+    private static string Describe(IEnumerable<string> methods, UiLanguage language)
     {
         var distinct = methods.Distinct(StringComparer.Ordinal).ToList();
         var shown = string.Join(", ", distinct.Take(MaxMethodsInDescription));
-        return distinct.Count > MaxMethodsInDescription ? $"{shown} e mais {distinct.Count - MaxMethodsInDescription}" : shown;
+        return distinct.Count > MaxMethodsInDescription ? $"{shown} {LocalizedText.Get("C4.AndMore", language, distinct.Count - MaxMethodsInDescription)}" : shown;
     }
 
     private static string Escape(string text) => text.Replace("\\", "\\\\").Replace("\"", "'").ReplaceLineEndings(" ");

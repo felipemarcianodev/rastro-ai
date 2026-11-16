@@ -1,4 +1,6 @@
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -9,22 +11,24 @@ public static class DbSchemaExtractor
 {
     // extra (Fase 40b): fragmentos de fora do código, como o catálogo do banco vivo, que entram na fusão
     // depois das fontes do código (o código dá o nome; a divergência aparece com a fonte de cada lado).
-    public static DbSchema Extract(IReadOnlyList<SchemaFile> files, IReadOnlyList<SchemaFragment>? extra = null)
+    // language: o idioma das notas do leitor, que vão para a tela (ADR-009). Sem pedido (a análise do levantamento
+    // não mostra as notas), fica o inglês, o neutro.
+    public static DbSchema Extract(IReadOnlyList<SchemaFile> files, IReadOnlyList<SchemaFragment>? extra = null, UiLanguage language = UiLanguage.English)
     {
         var ordered = files.OrderBy(f => f.RelativePath, StringComparer.Ordinal).ToList();
         var code = new CodeIndex(ordered.Where(f => f.RelativePath.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)).ToList());
         var scripts = ordered.Where(f => f.RelativePath.EndsWith(".sql", StringComparison.OrdinalIgnoreCase)).ToList();
         var dialect = DialectOf(code, ordered, scripts);
 
-        var fragments = new List<SchemaFragment> { new EfModelReader(code, dialect).Read() };
-        fragments.AddRange(new EfMigrationReader(code, dialect).Read());
+        var fragments = new List<SchemaFragment> { new EfModelReader(code, dialect, language).Read() };
+        fragments.AddRange(new EfMigrationReader(code, dialect, language).Read());
 
         if (SqlSchemaReaders.For(dialect) is { } reader)
-            fragments.AddRange(scripts.Select(f => reader.Read(f.Text, f.RelativePath, 1, SchemaSourceKind.SqlScript)));
+            fragments.AddRange(scripts.Select(f => reader.Read(f.Text, f.RelativePath, 1, SchemaSourceKind.SqlScript, language)));
         else if (scripts.Count > 0)
             fragments.Add(SchemaFragment.Empty with
             {
-                Notes = [new SchemaNote($"Os arquivos .sql do {dialect} não são lidos ({scripts.Count} arquivo(s)).", scripts[0].RelativePath, 1)]
+                Notes = [new SchemaNote(Txt.Get("Schema.SqlFilesNotRead", language, dialect, scripts.Count), scripts[0].RelativePath, 1)]
             });
 
         if (extra is not null) fragments.AddRange(extra);

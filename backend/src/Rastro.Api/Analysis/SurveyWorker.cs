@@ -1,10 +1,12 @@
 using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Rastro.Core.Failures;
 using Rastro.Core.Graph;
 using Rastro.Core.Surveys;
 using Rastro.Infrastructure;
 using Rastro.Infrastructure.Analysis;
+using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Repositories;
 
 namespace Rastro.Api.Analysis;
@@ -16,6 +18,7 @@ public class SurveyWorker(
     IServiceScopeFactory scopes,
     RepositoryCatalog catalog,
     ISolutionAnalyzer analyzer,
+    IOptionsMonitor<RastroOptions> options,
     RastroMetrics metrics,
     TimeProvider clock,
     ILogger<SurveyWorker> logger) : BackgroundService
@@ -71,17 +74,19 @@ public class SurveyWorker(
                 throw new AnalysisException(SurveyFailure.TargetUnavailable);
 
             var cross = survey.ReadCrossRepositories();
+            // O texto dos achados nasce no idioma de agora e fica assim no levantamento (ADR-009).
+            var language = EffectiveLanguage.Of(options.CurrentValue);
             FlowGraph graph;
             IReadOnlyList<SegmentInfo> segments = [];
             if (cross.Count == 0 && resolved.Target.Language == SourceLanguage.DotNet)
             {
-                graph = await analyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, ct);
+                graph = await analyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, language, ct);
             }
             else
             {
                 // Costura entre sistemas (Fase 25) e primeiro trecho Angular (Fase 26): o analisador tem escopo porque usa o banco (índice de rotas).
                 var crossAnalyzer = scope.ServiceProvider.GetRequiredService<CrossSystemAnalyzer>();
-                var analysis = await crossAnalyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, cross, ct);
+                var analysis = await crossAnalyzer.AnalyzeAsync(resolved.Target, survey.EntryPoint, survey.MaxDepth, cross, language, ct);
                 graph = analysis.Graph;
                 segments = analysis.Segments;
             }

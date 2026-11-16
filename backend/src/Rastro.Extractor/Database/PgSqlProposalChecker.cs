@@ -3,6 +3,8 @@ using System.Text.RegularExpressions;
 using SqlParser;
 using SqlParser.Ast;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -25,63 +27,64 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
 
     public SqlDialect Dialect => Pg;
 
-    public QueryProposalReview Review(string originalSql, QueryProposal proposal, DbSchema schema)
+    public QueryProposalReview Review(string originalSql, QueryProposal proposal, DbSchema schema, UiLanguage language)
     {
         var analyzer = new PgSqlQueryAnalyzer();
-        var before = analyzer.Analyze(originalSql, schema);
-        var rewrite = Rewrite(originalSql, proposal.RewrittenSql, schema, analyzer);
+        var before = analyzer.Analyze(originalSql, schema, language);
+        var rewrite = Rewrite(originalSql, proposal.RewrittenSql, schema, analyzer, language);
         var changes = proposal.Changes
             .Select(c => new QueryChange(Cut(c.What), Cut(c.Why)))
             .Where(c => c.What.Length > 0)
             .Take(QueryProposalLimits.MaxChanges)
             .ToList();
-        return new QueryProposalReview(proposal.Origin, before.Findings.Count, rewrite, changes, Indexes(proposal.Indexes, schema));
+        return new QueryProposalReview(proposal.Origin, before.Findings.Count, rewrite, changes, Indexes(proposal.Indexes, schema, language));
     }
 
-    private static RewriteReview? Rewrite(string original, string? rewritten, DbSchema schema, PgSqlQueryAnalyzer analyzer)
+    private static RewriteReview? Rewrite(string original, string? rewritten, DbSchema schema, PgSqlQueryAnalyzer analyzer, UiLanguage language)
     {
+        string T(string key, params object[] args) => Txt.Get(key, language, args);
         if (string.IsNullOrWhiteSpace(rewritten) || Spaces().Replace(rewritten, " ").Trim() == Spaces().Replace(original, " ").Trim())
             return null;
         var sql = rewritten.Trim();
         if (sql.Length > QueryLimits.MaxSqlLength)
-            return Refused(sql, "A consulta reescrita passa de 100 mil caracteres.");
+            return Refused(sql, T("Check.RewriteTooLong"));
 
-        var rewrittenStatements = PgSqlText.Parse(sql, out var error);
+        var rewrittenStatements = PgSqlText.Parse(sql, out var error, language);
         if (rewrittenStatements is null)
-            return Refused(sql, $"O leitor de SQL do PostgreSQL não entendeu a consulta reescrita (linha {error?.Line ?? 1}, coluna {error?.Column ?? 1}: {error?.Message}).");
-        var guard = PgSqlPlanGuard.Check(sql);
+            return Refused(sql, T("Check.RewriteNotUnderstoodPg", error?.Line ?? 1, error?.Column ?? 1, error?.Message ?? string.Empty));
+        var guard = PgSqlPlanGuard.Check(sql, language);
         if (!guard.Allowed)
-            return Refused(sql, $"A consulta reescrita não passa pela conferência do Rastro: {guard.Reason}");
+            return Refused(sql, T("Check.FailsGuard", guard.Reason ?? string.Empty));
 
-        var originalStatements = PgSqlText.Parse(original, out _) ?? [];
+        var originalStatements = PgSqlText.Parse(original, out _, language) ?? [];
         if (originalStatements.Count != 1)
             return Refused(sql, originalStatements.Count == 0
-                ? "A consulta original não foi lida pelo leitor de SQL do PostgreSQL: não há com o que comparar."
-                : $"A consulta original tem {originalStatements.Count} instruções: a conferência compara uma instrução só.");
+                ? T("Check.OriginalNotReadPg")
+                : T("Check.OriginalMultiple", originalStatements.Count));
 
         var source = originalStatements[0];
         var target = rewrittenStatements[0];
         var refusals = new List<string>();
 
         if (Kind(source) != Kind(target))
-            refusals.Add($"A consulta original é um {Kind(source)} e a reescrita é um {Kind(target)}: a reescrita precisa fazer a mesma operação.");
+            refusals.Add(T("Check.DifferentOperation", Kind(source), Kind(target)));
         else if (WriteTarget(source) is { } sourceTable && WriteTarget(target) is { } targetTable && sourceTable.Key != targetTable.Key)
-            refusals.Add($"A consulta original muda {sourceTable.Name} e a reescrita muda {targetTable.Name}: a reescrita precisa mudar a mesma tabela.");
+            refusals.Add(T("Check.DifferentTable", sourceTable.Name, targetTable.Name));
 
-        var originalRefs = References.Of(source, schema);
-        var refs = References.Of(target, schema);
-        Tables(refs, originalRefs, refusals);
-        Columns(target, refs, ColumnNames(source), refusals);
+        var originalRefs = References.Of(source, schema, language);
+        var refs = References.Of(target, schema, language);
+        Tables(refs, originalRefs, refusals, language);
+        Columns(target, refs, ColumnNames(source), refusals, language);
         if (source is Statement.Select originalSelect && target is Statement.Select rewrittenSelect)
         {
-            SameColumns(originalSelect, originalRefs, rewrittenSelect, refs, refusals);
+            SameColumns(originalSelect, originalRefs, rewrittenSelect, refs, refusals, language);
             if (!Limited(originalSelect.Query) && Limited(rewrittenSelect.Query))
-                refusals.Add("A reescrita limita as linhas (LIMIT, FETCH ou OFFSET) e a original não: o resultado muda. Se a tela mostra uma página, isso é decisão sua, fora da reescrita.");
+                refusals.Add(T("Check.LimitsRowsPg"));
         }
 
         if (refusals.Count > 0)
             return new RewriteReview(sql, false, refusals.Distinct().Take(MaxRefusals).ToList(), null);
-        return new RewriteReview(sql, true, [], analyzer.Analyze(sql, schema));
+        return new RewriteReview(sql, true, [], analyzer.Analyze(sql, schema, language));
     }
 
     private static RewriteReview Refused(string sql, string reason) => new(sql, false, [reason], null);
@@ -110,13 +113,13 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
         return (DbNames.Key(PgAst.SchemaOf(name), PgAst.Last(name), Pg), DbNames.Display(PgAst.SchemaOf(name), PgAst.Last(name), Pg));
     }
 
-    private static void Tables(References refs, References original, List<string> refusals)
+    private static void Tables(References refs, References original, List<string> refusals, UiLanguage language)
     {
         foreach (var r in refs.Named)
         {
             if (r.Cte || r.Known) continue;
             if (original.Named.Any(o => o.Key == r.Key)) continue;
-            refusals.Add($"A reescrita cita a tabela {r.Name}, que não está no esquema lido do código.");
+            refusals.Add(Txt.Get("Check.TableNotInSchema", language, r.Name));
         }
     }
 
@@ -141,7 +144,7 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
         _ => []
     };
 
-    private static void Columns(Statement statement, References refs, HashSet<string> originalColumns, List<string> refusals)
+    private static void Columns(Statement statement, References refs, HashSet<string> originalColumns, List<string> refusals, UiLanguage language)
     {
         var aliases = PgAst.Descendants(statement).OfType<SelectItem.ExpressionWithAlias>()
             .Select(a => a.Alias.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -159,17 +162,17 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
                 if (match is null)
                 {
                     if (!PseudoTables.Contains(qualifier))
-                        refusals.Add($"A reescrita cita {written}, mas {qualifier} não é tabela nem apelido da consulta.");
+                        refusals.Add(Txt.Get("Check.QualifierUnknown", language, written, qualifier));
                     continue;
                 }
                 if (!cited && match.Columns is { } known && !known.Contains(name, StringComparer.OrdinalIgnoreCase))
-                    refusals.Add($"A reescrita cita {written}, e a coluna {name} não existe em {match.Name}.");
+                    refusals.Add(Txt.Get("Check.ColumnNotInTable", language, written, name, match.Name));
                 continue;
             }
 
             if (cited || aliases.Contains(name) || refs.All.Count == 0 || refs.All.Any(r => r.Columns is null)) continue;
             if (!refs.All.Any(r => r.Columns!.Contains(name, StringComparer.OrdinalIgnoreCase)))
-                refusals.Add($"A reescrita cita a coluna {name}, que não existe em nenhuma tabela da consulta ({string.Join(", ", refs.All.Select(r => r.Name).Distinct(StringComparer.OrdinalIgnoreCase))}).");
+                refusals.Add(Txt.Get("Check.ColumnNowhere", language, name, string.Join(", ", refs.All.Select(r => r.Name).Distinct(StringComparer.OrdinalIgnoreCase))));
         }
 
         // A coluna gravada (INSERT e SET) precisa existir na tabela que muda.
@@ -177,28 +180,28 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
         if (target?.Columns is not { } targetColumns) return;
         foreach (var column in TargetColumns(statement))
             if (!originalColumns.Contains(column) && !targetColumns.Contains(column, StringComparer.OrdinalIgnoreCase))
-                refusals.Add($"A reescrita grava a coluna {column}, que não existe em {target.Name}.");
+                refusals.Add(Txt.Get("Check.WrittenColumnMissing", language, column, target.Name));
     }
 
-    private static void SameColumns(Statement.Select original, References originalRefs, Statement.Select rewritten, References refs, List<string> refusals)
+    private static void SameColumns(Statement.Select original, References originalRefs, Statement.Select rewritten, References refs, List<string> refusals, UiLanguage language)
     {
         var before = Output(original.Query, originalRefs);
         var after = Output(rewritten.Query, refs);
         if (before is null || after is null)
         {
-            refusals.Add("Não dá para conferir que a reescrita devolve as mesmas colunas: um SELECT * cita uma tabela de colunas desconhecidas. Liste as colunas na consulta.");
+            refusals.Add(Txt.Get("Check.StarUnknown", language));
             return;
         }
         if (before.Count != after.Count)
         {
-            refusals.Add($"A consulta original devolve {Count(before.Count)} ({Names(before)}) e a reescrita devolve {Count(after.Count)}: a reescrita precisa devolver as mesmas colunas, na mesma ordem.");
+            refusals.Add(Txt.Get("Check.ColumnCountDiffers", language, Count(before.Count, language), Names(before, language), Count(after.Count, language)));
             return;
         }
         for (var i = 0; i < before.Count; i++)
         {
             var same = before[i] is null ? after[i] is null : after[i]?.Equals(before[i], StringComparison.OrdinalIgnoreCase) == true;
             if (same) continue;
-            refusals.Add($"A coluna {i + 1} muda: a original devolve {before[i] ?? "uma expressão sem nome"} e a reescrita devolve {after[i] ?? "uma expressão sem nome"}. Mantenha os mesmos nomes, na mesma ordem.");
+            refusals.Add(Txt.Get("Check.ColumnChanged", language, i + 1, before[i] ?? Txt.Get("Check.UnnamedExpression", language), after[i] ?? Txt.Get("Check.UnnamedExpression", language)));
             return;
         }
     }
@@ -213,9 +216,9 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
         }
     }
 
-    private static string Count(int n) => n == 1 ? "1 coluna" : $"{n} colunas";
+    private static string Count(int n, UiLanguage language) => n == 1 ? Txt.Get("Check.ColumnCountOne", language) : Txt.Get("Check.ColumnCountMany", language, n);
 
-    private static string Names(List<string?> names) => string.Join(", ", names.Select(n => n ?? "(sem nome)"));
+    private static string Names(List<string?> names, UiLanguage language) => string.Join(", ", names.Select(n => n ?? Txt.Get("Check.NoName", language)));
 
     private static List<string?>? Output(Query query, References refs)
     {
@@ -283,7 +286,7 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
         else if (factor is not null) into.Add(factor);
     }
 
-    private static List<IndexReview> Indexes(IReadOnlyList<IndexSuggestion> suggestions, DbSchema schema)
+    private static List<IndexReview> Indexes(IReadOnlyList<IndexSuggestion> suggestions, DbSchema schema, UiLanguage language)
     {
         var reviews = new List<IndexReview>();
         foreach (var s in suggestions.Take(QueryProposalLimits.MaxIndexes))
@@ -299,33 +302,33 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
             if (table is null)
             {
                 reviews.Add(Refuse(schema.Views.Any(v => DbNames.Key(v.Schema, v.Name, schema.Dialect) == key)
-                    ? $"{tableName} é uma view: o índice vai na tabela."
-                    : $"A tabela {tableName} não está no esquema lido do código."));
+                    ? Txt.Get("Check.IndexOnView", language, tableName)
+                    : Txt.Get("Check.IndexTableMissing", language, tableName)));
                 continue;
             }
             var display = DbNames.Display(table.Schema, table.Name, schema.Dialect);
             if (columns.Count == 0)
             {
-                reviews.Add(Refuse("O índice não tem coluna."));
+                reviews.Add(Refuse(Txt.Get("Check.IndexNoColumn", language)));
                 continue;
             }
             var missing = columns.Concat(include).FirstOrDefault(c => !table.Columns.Any(t => t.Name.Equals(c, StringComparison.OrdinalIgnoreCase)));
             if (missing is not null)
             {
-                reviews.Add(Refuse($"A coluna {missing} não existe em {display}."));
+                reviews.Add(Refuse(Txt.Get("Check.IndexColumnMissing", language, missing, display)));
                 continue;
             }
             columns = columns.Select(c => table.Columns.First(t => t.Name.Equals(c, StringComparison.OrdinalIgnoreCase)).Name).ToList();
             include = include.Select(c => table.Columns.First(t => t.Name.Equals(c, StringComparison.OrdinalIgnoreCase)).Name).ToList();
 
-            if (Existing(table, columns) is { } existing)
+            if (Existing(table, columns, language) is { } existing)
             {
-                reviews.Add(Refuse($"Já existe {existing}, que começa por essas colunas."));
+                reviews.Add(Refuse(Txt.Get("Check.IndexExists", language, existing)));
                 continue;
             }
             if (reviews.Any(r => r.Accepted && r.Table.Equals(display, StringComparison.OrdinalIgnoreCase) && r.Columns.SequenceEqual(columns, StringComparer.OrdinalIgnoreCase)))
             {
-                reviews.Add(Refuse("Repete outro índice desta proposta."));
+                reviews.Add(Refuse(Txt.Get("Check.IndexRepeated", language)));
                 continue;
             }
             reviews.Add(new IndexReview(display, columns, include, s.Unique, reason, true, null, CreateIndex(table, columns, include, s.Unique)));
@@ -336,15 +339,17 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
     private static List<string> Clean(IReadOnlyList<string>? names) =>
         (names ?? []).Select(DbNames.Unquote).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-    private static string? Existing(DbTable table, List<string> columns)
+    private static string? Existing(DbTable table, List<string> columns, UiLanguage language)
     {
         static bool Starts(IReadOnlyList<string> have, List<string> want) =>
             have.Count >= want.Count && want.Select((c, i) => have[i].Equals(c, StringComparison.OrdinalIgnoreCase)).All(x => x);
 
         if (table.PrimaryKey is { } pk && Starts(pk.Columns, columns))
-            return $"a chave primária{(pk.Name is null ? "" : " " + pk.Name)} ({string.Join(", ", pk.Columns)})";
+            return pk.Name is null
+                ? Txt.Get("Check.ExistingPrimaryKey", language, string.Join(", ", pk.Columns))
+                : Txt.Get("Check.ExistingPrimaryKeyNamed", language, pk.Name, string.Join(", ", pk.Columns));
         return table.Indexes.FirstOrDefault(i => Starts(i.Columns, columns)) is { } index
-            ? $"o índice {index.Name ?? "sem nome"} ({string.Join(", ", index.Columns)})"
+            ? Txt.Get("Check.ExistingIndex", language, index.Name ?? Txt.Get("Check.Unnamed", language), string.Join(", ", index.Columns))
             : null;
     }
 
@@ -382,7 +387,7 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
         public TableUse? Target { get; private set; }
         public IEnumerable<TableUse> Named => All.Where(r => r.Fragment is TableFactor.Table or ObjectName);
 
-        public static References Of(Statement statement, DbSchema schema)
+        public static References Of(Statement statement, DbSchema schema, UiLanguage language)
         {
             var ctes = PgAst.Descendants(statement).OfType<CommonTableExpression>().Select(c => c.Alias.Name.Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var result = new References();
@@ -397,7 +402,7 @@ public sealed partial class PgSqlProposalChecker : ISqlProposalChecker
                 if (factor is TableFactor.Table { Args: null, Name: { } name })
                     result.All.Add(Use(name, alias, factor, ctes, schema));
                 else
-                    result.All.Add(new TableUse(alias ?? "(subconsulta)", string.Empty, alias, null, null, false, false, factor));
+                    result.All.Add(new TableUse(alias ?? Txt.Get("Query.SubqueryName", language), string.Empty, alias, null, null, false, false, factor));
             }
 
             var targetName = statement switch

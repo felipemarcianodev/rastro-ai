@@ -74,7 +74,7 @@ public class ValidationsController(RastroDbContext db, ChangeValidationService v
     {
         if (!await db.SurveyValidations.AnyAsync(v => v.Id == id, ct)) return NotFound();
 
-        var approved = await validations.ApproveAsync(id, ct);
+        var approved = await validations.ApproveAsync(id, RequestLanguage.Current, ct);
         return approved is null
             ? Error(ErrorCodes.ValidationNotApprovable, "Só uma validação concluída e não reprovada pode ser aprovada.")
             : ValidationView.From(approved);

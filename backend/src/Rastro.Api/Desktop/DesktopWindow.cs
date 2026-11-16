@@ -1,5 +1,7 @@
 using System.Runtime.ExceptionServices;
 using Photino.NET;
+using Rastro.Api.Cli;
+using Rastro.Core.Localization;
 using Rastro.Infrastructure.Storage;
 
 namespace Rastro.Api.Desktop;
@@ -17,7 +19,7 @@ public static class DesktopWindow
     // Cache e armazenamento do WebView2 ficam na pasta de dados do Rastro, e não ao lado do executável.
     public const string DataFolderName = "janela";
 
-    public static int Run(WebApplication app, ILogger logger)
+    public static int Run(WebApplication app, ILogger logger, UiLanguage language)
     {
         app.Start();
         var url = app.Urls.First();
@@ -26,18 +28,18 @@ public static class DesktopWindow
         if (unavailable is not null)
         {
             logger.LogWarning("A janela própria não abre nesta máquina: {Reason}.", unavailable);
-            return KeepConsole(app, url, unavailable);
+            return KeepConsole(app, url, unavailable, language);
         }
 
         try
         {
-            Console.WriteLine("Janela do Rastro aberta. Fechar a janela encerra o Rastro.");
+            Console.WriteLine(ApiText.Get("Cli.Window.Opened", language));
             OnUiThread(() => Show(app, url, logger));
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "A janela própria do Rastro não abriu em {Url}; a API continua no ar.", url);
-            return KeepConsole(app, url, "a janela falhou ao abrir (detalhe no log)");
+            return KeepConsole(app, url, ApiText.Get("Cli.Window.FailedReason", language), language);
         }
 
         app.StopAsync().GetAwaiter().GetResult();
@@ -46,10 +48,10 @@ public static class DesktopWindow
     }
 
     // Sem janela, o Rastro fica como no --sem-janela: o console e o endereço para o navegador.
-    private static int KeepConsole(WebApplication app, string url, string reason)
+    private static int KeepConsole(WebApplication app, string url, string reason, UiLanguage language)
     {
-        Console.Error.WriteLine($"A janela própria não abriu: {reason}.");
-        Console.Error.WriteLine($"O Rastro continua no ar: abra {url} no navegador. Ctrl+C para sair.");
+        Console.Error.WriteLine(ApiText.Get("Cli.Window.Failed", language, reason));
+        Console.Error.WriteLine(ApiText.Get("Cli.Window.StillUp", language, url));
         app.WaitForShutdown();
         app.DisposeAsync().AsTask().GetAwaiter().GetResult();
         return 0;

@@ -23,10 +23,11 @@ const stubCdkDialog = path.join(fixture, 'src', 'stubs', 'angular-cdk-dialog.d.t
 const NodeKind = { Entry: 0, Method: 1, Decision: 2, Loop: 3, Try: 4, Return: 5, Throw: 6, Unresolved: 8, Jump: 9 };
 const Reason = { MultipleImplementations: 0, NoImplementation: 1, DepthLimit: 6, RouteNotResolved: 7, NoMatchingEndpoint: 8 };
 
-function rodar(raiz, entry, { depth = 10, project = 'tsconfig.json', env = {} } = {}) {
+// As asserções de texto estão em português: o idioma é sempre explícito (o padrão do script é o inglês).
+function rodar(raiz, entry, { depth = 10, project = 'tsconfig.json', env = {}, lang = 'pt-BR' } = {}) {
   const r = spawnSync(
     process.execPath,
-    [extrator, '--root', raiz, '--project', project, '--entry', entry, '--depth', String(depth)],
+    [extrator, '--root', raiz, '--project', project, '--entry', entry, '--depth', String(depth), '--lang', lang],
     { encoding: 'utf8', env: { ...process.env, ...env } },
   );
   return { codigo: r.status, saida: r.stdout, erro: r.stderr, json: r.stdout.trim() ? JSON.parse(r.stdout) : null };
@@ -235,7 +236,7 @@ describe('erros em pt-BR para o usuário', () => {
 
   test('argumento faltando', () => {
     // EXT-TS-025
-    const r = spawnSync(process.execPath, [extrator, '--root', fixture], { encoding: 'utf8' });
+    const r = spawnSync(process.execPath, [extrator, '--root', fixture, '--lang', 'pt-BR'], { encoding: 'utf8' });
     assert.equal(r.status, 1);
     assert.match(JSON.parse(r.stdout).error, /Falta o argumento --project/);
   });
@@ -862,4 +863,72 @@ describe('normalização de rota (mesmo resultado do RouteTemplate.Normalize do 
       assert.equal(normalizarRota(entrada), esperado);
     });
   }
+});
+
+describe('idioma das mensagens (--lang, ADR-009)', () => {
+  const Mensagens = {
+    'pt-BR': /não encontrado/,
+    'en-US': /was not found/,
+    es: /No se encontró/,
+  };
+  for (const [lang, padrao] of Object.entries(Mensagens)) {
+    test(`ponto de entrada inexistente em ${lang}`, () => {
+      // EXT-LANG-001
+      const r = rodar(fixture, 'DetalhePedidoComponent.naoExiste', { lang });
+      assert.equal(r.codigo, 1);
+      assert.match(r.json.error, padrao);
+      assert.doesNotMatch(r.json.error, /^[a-zA-Z]+\.[a-zA-Z]+$/, 'chave crua');
+    });
+  }
+
+  test('sem --lang vale o inglês, a reserva', () => {
+    // EXT-LANG-002
+    const r = spawnSync(process.execPath, [extrator, '--root', fixture, '--project', 'tsconfig.json', '--entry', 'cancelar'], { encoding: 'utf8' });
+    assert.equal(r.status, 1);
+    assert.match(JSON.parse(r.stdout).error, /Invalid entry point/);
+  });
+
+  test('o erro de argumento também sai no idioma pedido', () => {
+    // EXT-LANG-003
+    const r = spawnSync(process.execPath, [extrator, '--root', fixture, '--lang', 'es'], { encoding: 'utf8' });
+    assert.equal(r.status, 1);
+    assert.match(JSON.parse(r.stdout).error, /Falta el argumento --project/);
+  });
+
+  test('código parcial e desconhecido: pt-PT vira português, fr vira inglês', () => {
+    // EXT-LANG-004
+    assert.equal(rodar(fixture, 'cancelar', { lang: 'pt-PT' }).json.error.includes('Ponto de entrada inválido'), true);
+    assert.equal(rodar(fixture, 'cancelar', { lang: 'fr' }).json.error.includes('Invalid entry point'), true);
+  });
+
+  test('o rótulo da ação no modal sai no idioma pedido', () => {
+    // EXT-LANG-005
+    const rotulos = { 'pt-BR': 'ação do usuário no modal', 'en-US': 'user action in the modal', es: 'acción del usuario en el modal' };
+    const raiz = criarProjeto({
+      'src/tela.ts': `
+import { Component } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { MatDialog } from '@angular/material/dialog';
+import { Confirmacao } from './confirmacao';
+@Component({ selector: 'app-tela', template: '<button (click)="abrir()">Abrir</button>' })
+export class Tela {
+  constructor(private dialog: MatDialog, private http: HttpClient) {}
+  abrir(): void { this.dialog.open(Confirmacao, {}); }
+}`,
+      'src/confirmacao.ts': `
+import { Component } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+@Component({ selector: 'app-c', template: '<button (click)="confirmar()">Sim</button>' })
+export class Confirmacao {
+  constructor(private http: HttpClient) {}
+  confirmar(): void { this.http.post('/api/confirmar', {}); }
+}`,
+    });
+    for (const [lang, rotulo] of Object.entries(rotulos)) {
+      const r = rodar(raiz, 'Tela.abrir', { lang });
+      assert.equal(r.codigo, 0, r.erro);
+      assert.ok(r.json.graph.edges.some((e) => e.label === rotulo), `${lang}: ${JSON.stringify(r.json.graph.edges.map((e) => e.label))}`);
+      assert.ok(r.json.graph.nodes.some((n) => n.label === { 'pt-BR': 'abre o modal Confirmacao', 'en-US': 'opens the modal Confirmacao', es: 'abre el modal Confirmacao' }[lang]));
+    }
+  });
 });
