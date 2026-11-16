@@ -17,9 +17,9 @@
   <data name="Cli.Repo.FolderNotFound" xml:space="preserve"><value>The folder {0} does not exist.</value></data>
   <data name="Cli.Repo.Exists" xml:space="preserve"><value>A repository named {0} already exists. Remove it first with: rastro repo remove {0}</value></data>
   <data name="Cli.Repo.Added" xml:space="preserve"><value>Repository {0} registered: {1}</value></data>
-  <data name="Cli.Repo.NoGit" xml:space="preserve"><value>Warning: the folder has no .git; the survey is left without the commit, and the changed-code warning does not work.</value></data>
+  <data name="Cli.Repo.NoGit" xml:space="preserve"><value>Warning: the folder has no .git; the trace is left without the commit, and the changed-code warning does not work.</value></data>
   <data name="Cli.Repo.NotFound" xml:space="preserve"><value>No repository named {0}.</value></data>
-  <data name="Cli.Repo.Removed" xml:space="preserve"><value>Repository {0} removed. Its surveys stay in the database.</value></data>
+  <data name="Cli.Repo.Removed" xml:space="preserve"><value>Repository {0} removed. Its traces stay in the database.</value></data>
   <data name="Cli.Repo.ListEmpty" xml:space="preserve"><value>No repository registered. Register one with: rastro repo add &lt;name&gt; &lt;folder&gt;</value></data>
   <data name="Cli.Port.RastroOpen" xml:space="preserve"><value>Rastro {0} is already open at http://127.0.0.1:{1}. Open that address in the browser.</value></data>
   <data name="Cli.Port.InUse" xml:space="preserve"><value>Port {0} is already in use by another program. Choose another: rastro --porta N</value></data>

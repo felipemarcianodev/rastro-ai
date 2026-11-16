@@ -1213,10 +1213,23 @@ Regras da tradução:
   - **Prints:** o README em inglês e o em espanhol mostram um levantamento do próprio Rastro (`SettingsController.SetLanguage`) na tela do idioma (`docs/telas/readme/`); o em português mantém o print da Fase 24.
   - **Ficam em português:** ADR, visão, plano, planos de UX e telas; as versões em inglês e espanhol avisam isso entre parênteses.
 
-## Fase 53: conferência visual e versão `[ ]` (depende das Fases 47 a 52)
+## Fase 53: conferência visual e versão (depende das Fases 47 a 52)
 
-- [ ] Todas as telas nos três idiomas, nas três paletas, em 360 px e na largura cheia; `levantamento-ux` com foco em texto que estoura.
-- [ ] Release `0.10.0` pela skill `gerar-release`.
+- [x] Todas as telas nos três idiomas, nas três paletas, em 360 px e na largura cheia; `levantamento-ux` com foco em texto que estoura.
+- [ ] Release `0.10.0` pela skill `gerar-release`, depois do merge dos PRs das Fases 48 a 53 e do pedido do dono.
+- **Registro (2026-11-15):**
+  - **Medição:** um script no navegador (Chrome sem janela, CDP) abriu a lista, o levantamento, a visão consolidada, o banco e as Configurações nos três idiomas, em 1440 e em 360 px, e mediu rolagem horizontal e texto cortado. Nenhuma tela rola na horizontal; o único corte que depende do idioma era o título do levantamento em pt e es, que ganhou `title`. As paletas ficaram de fora da medição: a tradução não muda cor.
+  - **Levantamento de UX:** [`plano-ux-2026-11-15-multilingue.md`](../frontend/plano-ux-2026-11-15-multilingue.md), com 31 achados. Entraram nesta fase: a moldura do laço que repetia o verbo em inglês e espanhol (defeito de código), "Laguna" no lugar de "Hueco", os termos da CLI, "If true / If false", "Ready" no status, "Choose" e "Show only", e o selo "FK, no index". O resto fica nas Fases A (traduções e larguras), B (comportamento em 360 px e "nós/arestas" no servidor) e C (alto risco, com aprovação do dono item a item: minimapa em tela estreita, atalho de idioma no cabeçalho, rótulo bilíngue e legenda do mapa do banco).
+  - **Prints:** a tela em espanhol, nas duas larguras, e o levantamento em 360 px nos três idiomas, em `docs/telas/fase-53/`.
+  - **Testes:** frontend 591/591; CLI e paridade dos recursos 20/20.
+
+### Fim do plano multilíngue: pendências consolidadas
+
+O plano Rastro multilíngue está **EXECUTADO** (Fases 45 a 53), faltando só a versão. Pendências:
+- [ ] Release `0.10.0` (depois dos merges).
+- [ ] Fases A e B do [plano de UX multilíngue](../frontend/plano-ux-2026-11-15-multilingue.md); a Fase C espera a aprovação do dono.
+- [ ] Replicar o ajuste do hook `revisao-ptbr` (arquivo com outro idioma no nome) nos outros repositórios irmãos que têm o hook, quando algum deles ganhar documento em outro idioma; o PR do repositório de origem da governança espera o dono.
+- [ ] Testes do banco vivo no SQL Server rodam só no CI: a imagem do SQL Server 2022 não sobe no Docker da máquina do dono ("sqlservr.sfp is invalid").
 
 ## Levantamento de UX do fim do plano `[x]`
 

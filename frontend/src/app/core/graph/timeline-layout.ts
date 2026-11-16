@@ -215,10 +215,14 @@ export function timelineDrawing(graph: FlowGraph): TimelineDrawing {
   return flowDrawing(graph, FlowAxis.Down);
 }
 
+// Rótulo de laço que já começa com o verbo ("Repete enquanto ...", em qualquer dos três idiomas, porque o
+// levantamento fica no idioma em que nasceu e pode ser aberto com a tela em outro).
+const LOOP_REPEAT_PREFIXES = ['Repete', 'Repeats', 'Repite'];
+
 // Moldura do laço: "Para cada alert em pendingAlerts" -> "↻ Repete para cada alert em pendingAlerts".
 function repeatLabel(label: string): string {
-  // O rótulo do laço vem do extrator em português ("Para cada ..."): só o verbo da moldura se traduz.
-  return label.startsWith('Repete') ? `↻ ${label}` : tr('graph.timeline.repeatFrame', { label: `${label.charAt(0).toLowerCase()}${label.slice(1)}` });
+  if (LOOP_REPEAT_PREFIXES.some((prefix) => label.startsWith(prefix))) return `↻ ${label}`;
+  return tr('graph.timeline.repeatFrame', { label: `${label.charAt(0).toLowerCase()}${label.slice(1)}` });
 }
 
 // "extraWidth": largura a mais de um passo (a etiqueta "banco", "mensagem"), que a tela desenha.
