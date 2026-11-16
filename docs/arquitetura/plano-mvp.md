@@ -1231,6 +1231,13 @@ O plano Rastro multilíngue está **EXECUTADO** (Fases 45 a 53), faltando só a 
 - [ ] Replicar o ajuste do hook `revisao-ptbr` (arquivo com outro idioma no nome) nos outros repositórios irmãos que têm o hook, quando algum deles ganhar documento em outro idioma; o PR do repositório de origem da governança espera o dono.
 - [ ] Testes do banco vivo no SQL Server rodam só no CI: a imagem do SQL Server 2022 não sobe no Docker da máquina do dono ("sqlservr.sfp is invalid").
 
+## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
+
+O Dependabot propôs o Roslyn 5.12 (`Microsoft.CodeAnalysis.CSharp.Workspaces` e `Workspaces.MSBuild`). Ele exige o MSBuild 18.7.1, e o MSBuild vem do SDK do .NET instalado na máquina de quem usa (MSBuildLocator): o SDK 10.0.1xx traz o MSBuild 18.0, o 10.0.2xx traz o 18.3, e só a faixa 10.0.3xx em diante atende. O dono decidiu ficar no Roslyn 5.9 por ora, e o Dependabot deixou de propor versão nova do Roslyn.
+- [ ] Na subida e no levantamento, conferir a versão do MSBuild que o MSBuildLocator achou e, abaixo do mínimo, avisar na tela, na CLI e no MCP qual SDK instalar (mensagem nos três idiomas).
+- [ ] Subir o Roslyn para a versão nova, junto com o `Microsoft.Build.Framework` de compilação, e o SDK mínimo no README, no README do pacote e na ADR-002.
+- [ ] Tirar a regra do Roslyn do `dependabot.yml`.
+
 ## Levantamento de UX do fim do plano `[x]`
 
 - [x] **Fim do plano do banco, 2026-11-06** (Fases 36 a 42): [`plano-ux-2026-11-06-fim-plano-banco.md`](../frontend/plano-ux-2026-11-06-fim-plano-banco.md), com 54 achados em cinco fases (PROPOSTA, nada implementado). As pendências do plano do banco estão consolidadas em [Fim do plano do banco](#fim-do-plano-do-banco-pendências-consolidadas).
