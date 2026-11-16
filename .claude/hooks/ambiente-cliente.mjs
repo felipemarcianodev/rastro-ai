@@ -42,9 +42,10 @@ const AMBIENTE = [
 
 // Documentos e governança que tratam do ambiente do cliente.
 const DOCUMENTOS = [
-  /^README\.md$/,
-  /^docs\/pacote\/README\.md$/,
-  /^SECURITY\.md$/,
+  // A documentação para quem usa existe em três idiomas (ADR-009): README.md, README.pt-BR.md, README.es.md.
+  /^README(\.[\w-]+)?\.md$/,
+  /^docs\/pacote\/README(\.[\w-]+)?\.md$/,
+  /^SECURITY(\.[\w-]+)?\.md$/,
   /^docs\/adr\//,
   /^docs\/arquitetura\/visao\.md$/,
   /^CLAUDE\.md$/,

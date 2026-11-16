@@ -1,214 +1,216 @@
 # Rastro AI
 
+**English** · [Português](README.pt-BR.md) · [Español](README.es.md)
+
 [![NuGet](https://img.shields.io/nuget/v/rastro-ai?label=NuGet)](https://www.nuget.org/packages/rastro-ai)
 [![PR](https://github.com/felipemarcianodev/rastro-ai/actions/workflows/pr.yml/badge.svg)](https://github.com/felipemarcianodev/rastro-ai/actions/workflows/pr.yml)
-[![Licença MIT](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
+[![MIT license](https://img.shields.io/badge/licen%C3%A7a-MIT-blue)](LICENSE)
 
-Segue o rastro de uma funcionalidade no seu código .NET, da entrada (controller, job, handler) até o fim (ou do clique numa tela Angular até o controller), com cada decisão, cada laço e a implementação real atrás de cada interface do DI. Mostra o fluxo como um grafo que se lê de relance e gera o prompt exato para a IA alterar aquele ponto.
+Rastro follows the trail of a feature through your .NET code, from the entry point (controller, job, handler) to the end (or from a click on an Angular screen all the way to the controller), with every decision, every loop, and the real implementation behind each DI interface. It shows the flow as a graph you can read at a glance and generates the exact prompt for an AI to change that spot.
 
-O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona sem IA; com IA, ela só propõe, e quem confirma é você.
+Rastro runs only on your machine: the code it analyzes never leaves it. It works without AI; with AI, the AI only proposes, and you are the one who confirms.
 
-- **Linha do tempo do método:** os passos na ordem do código, numerados (1, 2, 2.1), com o que cada método chama saindo como galho. Três desenhos (horizontal, vertical e árvore), com a mesma regra.
-- **Para quem não programa também:** os comandos aparecem em português ("Se ...", "Para cada ... em ..."), com o nome legível do método e uma etiqueta do que o passo faz no mundo (banco, mensagem, cache, arquivo, fila). Um resumo em frase abre a visão geral.
-- **Prova do compilador:** cada ligação mostra a origem (extraída do código, inferida pela IA ou confirmada por você). O que a IA propõe passa pelo Roslyn antes de entrar.
-- **Entre sistemas:** o levantamento segue a chamada HTTP de uma API .NET para outra cadastrada no Rastro, com as bifurcações de cada sistema no mesmo desenho.
-- **Da tela ao gateway:** o levantamento pode começar num componente Angular (opcional, precisa do Node), e o clique no botão chega ao controller e às APIs seguintes.
-- **Visão consolidada:** o fluxo resumido em poucos passos de leitura de negócio, em Mermaid editável, com as cores que você escolher.
-- **Mapa do fluxo:** o nível de um diagrama C2, com uma faixa por sistema, poucos blocos em cada uma, as decisões que mudam o desfecho, as chamadas entre sistemas (verbo, rota e campos enviados) e, na API e no MCP, os caminhos de ponta a ponta. Os sistemas além do segundo salto vêm recolhidos e abrem ao clicar, e clicar no desfecho de uma decisão acende o caminho dele.
-- **Regras e perguntas:** as decisões viram regras em frase (bloqueia, permite, efeito colateral), com a fonte no código, e o Rastro responde perguntas prontas de quem revisa (TL, Staff, gerente). Com IA ligada, pergunta livre, sempre com as fontes conferidas.
-- **Esquema do banco pelo código:** tabelas, colunas, chaves, índices, views e procedures lidos do modelo do EF Core, das migrations e dos `.sql` (SQL Server e PostgreSQL, o dialeto sai do repositório), com a fonte de cada item e a divergência entre fontes marcada. Sem conectar em banco nenhum e sem ler dados. Na tela "Mapa do banco" de cada repositório, na API e no MCP.
-- **Análise de consulta sem IA:** cole uma consulta SQL (ou abra a de um passo do fluxo) e o Rastro aponta os gargalos por gravidade, com o trecho marcado e o motivo, cruzando com o esquema: `SELECT *`, função na coluna do filtro, `LIKE '%...'` (e `ILIKE` no PostgreSQL), conversão com `::`, coluna sem índice, junção sem condição e outros. A consulta não é executada.
-- **Mudança desenhada no grafo:** você edita o fluxo, o Rastro gera o prompt da mudança e, depois que o agente aplica, valida contra o código novo (build, testes e o fluxo de novo).
-- **Arquitetura:** exporta o fluxo em Mermaid e SVG e a arquitetura em C4 (Structurizr), e aponta melhorias e dívida técnica (DDD, código limpo, métricas).
+- **Method timeline:** the steps in code order, numbered (1, 2, 2.1), with whatever each method calls drawn as a branch. Three layouts (horizontal, vertical and tree), all following the same rule.
+- **For people who don't code, too:** commands are shown in plain language ("If ...", "For each ... in ..."), with the method's readable name and a tag for what the step does in the world (database, message, cache, file, queue). A one-sentence summary opens the overview.
+- **Compiler proof:** every link shows its origin (extracted from the code, inferred by the AI, or confirmed by you). Whatever the AI proposes goes through Roslyn before it gets in.
+- **Across systems:** the trace follows an HTTP call from one .NET API to another registered in Rastro, with each system's branches in the same drawing.
+- **From the screen to the gateway:** a trace can start at an Angular component (optional, needs Node), and the button click reaches the controller and the APIs after it.
+- **Consolidated view:** the flow summarized in a few business-level steps, as editable Mermaid, with the colors you choose.
+- **Flow map:** the level of a C2 diagram, with one lane per system, a few blocks in each, the decisions that change the outcome, the calls between systems (verb, route and fields sent) and, in the API and the MCP, the end-to-end paths. Systems beyond the second hop come collapsed and open on click, and clicking the outcome of a decision lights up its path.
+- **Rules and questions:** decisions become rules in plain sentences (blocks, allows, side effect), with the source in the code, and Rastro answers the ready-made questions reviewers ask (TL, Staff, manager). With AI on, free-form questions too, always with checked sources.
+- **Database schema from the code:** tables, columns, keys, indexes, views and procedures read from the EF Core model, the migrations and the `.sql` files (SQL Server and PostgreSQL, the dialect comes from the repository), with the source of each item and any disagreement between sources marked. It connects to no database and reads no data. On the "Database map" screen of each repository, in the API and in the MCP.
+- **Query analysis without AI:** paste a SQL query (or open the one from a flow step) and Rastro points out the bottlenecks by severity, with the marked excerpt and the reason, cross-checking against the schema: `SELECT *`, a function on the filter column, `LIKE '%...'` (and `ILIKE` on PostgreSQL), a `::` cast, a column without an index, a join without a condition, and more. The query is not executed.
+- **Change drawn on the graph:** you edit the flow, Rastro generates the change prompt and, after the agent applies it, validates against the new code (build, tests and the flow again).
+- **Architecture:** exports the flow as Mermaid and SVG and the architecture as C4 (Structurizr), and points out improvements and technical debt (DDD, clean code, metrics).
 
-![Linha do tempo de um fluxo, com os passos numerados e o resumo na visão geral](docs/telas/fase-24/01-linha-do-tempo.jpg)
+![Timeline of a flow, with numbered steps and the summary in the overview](docs/telas/readme/fluxo-en-US.png)
 
-## Instalar e usar
+## Install and use
 
-Requer o SDK do .NET 10 (o Rastro carrega a sua solution com o MSBuild dele). O **Node** (20 ou mais novo) é opcional: só é preciso para levantar fluxos Angular (veja a seção própria). O pacote está no NuGet: [`rastro-ai`](https://www.nuget.org/packages/rastro-ai).
+Requires the .NET 10 SDK (Rastro loads your solution with its MSBuild). **Node** (20 or newer) is optional: it is only needed to trace Angular flows (see the dedicated section). The package is on NuGet: [`rastro-ai`](https://www.nuget.org/packages/rastro-ai).
 
 ```bash
 dotnet tool install -g rastro-ai
-rastro                      # abre a janela do Rastro; a tela também fica em http://127.0.0.1:7450 (só nesta máquina; --porta troca)
-rastro --sem-janela         # só o console e o endereço, para abrir no navegador
+rastro                      # opens the Rastro window; the UI is also at http://127.0.0.1:7450 (this machine only; --porta changes it)
+rastro --sem-janela         # console and address only, to open in the browser
 ```
 
-O `rastro` abre numa janela própria, como um app ([ADR-007](docs/adr/adr-007-janela-propria.md)). Fechar a janela encerra o Rastro. A tela continua no navegador, no mesmo endereço, ao mesmo tempo. Na janela, o campo da pasta do repositório ganha o botão "Procurar…", que abre a caixa "Escolher pasta" do sistema. A janela usa o WebView do sistema:
-- **Windows:** o WebView2 Runtime, que já vem no Windows 11 e nas versões atuais do Windows 10 (senão, [baixe da Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/));
-- **Linux:** a `libwebkit2gtk-4.1` (no Ubuntu e no Debian, `sudo apt install libwebkit2gtk-4.1-0`) e uma sessão com tela;
-- **macOS:** nada a instalar.
+`rastro` opens in its own window, like an app ([ADR-007](docs/adr/adr-007-janela-propria.md)). Closing the window shuts Rastro down. The UI is still available in the browser, at the same address, at the same time. In the window, the repository folder field gets a "Browse…" button that opens the system's "Choose folder" dialog. The window uses the system WebView:
+- **Windows:** the WebView2 Runtime, already included in Windows 11 and current versions of Windows 10 (otherwise, [download it from Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/));
+- **Linux:** `libwebkit2gtk-4.1` (on Ubuntu and Debian, `sudo apt install libwebkit2gtk-4.1-0`) and a session with a display;
+- **macOS:** nothing to install.
 
-Sem isso, o Rastro avisa no console, continua no ar e mostra o endereço para abrir no navegador.
+Without it, Rastro warns you in the console, keeps running, and shows the address to open in the browser.
 
-Se o Rastro já estiver aberto nessa porta, o comando só mostra o endereço e termina. Se outro programa estiver nela, ele pede que você escolha outra com `--porta`.
+If Rastro is already open on that port, the command just prints the address and exits. If another program is using it, Rastro asks you to pick another with `--porta`.
 
-Para atualizar ou remover, pare o `rastro` antes (no Windows, o executável em uso não pode ser trocado):
+To update or uninstall, stop `rastro` first (on Windows, an executable in use cannot be replaced):
 
 ```bash
 dotnet tool update -g rastro-ai
 dotnet tool uninstall -g rastro-ai
 ```
 
-Cadastre os repositórios em Configurações (no cabeçalho da tela) ou pelo terminal. Os comandos de build e de testes, usados na validação de uma mudança, se editam em Configurações, em "Editar build e testes" de cada repositório, ou se informam ao cadastrar pelo terminal:
+Register your repositories in Settings (in the screen header) or from the terminal. The build and test commands, used when validating a change, are edited in Settings, under "Edit build and tests" for each repository, or provided when registering from the terminal:
 
 ```bash
 rastro repo add minha-api C:\codigo\minha-api --build "dotnet build MinhaApi.slnx" --testes "dotnet test MinhaApi.slnx --no-build"
 ```
 
-| Comando | O que faz |
+| Command | What it does |
 |---|---|
-| `rastro` | Sobe a tela (API e front embutidos), só em `127.0.0.1`, e abre a janela própria |
-| `rastro --sem-janela` | Sobe a tela sem abrir a janela (só o navegador). Apelido em inglês: `--no-window` |
-| `rastro repo add/remove/list` | Repositórios que o Rastro pode ler (`~/.rastro/config.json`) |
-| `rastro mcp` | Servidor MCP para o seu agente de IA |
+| `rastro` | Starts the UI (API and front end embedded), on `127.0.0.1` only, and opens the own window |
+| `rastro --sem-janela` | Starts the UI without opening the window (browser only). English alias: `--no-window` |
+| `rastro repo add/remove/list` | Repositories Rastro may read (`~/.rastro/config.json`) |
+| `rastro mcp` | MCP server for your AI agent |
 
-Os nomes dos comandos e das opções (`rastro repo add`, `--build`, `--testes`, `--sem-janela`, `--porta`) são interface estável e não mudam com o idioma. Para quem prefere inglês, valem também os apelidos `--tests`, `--no-window` e `--port`, ao lado dos nomes em português. A ajuda (`rastro --help`) e as mensagens do terminal saem no idioma do `config.json`.
+Command and option names (`rastro repo add`, `--build`, `--testes`, `--sem-janela`, `--porta`) are a stable interface and do not change with the language. For those who prefer English, the aliases `--tests`, `--no-window` and `--port` also work, alongside the Portuguese names. The help (`rastro --help`) and the terminal messages come out in the language set in `config.json`.
 
-Os dados ficam em `~/.rastro` (banco SQLite `rastro.db`, `config.json` e, depois da primeira janela, `janela/` com o cache do WebView); a variável `RASTRO_HOME` troca a pasta.
+Your data lives in `~/.rastro` (the SQLite database `rastro.db`, `config.json` and, after the first window, `janela/` with the WebView cache); the `RASTRO_HOME` variable changes the folder.
 
-### Idioma
+### Language
 
-O Rastro fala inglês, português do Brasil e espanhol. O idioma vale para a tela, a API, a CLI e o MCP, e se escolhe em Configurações, em Aparência. A escolha fica no `config.json` (`Rastro:Language`, com `en-US`, `pt-BR` ou `es`); sem ela, vale o idioma do sistema operacional, com o inglês de reserva quando o sistema está em outro idioma. A tela manda o idioma em cada chamada (`Accept-Language`); sem o cabeçalho (curl, agente), a API usa o do `config.json`. A CLI (ajuda e mensagens, inclusive `rastro repo`) também segue o `config.json`, e o MCP lê o idioma de novo a cada chamada: trocar na tela vale na resposta seguinte, sem reiniciar o agente. Os nomes de comando e de opção não mudam. A paleta e o tema continuam só no navegador.
+Rastro speaks English, Brazilian Portuguese and Spanish. The language applies to the UI, the API, the CLI and the MCP, and is chosen in Settings, under Appearance. The choice is saved in `config.json` (`Rastro:Language`, with `en-US`, `pt-BR` or `es`); without it, the operating system's language applies, with English as the fallback when the system is in another language. The UI sends the language on every call (`Accept-Language`); without the header (curl, an agent), the API uses the one in `config.json`. The CLI (help and messages, including `rastro repo`) also follows `config.json`, and the MCP reads the language again on every call: switching on screen takes effect in the next response, without restarting the agent. Command and option names do not change. The palette and the theme stay in the browser only. English is the main language of the documentation. The Portuguese and Spanish versions were translated with AI help, and Spanish has no native-speaker review: corrections by pull request are welcome.
 
-## IA opcional e plugável
+## Optional, pluggable AI
 
-O Rastro **funciona sem IA**. A IA entra por dois modos, e os dois passam pela mesma porta, o validador de prova do núcleo ([ADR-001](docs/adr/adr-001-ia-opcional-e-plugavel.md)):
+Rastro **works without AI**. AI comes in through two modes, and both go through the same gate, the core's evidence check ([ADR-001](docs/adr/adr-001-ia-opcional-e-plugavel.md)):
 
-| Jeito de usar | Precisa de quê | Quem completa o que o compilador não resolveu |
+| Way to use it | What it needs | Who fills in what the compiler could not resolve |
 |---|---|---|
-| **Sem IA** | nada | você, à mão |
-| **Modo agente** (`rastro mcp`) | um agente com MCP (ex.: Claude Code) | o agente, usando as ferramentas do Rastro |
-| **Modo provedor** | chave de API de Claude, OpenAI ou Gemini, em Configurações | o próprio Rastro |
+| **No AI** | nothing | you, by hand |
+| **Agent mode** (`rastro mcp`) | an agent with MCP (e.g. Claude Code) | the agent, using Rastro's tools |
+| **Provider mode** | an API key for Claude, OpenAI or Gemini, in Settings | Rastro itself |
 
 ```
-             Rastro.Extractor (Roslyn) ──► Rastro.Core (grafo + validador de prova)
+             Rastro.Extractor (Roslyn) ──► Rastro.Core (graph + evidence check)
                                                     ▲              ▲
-                                         propostas  │              │  propostas
-                                       Rastro.Mcp (agente)   Rastro.Ai (provedor)
+                                         proposals  │              │  proposals
+                                       Rastro.Mcp (agent)   Rastro.Ai (provider)
 ```
 
-Regra que não se quebra: `Rastro.Core` e `Rastro.Extractor` **nunca** referenciam código de IA, e um teste de arquitetura garante isso.
+A rule that is never broken: `Rastro.Core` and `Rastro.Extractor` **never** reference AI code, and an architecture test guarantees it.
 
-### Com o Claude Code (MCP)
+### With Claude Code (MCP)
 
 ```bash
 claude mcp add rastro -- rastro mcp
 ```
 
-As instruções do MCP e as descrições das ferramentas são em inglês, porque o agente as lê uma vez, ao conectar, e as entende melhor assim. O que as ferramentas devolvem sai no idioma que você escolheu no Rastro, e o agente responde a você no idioma em que você escreve. Ferramentas: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt`, `get_c4`, `get_db_schema`, `analyze_query`, `propose_query_rewrite` e `get_query_plan`. Peça, por exemplo: *"use o rastro para completar os buracos do levantamento X e escrever as regras das decisões"*.
+The MCP instructions and the tool descriptions are in English, because the agent reads them once, when it connects, and understands them better that way. What the tools return comes out in the language you chose in Rastro, and the agent replies to you in the language you write in. Tools: `list_repositories`, `analyze_flow`, `list_surveys`, `get_flow`, `get_flow_map`, `get_flow_rules`, `list_unresolved`, `list_cross_edges`, `get_node_code`, `search_methods`, `propose_edge`, `describe_node`, `impact_of`, `get_change_prompt`, `check_change`, `list_findings`, `get_refactor_prompt`, `get_c4`, `get_db_schema`, `analyze_query`, `propose_query_rewrite` and `get_query_plan`. Ask, for example: *"use rastro to fill the gaps in trace X and write the rules for the decisions"*.
 
-- Toda proposta passa pelo validador de prova: o compilador confere o método de destino e o `arquivo:linha`. Prova errada volta recusada, com o motivo.
-- Proposta aceita entra como **inferida**. **Só você confirma ou descarta**, na tela; o agente não tem ferramenta para isso.
-- Para uma consulta SQL, `analyze_query` dá os achados e o esquema só das tabelas que ela usa, e `propose_query_rewrite` recebe a consulta reescrita e os índices sugeridos, com o motivo de cada mudança. O Rastro confere e recusa com o motivo o que não passar; nada é aplicado nem executado, e quem copia é você. Com banco vivo cadastrado na tela, `get_query_plan` dá o plano estimado da consulta (sem executá-la) e o `propose_query_rewrite` traz o custo estimado da original e da reescrita; a string de conexão nunca vai para o agente.
-- Para perguntas sobre o fluxo ("quando o pedido é recusado?", "o que acontece se a API de pagamentos cair?"), `get_flow_map` e `get_flow_rules` dão ao agente o mapa e as regras, e ele responde citando os passos.
+- Every proposal goes through the evidence check: the compiler verifies the target method and the `file:line`. A wrong proof comes back rejected, with the reason.
+- An accepted proposal enters as **inferred**. **Only you confirm or dismiss it**, on screen; the agent has no tool for that.
+- For a SQL query, `analyze_query` gives the findings and the schema of only the tables it uses, and `propose_query_rewrite` receives the rewritten query and the suggested indexes, with the reason for each change. Rastro checks them and rejects with the reason whatever fails; nothing is applied or executed, and you are the one who copies. With a live database registered on screen, `get_query_plan` gives the query's estimated plan (without executing it) and `propose_query_rewrite` brings the estimated cost of the original and of the rewrite; the connection string never goes to the agent.
+- For questions about the flow ("when is the order rejected?", "what happens if the payments API goes down?"), `get_flow_map` and `get_flow_rules` give the agent the map and the rules, and it answers citing the steps.
 
-### Perguntas no modo provedor
+### Questions in provider mode
 
-A pergunta livre da tela usa o uso **Sugestões** da configuração da IA. Numa pergunta, vão ao provedor: o texto da pergunta, o mapa do fluxo (blocos, ligações e caminhos, com os nomes dos métodos e `arquivo:linha`), as regras e o código em volta dos pontos de entrada e das decisões (até 8 trechos de cerca de 30 linhas). A resposta volta com um selo (inferida, fora do código ou sem resposta) e com as fontes; fonte que não existe no fluxo é descartada, e resposta sem nenhuma fonte válida aparece como "sem resposta no código levantado".
+The free-form question on screen uses the **Suggestions** use of the AI settings. In a question, the provider receives: the question text, the flow map (blocks, links and paths, with method names and `file:line`), the rules, and the code around the entry points and decisions (up to 8 excerpts of about 30 lines). The answer comes back with a badge (inferred, outside the code, or no answer) and with the sources; a source that does not exist in the flow is discarded, and an answer with no valid source appears as "no answer in the traced code".
 
-## Fluxo entre sistemas
+## Cross-system flow
 
-Quando uma API chama outra por HTTP, o fluxo não termina na chamada. Ao criar o levantamento, escolha **Seguir chamadas HTTP para** e marque os outros repositórios (eles precisam estar cadastrados no Rastro). O Rastro reconhece a chamada pelo `HttpClient` (e pelas extensões de `System.Net.Http.Json`) e também por uma interface do Refit (métodos com `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]`, `[Head]` ou `[Options]`, com o verbo e o template tirados do atributo; o `{id}` do template casa com o parâmetro de rota do controller, e o endereço base do `AddRefitClient` é descartado). Ele casa o verbo e a rota de cada chamada com as rotas desses repositórios, abre o método que atende e continua o rastro ali. As bifurcações de cada sistema aparecem no mesmo desenho, e cada passo mostra de qual sistema vem.
+When one API calls another over HTTP, the flow does not end at the call. When you create the trace, choose **Follow HTTP calls to** and select the other repositories (they must be registered in Rastro). Rastro recognizes the call through `HttpClient` (and the `System.Net.Http.Json` extensions) and also through a Refit interface (methods with `[Get]`, `[Post]`, `[Put]`, `[Patch]`, `[Delete]`, `[Head]` or `[Options]`, with the verb and the template taken from the attribute; the template's `{id}` matches the controller's route parameter, and the base address of `AddRefitClient` is discarded). It matches the verb and route of each call against the routes of those repositories, opens the method that handles it, and continues the trail there. Each system's branches appear in the same drawing, and every step shows which system it comes from.
 
-O que o compilador não consegue casar vira um passo "não resolvido", com o motivo:
+What the compiler cannot match becomes an "unresolved" step, with the reason:
 
-- **rota montada em tempo de execução:** a URL é calculada, então não há rota fixa para procurar;
-- **sem destino:** nenhum dos repositórios marcados atende a chamada;
-- **mais de um destino:** a rota casa com mais de um método.
+- **route built at run time:** the URL is computed, so there is no fixed route to look for;
+- **no destination:** none of the selected repositories handles the call;
+- **more than one destination:** the route matches more than one method.
 
-Quem completa é a IA (modo provedor, que recebe os repositórios marcados e as rotas deles) ou o agente (modo agente). No MCP, `list_cross_edges` lista as ligações entre sistemas e as chamadas ainda sem destino, e `propose_edge` ganha o parâmetro `system`, com o repositório de destino. A proposta passa pela mesma prova do compilador e pelo índice de rotas: o método precisa atender o verbo e a rota da chamada. Entra como inferida, e só você confirma.
+The AI (provider mode, which receives the selected repositories and their routes) or the agent (agent mode) fills these in. In the MCP, `list_cross_edges` lists the links between systems and the calls still without a destination, and `propose_edge` gains the `system` parameter, with the destination repository. The proposal goes through the same compiler proof and the route index: the method must handle the call's verb and route. It enters as inferred, and only you confirm.
 
-Limites: a edição do fluxo e a validação de uma mudança valem só para o primeiro sistema do levantamento, e o Rastro mantém uma solution aberta por vez.
+Limits: editing the flow and validating a change only work for the first system of the trace, and Rastro keeps one solution open at a time.
 
-## Fluxo Angular (opcional)
+## Angular flow (optional)
 
-O levantamento pode começar no clique de uma tela Angular. Requisitos: o **Node** no PATH (o Rastro confere ao subir; sem ele, a tela não oferece o Angular) e o **`npm install` já feito no repositório Angular**, porque o Rastro lê o código com o compilador do TypeScript do próprio projeto (o pacote não leva o compilador, e a versão é a que o projeto usa). Em monorepo, com o app numa subpasta (`frontend/`), o `npm install` vale feito na subpasta: o Rastro procura o TypeScript da pasta do `tsconfig` até a raiz do repositório. Para forçar outro compilador, suba o Rastro com `RASTRO_TYPESCRIPT` apontando para a pasta do pacote `typescript`.
+A trace can start at the click of an Angular screen. Requirements: **Node** on the PATH (Rastro checks on startup; without it, the UI does not offer Angular) and **`npm install` already done in the Angular repository**, because Rastro reads the code with the project's own TypeScript compiler (the package does not ship the compiler, and the version is the one the project uses). In a monorepo with the app in a subfolder (`frontend/`), `npm install` done in the subfolder is enough: Rastro looks for TypeScript from the `tsconfig` folder up to the repository root. To force another compiler, start Rastro with `RASTRO_TYPESCRIPT` pointing to the `typescript` package folder.
 
-Ao criar o levantamento, no lugar da solution escolha o `tsconfig` do app (a tela sugere o `tsconfig.app.json` das pastas com `angular.json`; qualquer `tsconfig.json` ou `tsconfig.*.json` dentro do repositório serve) e informe o ponto de entrada no formato `Componente.metodo`, por exemplo `DetalhePedidoComponent.cancelar`. O Rastro mostra, no começo do fluxo, as condições da tela que guardam o botão (`@if`, `*ngIf`, `[disabled]`), segue o método pelos services e pelo `HttpClient` e liga cada chamada ao controller que a atende, como no fluxo entre sistemas. Para atravessar até as APIs, marque os repositórios .NET em **Seguir chamadas HTTP para**. Sem essa lista, o levantamento mostra só o trecho Angular, com a chamada HTTP no ponto onde ela sai.
+When creating the trace, in place of the solution choose the app's `tsconfig` (the UI suggests the `tsconfig.app.json` of folders with `angular.json`; any `tsconfig.json` or `tsconfig.*.json` inside the repository works) and give the entry point in the format `Component.method`, for example `DetalhePedidoComponent.cancelar`. At the start of the flow, Rastro shows the screen conditions that guard the button (`@if`, `*ngIf`, `[disabled]`), follows the method through the services and `HttpClient`, and links each call to the controller that handles it, as in the cross-system flow. To cross over to the APIs, select the .NET repositories in **Follow HTTP calls to**. Without that list, the trace shows only the Angular part, with the HTTP call at the point where it leaves.
 
-O que o Rastro não consegue ler vira um passo "não resolvido", com o motivo, como no .NET:
+What Rastro cannot read becomes an "unresolved" step, with the reason, as in .NET:
 
-- **rota montada fora do código:** a URL vem de configuração ou de uma variável que o código não fixa (o endereço base da API, no começo da URL, é descartado e não atrapalha);
-- **sem destino ou mais de um destino:** nenhum repositório marcado atende a chamada, ou mais de um atende;
-- **classe escolhida só em tempo de execução:** mais de uma implementação possível, ou nenhuma;
-- **limite de profundidade:** a cadeia passou do limite escolhido.
+- **route built outside the code:** the URL comes from configuration or from a variable the code does not fix (the API's base address, at the start of the URL, is discarded and does not get in the way);
+- **no destination or more than one destination:** no selected repository handles the call, or more than one does;
+- **class chosen only at run time:** more than one possible implementation, or none;
+- **depth limit:** the chain went past the chosen limit.
 
-Modais: quando o método abre um modal com `MatDialog.open(Componente)` ou com o `Dialog` do CDK, o fluxo ganha um galho "abre o modal Componente" com os métodos que o template do modal liga a eventos (`(click)`, `(ngSubmit)` e semelhantes, com `template` inline ou `templateUrl`), e o rastro segue dali até o `HttpClient`. Esse vínculo é a ação do usuário lida no HTML do modal, não prova do compilador: as arestas saem como **inferidas** e com o rótulo "ação do usuário no modal". O `afterClosed()` (ou `closed`) continua depois do galho. Um serviço próprio que repassa para o `MatDialog` não é reconhecido: o `open` precisa ser chamado direto no `MatDialog` ou no `Dialog` do CDK, com a classe do componente como primeiro argumento.
+Modals: when the method opens a modal with `MatDialog.open(Component)` or with the CDK `Dialog`, the flow gets an "opens the modal Component" branch with the methods the modal's template binds to events (`(click)`, `(ngSubmit)` and similar, with an inline `template` or `templateUrl`), and the trail continues from there to `HttpClient`. This link is the user action read from the modal's HTML, not compiler proof: the edges come out as **inferred** and with the label "user action in the modal". `afterClosed()` (or `closed`) continues after the branch. A custom service that forwards to `MatDialog` is not recognized: `open` must be called directly on `MatDialog` or on the CDK `Dialog`, with the component class as the first argument.
 
-Limite do leitor de template: as bifurcações da tela vêm de uma leitura leve do HTML do componente (blocos `@if`, `*ngIf` e `[disabled]` ao redor do elemento com o evento do método), sem o compilador do Angular. Condições montadas de outro jeito (por exemplo, dentro de um componente filho) não aparecem. O tempo máximo da leitura é 120 s e se troca em `Rastro:Analysis:TypeScriptTimeoutSeconds`. A edição do fluxo e a validação de uma mudança, por enquanto, valem só para fluxos .NET.
+Limit of the template reader: the screen's branches come from a lightweight reading of the component's HTML (`@if`, `*ngIf` and `[disabled]` blocks around the element with the method's event), without the Angular compiler. Conditions built another way (for example, inside a child component) do not appear. The maximum reading time is 120 s and is changed in `Rastro:Analysis:TypeScriptTimeoutSeconds`. Editing the flow and validating a change, for now, only work for .NET flows.
 
-## Visão consolidada
+## Consolidated view
 
-Em `surveys/:id/visao` o fluxo aparece resumido em poucos passos, em frase, como um `flowchart` Mermaid: a entrada, as bifurcações com o texto de cada ramo, as chamadas externas e os retornos antecipados. A geração é determinística, sem IA. O texto do Mermaid fica ao lado da prévia e pode ser editado; clicar num passo abre a escolha de cor (fundo, borda e texto), que vira `classDef` no próprio texto. A versão editada fica salva no levantamento, e "Gerar de novo" mantém as cores e os textos dos passos que ainda existem.
+At `surveys/:id/visao` the flow appears summarized in a few steps, in plain sentences, as a Mermaid `flowchart`: the entry, the branches with the text of each path, the external calls and the early returns. Generation is deterministic, with no AI. The Mermaid text sits next to the preview and can be edited; clicking a step opens the color picker (fill, border and text), which becomes a `classDef` in the text itself. The edited version is saved with the trace, and "Generate again" keeps the colors and texts of the steps that still exist.
 
-A visão também é o quarto desenho do fluxo: o botão que troca o desenho passa pelo horizontal, a linha do tempo, a árvore e o consolidado (ou o botão "Visão consolidada" da barra). Nele, clicar num passo abre o painel do passo, com o código, as ligações e o caminho desde a entrada. Arrastar o fundo move o desenho e a roda do mouse aproxima em volta do cursor. "Editar texto e cores" leva à tela de edição, onde "Ver no fluxo" volta ao passo escolhido.
+The view is also the fourth drawing of the flow: the button that switches the drawing goes through horizontal, timeline, tree and consolidated (or the "Consolidated view" button in the bar). There, clicking a step opens the step panel, with the code, the links and the path from the entry. Dragging the background moves the drawing and the mouse wheel zooms around the cursor. "Edit text and colors" leads to the edit screen, where "View in the flow" returns to the chosen step.
 
-## Esquema do banco
+## Database schema
 
-A tela **Mapa do banco** (`/repositorios/{nome}/banco`, pelo link "Ver o mapa do banco" ao escolher o repositório no levantamento novo, ou pelo "Banco" na barra de um levantamento) desenha as tabelas com PK e FK marcadas e as setas pela chave estrangeira, com a cardinalidade. Tem busca por tabela ou campo, recorte numa tabela e nas vizinhas até 3 saltos, zoom e exportação em PNG, SVG e Mermaid `erDiagram`. O painel da tabela mostra campos, índices, relações, a divergência entre fontes e os achados sem IA. Colunas com nome de dado pessoal (CPF, e-mail, telefone, nascimento, endereço) ganham a marca "pessoal", só pelo nome: o conteúdo nunca é lido.
+The **Database map** screen (`/repositorios/{nome}/banco`, through the "View the database map" link when choosing the repository in the new trace, or through "Database" in a trace's bar) draws the tables with PK and FK marked and arrows along the foreign keys, with cardinality. It has search by table or field, a cut to one table and its neighbors up to 3 hops, zoom, and export to PNG, SVG and Mermaid `erDiagram`. The table panel shows fields, indexes, relations, the disagreement between sources, and the findings produced without AI. Columns named like personal data (SSN, email, phone, birth date, address) get a "personal" mark, by name only: the content is never read.
 
-`GET api/repositories/{nome}/schema` (e a ferramenta `get_db_schema` no MCP) devolve o esquema do banco de um repositório cadastrado, lido só dos arquivos ([ADR-006](docs/adr/adr-006-visao-do-banco.md)):
+`GET api/repositories/{nome}/schema` (and the `get_db_schema` tool in the MCP) returns the database schema of a registered repository, read only from the files ([ADR-006](docs/adr/adr-006-visao-do-banco.md)):
 
-- **Modelo do EF Core**, pelo Roslyn, sem compilar nem rodar o seu código: `DbContext` e `DbSet`, atributos (`[Table]`, `[Key]`, `[Column]`, `[MaxLength]`, `[Index]`, `[ForeignKey]`), `OnModelCreating`, `IEntityTypeConfiguration`, as convenções do EF (chave `Id`, chave estrangeira `<Navegação>Id`, tabela pelo nome do `DbSet`) e o `UseSnakeCaseNamingConvention`.
-- **Migrations do EF Core**, aplicadas na ordem do id: `CreateTable`, `AddColumn`, `AlterColumn`, `CreateIndex`, `AddForeignKey` e o SQL de `migrationBuilder.Sql`. O snapshot e o `.Designer.cs` não são fonte.
-- **Arquivos `.sql` e projeto de banco** do SQL Server, pelo leitor oficial de T-SQL da Microsoft (`Microsoft.SqlServer.TransactSql.ScriptDom`, MIT, dentro do pacote): `CREATE TABLE`, `ALTER TABLE ... ADD CONSTRAINT`, `CREATE INDEX`, `CREATE VIEW` e `CREATE PROCEDURE` (parâmetros e as tabelas que ela lê e grava).
-- **Arquivos `.sql` do PostgreSQL**, pelo SqlParserCS (MIT, código gerenciado, sem biblioteca nativa, dentro do pacote): `CREATE TABLE` (com `serial`, identidade, `jsonb` e as chaves na coluna ou na tabela), `ALTER TABLE ... ADD`, `CREATE INDEX`, `CREATE VIEW` (e a materializada), `CREATE FUNCTION` e `CREATE PROCEDURE` (parâmetros e as tabelas que o corpo lê e grava). O resto do que o `pg_dump` escreve (`SET`, `CREATE EXTENSION`, a carga do `COPY`) é ignorado, e cada instrução é lida sozinha: a que o leitor não entende vira nota sem derrubar as outras.
+- **EF Core model**, through Roslyn, without compiling or running your code: `DbContext` and `DbSet`, attributes (`[Table]`, `[Key]`, `[Column]`, `[MaxLength]`, `[Index]`, `[ForeignKey]`), `OnModelCreating`, `IEntityTypeConfiguration`, EF's conventions (`Id` key, `<Navigation>Id` foreign key, table named after the `DbSet`) and `UseSnakeCaseNamingConvention`.
+- **EF Core migrations**, applied in id order: `CreateTable`, `AddColumn`, `AlterColumn`, `CreateIndex`, `AddForeignKey` and the SQL in `migrationBuilder.Sql`. The snapshot and `.Designer.cs` are not sources.
+- **`.sql` files and database project** for SQL Server, through Microsoft's official T-SQL reader (`Microsoft.SqlServer.TransactSql.ScriptDom`, MIT, inside the package): `CREATE TABLE`, `ALTER TABLE ... ADD CONSTRAINT`, `CREATE INDEX`, `CREATE VIEW` and `CREATE PROCEDURE` (parameters and the tables it reads and writes).
+- **`.sql` files for PostgreSQL**, through SqlParserCS (MIT, managed code, no native library, inside the package): `CREATE TABLE` (with `serial`, identity, `jsonb` and keys on the column or on the table), `ALTER TABLE ... ADD`, `CREATE INDEX`, `CREATE VIEW` (and the materialized one), `CREATE FUNCTION` and `CREATE PROCEDURE` (parameters and the tables the body reads and writes). The rest of what `pg_dump` writes (`SET`, `CREATE EXTENSION`, the `COPY` load) is ignored, and each statement is read on its own: one the reader does not understand becomes a note without taking down the others.
 
-**O dialeto sai do repositório**, sem pergunta: o `UseNpgsql` ou o `UseSqlServer` no código, as anotações das migrations (`Npgsql:` ou `SqlServer:`) e, sem EF, as marcas dos `.sql` (`serial`, `jsonb`, `::` e `$$` de um lado; `nvarchar`, colchete e `GO` do outro). Sem marca nenhuma, SQL Server. Com o Npgsql, o tipo por convenção é o que ele gera (`text`, `character varying(n)`, `timestamp with time zone`, `uuid`, `jsonb`, `numeric`, vetores como `text[]`), a identidade vem do `UseIdentityByDefaultColumn`, do `UseIdentityAlwaysColumn`, do `serial` e da anotação da migration, e os sinônimos do PostgreSQL (`int` e `integer`, `varchar` e `character varying`, `timestamptz`) não contam como divergência. Com o `UseSnakeCaseNamingConvention`, a chave, a FK e o índice ganham o nome em minúsculas que o EF dá (`pk_pedidos`).
+**The dialect comes from the repository**, with no question asked: `UseNpgsql` or `UseSqlServer` in the code, the migration annotations (`Npgsql:` or `SqlServer:`) and, without EF, the markers in the `.sql` files (`serial`, `jsonb`, `::` and `$$` on one side; `nvarchar`, brackets and `GO` on the other). With no marker at all, SQL Server. With Npgsql, the type by convention is the one it generates (`text`, `character varying(n)`, `timestamp with time zone`, `uuid`, `jsonb`, `numeric`, arrays such as `text[]`), identity comes from `UseIdentityByDefaultColumn`, `UseIdentityAlwaysColumn`, `serial` and the migration annotation, and PostgreSQL's synonyms (`int` and `integer`, `varchar` and `character varying`, `timestamptz`) do not count as a disagreement. With `UseSnakeCaseNamingConvention`, the key, FK and index get the lowercase name EF gives (`pk_pedidos`).
 
-Cada item traz o arquivo e a linha de onde veio. Quando as fontes discordam no tipo, no nulo, na chave primária ou na existência de uma coluna, a divergência mostra cada versão com a fonte, e a coluna divergente fica sem tipo (ou sem nulo): o Rastro não escolhe em silêncio. O que não dá para ler (arquivo `.sql` com erro, tipo próprio do EF com `OwnsOne`, entidade fora do repositório) vira uma nota. Ficam de fora as pastas `bin`, `obj` e `node_modules` e os `.sql` acima de 2 MB.
+Each item carries the file and line it came from. When sources disagree on type, nullability, primary key, or the existence of a column, the disagreement shows each version with its source, and the disagreeing column is left without a type (or without nullability): Rastro does not choose in silence. What cannot be read (a `.sql` file with an error, an EF custom type with `OwnsOne`, an entity outside the repository) becomes a note. The `bin`, `obj` and `node_modules` folders and `.sql` files above 2 MB are left out.
 
-O índice que o EF cria por convenção em cada chave estrangeira é deduzido do modelo e marcado como convenção, e só aparece quando a tabela não tem migration nem `.sql` (eles dizem o que o banco de fato tem). Achado sem IA: a migration ou o `.sql` que cria uma chave estrangeira sem um índice que comece pelas colunas dela (`findings` na resposta).
+The index EF creates by convention on each foreign key is deduced from the model and marked as convention, and only appears when the table has no migration or `.sql` (they say what the database actually has). A finding produced without AI: the migration or `.sql` that creates a foreign key without an index starting with its columns (`findings` in the response).
 
-**Banco nos fluxos.** No levantamento, o passo que usa o EF Core diz qual tabela lê ou grava e por qual operação (consulta, inclusão, alteração, exclusão), pelo `DbSet` (ou `Set<T>`), pelo método do EF e pelo `Add`, `Update` e `Remove` do `DbContext`; a procedure chamada por `FromSql`, `ExecuteSql` ou `SqlQuery` com `EXEC` aparece como execução. O nome da tabela sai do esquema do repositório. No painel da tabela, "Fluxos que usam esta tabela" lista os passos (do levantamento mais novo de cada método) com o link para o passo, e `GET api/repositories/{nome}/schema/usage` devolve os mesmos usos e os achados. Achados sem IA, na categoria "Banco de dados" das melhorias: consulta dentro de laço (N+1, direta ou por um método que consulta, mesmo por uma cadeia de até quatro serviços que só repassam a chamada; gravação que vai ao banco na hora, como `ExecuteUpdate`, `ExecuteDelete` e `ExecuteSql`, também conta), `ToList` antes do filtro (inclusive a lista guardada numa variável e filtrada depois; a consulta que já filtra e limita no banco, com `Where` e `Take`, não é achado), leitura sem `AsNoTracking` num método que não grava, procedure chamada por SQL cru, `ToList` só para apagar com `RemoveRange` (o certo é `ExecuteDeleteAsync`) e `LIKE` montado no código com curinga no começo (`$"%{termo}%"`), que o índice B-tree não atende (com índice de trigrama na coluna, no esquema do repositório, não é achado). Repositório genérico (`IRepository<T>`, `EfRepository<T>`): o `T` é fechado pela chamada, então o passo mostra a tabela da entidade (e não `DbSet`), a chamada por interface que reimplementa um membro com `new` vai ao membro certo, e o N+1, o `AsNoTracking` que falta e o `ToList` do repositório seguido de `Where` no chamador (também através de serviços finos) aparecem no passo certo. Levantamento feito antes desta versão não tem essa informação: levante o fluxo de novo. Dapper e ADO.NET continuam só com a etiqueta "banco", sem a tabela.
+**Database in the flows.** In a trace, a step that uses EF Core says which table it reads or writes and by which operation (query, insert, update, delete), through the `DbSet` (or `Set<T>`), the EF method, and the `DbContext`'s `Add`, `Update` and `Remove`; a procedure called through `FromSql`, `ExecuteSql` or `SqlQuery` with `EXEC` appears as an execution. The table name comes from the repository's schema. In the table panel, "Flows that use this table" lists the steps (from the newest trace of each method) with a link to the step, and `GET api/repositories/{nome}/schema/usage` returns the same usages and the findings. Findings produced without AI, in the "Database" category of the improvements: a query inside a loop (N+1, direct or through a method that queries, even through a chain of up to four services that only forward the call; a write that goes to the database right away, such as `ExecuteUpdate`, `ExecuteDelete` and `ExecuteSql`, also counts), `ToList` before the filter (including the list kept in a variable and filtered later; a query that already filters and limits in the database, with `Where` and `Take`, is not a finding), a read without `AsNoTracking` in a method that does not write, a procedure called through raw SQL, `ToList` just to delete with `RemoveRange` (the right way is `ExecuteDeleteAsync`), and a `LIKE` built in code with a leading wildcard (`$"%{termo}%"`), which a B-tree index does not serve (with a trigram index on the column, in the repository's schema, it is not a finding). Generic repository (`IRepository<T>`, `EfRepository<T>`): `T` is closed by the call, so the step shows the entity's table (and not `DbSet`), a call through an interface that reimplements a member with `new` goes to the right member, and the N+1, the missing `AsNoTracking`, and the repository's `ToList` followed by `Where` in the caller (also through thin services) appear on the right step. A trace made before this version does not have this information: trace the flow again. Dapper and ADO.NET still only get the "database" tag, without the table.
 
-**Analisar consulta.** A segunda aba da tela do banco (`/repositorios/{nome}/banco?aba=consulta`) recebe uma consulta colada (no dialeto do repositório: SQL Server ou PostgreSQL) ou a de um passo do fluxo: o passo com SQL cru literal (`FromSql`, `FromSqlRaw`, `ExecuteSqlRaw`, `SqlQuery`) ganha o link "Analisar a consulta", com os marcadores `{0}` e os buracos da interpolação trocados por `@p0`, `@p1`. O leitor de SQL do dialeto (o oficial de T-SQL, ou o SqlParserCS no PostgreSQL) lê a consulta, sem executá-la e sem IA, e cada achado vem com a gravidade (alta, média, baixa; na API, de 0 a 2, e o número maior é o mais grave, como nos achados do fluxo), o trecho marcado no texto (dentro do filtro ou do `ON`, e não na lista do `SELECT`) e o motivo; clicar no achado destaca o trecho. As regras: `SELECT *` (cita as colunas de dado pessoal que vêm junto), função, conversão ou conta na coluna do filtro, `LIKE` com curinga no começo, `OR` entre colunas diferentes, filtro ou junção em coluna sem índice que comece por ela (pelo esquema lido do código; um índice composto atende quando as colunas iniciais dele estão todas no filtro com igualdade; as outras colunas do filtro são conferidas nas linhas que o índice já buscou, então só há achado quando nenhum índice da tabela atende nenhuma coluna do filtro, e é um achado por tabela, que cita todas as colunas sem índice e marca o trecho na primeira; coluna booleana sozinha, `NOT coluna` e `IS TRUE` contam como igualdade), leitura sem `LIMIT` ou `TOP` numa tabela filtrada só por igualdade em coluna que não identifica a linha (gravidade baixa; a lista filha de um pai, filtrada por uma chave estrangeira declarada ou implícita, fica de fora, menos quando a chave é a de partição, isto é, a coluna cujo nome aparece em pelo menos metade das tabelas do esquema, como a do tenant; a chave implícita é a coluna `x_id` ou `xId` cuja tabela `x`, `xs` ou `xes` existe no esquema, sem exigir índice), junção sem condição (`CROSS JOIN`, vírgula no `FROM` sem ligação no `WHERE`, `ON` sem coluna das duas tabelas), `DISTINCT` numa consulta com junção, subconsulta correlacionada, `ORDER BY` sem `TOP` nem `OFFSET`, `NOT IN` de subconsulta cuja coluna aceita nulo e `UPDATE` ou `DELETE` sem `WHERE`. No PostgreSQL, as mesmas regras, com `LIMIT` ou `FETCH` no lugar do `TOP`, o operador jsonb (`->>`, `->`) e `unnest` ou `ANY` sobre coluna de lista com texto próprio (não usam índice B-tree), o índice de trigrama (`USING gin (coluna gin_trgm_ops)`, lido do `.sql` e do `migrationBuilder.Sql`) atendendo o `LIKE` e o `ILIKE` com curinga no começo, a propriedade de classe guardada em `jsonb` lida como coluna do modelo, o `UPDATE ... FROM` e o `DELETE ... USING` contando como junção, mais o `ILIKE` com curinga no começo e a conversão com `::` na coluna do filtro; `$1` e `@nome` são parâmetros. Tabela que não está no esquema aparece marcada, sem os achados de índice e de nulo. Na API, `POST api/repositories/{nome}/schema/analyze` com `{ "sql": "..." }` (até 100 mil caracteres); no MCP, `analyze_query`. O texto da consulta não vai para o log.
+**Analyzing a query.** The second tab of the database screen (`/repositorios/{nome}/banco?aba=consulta`) takes a pasted query (in the repository's dialect: SQL Server or PostgreSQL) or the one from a flow step: a step with literal raw SQL (`FromSql`, `FromSqlRaw`, `ExecuteSqlRaw`, `SqlQuery`) gets the "Analyze the query" link, with the `{0}` markers and the interpolation holes replaced by `@p0`, `@p1`. The dialect's SQL reader (the official T-SQL one, or SqlParserCS on PostgreSQL) reads the query, without executing it and without AI, and each finding comes with its severity (high, medium, low; in the API, 0 to 2, and the larger number is the more serious, as in the flow's findings), the excerpt marked in the text (inside the filter or the `ON`, and not in the `SELECT` list) and the reason; clicking the finding highlights the excerpt. The rules: `SELECT *` (names the personal-data columns that come along), a function, conversion or arithmetic on the filter column, `LIKE` with a leading wildcard, `OR` across different columns, a filter or join on a column without an index starting with it (according to the schema read from the code; a composite index serves when its leading columns are all in the filter with equality; the other filter columns are checked on the rows the index already fetched, so there is a finding only when no index on the table serves any filter column, and it is one finding per table, naming all the columns without an index and marking the excerpt on the first; a lone boolean column, `NOT column` and `IS TRUE` count as equality), a read without `LIMIT` or `TOP` on a table filtered only by equality on a column that does not identify the row (low severity; a child list of a parent, filtered by a declared or implicit foreign key, is left out, except when the key is the partition key, that is, the column whose name appears in at least half of the schema's tables, such as the tenant's; the implicit key is the column `x_id` or `xId` whose table `x`, `xs` or `xes` exists in the schema, with no index required), a join without a condition (`CROSS JOIN`, a comma in the `FROM` with no link in the `WHERE`, an `ON` without a column from both tables), `DISTINCT` on a query with a join, a correlated subquery, `ORDER BY` without `TOP` or `OFFSET`, `NOT IN` over a subquery whose column accepts nulls, and `UPDATE` or `DELETE` without `WHERE`. On PostgreSQL, the same rules, with `LIMIT` or `FETCH` in place of `TOP`, the jsonb operator (`->>`, `->`) and `unnest` or `ANY` on a list column with its own text (they do not use a B-tree index), the trigram index (`USING gin (column gin_trgm_ops)`, read from the `.sql` and from `migrationBuilder.Sql`) serving `LIKE` and `ILIKE` with a leading wildcard, a class property kept in `jsonb` read as a model column, `UPDATE ... FROM` and `DELETE ... USING` counting as a join, plus `ILIKE` with a leading wildcard and the `::` cast on the filter column; `$1` and `@name` are parameters. A table that is not in the schema appears marked, without the index and nullability findings. In the API, `POST api/repositories/{nome}/schema/analyze` with `{ "sql": "..." }` (up to 100 thousand characters); in the MCP, `analyze_query`. The query text does not go to the log.
 
-**Banco vivo (opcional, só de leitura).** Pelo botão "Conectar banco vivo" da tela do banco, você cadastra a string de conexão de um SQL Server ou de um PostgreSQL para o repositório. O dialeto sai da própria string (`Host`, `Port` e `Username` são do PostgreSQL; `Data Source`, `Initial Catalog` e `TrustServerCertificate` são do SQL Server) e, quando ela serve aos dois (`Server=...;Database=...;User Id=...`), vale o dialeto do código do repositório. No PostgreSQL, use o formato chave=valor (`Host=...;Database=...;Username=...;Password=...`), não a URL. Ela fica cifrada no banco local (`~/.rastro/rastro.db`, com o DataProtection, como a chave da IA) e nunca volta para a tela, para o log nem para a IA; a tela mostra só o servidor e o banco. Com a conexão:
+**Live database (optional, read-only).** With the "Connect live database" button on the database screen, you register the connection string of a SQL Server or a PostgreSQL for the repository. The dialect comes from the string itself (`Host`, `Port` and `Username` are PostgreSQL's; `Data Source`, `Initial Catalog` and `TrustServerCertificate` are SQL Server's) and, when it fits both (`Server=...;Database=...;User Id=...`), the dialect of the repository's code applies. On PostgreSQL, use the key=value format (`Host=...;Database=...;Username=...;Password=...`), not the URL. It is stored encrypted in the local database (`~/.rastro/rastro.db`, with DataProtection, like the AI key) and never returns to the screen, the log or the AI; the screen shows only the server and the database. With the connection:
 
-- o **catálogo** (tabelas, colunas, chaves, índices, views e procedures) entra como mais uma fonte do esquema, marcada "banco vivo", e a divergência com o código aparece como as outras. Se o banco não responder, o esquema sai só do código, com uma nota;
-- na aba "Analisar consulta", "Pedir o plano estimado" pede ao banco o plano, **sem executar a consulta**: no SQL Server, por `SET SHOWPLAN_XML ON` (as operações mais caras, as varreduras e o índice que o próprio banco diz faltar), com o leitor de T-SQL conferindo antes que a consulta é uma instrução só (`SELECT`, `INSERT`, `UPDATE`, `DELETE` ou `MERGE`), sem `SET`, `EXEC`, DDL, `GO`, `SELECT INTO` nem acesso a outro servidor, e as variáveis (`@p0`) declaradas como texto;
-- no PostgreSQL, por `EXPLAIN (FORMAT JSON)` **sem `ANALYZE`**, dentro de uma transação só de leitura que sempre volta atrás, numa conexão aberta com `default_transaction_read_only` ligado. Antes, o leitor de SQL do PostgreSQL confere que é uma instrução só, sem `SELECT INTO`, sem escrita dentro de outra instrução e sem função de efeito colateral conhecida (`pg_sleep`, `set_config`, `nextval`, `dblink`, leitura de arquivo, trava). Com parâmetro (`$1` ou `@nome`), a consulta vira um `PREPARE` e o plano é o genérico, que não depende do valor (PostgreSQL 12 em diante). O comando vai num lote de um só, e o próprio PostgreSQL recusa duas instruções nele. O PostgreSQL não aponta índice faltando: os achados sem IA cobrem a coluna sem índice.
+- the **catalog** (tables, columns, keys, indexes, views and procedures) enters as one more source of the schema, marked "live database", and the disagreement with the code appears like the others. If the database does not respond, the schema comes from the code only, with a note;
+- on the "Analyze query" tab, "Request the estimated plan" asks the database for the plan, **without executing the query**: on SQL Server, through `SET SHOWPLAN_XML ON` (the costliest operations, the scans, and the index the database itself says is missing), with the T-SQL reader first checking that the query is a single statement (`SELECT`, `INSERT`, `UPDATE`, `DELETE` or `MERGE`), with no `SET`, `EXEC`, DDL, `GO`, `SELECT INTO` or access to another server, and the variables (`@p0`) declared as text;
+- on PostgreSQL, through `EXPLAIN (FORMAT JSON)` **without `ANALYZE`**, inside a read-only transaction that is always rolled back, on a connection opened with `default_transaction_read_only` on. Before that, the PostgreSQL SQL reader checks that it is a single statement, with no `SELECT INTO`, no write inside another statement, and no known side-effect function (`pg_sleep`, `set_config`, `nextval`, `dblink`, file reads, locks). With a parameter (`$1` or `@name`), the query becomes a `PREPARE` and the plan is the generic one, which does not depend on the value (PostgreSQL 12 onward). The command goes in a one-statement batch, and PostgreSQL itself rejects two statements in it. PostgreSQL does not point out missing indexes: the findings produced without AI cover the column without an index.
 
-O Rastro **nunca lê os dados das tabelas**. Os comandos ao catálogo são fixos no código (`sys.*` no SQL Server, `pg_catalog` no PostgreSQL), a conexão tem tempo limite e não entra em pool, e o driver é o oficial de cada banco (`Microsoft.Data.SqlClient` e `Npgsql`, licença PostgreSQL, os dois dentro do pacote). Use um usuário só de leitura: no SQL Server, `GRANT VIEW DEFINITION TO usuario` basta para o catálogo; o plano estimado pede também `GRANT SHOWPLAN TO usuario` e o `SELECT` nas tabelas da consulta, porque o SQL Server só mostra o plano a quem pode rodar a instrução. No PostgreSQL, `GRANT CONNECT ON DATABASE banco TO usuario` basta para o catálogo; o plano pede o `USAGE` no schema e o `SELECT` nas tabelas da consulta (o PostgreSQL confere a permissão da instrução também no `EXPLAIN`), e vale deixar o usuário só de leitura também no banco (`ALTER ROLE usuario SET default_transaction_read_only = on`). Na API: `GET`, `PUT` e `DELETE api/repositories/{nome}/connection`, `POST api/repositories/{nome}/connection/test` e `POST api/repositories/{nome}/schema/plan`. O cadastro do banco vivo é só pela tela; o MCP usa a conexão cadastrada só para o plano estimado (`get_query_plan` e o custo no `propose_query_rewrite`), lendo as chaves de cifra do banco local, e o esquema do MCP continua sendo o do código. Com banco vivo, o catálogo também traz a estimativa de linhas de cada tabela (`pg_class.reltuples` no PostgreSQL, `sys.partitions` no SQL Server, sem permissão nova): a leitura sem limite deixa de ser achado em tabela abaixo de 1.000 linhas e volta a ser na lista filha de tabela com 100.000 linhas ou mais, e o painel da tabela mostra a estimativa. Sem banco vivo, a lista filha de uma tabela apontada por duas ou mais outras (a entidade principal, como as tarefas de um espaço) também é achado.
+Rastro **never reads table data**. The catalog commands are fixed in the code (`sys.*` on SQL Server, `pg_catalog` on PostgreSQL), the connection has a timeout and is not pooled, and the driver is each database's official one (`Microsoft.Data.SqlClient` and `Npgsql`, PostgreSQL license, both inside the package). Use a read-only user: on SQL Server, `GRANT VIEW DEFINITION TO usuario` is enough for the catalog; the estimated plan also needs `GRANT SHOWPLAN TO usuario` and `SELECT` on the tables in the query, because SQL Server only shows the plan to someone who can run the statement. On PostgreSQL, `GRANT CONNECT ON DATABASE banco TO usuario` is enough for the catalog; the plan needs `USAGE` on the schema and `SELECT` on the tables in the query (PostgreSQL checks the statement's permission in `EXPLAIN` too), and it is worth making the user read-only in the database as well (`ALTER ROLE usuario SET default_transaction_read_only = on`). In the API: `GET`, `PUT` and `DELETE api/repositories/{nome}/connection`, `POST api/repositories/{nome}/connection/test` and `POST api/repositories/{nome}/schema/plan`. Registering the live database is done only through the screen; the MCP uses the registered connection only for the estimated plan (`get_query_plan` and the cost in `propose_query_rewrite`), reading the encryption keys from the local database, and the MCP's schema remains the one from the code. With a live database, the catalog also brings each table's row estimate (`pg_class.reltuples` on PostgreSQL, `sys.partitions` on SQL Server, with no new permission): an unbounded read stops being a finding on a table under 1,000 rows and comes back for the child list of a table with 100,000 rows or more, and the table panel shows the estimate. Without a live database, the child list of a table pointed to by two or more others (the main entity, such as the tasks of a workspace) is also a finding.
 
-**A IA sugere a melhora (opcional).** Com o modo provedor ligado e o uso **Sugestões** marcado, a aba "Analisar consulta" ganha o botão "Sugerir melhora com a IA"; sem IA ligada, o botão não aparece. A IA devolve a consulta reescrita e os índices sugeridos, com o motivo de cada mudança, e o Rastro confere tudo antes de mostrar, sem IA: a reescrita precisa ser lida pelo leitor de SQL do dialeto do repositório, ser uma instrução só da mesma operação na mesma tabela, citar só tabelas e colunas que existem no esquema e devolver as mesmas colunas, com os mesmos nomes e na mesma ordem, sem limitar as linhas (`TOP`, `LIMIT`, `OFFSET` ou `FETCH`) que a original não limita; o índice só usa colunas que existem e não repete um índice nem a chave primária que já começa pelas mesmas colunas. O que não passa aparece recusado, com o motivo. A tela mostra a consulta antes e depois lado a lado, os achados antes e depois e, com banco vivo, o custo estimado do plano das duas, sem executar nenhuma. O comando `CREATE INDEX` é escrito pelo Rastro, no dialeto (colchete no SQL Server, aspas duplas no PostgreSQL). **Nada é aplicado**: quem copia a consulta e cria o índice é você. Vão ao provedor numa análise: a consulta como você colou (inclusive os literais), os achados e só as tabelas que ela usa (nomes, colunas, tipos, nulo, chaves e índices, do código e, com banco vivo, do catálogo), marcados como dado. **Nunca vão** a string de conexão, os dados das tabelas nem as outras tabelas do esquema. Na API: `POST api/repositories/{nome}/schema/ai/suggestion` com `{ "sql": "..." }`; no MCP, `analyze_query` seguido de `propose_query_rewrite`, com a mesma conferência.
+**The AI suggests the improvement (optional).** With provider mode on and the **Suggestions** use checked, the "Analyze query" tab gets the "Suggest an improvement with AI" button; without AI on, the button does not appear. The AI returns the rewritten query and the suggested indexes, with the reason for each change, and Rastro checks everything before showing it, without AI: the rewrite must be read by the SQL reader for the repository's dialect, be a single statement of the same operation on the same table, cite only tables and columns that exist in the schema, and return the same columns, with the same names and in the same order, without limiting rows (`TOP`, `LIMIT`, `OFFSET` or `FETCH`) that the original does not limit; an index only uses columns that exist and does not repeat an index or the primary key that already starts with the same columns. What does not pass appears rejected, with the reason. The screen shows the query before and after side by side, the findings before and after and, with a live database, the plan's estimated cost for both, without executing either. The `CREATE INDEX` command is written by Rastro, in the dialect (brackets on SQL Server, double quotes on PostgreSQL). **Nothing is applied**: you are the one who copies the query and creates the index. What goes to the provider in an analysis: the query as you pasted it (including the literals), the findings, and only the tables it uses (names, columns, types, nullability, keys and indexes, from the code and, with a live database, from the catalog), marked as data. **Never sent**: the connection string, the table data, or the other tables of the schema. In the API: `POST api/repositories/{nome}/schema/ai/suggestion` with `{ "sql": "..." }`; in the MCP, `analyze_query` followed by `propose_query_rewrite`, with the same checks.
 
-Limites: configuração montada em tempo de execução não é lida. No PostgreSQL, o corpo em PL/pgSQL da função é lido pelos tokens (as tabelas depois de `FROM`, `JOIN`, `INSERT INTO`, `UPDATE` e `DELETE FROM`), e o plano de consulta com parâmetro pede o PostgreSQL 12 ou mais novo.
+Limits: configuration built at run time is not read. On PostgreSQL, a function's PL/pgSQL body is read by tokens (the tables after `FROM`, `JOIN`, `INSERT INTO`, `UPDATE` and `DELETE FROM`), and the plan for a query with a parameter needs PostgreSQL 12 or newer.
 
-## Como funciona
+## How it works
 
-- **Extrator (Roslyn e MSBuild):** carrega a solution real, com os tipos resolvidos, segue as chamadas a partir do ponto de entrada e resolve as interfaces pelo registro do DI. O que o compilador não alcança (reflection, despacho dinâmico) vira um passo "não resolvido", com o motivo.
-- **Extrator Angular (Node e TypeScript):** um script (`extractor-ts`, que vai dentro do pacote) roda no Node com o compilador do TypeScript do repositório analisado e devolve o mesmo grafo. É determinístico e não usa IA ([ADR-005](docs/adr/adr-005-extrator-angular.md)).
-- **Grafo como visão:** o código é a fonte da verdade. Cada levantamento guarda o hash do commit, e o grafo é refeito a cada análise.
-- **Desenho próprio:** a linha do tempo é calculada pelo Rastro (sem ELK), na ordem do código, e desenhada com o Foblex Flow.
-- **Janela própria:** o Photino.NET abre uma janela nativa com o WebView do sistema, apontando para a API local. A tela fala com a janela só para escolher pasta, por mensagens de formato fixo ([ADR-007](docs/adr/adr-007-janela-propria.md)).
-- **Build e testes pela tela:** o comando de build e o de testes de cada repositório se editam nas Configurações, conferidos (uma linha, até 500 caracteres) e rodados sem shell ([ADR-008](docs/adr/adr-008-comandos-pela-tela.md)).
-- **Segurança:** a API só escuta em `127.0.0.1`, recusa pedido de outro site e só lê pastas cadastradas. Build e testes da validação rodam sem shell, com o comando da configuração.
+- **Extractor (Roslyn and MSBuild):** loads the real solution, with resolved types, follows the calls from the entry point, and resolves interfaces through the DI registration. What the compiler cannot reach (reflection, dynamic dispatch) becomes an "unresolved" step, with the reason.
+- **Angular extractor (Node and TypeScript):** a script (`extractor-ts`, shipped inside the package) runs on Node with the analyzed repository's TypeScript compiler and returns the same graph. It is deterministic and uses no AI ([ADR-005](docs/adr/adr-005-extrator-angular.md)).
+- **Graph as a view:** the code is the source of truth. Each trace stores the commit hash, and the graph is rebuilt on every analysis.
+- **Own drawing:** the timeline is computed by Rastro (no ELK), in code order, and drawn with Foblex Flow.
+- **Own window:** Photino.NET opens a native window with the system WebView, pointing at the local API. The screen talks to the window only to choose a folder, through fixed-format messages ([ADR-007](docs/adr/adr-007-janela-propria.md)).
+- **Build and tests from the screen:** each repository's build and test commands are edited in Settings, checked (one line, up to 500 characters) and run without a shell ([ADR-008](docs/adr/adr-008-comandos-pela-tela.md)).
+- **Security:** the API listens only on `127.0.0.1`, rejects requests from other sites, and only reads registered folders. The build and tests of a validation run without a shell, with the command from the configuration.
 
-Visão e decisões em [`docs/arquitetura/visao.md`](docs/arquitetura/visao.md) e nas [ADRs](docs/adr/).
+Vision and decisions in [`docs/arquitetura/visao.md`](docs/arquitetura/visao.md) and in the [ADRs](docs/adr/) (written in Portuguese).
 
-## Estrutura
+## Structure
 
-| Pasta | O quê |
+| Folder | What |
 |---|---|
-| [`backend/`](backend/) | .NET 10: extrator (Roslyn), núcleo, API, MCP, IA (provedores) e testes (xUnit) |
-| [`frontend/`](frontend/) | a tela em Angular 20 e Foblex Flow, com testes no Karma |
-| [`extractor-ts/`](extractor-ts/) | o extrator Angular (script Node com o compilador do TypeScript), com testes em `node --test` |
-| [`docker/`](docker/) | imagem opcional, para rodar o Rastro num container |
-| [`docs/`](docs/) | visão, ADRs, plano faseado e prints das telas |
-| [`scripts/`](scripts/) | geração do pacote e conferência do que vai a público |
+| [`backend/`](backend/) | .NET 10: extractor (Roslyn), core, API, MCP, AI (providers) and tests (xUnit) |
+| [`frontend/`](frontend/) | the UI in Angular 20 and Foblex Flow, with tests in Karma |
+| [`extractor-ts/`](extractor-ts/) | the Angular extractor (a Node script with the TypeScript compiler), with tests in `node --test` |
+| [`docker/`](docker/) | optional image, to run Rastro in a container |
+| [`docs/`](docs/) | vision, ADRs, phased plan and screenshots of the screens |
+| [`scripts/`](scripts/) | package generation and the check of what goes public |
 
-## Desenvolver
+## Develop
 
-| Como | Comando | Endereço |
+| How | Command | Address |
 |---|---|---|
-| API local | `dotnet run --project backend/src/Rastro.Api` | http://localhost:5310 |
-| Front local | `cd frontend && npm install && npm start` (proxy de `/api` para a API local) | http://localhost:4300 |
-| MCP local | `dotnet run --project backend/src/Rastro.Api -- mcp` | stdio |
-| CLI de análise | `dotnet run --project backend/src/Rastro.Cli -- analyze <solution> <Tipo.Metodo> --out fluxo.json` | |
+| Local API | `dotnet run --project backend/src/Rastro.Api` | http://localhost:5310 |
+| Local front end | `cd frontend && npm install && npm start` (proxies `/api` to the local API) | http://localhost:4300 |
+| Local MCP | `dotnet run --project backend/src/Rastro.Api -- mcp` | stdio |
+| Analysis CLI | `dotnet run --project backend/src/Rastro.Cli -- analyze <solution> <Type.Method> --out fluxo.json` | |
 
-Antes de abrir um pull request:
+Before opening a pull request:
 
 ```bash
 dotnet build backend/Rastro.slnx && dotnet test backend/Rastro.slnx
@@ -216,26 +218,26 @@ cd frontend && npm run build && npm run test:ci
 cd extractor-ts && npm ci && npm test
 ```
 
-O teste de integração do backend roda o extrator Angular de verdade: precisa do Node e do `npm ci` feito em `extractor-ts`.
+The backend integration test really runs the Angular extractor: it needs Node and `npm ci` done in `extractor-ts`.
 
-Pacote local: `powershell -File scripts/empacotar.ps1` gera `artifacts/rastro-ai.<versão>.nupkg` (front embutido no `wwwroot` da API), e `dotnet tool install -g rastro-ai --add-source artifacts` instala para testar.
+Local package: `powershell -File scripts/empacotar.ps1` generates `artifacts/rastro-ai.<version>.nupkg` (front end embedded in the API's `wwwroot`), and `dotnet tool install -g rastro-ai --add-source artifacts` installs it for testing.
 
-**Docker (opcional):** `docker compose -f docker/docker-compose.yml up -d --build` sobe em http://localhost:7400, com o banco no volume `rastro-data` e os repositórios montados só para leitura (`REPOS_DIR`, `REPO_0_NAME` e `REPO_0_FOLDER`).
+**Docker (optional):** `docker compose -f docker/docker-compose.yml up -d --build` starts it at http://localhost:7400, with the database in the `rastro-data` volume and the repositories mounted read-only (`REPOS_DIR`, `REPO_0_NAME` and `REPO_0_FOLDER`).
 
-### Publicar uma versão
+### Publish a version
 
-A publicação no NuGet é feita pelo workflow [`release.yml`](.github/workflows/release.yml), com a Publicação Confiável do nuget.org (sem chave de API guardada):
+Publishing to NuGet is done by the [`release.yml`](.github/workflows/release.yml) workflow, with nuget.org Trusted Publishing (no stored API key):
 
-1. Suba o [`VERSION`](VERSION) (e a versão do `frontend/package.json`) num pull request. O nuget.org não aceita a mesma versão duas vezes, e uma versão publicada não se apaga, só se oculta.
-2. Depois do merge, crie a tag na `main`: `git tag -a v0.1.2 -m "Rastro AI 0.1.2"` e `git push origin v0.1.2`. Tag diferente do `VERSION` é recusada.
-3. O workflow roda os testes do backend e do front, gera o pacote e para no environment `release`, esperando a aprovação do mantenedor ("Review deployments" na execução). Com a aprovação, ele publica.
+1. Bump [`VERSION`](VERSION) (and the `frontend/package.json` version) in a pull request. nuget.org does not accept the same version twice, and a published version cannot be deleted, only unlisted.
+2. After the merge, create the tag on `main`: `git tag -a v0.1.2 -m "Rastro AI 0.1.2"` and `git push origin v0.1.2`. A tag different from `VERSION` is rejected.
+3. The workflow runs the backend and front-end tests, builds the package, and stops at the `release` environment, waiting for the maintainer's approval ("Review deployments" on the run). Once approved, it publishes.
 
-## Como foi construído
+## How it was built
 
-Construído em par com o Claude (Claude Code), fase a fase, com plano, testes e prints de cada tela a cada fase: [`docs/arquitetura/plano-mvp.md`](docs/arquitetura/plano-mvp.md).
+Built in pairs with Claude (Claude Code), phase by phase, with a plan, tests and screenshots of each screen at every phase: [`docs/arquitetura/plano-mvp.md`](docs/arquitetura/plano-mvp.md) (in Portuguese).
 
-## Licença
+## License
 
 [MIT](LICENSE).
 
-Componentes de terceiros que vão no pacote com licença diferente da MIT: [Photino.NET e Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), a janela própria. Falhas de segurança: veja [SECURITY.md](SECURITY.md).
+Third-party components shipped in the package under a license other than MIT: [Photino.NET and Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), the own window. Security flaws: see [SECURITY.md](SECURITY.md).
