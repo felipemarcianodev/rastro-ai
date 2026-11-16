@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Rastro.Core.Localization;
 using Rastro.Core.Surveys;
 using Rastro.Infrastructure;
 using Rastro.Infrastructure.Analysis;
@@ -100,9 +101,13 @@ internal static class CrossKit
     public static ResolvedTarget TargetOf(IServiceScope scope, CrossRepo repo) =>
         scope.ServiceProvider.GetRequiredService<RepositoryCatalog>().Resolve(repo.Name, repo.Solution).Target!;
 
+    // Os testes de texto conferem o português; o idioma é sempre explícito (ADR-009).
     public static Task<CrossAnalysis> AnalyzeAsync(IServiceScope scope, CrossRepo first, string entry, int depth, params CrossRepo[] cross) =>
+        AnalyzeInAsync(scope, UiLanguage.Portuguese, first, entry, depth, cross);
+
+    public static Task<CrossAnalysis> AnalyzeInAsync(IServiceScope scope, UiLanguage language, CrossRepo first, string entry, int depth, params CrossRepo[] cross) =>
         scope.ServiceProvider.GetRequiredService<CrossSystemAnalyzer>()
-            .AnalyzeAsync(TargetOf(scope, first), entry, depth, cross.Select(c => c.Name).ToList(), CancellationToken.None);
+            .AnalyzeAsync(TargetOf(scope, first), entry, depth, cross.Select(c => c.Name).ToList(), language, CancellationToken.None);
 
     // Levantamento concluído no banco, como o worker deixa: grafo da costura mais os trechos.
     public static async Task<Survey> SaveSurveyAsync(IServiceScope scope, CrossRepo first, string entry, int depth, CrossAnalysis analysis, params CrossRepo[] cross)

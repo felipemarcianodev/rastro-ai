@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Npgsql;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
@@ -134,7 +135,7 @@ public class PostgreSqlLiveDatabaseTests(PostgreSqlContainerFixture server) : IC
             WHERE p.criado_em::date >= $1 AND c.email ILIKE '%@gmail.com' AND p.status = @status
             ORDER BY p.criado_em DESC
             """;
-        var guard = PgSqlPlanGuard.Check(sql);
+        var guard = PgSqlPlanGuard.Check(sql, UiLanguage.Portuguese);
         Assert.True(guard.Allowed, guard.Reason);
 
         var plan = ExplainPlanReader.Read(await _live.EstimatedPlanAsync(server.ReaderConnectionString, sql, guard.Variables, default));

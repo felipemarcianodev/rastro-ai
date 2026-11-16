@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Database;
 using Rastro.Extractor.Database;
 
@@ -16,7 +17,7 @@ public class PgSqlQueryAnalyzerFase43cTests
         """)]);
 
     private static List<QueryFinding> Missing(string sql) =>
-        new PgSqlQueryAnalyzer().Analyze(sql, Sistema).Findings.Where(f => f.Kind == QueryFindingKind.ColumnWithoutIndex).ToList();
+        new PgSqlQueryAnalyzer().Analyze(sql, Sistema, UiLanguage.Portuguese).Findings.Where(f => f.Kind == QueryFindingKind.ColumnWithoutIndex).ToList();
 
     [Fact] // EXT-PGQ-031
     public void Analyze_ColunaResidualDepoisDeIndiceUsado_NaoViraColunaSemIndice()
@@ -81,7 +82,7 @@ public class PgSqlQueryAnalyzerFase43cTests
         """)]);
 
     private static List<QueryFinding> Kinds(string sql, QueryFindingKind kind) =>
-        new PgSqlQueryAnalyzer().Analyze(sql, Implicita).Findings.Where(f => f.Kind == kind).ToList();
+        new PgSqlQueryAnalyzer().Analyze(sql, Implicita, UiLanguage.Portuguese).Findings.Where(f => f.Kind == kind).ToList();
 
     [Fact] // EXT-PGQ-035
     public void Analyze_ListaFilhaPorChaveImplicitaSemFkDeclarada_NaoDisparaELeituraPeloTenantDispara()

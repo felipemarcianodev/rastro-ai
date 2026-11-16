@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Microsoft.CodeAnalysis;
 using Rastro.Core.Database;
 using Rastro.Core.Graph;
@@ -12,7 +13,7 @@ public class ServicoFinoDbTests
     private static Solution Load() => FixtureWorkspace.LoadLayered("TarefasMulti", "TarefasMulti.Infra");
 
     private static Task<FlowGraph> GraphAsync(string entry) =>
-        FlowExtractor.ExtractAsync(Load(), entry, new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot });
+        FlowExtractor.ExtractAsync(Load(), entry, new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot });
 
     private static List<Finding> Of(FlowGraph graph, FindingKind kind) => graph.Findings!.Where(f => f.Kind == kind).ToList();
 
@@ -113,7 +114,7 @@ public class ServicoFinoDbTests
     ], [], [], [], [], []);
 
     private static Task<FlowGraph> BuscaAsync(string entry, DbSchema schema) =>
-        FlowExtractor.ExtractAsync(Load(), entry, new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot, Schema = schema });
+        FlowExtractor.ExtractAsync(Load(), entry, new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot, Schema = schema });
 
     [Fact] // EXT-DBF-026
     public async Task LikeComCoringaNoComeco_ComIndiceTrigramaNaColuna_NaoEAchado()

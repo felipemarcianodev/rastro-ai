@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Graph;
 using Rastro.Core.Prompts;
 using Rastro.Extractor;
@@ -9,7 +10,7 @@ public class QualityInspectorTests
 {
     private static async Task<FlowGraph> GraphAsync() =>
         await FlowExtractor.ExtractAsync(FixtureWorkspace.Load("Quality"), "PedidoAppService.AprovarAsync",
-            new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot });
+            new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot });
 
     private static IReadOnlyList<Finding> Of(FlowGraph graph, FindingKind kind) => graph.Findings!.Where(f => f.Kind == kind).ToList();
 
@@ -76,7 +77,7 @@ public class QualityInspectorTests
     public async Task Fixture_SemProblemas_NaoGeraAchadosDeDdd()
     {
         var graph = await FlowExtractor.ExtractAsync(FixtureWorkspace.Load("Alerts"), "AlertJob.ExecuteAsync",
-            new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot });
+            new ExtractionOptions { Language = UiLanguage.Portuguese, BaseDirectory = FixtureWorkspace.FixturesRoot });
 
         Assert.NotNull(graph.Findings);
         Assert.DoesNotContain(graph.Findings!, f => QualityThresholds.CategoryOf(f.Kind) == FindingCategory.Ddd);
@@ -89,7 +90,7 @@ public class QualityInspectorTests
         var graph = await GraphAsync();
         var finding = Of(graph, FindingKind.EntityChangedOutsideDomain).First(f => f.Message.Contains("Pedido.Status"));
 
-        var prompt = RefactorPromptBuilder.Build(new PromptContext("repo", "App.slnx", "PedidoAppService.AprovarAsync", "abcdef123"), graph, finding);
+        var prompt = RefactorPromptBuilder.Build(new PromptContext("repo", "App.slnx", "PedidoAppService.AprovarAsync", "abcdef123"), UiLanguage.Portuguese, graph, finding);
 
         Assert.Contains("# Refatoração no fluxo `PedidoAppService.AprovarAsync`", prompt);
         Assert.Contains("commit `abcdef1`", prompt);

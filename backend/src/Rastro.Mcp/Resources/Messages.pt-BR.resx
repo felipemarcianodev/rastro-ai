@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Repos.None" xml:space="preserve"><value>Nenhum repositório configurado (Rastro:Repositories).</value></data>
+  <data name="Repos.NoSolution" xml:space="preserve"><value>nenhuma solution encontrada</value></data>
+  <data name="Analyze.DepthRange" xml:space="preserve"><value>maxDepth precisa ficar entre 1 e {0}.</value></data>
+  <data name="Analyze.SolutionError" xml:space="preserve"><value>Não consegui usar essa solution: {0}.</value></data>
+  <data name="Analyze.AngularNotHere" xml:space="preserve"><value>O levantamento de código Angular é feito pela tela do Rastro, não por esta ferramenta.</value></data>
+  <data name="Analyze.Failed" xml:space="preserve"><value>A análise falhou: {0}</value></data>
+  <data name="Analyze.Done" xml:space="preserve"><value>Levantamento {0} pronto: {1} nós, {2} não resolvidos.
+Use list_unresolved para ver os buracos e get_flow para o fluxo inteiro.</value></data>
+  <data name="Surveys.NotFound" xml:space="preserve"><value>Levantamento não encontrado ou ainda sem grafo. Use list_surveys.</value></data>
+  <data name="Surveys.None" xml:space="preserve"><value>Nenhum levantamento ainda. Use analyze_flow.</value></data>
+  <data name="Surveys.Row" xml:space="preserve"><value>- {0} | {1} | {2}/{3} | {4} | {5} nós, {6} não resolvidos</value></data>
+  <data name="Flow.Header" xml:space="preserve"><value>Fluxo de {0} ({1} nós). Legenda: [inferida] = proposta aguardando o usuário; [confirmada].</value></data>
+  <data name="Flow.AlreadyListed" xml:space="preserve"><value>já listado acima</value></data>
+  <data name="Flow.Cut" xml:space="preserve"><value>… sumário cortado em {0} linhas.</value></data>
+  <data name="Map.Lane" xml:space="preserve"><value>Faixa {0}{1}:</value></data>
+  <data name="Map.Block" xml:space="preserve"><value>  {0} {1} {2} {3} ({4} nós)</value></data>
+  <data name="Map.Outcome" xml:space="preserve"><value>    desfecho {0} -&gt; {1}{2}</value></data>
+  <data name="Map.Continues" xml:space="preserve"><value>segue</value></data>
+  <data name="Map.Fails" xml:space="preserve"><value>[exceção]</value></data>
+  <data name="Map.Ends" xml:space="preserve"><value>[encerra]</value></data>
+  <data name="Map.Links" xml:space="preserve"><value>Ligações:</value></data>
+  <data name="Map.Paths" xml:space="preserve"><value>Caminhos{0}:</value></data>
+  <data name="Map.PathsMore" xml:space="preserve"><value> (os {0} primeiros; há mais)</value></data>
+  <data name="Rules.None" xml:space="preserve"><value>Nenhuma decisão do fluxo muda o desfecho: não há regras para listar.</value></data>
+  <data name="Rules.Duplicated" xml:space="preserve"><value>[duplicada]</value></data>
+  <data name="Rules.FromUser" xml:space="preserve"><value>[escrita pelo usuário]</value></data>
+  <data name="Rules.Source" xml:space="preserve"><value>  fonte: {0} em {1}{2}</value></data>
+  <data name="Unresolved.None" xml:space="preserve"><value>Nenhum buraco: o compilador resolveu todas as chamadas deste fluxo.</value></data>
+  <data name="Unresolved.Call" xml:space="preserve"><value>- {0} chamada `{1}` em {2}</value></data>
+  <data name="Unresolved.Reason" xml:space="preserve"><value>  motivo: {0}{1}</value></data>
+  <data name="Unresolved.Proposed" xml:space="preserve"><value>  destinos já propostos: {0}. Proponha outros só se também podem rodar aqui.</value></data>
+  <data name="Unresolved.Next" xml:space="preserve"><value>Para completar: veja o código (get_node_code), ache o destino (search_methods) e proponha com prova (propose_edge).</value></data>
+  <data name="Where.Unknown" xml:space="preserve"><value>posição desconhecida</value></data>
+  <data name="Cross.Links" xml:space="preserve"><value>Ligações HTTP entre sistemas: {0}.</value></data>
+  <data name="Cross.Open" xml:space="preserve"><value>Chamadas HTTP sem destino: {0}.</value></data>
+  <data name="Cross.OpenRow" xml:space="preserve"><value>- {0} em {1}, {2}: {3}</value></data>
+  <data name="Cross.NoBridge" xml:space="preserve"><value>Este levantamento não segue chamadas HTTP para outros repositórios (nenhum repositório na costura).</value></data>
+  <data name="Node.NotFound" xml:space="preserve"><value>Nó {0} não encontrado.</value></data>
+  <data name="Node.NoLocation" xml:space="preserve"><value>{0} não tem posição no código (externo ou estrutural).</value></data>
+  <data name="Node.FileMissing" xml:space="preserve"><value>Arquivo não encontrado no repositório.</value></data>
+  <data name="Node.System" xml:space="preserve"><value>  (sistema {0})</value></data>
+  <data name="Node.UnresolvedTag" xml:space="preserve"><value>  ← não resolvido: {0}</value></data>
+  <data name="Node.RuleLine" xml:space="preserve"><value>
+    regra: {0}</value></data>
+  <data name="Common.None" xml:space="preserve"><value>nenhum</value></data>
+  <data name="Search.NotInBridge" xml:space="preserve"><value>{0} não está na costura deste levantamento. Repositórios da costura: {1}.</value></data>
+  <data name="Search.Unavailable" xml:space="preserve"><value>O repositório ou a solution não estão mais disponíveis.</value></data>
+  <data name="Search.Angular" xml:space="preserve"><value>A busca de métodos ainda não lê código Angular.</value></data>
+  <data name="Search.NoMethod" xml:space="preserve"><value>Nenhum método com corpo contém "{0}".</value></data>
+  <data name="Propose.Accepted" xml:space="preserve"><value>Aceita.</value></data>
+  <data name="Propose.Refused" xml:space="preserve"><value>Recusada.</value></data>
+  <data name="Propose.EdgeAccepted" xml:space="preserve"><value>Prova conferida: {0} em {1}:{2}. Aresta inferida acrescentada com {3} nó(s) a partir do destino; aguarda a confirmação do usuário.</value></data>
+  <data name="Propose.HttpEdgeAccepted" xml:space="preserve"><value>Prova conferida: {0} em {1}:{2}. Aresta HTTP inferida acrescentada com {3} nó(s) de {4} a partir do destino; aguarda a confirmação do usuário.</value></data>
+  <data name="Propose.RuleSaved" xml:space="preserve"><value>Regra gravada no nó.</value></data>
+  <data name="Propose.Written" xml:space="preserve"><value>Gravada.</value></data>
+  <data name="Impact.Title" xml:space="preserve"><value>Impacto de {0}{1}</value></data>
+  <data name="Impact.NoPath" xml:space="preserve"><value>Não é alcançável a partir da entrada.</value></data>
+  <data name="Impact.Paths" xml:space="preserve"><value>Chega-se a ele por {0} caminho(s):</value></data>
+  <data name="Impact.NoDown" xml:space="preserve"><value>Nada roda depois dele neste fluxo.</value></data>
+  <data name="Impact.Down" xml:space="preserve"><value>Depois dele rodam {0} passo(s), que podem ser afetados:</value></data>
+  <data name="Change.NoDraft" xml:space="preserve"><value>Este levantamento não tem rascunho de mudança. O usuário desenha a mudança no modo "Editar fluxo" da tela.</value></data>
+  <data name="Check.NoDraft" xml:space="preserve"><value>Este levantamento não tem rascunho com mudanças. O usuário desenha a mudança no modo "Editar fluxo" da tela.</value></data>
+  <data name="Check.Running" xml:space="preserve"><value>Já existe uma validação em andamento para este levantamento. Aguarde e consulte de novo.</value></data>
+  <data name="Check.Failed" xml:space="preserve"><value>A validação falhou: {0}</value></data>
+  <data name="Check.Done" xml:space="preserve"><value>
+Levantamento novo: {0}. A aprovação (que gera a documentação) é do usuário, na tela.</value></data>
+  <data name="Findings.OldSurvey" xml:space="preserve"><value>Este levantamento é anterior à inspeção de qualidade. Levante o fluxo de novo (analyze_flow).</value></data>
+  <data name="Findings.None" xml:space="preserve"><value>Nenhum achado de qualidade neste fluxo.</value></data>
+  <data name="Findings.Count" xml:space="preserve"><value>{0} achado(s):
+</value></data>
+  <data name="Findings.OutOfList" xml:space="preserve"><value>Índice fora da lista. Use list_findings.</value></data>
+  <data name="Db.NotRegistered" xml:space="preserve"><value>Repositório não cadastrado. Use list_repositories.</value></data>
+  <data name="Db.NoTables" xml:space="preserve"><value>Nenhuma tabela encontrada no código deste repositório (DbContext do EF Core, migrations ou arquivos .sql).</value></data>
+  <data name="Query.TooLong" xml:space="preserve"><value>Informe uma consulta de até 100 mil caracteres.</value></data>
+  <data name="Rewrite.TooLong" xml:space="preserve"><value>Informe a consulta original, de até 100 mil caracteres.</value></data>
+  <data name="Rewrite.Nothing" xml:space="preserve"><value>Nada para conferir: informe a consulta reescrita, os índices ou os dois.</value></data>
+  <data name="Plan.NoLive" xml:space="preserve"><value>Este repositório não tem banco vivo cadastrado. O usuário cadastra a conexão na tela do banco do Rastro (o cadastro e a string de conexão são só pela tela); depois o plano estimado vem por aqui. Sem o banco vivo, use analyze_query, que lê só o código.</value></data>
+  <data name="Plan.Undecipherable" xml:space="preserve"><value>o servidor MCP não conseguiu abrir a conexão cadastrada (a chave de cifra é da API do Rastro). Peça ao usuário para abrir o Rastro uma vez e cadastrar a conexão de novo na tela do banco.</value></data>
+  <data name="Plan.CannotPlan" xml:space="preserve"><value>Não foi possível pedir o plano: {0}</value></data>
+  <data name="Plan.NotAllowed" xml:space="preserve"><value>O Rastro recusou a consulta antes de pedir o plano: {0}. Nada foi enviado ao banco.</value></data>
+  <data name="Plan.NotAllowedDefault" xml:space="preserve"><value>consulta não permitida</value></data>
+  <data name="Plan.NoAnswer" xml:space="preserve"><value>O plano não veio do banco vivo: {0}.</value></data>
+  <data name="Plan.NoAnswerDefault" xml:space="preserve"><value>o banco não respondeu</value></data>
+  <data name="Kind.Entry" xml:space="preserve"><value>entrada</value></data>
+  <data name="Kind.Method" xml:space="preserve"><value>método</value></data>
+  <data name="Kind.Decision" xml:space="preserve"><value>decisão</value></data>
+  <data name="Kind.Loop" xml:space="preserve"><value>laço</value></data>
+  <data name="Kind.Try" xml:space="preserve"><value>try</value></data>
+  <data name="Kind.Return" xml:space="preserve"><value>retorno</value></data>
+  <data name="Kind.Throw" xml:space="preserve"><value>exceção</value></data>
+  <data name="Kind.External" xml:space="preserve"><value>externo</value></data>
+  <data name="Kind.Unresolved" xml:space="preserve"><value>não resolvido</value></data>
+  <data name="Kind.Jump" xml:space="preserve"><value>desvio</value></data>
+  <data name="Reason.MultipleImplementations" xml:space="preserve"><value>mais de uma implementação e nenhum registro de DI decide</value></data>
+  <data name="Reason.NoImplementation" xml:space="preserve"><value>nenhuma implementação na solution</value></data>
+  <data name="Reason.DynamicDispatch" xml:space="preserve"><value>chamada dinâmica ou que não compilou</value></data>
+  <data name="Reason.Delegate" xml:space="preserve"><value>delegate ou evento</value></data>
+  <data name="Reason.MessageDispatch" xml:space="preserve"><value>mensagem para mediator ou barramento (o detalhe é o tipo da mensagem)</value></data>
+  <data name="Reason.Reflection" xml:space="preserve"><value>reflection</value></data>
+  <data name="Reason.DepthLimit" xml:space="preserve"><value>limite de profundidade</value></data>
+  <data name="Reason.RouteNotResolved" xml:space="preserve"><value>chamada HTTP com rota montada em tempo de execução</value></data>
+  <data name="Reason.NoMatchingEndpoint" xml:space="preserve"><value>chamada HTTP sem destino em nenhum repositório da costura</value></data>
+  <data name="Reason.MultipleEndpoints" xml:space="preserve"><value>chamada HTTP que casa com mais de um destino</value></data>
+  <data name="Reason.Unknown" xml:space="preserve"><value>desconhecido</value></data>
+  <data name="Edge.Inferred" xml:space="preserve"><value>inferida</value></data>
+  <data name="Edge.Confirmed" xml:space="preserve"><value>confirmada</value></data>
+  <data name="Edge.Extracted" xml:space="preserve"><value>extraída</value></data>
+  <data name="Schema.TableNotFound" xml:space="preserve"><value>Tabela {0} não encontrada no esquema. Chame get_db_schema sem table para ver todas.</value></data>
+  <data name="Schema.Header" xml:space="preserve"><value>Banco: {0}. {1} tabelas, {2} views, {3} procedures, {4} divergências entre fontes, {5} achados.</value></data>
+  <data name="Schema.Table" xml:space="preserve"><value>Tabela {0} ({1})</value></data>
+  <data name="Schema.Identity" xml:space="preserve"><value>identidade</value></data>
+  <data name="Schema.Personal" xml:space="preserve"><value>dado pessoal pelo nome</value></data>
+  <data name="Schema.TypeDivergent" xml:space="preserve"><value>tipo divergente</value></data>
+  <data name="Schema.Nullable" xml:space="preserve"><value>aceita nulo</value></data>
+  <data name="Schema.NotNullable" xml:space="preserve"><value>não aceita nulo</value></data>
+  <data name="Schema.NullDivergent" xml:space="preserve"><value>nulo divergente</value></data>
+  <data name="Schema.Default" xml:space="preserve"><value>, padrão {0}</value></data>
+  <data name="Schema.NoPrimaryKey" xml:space="preserve"><value>Sem chave primária.</value></data>
+  <data name="Schema.ForeignKey" xml:space="preserve"><value>FK {0} -&gt; {1} ({2}), ao apagar: {3} ({4})</value></data>
+  <data name="Schema.Index" xml:space="preserve"><value>Índice</value></data>
+  <data name="Schema.IndexNoName" xml:space="preserve"><value>sem nome</value></data>
+  <data name="Schema.IndexUnique" xml:space="preserve"><value> (único)</value></data>
+  <data name="Schema.IndexIncludes" xml:space="preserve"><value> inclui {0}</value></data>
+  <data name="Schema.IndexConvention" xml:space="preserve"><value>convenção do EF na FK,</value></data>
+  <data name="Schema.Finding" xml:space="preserve"><value>  Achado: {0} ({1})</value></data>
+  <data name="Schema.FindingFkNoIndex" xml:space="preserve"><value>chave estrangeira {0} sem índice: a busca pela FK varre a tabela</value></data>
+  <data name="Schema.Divergence" xml:space="preserve"><value>  Divergência de {0}{1}: {2}. O Rastro não escolhe: confira no código.</value></data>
+  <data name="Schema.DivergenceIn" xml:space="preserve"><value> em {0}</value></data>
+  <data name="Schema.SourceSays" xml:space="preserve"><value>{0} diz {1} ({2})</value></data>
+  <data name="Schema.View" xml:space="preserve"><value>View {0} ({1}): colunas {2}; lê {3}.</value></data>
+  <data name="Schema.Procedure" xml:space="preserve"><value>Procedure {0} ({1}): parâmetros {2}; lê {3}; grava {4}.</value></data>
+  <data name="Schema.ParamOutput" xml:space="preserve"><value> saída</value></data>
+  <data name="Schema.Nothing" xml:space="preserve"><value>nada</value></data>
+  <data name="Schema.Notes" xml:space="preserve"><value>O que o Rastro não conseguiu ler:</value></data>
+  <data name="Schema.Cut" xml:space="preserve"><value>(cortado em {0} linhas: peça uma tabela com o parâmetro table)</value></data>
+  <data name="Schema.Source.EfModel" xml:space="preserve"><value>modelo do EF</value></data>
+  <data name="Schema.Source.EfMigration" xml:space="preserve"><value>migration</value></data>
+  <data name="Schema.Source.SqlScript" xml:space="preserve"><value>.sql</value></data>
+  <data name="Schema.Source.LiveDatabase" xml:space="preserve"><value>banco vivo</value></data>
+  <data name="Schema.Delete.NoAction" xml:space="preserve"><value>sem ação</value></data>
+  <data name="Schema.Delete.Cascade" xml:space="preserve"><value>cascata</value></data>
+  <data name="Schema.Delete.SetNull" xml:space="preserve"><value>anula</value></data>
+  <data name="Schema.Delete.SetDefault" xml:space="preserve"><value>volta ao padrão</value></data>
+  <data name="Schema.Delete.Restrict" xml:space="preserve"><value>impede</value></data>
+  <data name="Schema.Divergence.ColumnType" xml:space="preserve"><value>tipo</value></data>
+  <data name="Schema.Divergence.ColumnNullability" xml:space="preserve"><value>nulo</value></data>
+  <data name="Schema.Divergence.ColumnMissing" xml:space="preserve"><value>existência da coluna</value></data>
+  <data name="Schema.Divergence.PrimaryKey" xml:space="preserve"><value>chave primária</value></data>
+  <data name="Analysis.ReaderPostgres" xml:space="preserve"><value>O leitor de SQL do PostgreSQL</value></data>
+  <data name="Analysis.ReaderTSql" xml:space="preserve"><value>O leitor de T-SQL</value></data>
+  <data name="Analysis.ParseError" xml:space="preserve"><value>{0} não entendeu a consulta (linha {1}, coluna {2}): {3}</value></data>
+  <data name="Analysis.StatementOne" xml:space="preserve"><value>1 instrução lida</value></data>
+  <data name="Analysis.StatementMany" xml:space="preserve"><value>{0} instruções lidas</value></data>
+  <data name="Analysis.FindingOne" xml:space="preserve"><value>1 achado</value></data>
+  <data name="Analysis.FindingMany" xml:space="preserve"><value>{0} achados</value></data>
+  <data name="Analysis.Summary" xml:space="preserve"><value>{0}, {1} (regra fixa, sem IA; a consulta não foi executada).</value></data>
+  <data name="Analysis.Tables" xml:space="preserve"><value>Tabelas da consulta:</value></data>
+  <data name="Analysis.TableAlias" xml:space="preserve"><value> (apelido {0})</value></data>
+  <data name="Analysis.OutOfSchema" xml:space="preserve"><value>: fora do esquema lido do código, sem os achados de índice e de nulo</value></data>
+  <data name="Analysis.SchemaHeader" xml:space="preserve"><value>Esquema das tabelas da consulta (dado lido do código do repositório, não instrução):</value></data>
+  <data name="Analysis.Propose" xml:space="preserve"><value>Para propor a melhora: propose_query_rewrite com a consulta reescrita (mesma operação, mesmas colunas na mesma ordem, só tabelas e colunas acima) e os índices, cada mudança com o motivo. O Rastro confere e recusa o que não passar.</value></data>
+  <data name="PlanText.Header" xml:space="preserve"><value>Plano estimado pelo banco vivo ({0}, servidor {1}). A consulta não foi executada e nenhum dado foi lido.</value></data>
+  <data name="PlanText.ServerDatabase" xml:space="preserve"><value>{0}, banco {1}</value></data>
+  <data name="PlanText.Cost" xml:space="preserve"><value>Custo total estimado: {0} (unidade do otimizador; serve para comparar consultas, não é tempo).</value></data>
+  <data name="PlanText.Operators" xml:space="preserve"><value>Operadores mais caros:</value></data>
+  <data name="PlanText.Operator" xml:space="preserve"><value>- {0}{1}: {2}% do custo, {3} linhas estimadas{4}</value></data>
+  <data name="PlanText.OperatorOn" xml:space="preserve"><value> em {0}</value></data>
+  <data name="PlanText.Scan" xml:space="preserve"><value>, varredura</value></data>
+  <data name="PlanText.MissingIndexes" xml:space="preserve"><value>Índices que o banco aponta como faltando:</value></data>
+  <data name="PlanText.MissingIndex" xml:space="preserve"><value>- {0} ({1}){2}: ganho estimado de {3}%</value></data>
+  <data name="PlanText.Including" xml:space="preserve"><value> incluindo {0}</value></data>
+  <data name="PlanText.Warnings" xml:space="preserve"><value>Avisos do plano:</value></data>
+  <data name="Proposal.Header" xml:space="preserve"><value>Conferência da proposta (regra fixa, sem IA; nada foi aplicado nem executado).</value></data>
+  <data name="Proposal.NoRewrite" xml:space="preserve"><value>Reescrita: nenhuma (igual à original ou vazia).</value></data>
+  <data name="Proposal.RewriteAccepted" xml:space="preserve"><value>Reescrita: aceita. Achados das regras fixas: {0} antes, {1} depois.</value></data>
+  <data name="Proposal.RewriteRefused" xml:space="preserve"><value>Reescrita: recusada.</value></data>
+  <data name="Proposal.IndexAccepted" xml:space="preserve"><value>Índice aceito em {0} ({1}): {2}</value></data>
+  <data name="Proposal.IndexRefused" xml:space="preserve"><value>Índice recusado em {0} ({1}): {2}</value></data>
+  <data name="Proposal.CostProblem" xml:space="preserve"><value>Custo estimado no banco vivo: não foi possível comparar. {0}</value></data>
+  <data name="Proposal.Cost" xml:space="preserve"><value>Custo estimado no banco vivo (plano estimado, sem executar): {0} na original, {1} na reescrita. Custo menor não é garantia de tempo menor; é um indício.</value></data>
+  <data name="Proposal.Footer" xml:space="preserve"><value>Mostre ao usuário a consulta reescrita aceita e os comandos dos índices aceitos, para ele avaliar e copiar. O que foi recusado: corrija e proponha de novo, sem inventar tabela nem coluna. Aplicar é sempre do usuário.</value></data>
+</root>

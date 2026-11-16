@@ -1,5 +1,7 @@
 using Microsoft.Extensions.Logging;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Infrastructure.Resources.Database;
 using Rastro.Extractor.Database;
 using Rastro.Infrastructure.Repositories;
 
@@ -18,12 +20,12 @@ public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService>
     public const long MaxFileBytes = 2 * 1024 * 1024;
 
     // Nulo quando o repositório não está cadastrado (ou a pasta sumiu).
-    public async Task<DbSchema?> ReadAsync(string repositoryName, CancellationToken ct)
+    public async Task<DbSchema?> ReadAsync(string repositoryName, UiLanguage language, CancellationToken ct)
     {
-        if (await FilesAsync(repositoryName, ct) is not var (files, skipped)) return null;
+        if (await FilesAsync(repositoryName, language, ct) is not var (files, skipped)) return null;
 
-        var liveFragment = live is null ? null : await live.ReadAsync(repositoryName, ct);
-        var schema = DbSchemaExtractor.Extract(files, liveFragment is null ? null : [liveFragment]);
+        var liveFragment = live is null ? null : await live.ReadAsync(repositoryName, language, ct);
+        var schema = DbSchemaExtractor.Extract(files, liveFragment is null ? null : [liveFragment], language);
         logger.LogInformation("Esquema do banco do repositório {Repository} lido: {Tables} tabelas, {Divergences} divergências.",
             repositoryName, schema.Tables.Count, schema.Divergences.Count);
         return skipped.Count == 0 ? schema : schema with { Notes = [.. skipped, .. schema.Notes] };
@@ -32,9 +34,9 @@ public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService>
     // O dialeto do código do repositório (Fase 42b), sem o banco vivo: decide a string de conexão que
     // serve aos dois drivers. Nulo quando o repositório não está cadastrado.
     public async Task<SqlDialect?> DialectAsync(string repositoryName, CancellationToken ct) =>
-        await FilesAsync(repositoryName, ct) is var (files, _) ? DbSchemaExtractor.DialectOf(files) : null;
+        await FilesAsync(repositoryName, UiLanguage.English, ct) is var (files, _) ? DbSchemaExtractor.DialectOf(files) : null;
 
-    private async Task<(List<SchemaFile> Files, List<SchemaNote> Skipped)?> FilesAsync(string repositoryName, CancellationToken ct)
+    private async Task<(List<SchemaFile> Files, List<SchemaNote> Skipped)?> FilesAsync(string repositoryName, UiLanguage language, CancellationToken ct)
     {
         var root = catalog.RootOf(repositoryName);
         var paths = catalog.SourceFiles(repositoryName, Extensions, MaxFiles + 1);
@@ -43,7 +45,7 @@ public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService>
         var files = new List<SchemaFile>(paths.Count);
         var skipped = new List<SchemaNote>();
         if (paths.Count > MaxFiles)
-            skipped.Add(new SchemaNote($"O repositório tem mais de {MaxFiles} arquivos .cs e .sql: o esquema saiu dos primeiros, em ordem de caminho.", string.Empty, 0));
+            skipped.Add(new SchemaNote(Txt.Get("Schema.TooManyFiles", language, MaxFiles), string.Empty, 0));
 
         foreach (var path in paths.Take(MaxFiles))
         {
@@ -54,7 +56,7 @@ public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService>
                 if (new FileInfo(full).Length > MaxFileBytes)
                 {
                     if (path.EndsWith(".sql", StringComparison.OrdinalIgnoreCase))
-                        skipped.Add(new SchemaNote("Arquivo .sql grande demais (mais de 2 MB, provavelmente carga de dados): ficou de fora.", path, 1));
+                        skipped.Add(new SchemaNote(Txt.Get("Schema.FileTooBig", language), path, 1));
                     continue;
                 }
                 files.Add(new SchemaFile(path, await File.ReadAllTextAsync(full, ct)));
@@ -62,7 +64,7 @@ public class DbSchemaService(RepositoryCatalog catalog, ILogger<DbSchemaService>
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 logger.LogWarning(ex, "Arquivo {File} do repositório {Repository} não pôde ser lido para o esquema do banco.", path, repositoryName);
-                skipped.Add(new SchemaNote("O arquivo não pôde ser lido (em uso ou sem permissão).", path, 1));
+                skipped.Add(new SchemaNote(Txt.Get("Schema.FileUnreadable", language), path, 1));
             }
         }
 

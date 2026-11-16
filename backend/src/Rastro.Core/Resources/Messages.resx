@@ -5,4 +5,258 @@
   <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
   <data name="Language.Invalid" xml:space="preserve"><value>Invalid language. Use 0 (English), 1 (Portuguese) or 2 (Spanish), or null to follow the system.</value></data>
+  <data name="Prompt.Common.RepositoryLine" xml:space="preserve"><value>Repository `{0}`, solution `{1}`.</value></data>
+  <data name="Prompt.Common.RepositoryLineCommit" xml:space="preserve"><value>Repository `{0}`, solution `{1}`, traced at commit `{2}`.</value></data>
+  <data name="Prompt.Severity.Critical" xml:space="preserve"><value>Critical</value></data>
+  <data name="Prompt.Severity.Warning" xml:space="preserve"><value>Warning</value></data>
+  <data name="Prompt.Severity.Info" xml:space="preserve"><value>Informational</value></data>
+  <data name="Prompt.Refactor.Title" xml:space="preserve"><value># Refactoring in the flow `{0}`</value></data>
+  <data name="Prompt.Refactor.Intro" xml:space="preserve"><value>The finding came from the compiler's trace of the flow (Roslyn). Fix only this one.</value></data>
+  <data name="Prompt.Refactor.Problem.Heading" xml:space="preserve"><value>## The problem</value></data>
+  <data name="Prompt.Refactor.Problem.Location" xml:space="preserve"><value>- Location: `{0}:{1}`</value></data>
+  <data name="Prompt.Refactor.Problem.Method" xml:space="preserve"><value>- Method: `{0}`</value></data>
+  <data name="Prompt.Refactor.Problem.Metrics" xml:space="preserve"><value>- Method metrics: complexity {0}, {1}, {2} of nesting and {3}</value></data>
+  <data name="Prompt.Refactor.Problem.Path" xml:space="preserve"><value>- How the flow gets here: {0}</value></data>
+  <data name="Prompt.Refactor.Do.Heading" xml:space="preserve"><value>## What to do</value></data>
+  <data name="Prompt.Refactor.Keep.Heading" xml:space="preserve"><value>## Do not touch</value></data>
+  <data name="Prompt.Refactor.Keep.Behavior" xml:space="preserve"><value>- The observable behavior of the flow: what `{0}` does for its callers stays the same.</value></data>
+  <data name="Prompt.Refactor.Keep.Contracts" xml:space="preserve"><value>- Public signatures, API contracts and table names, unless the fix requires it (and then say why).</value></data>
+  <data name="Prompt.Refactor.Keep.OtherFindings" xml:space="preserve"><value>- Other findings in the same file: one subject per change.</value></data>
+  <data name="Prompt.Refactor.Accept.Heading" xml:space="preserve"><value>## Acceptance criteria</value></data>
+  <data name="Prompt.Refactor.Accept.Build" xml:space="preserve"><value>- The repository build and tests passing; a new test covering the behavior the refactoring touched.</value></data>
+  <data name="Prompt.Refactor.Accept.Resurvey" xml:space="preserve"><value>- When you trace the flow again in Rastro, this finding no longer appears.</value></data>
+  <data name="Prompt.Refactor.Unit.Line.One" xml:space="preserve"><value>line</value></data>
+  <data name="Prompt.Refactor.Unit.Line.Many" xml:space="preserve"><value>lines</value></data>
+  <data name="Prompt.Refactor.Unit.Level.One" xml:space="preserve"><value>level</value></data>
+  <data name="Prompt.Refactor.Unit.Level.Many" xml:space="preserve"><value>levels</value></data>
+  <data name="Prompt.Refactor.Unit.Dependency.One" xml:space="preserve"><value>injected dependency</value></data>
+  <data name="Prompt.Refactor.Unit.Dependency.Many" xml:space="preserve"><value>injected dependencies</value></data>
+  <data name="Prompt.Refactor.Do.HighComplexity.1" xml:space="preserve"><value>Split the method into smaller methods named after business rules, each with one decision.</value></data>
+  <data name="Prompt.Refactor.Do.HighComplexity.2" xml:space="preserve"><value>Replace if/switch chains with a lookup table, polymorphism or an early return where it fits.</value></data>
+  <data name="Prompt.Refactor.Do.LongMethod.1" xml:space="preserve"><value>Extract the blocks that do different things into methods named after what they do; the original method becomes the sequence of them.</value></data>
+  <data name="Prompt.Refactor.Do.DeepNesting.1" xml:space="preserve"><value>Use early returns (guard clauses) and extract the loop bodies to reduce the levels.</value></data>
+  <data name="Prompt.Refactor.Do.TooManyDependencies.1" xml:space="preserve"><value>Split the class responsibilities: group the dependencies that go together into a service of their own and inject that service.</value></data>
+  <data name="Prompt.Refactor.Do.SilentCatch.1" xml:space="preserve"><value>Record the failure with structured logging (the identifier of what failed, no personal data) or rethrow it.</value></data>
+  <data name="Prompt.Refactor.Do.SilentCatch.2" xml:space="preserve"><value>If the failure is expected, replace the generic catch with the exact type and say in the code why it is safe to go on.</value></data>
+  <data name="Prompt.Refactor.Do.ServiceLocator.1" xml:space="preserve"><value>Inject the dependency through the constructor. In a job or background service, open the scope and resolve only the root of the work.</value></data>
+  <data name="Prompt.Refactor.Do.EntityChangedOutsideDomain.1" xml:space="preserve"><value>Move the change into a method of the entity (or of its domain service) that validates the rule and keeps the state consistent.</value></data>
+  <data name="Prompt.Refactor.Do.EntityChangedOutsideDomain.2" xml:space="preserve"><value>The outside code now calls that method; the property no longer has a public setter.</value></data>
+  <data name="Prompt.Refactor.Do.PublicSetterOnEntity.1" xml:space="preserve"><value>Make the setters private (or init) and expose business methods that change the state with validation.</value></data>
+  <data name="Prompt.Refactor.Do.QueryInLoop.1" xml:space="preserve"><value>Fetch the data at once before the loop: an Include on the outer query, or a Where with Contains over the loop ids.</value></data>
+  <data name="Prompt.Refactor.Do.QueryInLoop.2" xml:space="preserve"><value>Inside the loop, use what is already in memory (a dictionary by id, for example).</value></data>
+  <data name="Prompt.Refactor.Do.MaterializeBeforeFilter.1" xml:space="preserve"><value>Put the filter (Where, First, Any) in the query, before ToList, so the database filters and returns only what is needed.</value></data>
+  <data name="Prompt.Refactor.Do.ReadWithoutNoTracking.1" xml:space="preserve"><value>Add AsNoTracking to the query that only reads. If the entity read is changed and saved later, leave it as is and say so in the code.</value></data>
+  <data name="Prompt.Refactor.Do.ProcedureByRawSql.1" xml:space="preserve"><value>Check that the procedure exists with this name and these parameters in the database project.</value></data>
+  <data name="Prompt.Refactor.Do.ProcedureByRawSql.2" xml:space="preserve"><value>Pass the values as parameters (never concatenated into the text) and cover the call with an integration test.</value></data>
+  <data name="Prompt.Refactor.Do.LoadToDelete.1" xml:space="preserve"><value>Replace ToList and RemoveRange with ExecuteDeleteAsync on the query with the same Where: the database deletes in a single statement and returns how many rows it deleted.</value></data>
+  <data name="Prompt.Refactor.Do.LoadToDelete.2" xml:space="preserve"><value>If the caller used the list size, use the number that ExecuteDeleteAsync returns.</value></data>
+  <data name="Prompt.Refactor.Do.LeadingWildcardLike.1" xml:space="preserve"><value>If the search is by prefix, build the pattern without the leading wildcard (term%), which the B-tree index serves.</value></data>
+  <data name="Prompt.Refactor.Do.LeadingWildcardLike.2" xml:space="preserve"><value>If searching in the middle of the text is needed, create a trigram index (pg_trgm on PostgreSQL) or use full-text search.</value></data>
+  <data name="Prompt.Refactor.Do.PersistenceOutsideDomain.1" xml:space="preserve"><value>Move the write into the entity's domain service, which validates before persisting.</value></data>
+  <data name="Prompt.Refactor.Do.PersistenceOutsideDomain.2" xml:space="preserve"><value>The application layer now calls the domain service, not the repository.</value></data>
+  <data name="Prompt.Refactor.Accept.HighComplexity" xml:space="preserve"><value>Method cyclomatic complexity of {0} or less.</value></data>
+  <data name="Prompt.Refactor.Accept.LongMethod" xml:space="preserve"><value>Method with {0} lines or fewer.</value></data>
+  <data name="Prompt.Refactor.Accept.DeepNesting" xml:space="preserve"><value>At most {0} levels of blocks nested inside one another.</value></data>
+  <data name="Prompt.Refactor.Accept.TooManyDependencies" xml:space="preserve"><value>Constructor with {0} injected dependencies or fewer.</value></data>
+  <data name="Prompt.Refactor.Accept.SilentCatch" xml:space="preserve"><value>No catch without logging, without rethrowing and without using the exception.</value></data>
+  <data name="Prompt.Refactor.Accept.ServiceLocator" xml:space="preserve"><value>No GetService or GetRequiredService outside the composition root.</value></data>
+  <data name="Prompt.Refactor.Accept.EntityChangedOutsideDomain" xml:space="preserve"><value>No assignment to an entity property outside the entity and the domain.</value></data>
+  <data name="Prompt.Refactor.Accept.PublicSetterOnEntity" xml:space="preserve"><value>The entity with no public setter on its state properties.</value></data>
+  <data name="Prompt.Refactor.Accept.QueryInLoop" xml:space="preserve"><value>No database query inside the loop.</value></data>
+  <data name="Prompt.Refactor.Accept.MaterializeBeforeFilter" xml:space="preserve"><value>The filter runs in the database, before ToList.</value></data>
+  <data name="Prompt.Refactor.Accept.ReadWithoutNoTracking" xml:space="preserve"><value>The query that only reads uses AsNoTracking.</value></data>
+  <data name="Prompt.Refactor.Accept.ProcedureByRawSql" xml:space="preserve"><value>The procedure called exists in the database project and receives the values as parameters.</value></data>
+  <data name="Prompt.Refactor.Accept.LoadToDelete" xml:space="preserve"><value>The deletion runs in the database with ExecuteDeleteAsync, without loading the rows.</value></data>
+  <data name="Prompt.Refactor.Accept.LeadingWildcardLike" xml:space="preserve"><value>The search uses an index (pattern without a leading wildcard, trigram index or full-text search).</value></data>
+  <data name="Prompt.Refactor.Accept.PersistenceOutsideDomain" xml:space="preserve"><value>No write of the entity through the repository outside the domain.</value></data>
+  <data name="Prompt.Change.Title" xml:space="preserve"><value># Change in the flow `{0}`</value></data>
+  <data name="Prompt.Change.Intro" xml:space="preserve"><value>Make only the changes below. The flow was traced by the compiler (Roslyn); the positions are from the current code.</value></data>
+  <data name="Prompt.Change.NoChanges" xml:space="preserve"><value>No changes in the draft.</value></data>
+  <data name="Prompt.Change.Do.Heading" xml:space="preserve"><value>## What to change</value></data>
+  <data name="Prompt.Change.Kind.Decision" xml:space="preserve"><value>decision</value></data>
+  <data name="Prompt.Change.Kind.Method" xml:space="preserve"><value>method</value></data>
+  <data name="Prompt.Change.Added.Title" xml:space="preserve"><value>### {0}. Create the step `{1}` ({2})</value></data>
+  <data name="Prompt.Change.Added.Intent" xml:space="preserve"><value>- What it must do: {0}</value></data>
+  <data name="Prompt.Change.Added.Where" xml:space="preserve"><value>- Where it fits: called by {0}{1}.</value></data>
+  <data name="Prompt.Change.BranchSuffix" xml:space="preserve"><value>, in the branch `{0}`</value></data>
+  <data name="Prompt.Change.Added.After" xml:space="preserve"><value>- After it: {0}.</value></data>
+  <data name="Prompt.Change.Added.Create" xml:space="preserve"><value>- Create the code where it makes sense in the current architecture, close to its caller.</value></data>
+  <data name="Prompt.Change.Modified.Title" xml:space="preserve"><value>### {0}. Change `{1}`{2}</value></data>
+  <data name="Prompt.Change.Anchor" xml:space="preserve"><value> at `{0}:{1}`</value></data>
+  <data name="Prompt.Change.AnchorSymbol" xml:space="preserve"><value> (`{0}`)</value></data>
+  <data name="Prompt.Change.Modified.Today" xml:space="preserve"><value>- How it works today: {0}</value></data>
+  <data name="Prompt.Change.Modified.Condition" xml:space="preserve"><value>- Current condition: `{0}`</value></data>
+  <data name="Prompt.Change.Modified.Intent" xml:space="preserve"><value>- What must change: {0}</value></data>
+  <data name="Prompt.Change.Removed.Title" xml:space="preserve"><value>### {0}. Remove `{1}` from the flow{2}</value></data>
+  <data name="Prompt.Change.Removed.CalledBy" xml:space="preserve"><value>- Today it is called by {0}; those calls stop existing in this flow.</value></data>
+  <data name="Prompt.Change.Removed.Note" xml:space="preserve"><value>- Note: {0}</value></data>
+  <data name="Prompt.Change.Removed.Shared" xml:space="preserve"><value>- If the method is used by other flows, do not delete the method: only remove the call from this flow.</value></data>
+  <data name="Prompt.Change.Moved.Title" xml:space="preserve"><value>### {0}. Move `{1}`{2}</value></data>
+  <data name="Prompt.Change.Moved.Stops" xml:space="preserve"><value>- It stops being called by {0}.</value></data>
+  <data name="Prompt.Change.Moved.Starts" xml:space="preserve"><value>- It starts being called by {0}.</value></data>
+  <data name="Prompt.Change.Moved.StartsBranch" xml:space="preserve"><value>- It starts being called by {0}, in the branch `{1}`.</value></data>
+  <data name="Prompt.Change.LinkAdded" xml:space="preserve"><value>### {0}. {1} starts calling {2}{3}</value></data>
+  <data name="Prompt.Change.LinkRemoved" xml:space="preserve"><value>### {0}. {1} stops calling {2}{3}</value></data>
+  <data name="Prompt.Change.BranchParen" xml:space="preserve"><value> (branch `{0}`)</value></data>
+  <data name="Prompt.Change.Keep.Heading" xml:space="preserve"><value>## What not to touch</value></data>
+  <data name="Prompt.Change.Keep.Neighbours" xml:space="preserve"><value>- The steps around the changes stay as they are: {0}.</value></data>
+  <data name="Prompt.Change.Keep.Rest" xml:space="preserve"><value>- The rest of the flow does not change. Do not change public signatures or API contracts unless necessary; if you must, explain why.</value></data>
+  <data name="Prompt.Change.Keep.Tests" xml:space="preserve"><value>- Do not delete tests. Adjust or create tests for the new behavior.</value></data>
+  <data name="Prompt.Change.Accept.Heading" xml:space="preserve"><value>## Acceptance criteria</value></data>
+  <data name="Prompt.Change.Accept.Resurvey" xml:space="preserve"><value>- Traced again by Rastro, the flow of `{0}` must:</value></data>
+  <data name="Prompt.Change.Accept.Build" xml:space="preserve"><value>- The repository build and tests passing.</value></data>
+  <data name="Prompt.Change.Accept.Validate" xml:space="preserve"><value>- When done, ask Rastro for validation (the `check_change` tool in the MCP, or "Validate change" on screen).</value></data>
+  <data name="Prompt.Change.Expect.HaveCall" xml:space="preserve"><value>have `{0}` calling `{1}`</value></data>
+  <data name="Prompt.Change.Expect.NotHaveCall" xml:space="preserve"><value>not have `{0}` calling `{1}`</value></data>
+  <data name="Prompt.Change.Expect.InBranch" xml:space="preserve"><value> in the branch `{0}`</value></data>
+  <data name="Prompt.Change.Expect.Keep" xml:space="preserve"><value>keep `{0}` in the flow, with the new rule</value></data>
+  <data name="FlowDoc.Title" xml:space="preserve"><value># Flow `{0}`</value></data>
+  <data name="FlowDoc.RepositoryLine" xml:space="preserve"><value>Repository `{0}`, solution `{1}`.</value></data>
+  <data name="FlowDoc.RepositoryLineCommit" xml:space="preserve"><value>Repository `{0}`, solution `{1}`, commit `{2}`.</value></data>
+  <data name="FlowDoc.Documented" xml:space="preserve"><value>Documented by Rastro AI on {0} (UTC), after the validated change.</value></data>
+  <data name="FlowDoc.Rules.Heading" xml:space="preserve"><value>## Flow rules</value></data>
+  <data name="FlowDoc.Rules.None" xml:space="preserve"><value>No rule written for this flow yet.</value></data>
+  <data name="FlowDoc.Notes.Heading" xml:space="preserve"><value>## Notes</value></data>
+  <data name="FlowDoc.Diagram.Heading" xml:space="preserve"><value>## Diagram</value></data>
+  <data name="FlowDoc.Diagram.Omitted" xml:space="preserve"><value>%% {0} nodes outside the diagram (.NET calls or above the limit)</value></data>
+  <data name="FlowDoc.History.Heading" xml:space="preserve"><value>## History of this change</value></data>
+  <data name="FlowDoc.History.Validation" xml:space="preserve"><value>Validation: **{0}**, {1}% of the criteria met; flow decision points {2} → {3}; build: {4}; tests: {5}.</value></data>
+  <data name="FlowDoc.History.Warning" xml:space="preserve"><value>- Warning: {0}</value></data>
+  <data name="FlowDoc.Change.Added" xml:space="preserve"><value>New step `{0}`: {1}</value></data>
+  <data name="FlowDoc.Change.Modified" xml:space="preserve"><value>Rule changed in `{0}`: {1}</value></data>
+  <data name="FlowDoc.Change.Removed" xml:space="preserve"><value>`{0}` left the flow</value></data>
+  <data name="FlowDoc.Change.Moved" xml:space="preserve"><value>`{0}` is now called by `{1}` (before, by `{2}`)</value></data>
+  <data name="FlowDoc.Change.LinkAdded" xml:space="preserve"><value>`{0}` started calling `{1}`</value></data>
+  <data name="FlowDoc.Change.LinkRemoved" xml:space="preserve"><value>`{0}` stopped calling `{1}`</value></data>
+  <data name="Validation.Verdict.Approved" xml:space="preserve"><value>approved</value></data>
+  <data name="Validation.Verdict.Partial" xml:space="preserve"><value>partial</value></data>
+  <data name="Validation.Verdict.Rejected" xml:space="preserve"><value>rejected</value></data>
+  <data name="Validation.Status.Passed" xml:space="preserve"><value>passed</value></data>
+  <data name="Validation.Status.Failed" xml:space="preserve"><value>failed</value></data>
+  <data name="Validation.Status.Skipped" xml:space="preserve"><value>not configured</value></data>
+  <data name="Validation.Summary.Verdict" xml:space="preserve"><value>Validation {0}: score {1} (criteria met).</value></data>
+  <data name="Validation.Summary.Build" xml:space="preserve"><value>Build: {0}{1}</value></data>
+  <data name="Validation.Summary.Tests" xml:space="preserve"><value>Tests: {0}{1}</value></data>
+  <data name="Validation.Summary.DecisionPoints" xml:space="preserve"><value>Flow decision points: {0} → {1}.</value></data>
+  <data name="Validation.Summary.Criteria" xml:space="preserve"><value>Draft criteria:</value></data>
+  <data name="Validation.Summary.CriteriaNone" xml:space="preserve"><value>- none</value></data>
+  <data name="Validation.Summary.CriteriaLine" xml:space="preserve"><value>- [{0}] {1}{2}</value></data>
+  <data name="Validation.Summary.Ok" xml:space="preserve"><value>ok</value></data>
+  <data name="Validation.Summary.Failed" xml:space="preserve"><value>failed</value></data>
+  <data name="Validation.Summary.Unexpected" xml:space="preserve"><value>Changes outside the request:</value></data>
+  <data name="Validation.Check.Calls" xml:space="preserve"><value>{0} calls {1}</value></data>
+  <data name="Validation.Check.StepMissing" xml:space="preserve"><value>{0} does not appear in the traced flow.</value></data>
+  <data name="Validation.Check.CallMissing" xml:space="preserve"><value>The call does not appear in the traced flow.</value></data>
+  <data name="Validation.Check.NoLongerCalls" xml:space="preserve"><value>{0} no longer calls {1}</value></data>
+  <data name="Validation.Check.CallRemains" xml:space="preserve"><value>The call is still in the flow.</value></data>
+  <data name="Validation.Check.StaysReview" xml:space="preserve"><value>{0} stays in the flow (new rule for you to review)</value></data>
+  <data name="Validation.Check.Stays" xml:space="preserve"><value>{0} stays in the flow</value></data>
+  <data name="Validation.Check.StepGone" xml:space="preserve"><value>The step is gone from the flow.</value></data>
+  <data name="Validation.Check.NewCall" xml:space="preserve"><value>new call outside the request: {0} → {1}</value></data>
+  <data name="Validation.Check.CallGone" xml:space="preserve"><value>call disappeared without a request: {0} → {1}</value></data>
+  <data name="Validation.Report.BuildName" xml:space="preserve"><value>Repository build</value></data>
+  <data name="Validation.Report.TestsName" xml:space="preserve"><value>Repository tests</value></data>
+  <data name="Validation.Report.TestsSkipped" xml:space="preserve"><value>Did not run: the build failed.</value></data>
+  <data name="Validation.Report.CommandNotConfigured" xml:space="preserve"><value>Command not configured for this repository.</value></data>
+  <data name="Validation.Report.TimedOut" xml:space="preserve"><value>Went over {0} min and was stopped.</value></data>
+  <data name="Validation.Report.CannotRun" xml:space="preserve"><value>Could not run "{0}".</value></data>
+  <data name="Questions.Blocking.Question" xml:space="preserve"><value>In which situations is the flow refused or ended before the end?</value></data>
+  <data name="Questions.Blocking.None" xml:space="preserve"><value>No decision in the flow ends it early: every path reaches the last step.</value></data>
+  <data name="Questions.Effects.CallsOutside" xml:space="preserve"><value>Calls outside the code: {0}.</value></data>
+  <data name="Questions.Effects.Question" xml:space="preserve"><value>What effects does the flow have outside its own code?</value></data>
+  <data name="Questions.Effects.Gap" xml:space="preserve"><value>What happens on the other side of these calls is not in the traced code.</value></data>
+  <data name="Questions.Failure.Question" xml:space="preserve"><value>What happens if {0} fails?</value></data>
+  <data name="Questions.Failure.TargetSystem" xml:space="preserve"><value>the system {0}</value></data>
+  <data name="Questions.Failure.TargetUnresolvedHttp" xml:space="preserve"><value>an HTTP call with no resolved destination</value></data>
+  <data name="Questions.Failure.CalledFrom" xml:space="preserve"><value>Called from {0} {1}:</value></data>
+  <data name="Questions.Unit.Place.One" xml:space="preserve"><value>place</value></data>
+  <data name="Questions.Unit.Place.Many" xml:space="preserve"><value>places</value></data>
+  <data name="Questions.Failure.MorePlaces" xml:space="preserve"><value>And {0} more places.</value></data>
+  <data name="Questions.Place.Guarded" xml:space="preserve"><value>{0}{1}: has try/catch; the handling is in the catch branches of that block.</value></data>
+  <data name="Questions.Place.Unguarded" xml:space="preserve"><value>{0}{1}: no try/catch in the block; the failure goes up to whoever called the block.</value></data>
+  <data name="Questions.Duplicated.Question" xml:space="preserve"><value>Where is the rule "{0}" implemented?</value></data>
+  <data name="Questions.Duplicated.Answer" xml:space="preserve"><value>In {0} places, one per system: {1}. Changing the rule requires changing all of them.</value></data>
+  <data name="Questions.Lane.Main" xml:space="preserve"><value>entry system</value></data>
+  <data name="Questions.Lane.Outside" xml:space="preserve"><value>outside the code</value></data>
+  <data name="Questions.Systems.Question" xml:space="preserve"><value>Which systems does the feature go through?</value></data>
+  <data name="Questions.Systems.Answer" xml:space="preserve"><value>{0} {1} in the traced code ({2})</value></data>
+  <data name="Questions.Unit.System.One" xml:space="preserve"><value>system</value></data>
+  <data name="Questions.Unit.System.Many" xml:space="preserve"><value>systems</value></data>
+  <data name="Questions.Systems.Outside" xml:space="preserve"><value> and {0} {1} outside it.</value></data>
+  <data name="Questions.Unit.Point.One" xml:space="preserve"><value>point</value></data>
+  <data name="Questions.Unit.Point.Many" xml:space="preserve"><value>points</value></data>
+  <data name="Questions.Systems.End" xml:space="preserve"><value>.</value></data>
+  <data name="Questions.Outcomes.Question" xml:space="preserve"><value>How many outcomes does the flow have and how many end in error?</value></data>
+  <data name="Questions.Outcomes.Answer" xml:space="preserve"><value>{0}{1} {2} end to end; {3} {4} with an exception.</value></data>
+  <data name="Questions.Outcomes.OrMore" xml:space="preserve"><value> or more</value></data>
+  <data name="Questions.Unit.Path.One" xml:space="preserve"><value>path</value></data>
+  <data name="Questions.Unit.Path.Many" xml:space="preserve"><value>paths</value></data>
+  <data name="Questions.Unit.Ends.One" xml:space="preserve"><value>ends</value></data>
+  <data name="Questions.Unit.Ends.Many" xml:space="preserve"><value>end</value></data>
+  <data name="Questions.Verify.NoSupport" xml:space="preserve"><value>Nothing in the traced code supports an answer to this question.</value></data>
+  <data name="Questions.Verify.Discarded" xml:space="preserve"><value>The proposed answer cited no step of the flow and was discarded.</value></data>
+  <data name="C4.Tag.Inferred" xml:space="preserve"><value>Inferred</value></data>
+  <data name="C4.External.Tag" xml:space="preserve"><value>External</value></data>
+  <data name="C4.DefaultProject" xml:space="preserve"><value>Code</value></data>
+  <data name="C4.Rel.ReadsWritesFlow" xml:space="preserve"><value>reads and writes</value></data>
+  <data name="C4.Rel.ReadsWrites" xml:space="preserve"><value>Reads and writes</value></data>
+  <data name="C4.Rel.Uses" xml:space="preserve"><value>Uses</value></data>
+  <data name="C4.Rel.CallsByHttp" xml:space="preserve"><value>calls over HTTP: {0}</value></data>
+  <data name="C4.Workspace.Description" xml:space="preserve"><value>Generated by Rastro AI from the flow traced by the compiler (solution {0}).</value></data>
+  <data name="C4.Workspace.DescriptionCommit" xml:space="preserve"><value>Generated by Rastro AI from the flow traced by the compiler (solution {0}, commit {1}).</value></data>
+  <data name="C4.System.Description" xml:space="preserve"><value>Flow {0}.</value></data>
+  <data name="C4.Container.ComposeService" xml:space="preserve"><value>docker-compose service with {0}.</value></data>
+  <data name="C4.Database.Name" xml:space="preserve"><value>Database</value></data>
+  <data name="C4.Database.Description" xml:space="preserve"><value>Read and written by the flow.</value></data>
+  <data name="C4.External.Description" xml:space="preserve"><value>External system called by the flow.</value></data>
+  <data name="C4.Cross.Description" xml:space="preserve"><value>System in the flow, reached by an HTTP call.</value></data>
+  <data name="C4.View.C1" xml:space="preserve"><value>C1: flow context.</value></data>
+  <data name="C4.View.C2" xml:space="preserve"><value>C2: projects and database used by the flow.</value></data>
+  <data name="C4.View.C3" xml:space="preserve"><value>C3: components of {0}.</value></data>
+  <data name="C4.View.C2System" xml:space="preserve"><value>C2: projects of {0}.</value></data>
+  <data name="C4.View.C4" xml:space="preserve"><value>C4: order of the calls starting from {0}.</value></data>
+  <data name="C4.HttpExternalService" xml:space="preserve"><value>External HTTP service</value></data>
+  <data name="C4.Role.Controller" xml:space="preserve"><value>API controller.</value></data>
+  <data name="C4.Role.Job" xml:space="preserve"><value>Scheduled job.</value></data>
+  <data name="C4.Role.MessageHandler" xml:space="preserve"><value>Message handler.</value></data>
+  <data name="C4.Role.DataAccess" xml:space="preserve"><value>Data access.</value></data>
+  <data name="C4.Role.Service" xml:space="preserve"><value>Service.</value></data>
+  <data name="C4.AndMore" xml:space="preserve"><value>and {0} more</value></data>
+  <data name="C4.People.Max" xml:space="preserve"><value>At most {0} people.</value></data>
+  <data name="C4.People.NameRequired" xml:space="preserve"><value>Each person needs a name of up to {0} characters.</value></data>
+  <data name="C4.People.DescriptionTooLong" xml:space="preserve"><value>The description of "{0}" is over {1} characters.</value></data>
+  <data name="C4.People.Duplicate" xml:space="preserve"><value>There are people with the same name.</value></data>
+  <data name="QueryContext.Severity.High" xml:space="preserve"><value>high</value></data>
+  <data name="QueryContext.Severity.Medium" xml:space="preserve"><value>medium</value></data>
+  <data name="QueryContext.Severity.Low" xml:space="preserve"><value>low</value></data>
+  <data name="QueryContext.Kind.SelectStar" xml:space="preserve"><value>SELECT *</value></data>
+  <data name="QueryContext.Kind.FunctionOnFilterColumn" xml:space="preserve"><value>function on the filter column</value></data>
+  <data name="QueryContext.Kind.LeadingWildcardLike" xml:space="preserve"><value>leading wildcard in the LIKE</value></data>
+  <data name="QueryContext.Kind.OrAcrossColumns" xml:space="preserve"><value>OR across different columns</value></data>
+  <data name="QueryContext.Kind.ColumnWithoutIndex" xml:space="preserve"><value>column without an index in the filter or join</value></data>
+  <data name="QueryContext.Kind.JoinWithoutCondition" xml:space="preserve"><value>join without a condition</value></data>
+  <data name="QueryContext.Kind.DistinctOverJoin" xml:space="preserve"><value>DISTINCT over a join</value></data>
+  <data name="QueryContext.Kind.CorrelatedSubquery" xml:space="preserve"><value>correlated subquery</value></data>
+  <data name="QueryContext.Kind.OrderByWithoutLimit" xml:space="preserve"><value>ORDER BY without a limit</value></data>
+  <data name="QueryContext.Kind.NotInNullable" xml:space="preserve"><value>NOT IN with a nullable column</value></data>
+  <data name="QueryContext.Kind.WriteWithoutWhere" xml:space="preserve"><value>UPDATE or DELETE without WHERE</value></data>
+  <data name="QueryContext.Kind.ReadWithoutLimit" xml:space="preserve"><value>unbounded read, filtered only by equality</value></data>
+  <data name="QueryContext.Finding" xml:space="preserve"><value>- [{0}] {1}, line {2}: {3}. {4}</value></data>
+  <data name="QueryContext.Table" xml:space="preserve"><value>Table {0}:</value></data>
+  <data name="QueryContext.Column.PrimaryKeySuffix" xml:space="preserve"><value>, primary key</value></data>
+  <data name="QueryContext.Column.Nullable" xml:space="preserve"><value>allows null</value></data>
+  <data name="QueryContext.Column.NotNullable" xml:space="preserve"><value>does not allow null</value></data>
+  <data name="QueryContext.Column.NullableDiverges" xml:space="preserve"><value>null setting differs between sources</value></data>
+  <data name="QueryContext.Column.TypeDiverges" xml:space="preserve"><value>(type differs between sources)</value></data>
+  <data name="QueryContext.Column.IdentitySuffix" xml:space="preserve"><value>, identity</value></data>
+  <data name="QueryContext.Unnamed" xml:space="preserve"><value>(unnamed)</value></data>
+  <data name="QueryContext.PrimaryKey" xml:space="preserve"><value>  primary key {0} ({1})</value></data>
+  <data name="QueryContext.Index" xml:space="preserve"><value>  index {0}{1} ({2})</value></data>
+  <data name="QueryContext.Index.UniqueSuffix" xml:space="preserve"><value> unique</value></data>
+  <data name="QueryContext.Index.Includes" xml:space="preserve"><value> includes ({0})</value></data>
+  <data name="QueryContext.NoIndexes" xml:space="preserve"><value>  no index besides the primary key</value></data>
+  <data name="QueryContext.ForeignKey" xml:space="preserve"><value>  foreign key ({0}) points to {1} ({2})</value></data>
+  <data name="QueryContext.View" xml:space="preserve"><value>View {0}: columns {1}.</value></data>
+  <data name="QueryContext.View.ColumnsUnread" xml:space="preserve"><value>not read</value></data>
+  <data name="QueryContext.OutsideSchema" xml:space="preserve"><value>{0}: outside the schema read from the code (columns and indexes unknown).</value></data>
 </root>

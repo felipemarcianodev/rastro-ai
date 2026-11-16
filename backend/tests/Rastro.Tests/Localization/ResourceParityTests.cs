@@ -15,9 +15,11 @@ public partial class ResourceParityTests
         XDocument.Load(path).Root!.Elements("data")
             .ToDictionary(e => (string)e.Attribute("name")!, e => (string?)e.Element("value") ?? string.Empty);
 
+    // Todo conjunto Resources/<Nome>.resx (neutro, em inglês) de qualquer projeto: Messages, Database etc.
     private static IEnumerable<string> NeutralFiles() =>
-        Directory.EnumerateFiles(Path.Combine(TestPaths.BackendRoot(), "src"), "Messages.resx", SearchOption.AllDirectories)
-            .Where(f => Path.GetFileName(Path.GetDirectoryName(f)) == "Resources");
+        Directory.EnumerateFiles(Path.Combine(TestPaths.BackendRoot(), "src"), "*.resx", SearchOption.AllDirectories)
+            .Where(f => Path.GetFileName(Path.GetDirectoryName(f)) == "Resources"
+                && !Path.GetFileNameWithoutExtension(f).Contains('.'));
 
     private static string[] Markers(string text) =>
         [.. Placeholder().Matches(text).Select(m => m.Value).Order(StringComparer.Ordinal)];
@@ -30,8 +32,9 @@ public partial class ResourceParityTests
         foreach (var neutral in files)
         {
             var folder = Path.GetDirectoryName(neutral)!;
-            Assert.True(File.Exists(Path.Combine(folder, "Messages.pt-BR.resx")), $"Falta Messages.pt-BR.resx em {folder}");
-            Assert.True(File.Exists(Path.Combine(folder, "Messages.es.resx")), $"Falta Messages.es.resx em {folder}");
+            var name = Path.GetFileNameWithoutExtension(neutral);
+            Assert.True(File.Exists(Path.Combine(folder, $"{name}.pt-BR.resx")), $"Falta {name}.pt-BR.resx em {folder}");
+            Assert.True(File.Exists(Path.Combine(folder, $"{name}.es.resx")), $"Falta {name}.es.resx em {folder}");
         }
     }
 
@@ -41,10 +44,11 @@ public partial class ResourceParityTests
         foreach (var neutral in NeutralFiles())
         {
             var folder = Path.GetDirectoryName(neutral)!;
+            var name = Path.GetFileNameWithoutExtension(neutral);
             var english = Read(neutral);
             foreach (var suffix in new[] { "pt-BR", "es" })
             {
-                var other = Read(Path.Combine(folder, $"Messages.{suffix}.resx"));
+                var other = Read(Path.Combine(folder, $"{name}.{suffix}.resx"));
                 Assert.Equal(english.Keys.Order(StringComparer.Ordinal), other.Keys.Order(StringComparer.Ordinal));
                 foreach (var (key, text) in english)
                 {

@@ -2,6 +2,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Extractor.Resources.Database;
 
 namespace Rastro.Extractor.Database;
 
@@ -11,7 +13,8 @@ public interface ISqlProposalChecker
 {
     SqlDialect Dialect { get; }
 
-    QueryProposalReview Review(string originalSql, QueryProposal proposal, DbSchema schema);
+    // language: o idioma das recusas e dos achados, que vão para a tela (ADR-009).
+    QueryProposalReview Review(string originalSql, QueryProposal proposal, DbSchema schema, UiLanguage language);
 }
 
 public static class SqlProposalCheckers
@@ -48,79 +51,76 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
 
     public SqlDialect Dialect => SqlDialect.SqlServer;
 
-    public QueryProposalReview Review(string originalSql, QueryProposal proposal, DbSchema schema)
+    public QueryProposalReview Review(string originalSql, QueryProposal proposal, DbSchema schema, UiLanguage language)
     {
         var analyzer = new TSqlQueryAnalyzer();
-        var before = analyzer.Analyze(originalSql, schema);
-        var rewrite = Rewrite(originalSql, proposal.RewrittenSql, schema, analyzer);
+        var before = analyzer.Analyze(originalSql, schema, language);
+        var rewrite = Rewrite(originalSql, proposal.RewrittenSql, schema, analyzer, language);
         var changes = proposal.Changes
             .Select(c => new QueryChange(Cut(c.What), Cut(c.Why)))
             .Where(c => c.What.Length > 0)
             .Take(QueryProposalLimits.MaxChanges)
             .ToList();
-        return new QueryProposalReview(proposal.Origin, before.Findings.Count, rewrite, changes, Indexes(proposal.Indexes, schema));
+        return new QueryProposalReview(proposal.Origin, before.Findings.Count, rewrite, changes, Indexes(proposal.Indexes, schema, language));
     }
 
-    private static RewriteReview? Rewrite(string original, string? rewritten, DbSchema schema, TSqlQueryAnalyzer analyzer)
+    private static RewriteReview? Rewrite(string original, string? rewritten, DbSchema schema, TSqlQueryAnalyzer analyzer, UiLanguage language)
     {
+        string T(string key, params object[] args) => Txt.Get(key, language, args);
         if (string.IsNullOrWhiteSpace(rewritten) || Spaces().Replace(rewritten, " ").Trim() == Spaces().Replace(original, " ").Trim())
             return null;
         var sql = rewritten.Trim();
         if (sql.Length > QueryLimits.MaxSqlLength)
-            return Refused(sql, "A consulta reescrita passa de 100 mil caracteres.");
+            return Refused(sql, T("Check.RewriteTooLong"));
 
-        var (rewrittenTree, error) = Parse(sql);
+        var (rewrittenTree, error) = Parse(sql, language);
         if (rewrittenTree is null)
-            return Refused(sql, $"O leitor de T-SQL não entendeu a consulta reescrita ({error}).");
-        var guard = TSqlPlanGuard.Check(sql);
+            return Refused(sql, T("Check.RewriteNotUnderstoodTsql", error!));
+        var guard = TSqlPlanGuard.Check(sql, language);
         if (!guard.Allowed)
-            return Refused(sql, $"A consulta reescrita não passa pela conferência do Rastro: {guard.Reason}");
+            return Refused(sql, T("Check.FailsGuard", guard.Reason ?? string.Empty));
 
-        var (originalTree, _) = Parse(original);
+        var (originalTree, _) = Parse(original, language);
         var originalStatements = originalTree?.Batches.SelectMany(b => b.Statements).ToList() ?? [];
         if (originalStatements.Count != 1)
             return Refused(sql, originalStatements.Count == 0
-                ? "A consulta original não foi lida pelo leitor de T-SQL: não há com o que comparar."
-                : $"A consulta original tem {originalStatements.Count} instruções: a conferência compara uma instrução só.");
+                ? T("Check.OriginalNotReadTsql")
+                : T("Check.OriginalMultiple", originalStatements.Count));
 
         var source = originalStatements[0];
         var target = rewrittenTree.Batches.Single().Statements.Single();
         var refusals = new List<string>();
 
         if (Kind(source) != Kind(target))
-            refusals.Add($"A consulta original é um {Kind(source)} e a reescrita é um {Kind(target)}: a reescrita precisa fazer a mesma operação.");
+            refusals.Add(T("Check.DifferentOperation", Kind(source), Kind(target)));
         else if (WriteTarget(source, schema.Dialect) is { } sourceTable && WriteTarget(target, schema.Dialect) is { } targetTable && sourceTable.Key != targetTable.Key)
-            refusals.Add($"A consulta original muda {sourceTable.Name} e a reescrita muda {targetTable.Name}: a reescrita precisa mudar a mesma tabela.");
+            refusals.Add(T("Check.DifferentTable", sourceTable.Name, targetTable.Name));
 
-        var originalRefs = References.Of(source, schema);
-        var refs = References.Of(target, schema);
-        Tables(refs, originalRefs, refusals);
-        Columns(target, refs, ColumnNames(source), refusals);
+        var originalRefs = References.Of(source, schema, language);
+        var refs = References.Of(target, schema, language);
+        Tables(refs, originalRefs, refusals, language);
+        Columns(target, refs, ColumnNames(source), refusals, language);
         if (source is SelectStatement originalSelect && target is SelectStatement rewrittenSelect)
         {
-            SameColumns(originalSelect, originalRefs, rewrittenSelect, refs, refusals);
+            SameColumns(originalSelect, originalRefs, rewrittenSelect, refs, refusals, language);
             // Limitar as linhas muda o resultado: é decisão de quem usa a consulta, não da reescrita.
             if (!Limited(originalSelect) && Limited(rewrittenSelect))
-                refusals.Add("A reescrita limita as linhas (TOP ou OFFSET/FETCH) e a original não: o resultado muda. Se a tela mostra uma página, isso é decisão sua, fora da reescrita.");
+                refusals.Add(T("Check.LimitsRowsTsql"));
         }
 
         if (refusals.Count > 0)
             return new RewriteReview(sql, false, refusals.Distinct().Take(MaxRefusals).ToList(), null);
-        return new RewriteReview(sql, true, [], analyzer.Analyze(sql, schema));
+        return new RewriteReview(sql, true, [], analyzer.Analyze(sql, schema, language));
     }
 
     private static RewriteReview Refused(string sql, string reason) => new(sql, false, [reason], null);
 
-    private static (TSqlScript? Script, string? Error) Parse(string sql)
+    private static (TSqlScript? Script, string? Error) Parse(string sql, UiLanguage language)
     {
-        var parser = new TSql170Parser(initialQuotedIdentifiers: true);
-        IList<ParseError> errors;
-        TSqlFragment? tree;
-        using (var reader = new StringReader(sql))
-            tree = parser.Parse(reader, out errors);
+        var tree = TSqlParsing.Parse(sql, out var errors);
         if (errors.Count == 0 && tree is TSqlScript script) return (script, null);
         var first = errors.FirstOrDefault();
-        return (null, first is null ? "texto vazio" : $"linha {first.Line}, coluna {first.Column}: {SqlMessageTranslator.Translate(first.Message)}");
+        return (null, first is null ? Txt.Get("Guard.EmptyText", language) : Txt.Get("Check.ErrorAt", language, first.Line, first.Column, SqlMessageTranslator.Translate(first.Message, language)));
     }
 
     private static string Kind(TSqlStatement statement) => statement switch
@@ -156,15 +156,15 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
         return (DbNames.Key(schemaName, baseName, dialect), DbNames.Display(schemaName, baseName, dialect));
     }
 
-    private static void Tables(References refs, References original, List<string> refusals)
+    private static void Tables(References refs, References original, List<string> refusals, UiLanguage language)
     {
         foreach (var r in refs.Named)
         {
             if (r.Cte || r.Known) continue;
             if (original.Named.Any(o => o.Key == r.Key)) continue;
             refusals.Add(r.Temporary
-                ? $"A reescrita usa {r.Name}, que a consulta original não usa."
-                : $"A reescrita cita a tabela {r.Name}, que não está no esquema lido do código.");
+                ? Txt.Get("Check.TemporaryTable", language, r.Name)
+                : Txt.Get("Check.TableNotInSchema", language, r.Name));
         }
     }
 
@@ -177,7 +177,7 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
 
     // Toda coluna citada precisa existir numa tabela da consulta. Coluna que a original já citava passa (o
     // esquema lido do código pode estar atrás do banco); tabela de colunas desconhecidas não recusa nada.
-    private static void Columns(TSqlStatement statement, References refs, HashSet<string> originalColumns, List<string> refusals)
+    private static void Columns(TSqlStatement statement, References refs, HashSet<string> originalColumns, List<string> refusals, UiLanguage language)
     {
         var dateParts = new DatePartFinder();
         statement.Accept(dateParts);
@@ -201,39 +201,39 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
                 if (match is null)
                 {
                     if (!PseudoTables.Contains(qualifier))
-                        refusals.Add($"A reescrita cita {written}, mas {qualifier} não é tabela nem apelido da consulta.");
+                        refusals.Add(Txt.Get("Check.QualifierUnknown", language, written, qualifier));
                     continue;
                 }
                 if (!cited && match.Columns is { } known && !known.Contains(name, StringComparer.OrdinalIgnoreCase))
-                    refusals.Add($"A reescrita cita {written}, e a coluna {name} não existe em {match.Name}.");
+                    refusals.Add(Txt.Get("Check.ColumnNotInTable", language, written, name, match.Name));
                 continue;
             }
 
             if (cited || aliases.Found.Contains(name) || refs.All.Count == 0 || refs.All.Any(r => r.Columns is null)) continue;
             if (!refs.All.Any(r => r.Columns!.Contains(name, StringComparer.OrdinalIgnoreCase)))
-                refusals.Add($"A reescrita cita a coluna {name}, que não existe em nenhuma tabela da consulta ({string.Join(", ", refs.All.Select(r => r.Name).Distinct(StringComparer.OrdinalIgnoreCase))}).");
+                refusals.Add(Txt.Get("Check.ColumnNowhere", language, name, string.Join(", ", refs.All.Select(r => r.Name).Distinct(StringComparer.OrdinalIgnoreCase))));
         }
     }
 
-    private static void SameColumns(SelectStatement original, References originalRefs, SelectStatement rewritten, References refs, List<string> refusals)
+    private static void SameColumns(SelectStatement original, References originalRefs, SelectStatement rewritten, References refs, List<string> refusals, UiLanguage language)
     {
         var before = Output(original, originalRefs);
         var after = Output(rewritten, refs);
         if (before is null || after is null)
         {
-            refusals.Add("Não dá para conferir que a reescrita devolve as mesmas colunas: um SELECT * cita uma tabela de colunas desconhecidas. Liste as colunas na consulta.");
+            refusals.Add(Txt.Get("Check.StarUnknown", language));
             return;
         }
         if (before.Count != after.Count)
         {
-            refusals.Add($"A consulta original devolve {Columns(before.Count)} ({Names(before)}) e a reescrita devolve {Columns(after.Count)}: a reescrita precisa devolver as mesmas colunas, na mesma ordem.");
+            refusals.Add(Txt.Get("Check.ColumnCountDiffers", language, ColumnCount(before.Count, language), Names(before, language), ColumnCount(after.Count, language)));
             return;
         }
         for (var i = 0; i < before.Count; i++)
         {
             var same = before[i] is null ? after[i] is null : after[i]?.Equals(before[i], StringComparison.OrdinalIgnoreCase) == true;
             if (same) continue;
-            refusals.Add($"A coluna {i + 1} muda: a original devolve {before[i] ?? "uma expressão sem nome"} e a reescrita devolve {after[i] ?? "uma expressão sem nome"}. Mantenha os mesmos nomes, na mesma ordem.");
+            refusals.Add(Txt.Get("Check.ColumnChanged", language, i + 1, before[i] ?? Txt.Get("Check.UnnamedExpression", language), after[i] ?? Txt.Get("Check.UnnamedExpression", language)));
             return;
         }
     }
@@ -250,9 +250,9 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
         return query is QuerySpecification { TopRowFilter: not null };
     }
 
-    private static string Columns(int n) => n == 1 ? "1 coluna" : $"{n} colunas";
+    private static string ColumnCount(int n, UiLanguage language) => n == 1 ? Txt.Get("Check.ColumnCountOne", language) : Txt.Get("Check.ColumnCountMany", language, n);
 
-    private static string Names(List<string?> names) => string.Join(", ", names.Select(n => n ?? "(sem nome)"));
+    private static string Names(List<string?> names, UiLanguage language) => string.Join(", ", names.Select(n => n ?? Txt.Get("Check.NoName", language)));
 
     // As colunas que a consulta de fora devolve; nulo quando um * cita tabela de colunas desconhecidas.
     private static List<string?>? Output(SelectStatement select, References refs)
@@ -308,7 +308,7 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
         }
     }
 
-    private static List<IndexReview> Indexes(IReadOnlyList<IndexSuggestion> suggestions, DbSchema schema)
+    private static List<IndexReview> Indexes(IReadOnlyList<IndexSuggestion> suggestions, DbSchema schema, UiLanguage language)
     {
         var reviews = new List<IndexReview>();
         foreach (var s in suggestions.Take(QueryProposalLimits.MaxIndexes))
@@ -324,34 +324,34 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
             if (table is null)
             {
                 reviews.Add(Refuse(schema.Views.Any(v => DbNames.Key(v.Schema, v.Name, schema.Dialect) == key)
-                    ? $"{tableName} é uma view: o índice vai na tabela."
-                    : $"A tabela {tableName} não está no esquema lido do código."));
+                    ? Txt.Get("Check.IndexOnView", language, tableName)
+                    : Txt.Get("Check.IndexTableMissing", language, tableName)));
                 continue;
             }
             var display = DbNames.Display(table.Schema, table.Name, schema.Dialect);
             if (columns.Count == 0)
             {
-                reviews.Add(Refuse("O índice não tem coluna."));
+                reviews.Add(Refuse(Txt.Get("Check.IndexNoColumn", language)));
                 continue;
             }
             var missing = columns.Concat(include).FirstOrDefault(c => !table.Columns.Any(t => t.Name.Equals(c, StringComparison.OrdinalIgnoreCase)));
             if (missing is not null)
             {
-                reviews.Add(Refuse($"A coluna {missing} não existe em {display}."));
+                reviews.Add(Refuse(Txt.Get("Check.IndexColumnMissing", language, missing, display)));
                 continue;
             }
             // Os nomes como o esquema escreve.
             columns = columns.Select(c => table.Columns.First(t => t.Name.Equals(c, StringComparison.OrdinalIgnoreCase)).Name).ToList();
             include = include.Select(c => table.Columns.First(t => t.Name.Equals(c, StringComparison.OrdinalIgnoreCase)).Name).ToList();
 
-            if (Existing(table, columns) is { } existing)
+            if (Existing(table, columns, language) is { } existing)
             {
-                reviews.Add(Refuse($"Já existe {existing}, que começa por essas colunas."));
+                reviews.Add(Refuse(Txt.Get("Check.IndexExists", language, existing)));
                 continue;
             }
             if (reviews.Any(r => r.Accepted && r.Table.Equals(display, StringComparison.OrdinalIgnoreCase) && r.Columns.SequenceEqual(columns, StringComparer.OrdinalIgnoreCase)))
             {
-                reviews.Add(Refuse("Repete outro índice desta proposta."));
+                reviews.Add(Refuse(Txt.Get("Check.IndexRepeated", language)));
                 continue;
             }
             reviews.Add(new IndexReview(display, columns, include, s.Unique, reason, true, null, CreateIndex(table, columns, include, s.Unique, schema.Dialect)));
@@ -363,15 +363,17 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
         (names ?? []).Select(DbNames.Unquote).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     // A chave primária ou o índice cujas colunas começam pelas colunas sugeridas, na mesma ordem.
-    private static string? Existing(DbTable table, List<string> columns)
+    private static string? Existing(DbTable table, List<string> columns, UiLanguage language)
     {
         static bool Starts(IReadOnlyList<string> have, List<string> want) =>
             have.Count >= want.Count && want.Select((c, i) => have[i].Equals(c, StringComparison.OrdinalIgnoreCase)).All(x => x);
 
         if (table.PrimaryKey is { } pk && Starts(pk.Columns, columns))
-            return $"a chave primária{(pk.Name is null ? "" : " " + pk.Name)} ({string.Join(", ", pk.Columns)})";
+            return pk.Name is null
+                ? Txt.Get("Check.ExistingPrimaryKey", language, string.Join(", ", pk.Columns))
+                : Txt.Get("Check.ExistingPrimaryKeyNamed", language, pk.Name, string.Join(", ", pk.Columns));
         return table.Indexes.FirstOrDefault(i => Starts(i.Columns, columns)) is { } index
-            ? $"o índice {index.Name ?? "sem nome"} ({string.Join(", ", index.Columns)})"
+            ? Txt.Get("Check.ExistingIndex", language, index.Name ?? Txt.Get("Check.Unnamed", language), string.Join(", ", index.Columns))
             : null;
     }
 
@@ -408,7 +410,7 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
         public List<TableUse> All { get; } = [];
         public IEnumerable<TableUse> Named => All.Where(r => r.Fragment is NamedTableReference);
 
-        public static References Of(TSqlStatement statement, DbSchema schema)
+        public static References Of(TSqlStatement statement, DbSchema schema, UiLanguage language)
         {
             var ctes = new CteFinder();
             statement.Accept(ctes);
@@ -435,7 +437,7 @@ public sealed partial class TSqlProposalChecker : ISqlProposalChecker
                     result.All.Add(new TableUse(display, key, alias, baseName, columns, !cte && !temporary && (table is not null || view is not null), cte, temporary, reference));
                 }
                 else
-                    result.All.Add(new TableUse(alias ?? "(subconsulta)", string.Empty, alias, null, null, false, false, false, reference));
+                    result.All.Add(new TableUse(alias ?? Txt.Get("Query.SubqueryName", language), string.Empty, alias, null, null, false, false, false, reference));
             }
             // "UPDATE p ... FROM pedidos p": o alvo p é o apelido de outra tabela da instrução, não uma tabela.
             result.All.RemoveAll(r => r.Fragment is NamedTableReference { SchemaObject.SchemaIdentifier: null } && r.Alias is null

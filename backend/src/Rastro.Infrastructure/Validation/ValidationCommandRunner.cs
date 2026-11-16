@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Rastro.Core.Localization;
 using Rastro.Core.Validation;
 using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Processes;
@@ -17,7 +18,7 @@ public enum ValidationCommand
 // (ADR-002). A linha de comando vem só da configuração do repositório, sem shell e com tempo limite.
 public interface IValidationCommandRunner
 {
-    Task<ValidationCheck> RunAsync(string description, RepositoryOptions repository, ValidationCommand command, string workingDirectory, CancellationToken ct);
+    Task<ValidationCheck> RunAsync(string description, RepositoryOptions repository, ValidationCommand command, string workingDirectory, UiLanguage language, CancellationToken ct);
 }
 
 public static class ValidationOutput
@@ -29,12 +30,12 @@ public static class ValidationOutput
 
 public class LocalCommandRunner(IOptions<RastroOptions> options, ILogger<LocalCommandRunner> logger) : IValidationCommandRunner
 {
-    public async Task<ValidationCheck> RunAsync(string description, RepositoryOptions repository, ValidationCommand command, string workingDirectory, CancellationToken ct)
+    public async Task<ValidationCheck> RunAsync(string description, RepositoryOptions repository, ValidationCommand command, string workingDirectory, UiLanguage language, CancellationToken ct)
     {
         var commandLine = command == ValidationCommand.Build ? repository.BuildCommand : repository.TestCommand;
         var parts = (commandLine ?? string.Empty).Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         if (parts.Length == 0)
-            return new ValidationCheck(description, CheckStatus.Skipped, "Comando não configurado para este repositório.");
+            return new ValidationCheck(description, CheckStatus.Skipped, LocalizedText.Get("Validation.Report.CommandNotConfigured", language));
 
         var timeout = TimeSpan.FromSeconds(options.Value.Analysis.ValidationCommandTimeoutSeconds);
         try
@@ -48,12 +49,12 @@ public class LocalCommandRunner(IOptions<RastroOptions> options, ILogger<LocalCo
         catch (TimeoutException ex)
         {
             logger.LogWarning(ex, "{Description} passou do tempo limite.", description);
-            return new ValidationCheck(description, CheckStatus.Failed, $"Passou de {timeout.TotalMinutes:0} min e foi interrompido.");
+            return new ValidationCheck(description, CheckStatus.Failed, LocalizedText.Get("Validation.Report.TimedOut", language, timeout.TotalMinutes.ToString("0", System.Globalization.CultureInfo.InvariantCulture)));
         }
         catch (System.ComponentModel.Win32Exception ex)
         {
             logger.LogWarning(ex, "{Description}: executável não encontrado.", description);
-            return new ValidationCheck(description, CheckStatus.Failed, $"Não foi possível executar \"{parts[0]}\".");
+            return new ValidationCheck(description, CheckStatus.Failed, LocalizedText.Get("Validation.Report.CannotRun", language, parts[0]));
         }
     }
 }

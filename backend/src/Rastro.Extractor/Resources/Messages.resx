@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Quality.CatchAny" xml:space="preserve"><value>everything</value></data>
+  <data name="Quality.HighComplexity" xml:space="preserve"><value>{0} has cyclomatic complexity {1} (limit {2}): too many paths to test and understand.</value></data>
+  <data name="Quality.LongMethod" xml:space="preserve"><value>{0} has {1} lines (limit {2}): it does too much.</value></data>
+  <data name="Quality.DeepNesting" xml:space="preserve"><value>{0} has {1} levels of nested blocks (limit {2}).</value></data>
+  <data name="Quality.TooManyDependencies" xml:space="preserve"><value>{0} takes {1} dependencies in its constructor (limit {2}): a sign of too many responsibilities.</value></data>
+  <data name="Quality.PublicSetter" xml:space="preserve"><value>{0} has a public setter on {1} property(ies) ({2}): any layer changes the state without going through the entity rule.</value></data>
+  <data name="Quality.CatchEmpty" xml:space="preserve"><value>Empty catch ({0}): the failure disappears with no log or handling.</value></data>
+  <data name="Quality.CatchSilent" xml:space="preserve"><value>catch ({0}) with no log, no rethrow and no use of the exception: the cause of the failure is lost.</value></data>
+  <data name="Quality.LocatorHosted" xml:space="preserve"><value>{0} resolves a dependency with {1} (common in jobs and background services, which open a scope): check whether it could be injected instead.</value></data>
+  <data name="Quality.Locator" xml:space="preserve"><value>{0} resolves a dependency with {1} (service locator): the dependency stays hidden from the constructor.</value></data>
+  <data name="Quality.EntityChangedOutsideDomain" xml:space="preserve"><value>{0} changes {1}.{2} directly, outside the entity and the domain service that validates it.</value></data>
+  <data name="Quality.PersistenceOutsideDomain" xml:space="preserve"><value>{0} saves {1} with {2}.{3} directly, without going through a domain service that validates the entity.</value></data>
+  <data name="Flow.DepthLimit" xml:space="preserve"><value>depth limit</value></data>
+  <data name="Db.RawSql" xml:space="preserve"><value>raw SQL</value></data>
+  <data name="Db.QueryInLoop" xml:space="preserve"><value>{0} queries {1} inside a loop: one trip to the database per iteration (N+1). Fetch the data before the loop, with Include or with a Where that uses Contains.</value></data>
+  <data name="Db.QueryInLoopCall" xml:space="preserve"><value>{0} calls {1} inside a loop, and it queries {2}: one trip to the database per iteration (N+1). Fetch the data before the loop.</value></data>
+  <data name="Db.QueryInLoopChain" xml:space="preserve"><value>{0} calls {1} inside a loop, and it reaches {2}, which queries {3}: one trip to the database per iteration (N+1). Fetch the data before the loop.</value></data>
+  <data name="Db.WriteInLoop" xml:space="preserve"><value>{0} writes to {1} with {2} inside a loop: one trip to the database per iteration (write N+1). Group the write outside the loop, with a Where that uses Contains over the ids.</value></data>
+  <data name="Db.WriteInLoopCall" xml:space="preserve"><value>{0} calls {1} inside a loop, and it writes to {2} with {3}: one trip to the database per iteration (write N+1). Group the write outside the loop.</value></data>
+  <data name="Db.WriteInLoopChain" xml:space="preserve"><value>{0} calls {1} inside a loop, and it reaches {2}, which writes to {3} with {4}: one trip to the database per iteration (write N+1). Group the write outside the loop.</value></data>
+  <data name="Db.LoadToDelete" xml:space="preserve"><value>{0} loads {1} with {2} only to delete with {3}: EF reads every row and then sends one DELETE per row. Use ExecuteDeleteAsync over the Where (it returns how many rows it deleted) and delete in a single statement.</value></data>
+  <data name="Db.MaterializeBeforeFilter" xml:space="preserve"><value>{0} loads {1} with {2} and only then applies {3}: the filter runs in memory, after reading the table. Put {3} before {2}.</value></data>
+  <data name="Db.MaterializeBeforeFilterCall" xml:space="preserve"><value>{0} receives {1} from {2}, which already loaded it with {4} (the whole table, without this filter), and only then applies {5}: the filter runs in memory. Pass the criterion to {3} so it filters before {4}.</value></data>
+  <data name="Db.MaterializeBeforeFilterChain" xml:space="preserve"><value>{0} receives {1} from {2}, which passes on the result of {3}, and that one already loaded it with {4} (the whole table, without this filter), and only then applies {5}: the filter runs in memory. Pass the criterion to {3} so it filters before {4}.</value></data>
+  <data name="Db.LeadingWildcardLike" xml:space="preserve"><value>{0} searches {1} with a LIKE that starts with a wildcard ({2}): the database does not use a B-tree index and reads the whole table. If the search is by prefix, drop the % at the start; for matches inside the text, use a trigram index (PostgreSQL) or full-text search.</value></data>
+  <data name="Db.ReadWithoutNoTracking" xml:space="preserve"><value>{0} only reads {1} and does not ask for AsNoTracking: EF tracks entities that this method does not save. If the read does not feed a write, use AsNoTracking.</value></data>
+  <data name="Db.ProcedureByRawSql" xml:space="preserve"><value>{0} calls the procedure {1} through {2}: the compiler checks neither the name nor the parameters.{3}</value></data>
+  <data name="Db.ProcedureMissing" xml:space="preserve"><value> It does not appear in the repository .sql files.</value></data>
+</root>

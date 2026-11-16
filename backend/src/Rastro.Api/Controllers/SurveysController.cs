@@ -5,6 +5,7 @@ using Rastro.Api.Analysis;
 using Rastro.Core.Architecture;
 using Rastro.Core.Failures;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 using Rastro.Core.Prompts;
 using Rastro.Core.Surveys;
 using Rastro.Infrastructure.Analysis;
@@ -268,7 +269,7 @@ public class SurveysController(
 
         var edited = draft.ReadGraph();
         var context = new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash);
-        return new ChangePrompt(ChangePromptBuilder.Build(context, original, edited), DraftDiff.Compute(original, edited).Count);
+        return new ChangePrompt(ChangePromptBuilder.Build(context, RequestLanguage.Current, original, edited), DraftDiff.Compute(original, edited).Count);
     }
 
     // Prompt de refatoração de um achado de qualidade (Fase 10), pela posição na lista do grafo.
@@ -280,7 +281,7 @@ public class SurveysController(
         if (graph.Findings is not { } findings || index < 0 || index >= findings.Count) return NotFound();
 
         var context = new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash);
-        return new RefactorPrompt(RefactorPromptBuilder.Build(context, graph, findings[index]));
+        return new RefactorPrompt(RefactorPromptBuilder.Build(context, RequestLanguage.Current, graph, findings[index]));
     }
 
     // Diagramas C4 em Structurizr DSL (Fase 11), com as pessoas do C1 salvas para o levantamento.
@@ -301,7 +302,7 @@ public class SurveysController(
         if (survey?.ReadGraph() is not { } graph) return NotFound();
 
         var clean = people.Select(p => new C4Person(p.Name?.Trim() ?? "", string.IsNullOrWhiteSpace(p.Description) ? null : p.Description.Trim(), p.FromAi == true ? true : null)).ToList();
-        var errors = SurveyArchitecture.Validate(clean);
+        var errors = SurveyArchitecture.Validate(clean, RequestLanguage.Current);
         if (errors.Count > 0)
         {
             var problem = new ProblemDetails { Status = StatusCodes.Status400BadRequest, Title = "Pessoas inválidas." };
@@ -439,7 +440,7 @@ public class SurveysController(
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
         if (survey?.ReadGraph() is not { } graph) return NotFound();
-        return Ok(FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph)));
+        return Ok(FlowRuleExtractor.Extract(graph, FlowMapBuilder.Build(graph), RequestLanguage.Current));
     }
 
     // Perguntas prontas sobre o fluxo (Fase 33), respondidas pelo mapa e pelas regras, sem IA.
@@ -449,7 +450,7 @@ public class SurveysController(
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
         if (survey?.ReadGraph() is not { } graph) return NotFound();
         var map = FlowMapBuilder.Build(graph);
-        return Ok(FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map)));
+        return Ok(FlowQuestions.Suggest(graph, map, FlowRuleExtractor.Extract(graph, map, RequestLanguage.Current), RequestLanguage.Current));
     }
 
     // Regra cruzada entre fluxos (Fase 13): compara com o levantamento pronto mais recente de cada
@@ -494,7 +495,7 @@ public class SurveysController(
     {
         var root = catalog.Resolve(survey.Repository, survey.SolutionPath).Target?.RepositoryRoot;
         var deployment = root is null ? null : deployments.Read(root);
-        return C4WorkspaceBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), graph, people, deployment);
+        return C4WorkspaceBuilder.Build(new PromptContext(survey.Repository, survey.SolutionPath, survey.EntryPoint, survey.CommitHash), RequestLanguage.Current, graph, people, deployment);
     }
 
     private BadRequestObjectResult Error(string code, string message)

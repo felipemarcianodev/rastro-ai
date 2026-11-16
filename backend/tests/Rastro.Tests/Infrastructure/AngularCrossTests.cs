@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
+using Rastro.Core.Localization;
 using Rastro.Core.Graph;
 using Rastro.Infrastructure.Analysis;
 using Rastro.Infrastructure.Configuration;
@@ -66,7 +67,7 @@ public class AngularCrossTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal(SourceLanguage.Angular, target.Language);
 
         var analysis = await scope.ServiceProvider.GetRequiredService<CrossSystemAnalyzer>()
-            .AnalyzeAsync(target, AngularRepo.Entry, 15, [_pedidos.Name, _pagamentos.Name], CancellationToken.None);
+            .AnalyzeAsync(target, AngularRepo.Entry, 15, [_pedidos.Name, _pagamentos.Name], UiLanguage.Portuguese, CancellationToken.None);
 
         // Sistema 1 (Angular): o clique, a guarda do template (o @if que esconde o botão) e a decisão do método.
         var click = Assert.Single(analysis.Graph.Nodes, n => n.Label == "DetalhePedidoComponent.cancelar");
@@ -119,7 +120,7 @@ public class AngularCrossTests(ApiFixture fixture) : IAsyncLifetime
         using var scope = provider.CreateScope();
 
         var analysis = await scope.ServiceProvider.GetRequiredService<CrossSystemAnalyzer>()
-            .AnalyzeAsync(Target(scope), AngularRepo.Entry, 15, [], CancellationToken.None);
+            .AnalyzeAsync(Target(scope), AngularRepo.Entry, 15, [], UiLanguage.Portuguese, CancellationToken.None);
 
         Assert.Empty(analysis.Segments);
         Assert.All(analysis.Graph.Nodes, n => Assert.Null(n.System));
@@ -136,7 +137,7 @@ public class AngularCrossTests(ApiFixture fixture) : IAsyncLifetime
 
         // Só a API de pagamentos na lista: nada atende api/pedidos/{}/cancelamento, então a chamada fica no grafo.
         var analysis = await scope.ServiceProvider.GetRequiredService<CrossSystemAnalyzer>()
-            .AnalyzeAsync(Target(scope), AngularRepo.Entry, 15, [_pagamentos.Name], CancellationToken.None);
+            .AnalyzeAsync(Target(scope), AngularRepo.Entry, 15, [_pagamentos.Name], UiLanguage.Portuguese, CancellationToken.None);
 
         Assert.Empty(analysis.Segments);
         var hole = Assert.Single(analysis.Graph.Nodes, n => n.Kind == NodeKind.Unresolved && n.Label == "POST api/pedidos/{}/cancelamento");

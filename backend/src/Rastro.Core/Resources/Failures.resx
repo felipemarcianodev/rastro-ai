@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Failure.Survey.Unexpected" xml:space="preserve"><value>Unexpected failure during the trace. Details are in the API log.</value></data>
+  <data name="Failure.Survey.Interrupted" xml:space="preserve"><value>Trace interrupted: the API restarted while it was processing.</value></data>
+  <data name="Failure.Survey.TargetUnavailable" xml:space="preserve"><value>The repository or the solution is no longer available in the configuration.</value></data>
+  <data name="Failure.Survey.EntryInvalid" xml:space="preserve"><value>Invalid entry point: "{0}". Use Type.Method or Namespace.Type.Method.</value></data>
+  <data name="Failure.Survey.EntryNotFound" xml:space="preserve"><value>Method "{0}" was not found in the solution: no method named {1} with a body exists in it.</value></data>
+  <data name="Failure.Survey.EntryNotFoundSuggest" xml:space="preserve"><value>Method "{0}" was not found in the solution. A method named {1} exists in: {2}. Use Type.Method or Namespace.Type.Method.</value></data>
+  <data name="Failure.Survey.EntryNotFoundSuggestMore" xml:space="preserve"><value>Method "{0}" was not found in the solution. A method named {1} exists in: {2} and {3} more. Use Type.Method or Namespace.Type.Method.</value></data>
+  <data name="Failure.Survey.EntryAmbiguous" xml:space="preserve"><value>"{0}" is ambiguous. Use the full name: {1}.</value></data>
+  <data name="Failure.Survey.AngularScriptMissing" xml:space="preserve"><value>The Angular extractor did not come in this installation package. Reinstall Rastro.</value></data>
+  <data name="Failure.Survey.AngularTimeout" xml:space="preserve"><value>Reading the Angular code took longer than {0} s. Raise Rastro:Analysis:TypeScriptTimeoutSeconds or reduce the depth.</value></data>
+  <data name="Failure.Survey.NodeMissing" xml:space="preserve"><value>Node was not found on this machine. Install Node to trace Angular flows.</value></data>
+  <data name="Failure.Survey.AngularUnreadable" xml:space="preserve"><value>The Angular code could not be read. See the API log for details.</value></data>
+  <data name="Failure.Survey.AngularScriptError" xml:space="preserve"><value>{0}</value></data>
+  <data name="Failure.Survey.RestoreFailed" xml:space="preserve"><value>dotnet restore failed for the solution. Check that it builds on this machine.</value></data>
+  <data name="Failure.Validation.Unexpected" xml:space="preserve"><value>Unexpected failure during validation. Details are in the log.</value></data>
+  <data name="Failure.Validation.Interrupted" xml:space="preserve"><value>Validation interrupted: the API restarted while it was processing.</value></data>
+  <data name="Failure.Validation.DraftDeleted" xml:space="preserve"><value>The draft was deleted before the validation.</value></data>
+  <data name="Failure.Validation.TargetUnavailable" xml:space="preserve"><value>The repository or the solution is no longer available in the configuration.</value></data>
+  <data name="Failure.Validation.AngularUnsupported" xml:space="preserve"><value>Change validation does not read Angular code yet.</value></data>
+  <data name="Failure.Validation.EntryGone" xml:space="preserve"><value>The entry point "{0}" no longer exists in the code.</value></data>
+  <data name="Failure.Refusal.SurveyNotFound" xml:space="preserve"><value>Trace not found or it has no graph yet.</value></data>
+  <data name="Failure.Refusal.NodeNotFound" xml:space="preserve"><value>Step not found in this trace.</value></data>
+  <data name="Failure.Refusal.RuleLength" xml:space="preserve"><value>The rule must be between {0} and {1} characters long.</value></data>
+  <data name="Failure.Refusal.NotUnresolved" xml:space="preserve"><value>Only unresolved steps receive a target proposal; this one was already resolved by the compiler.</value></data>
+  <data name="Failure.Refusal.TargetUnavailable" xml:space="preserve"><value>The repository or the solution is no longer available in the configuration.</value></data>
+  <data name="Failure.Refusal.AngularUnsupported" xml:space="preserve"><value>The evidence check does not read Angular code yet: only .NET steps receive a target proposal.</value></data>
+  <data name="Failure.Refusal.CodeChanged" xml:space="preserve"><value>The code changed since this trace. Trace the flow again before proposing.</value></data>
+  <data name="Failure.Refusal.DuplicateTarget" xml:space="preserve"><value>This target was already proposed for this step. To change it, dismiss the current one on screen.</value></data>
+  <data name="Failure.Refusal.HttpNeedsSystemNoCross" xml:space="preserve"><value>This step is an HTTP call with no target. Provide the target repository (system); this trace does not follow HTTP calls to other repositories.</value></data>
+  <data name="Failure.Refusal.HttpNeedsSystem" xml:space="preserve"><value>This step is an HTTP call with no target. Provide the target repository (system); repositories in the bridge: {0}.</value></data>
+  <data name="Failure.Refusal.HttpCallMissing" xml:space="preserve"><value>The HTTP call of this step is not recorded in the graph; trace the flow again.</value></data>
+  <data name="Failure.Refusal.DestinationUnavailable" xml:space="preserve"><value>The repository {0} is not available or has no solution in the configuration.</value></data>
+  <data name="Failure.Refusal.DestinationCodeChanged" xml:space="preserve"><value>The code of {0} changed since this trace. Trace the flow again before proposing.</value></data>
+  <data name="Failure.Refusal.ProofIncomplete" xml:space="preserve"><value>Incomplete evidence: provide the target method, the file and the line.</value></data>
+  <data name="Failure.Refusal.ProofNoBody" xml:space="preserve"><value>{0} has no body in the code (abstract, extern or generated).</value></data>
+  <data name="Failure.Refusal.ProofWrongFile" xml:space="preserve"><value>The evidence does not match: {0} is in {1}:{2}, not in {3}.</value></data>
+  <data name="Failure.Refusal.ProofLineOutside" xml:space="preserve"><value>The evidence does not match: {0} goes from line {1} to {2} of {3}; line {4} is outside it.</value></data>
+  <data name="Failure.Refusal.RouteNotIndexed" xml:space="preserve"><value>{0} does not serve any HTTP route of the repository (it is not in the route index).</value></data>
+  <data name="Failure.Refusal.VerbMismatch" xml:space="preserve"><value>{0} does not serve {1}: the verb of the call does not match the one of the target.</value></data>
+  <data name="Failure.Refusal.RouteMismatch" xml:space="preserve"><value>{0} serves {1}, which does not match the called route ({2} {3}).</value></data>
+  <data name="Failure.Draft.EntryChanged" xml:space="preserve"><value>The draft must keep the same entry as the trace.</value></data>
+  <data name="Failure.Draft.DuplicateNodes" xml:space="preserve"><value>Repeated steps in the draft: {0}.</value></data>
+  <data name="Failure.Draft.CodeStepMissing" xml:space="preserve"><value>The code step "{0}" is missing from the draft. To remove it, mark it as removed.</value></data>
+  <data name="Failure.Draft.CodeStepAltered" xml:space="preserve"><value>The code step "{0}" was changed. You can only mark it as removed or modified.</value></data>
+  <data name="Failure.Draft.CodeStepMarkedNew" xml:space="preserve"><value>The step "{0}" already exists in the code; it cannot be marked as new.</value></data>
+  <data name="Failure.Draft.CodeStepModifiedNoIntent" xml:space="preserve"><value>The step "{0}" was marked as modified without saying what changes.</value></data>
+  <data name="Failure.Draft.TooManyAdded" xml:space="preserve"><value>At most {0} new steps per draft.</value></data>
+  <data name="Failure.Draft.NewStepBadId" xml:space="preserve"><value>The new step "{0}" needs an id starting with "{1}" and the new mark.</value></data>
+  <data name="Failure.Draft.NewStepNoName" xml:space="preserve"><value>New step with no name (or with more than {0} characters).</value></data>
+  <data name="Failure.Draft.NewStepNoIntent" xml:space="preserve"><value>The new step "{0}" needs to say what it should do.</value></data>
+  <data name="Failure.Draft.NewStepBadKind" xml:space="preserve"><value>The new step "{0}" can only be a method or a decision.</value></data>
+  <data name="Failure.Draft.IntentTooLong" xml:space="preserve"><value>The intent of "{0}" is longer than {1} characters.</value></data>
+  <data name="Failure.Draft.EdgeMissing" xml:space="preserve"><value>A link from the code ({0} → {1}) is missing. To remove it, mark it as removed.</value></data>
+  <data name="Failure.Draft.EdgeMarkedNew" xml:space="preserve"><value>The link {0} → {1} already exists in the code; it cannot be marked as new.</value></data>
+  <data name="Failure.Draft.EdgeDangling" xml:space="preserve"><value>A new link points to a step that is not in the draft.</value></data>
+  <data name="Failure.Draft.ForeignSystem" xml:space="preserve"><value>Editing is allowed only in the first system of the flow.</value></data>
+  <data name="Failure.Refusal.ProofTargetInvalid" xml:space="preserve"><value>The target method does not match: {0}</value></data>
+</root>

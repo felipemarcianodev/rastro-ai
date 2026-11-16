@@ -22,7 +22,12 @@ public interface ILiveDatabase
 }
 
 // O banco recusou dar o plano por um motivo que o Rastro sabe dizer (versão antiga, por exemplo).
-public class LivePlanUnavailableException(string reason) : Exception(reason);
+// PostgreSqlMajor maior que zero: a versão do PostgreSQL que não dá o plano com parâmetro, e a tela monta o texto
+// no idioma do pedido. Sem ela, vale a mensagem.
+public class LivePlanUnavailableException(string reason, int postgreSqlMajor = 0) : Exception(reason)
+{
+    public int PostgreSqlMajor { get; } = postgreSqlMajor;
+}
 
 // SQL Server pelo driver oficial (Microsoft.Data.SqlClient). Os comandos ao catálogo são constantes,
 // sem texto nenhum da requisição. Toda conexão tem tempo limite, sem pool (o SET SHOWPLAN_XML de uma

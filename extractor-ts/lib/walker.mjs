@@ -7,8 +7,10 @@ import path from 'node:path';
 import { EdgeConfidence, GraphBuilder, NodeKind, UnresolvedReason, truncar } from './grafo.mjs';
 import { rotaDosPedacos } from './rota.mjs';
 import { acharGuardas, acharMetodosDeEventos, linhaEColuna } from './template.mjs';
+import { tradutor } from './mensagens.mjs';
 
-// Erro com mensagem já escrita para o usuário (pt-BR). Qualquer outro erro é defeito do extrator.
+// Erro com mensagem já escrita para o usuário, no idioma pedido em --lang (lib/mensagens.mjs). Qualquer outro erro
+// é defeito do extrator.
 export class ErroDeUsuario extends Error {}
 
 const MAX_SUGESTOES = 5;
@@ -29,11 +31,11 @@ const MODULO_HTTP = '@angular/common/http';
 const NOME_HTTP_CLIENT = 'HttpClient';
 const MODULO_MAT_DIALOG = '@angular/material/dialog';
 const MODULO_CDK_DIALOG = '@angular/cdk/dialog';
-const ROTULO_ACAO_NO_MODAL = 'ação do usuário no modal';
 
 const limpar = (texto) => texto.replace(/\s+/g, ' ').trim();
 
-export function extrair(ts, { root, project, entry, depth, projectName }) {
+export function extrair(ts, { root, project, entry, depth, projectName, lang }) {
+  const t = tradutor(lang);
   const raiz = path.resolve(root);
   const grafo = new GraphBuilder();
   const httpCalls = [];
@@ -42,17 +44,17 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
 
   const tsconfig = path.resolve(raiz, project);
   if (!fs.existsSync(tsconfig)) {
-    throw new ErroDeUsuario(`O arquivo ${project} não foi encontrado no repositório.`);
+    throw new ErroDeUsuario(t('projectFileNotFound', project));
   }
   const lido = ts.readConfigFile(tsconfig, ts.sys.readFile);
   if (lido.error) {
     throw new ErroDeUsuario(
-      `Não foi possível ler o ${project}: ${ts.flattenDiagnosticMessageText(lido.error.messageText, ' ')}`,
+      t('projectFileUnreadable', project, ts.flattenDiagnosticMessageText(lido.error.messageText, ' ')),
     );
   }
   const configuracao = ts.parseJsonConfigFileContent(lido.config, ts.sys, path.dirname(tsconfig), undefined, tsconfig);
   if (configuracao.fileNames.length === 0) {
-    throw new ErroDeUsuario(`O ${project} não inclui nenhum arquivo TypeScript.`);
+    throw new ErroDeUsuario(t('projectWithoutFiles', project));
   }
   const programa = ts.createProgram({
     rootNames: configuracao.fileNames,
@@ -94,7 +96,7 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
       : (nome?.getText() ?? null);
 
   const nomeDaClasse = (no) =>
-    ts.isClassLike(no) ? (no.name?.text ?? '(anônima)') : null;
+    ts.isClassLike(no) ? (no.name?.text ?? t('anonymousClass')) : null;
 
   function simbolo(no) {
     const s = checker.getSymbolAtLocation(no);
@@ -223,7 +225,7 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
 
   const pontos = entry.split('.');
   if (pontos.length < 2 || pontos.some((p) => p.length === 0)) {
-    throw new ErroDeUsuario(`Ponto de entrada inválido: "${entry}". Use Classe.metodo.`);
+    throw new ErroDeUsuario(t('invalidEntryPoint', entry));
   }
   const nomeMetodo = pontos[pontos.length - 1];
   const nomeClasse = pontos[pontos.length - 2];
@@ -236,22 +238,16 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
     }
     mesmoNome.sort();
     if (mesmoNome.length === 0) {
-      throw new ErroDeUsuario(
-        `Método "${entry}" não encontrado no projeto: nenhum método chamado ${nomeMetodo}, com corpo, existe nele.`,
-      );
+      throw new ErroDeUsuario(t('methodNotFound', entry, nomeMetodo));
     }
     const mostrados = mesmoNome.slice(0, MAX_SUGESTOES).join(', ');
-    const mais = mesmoNome.length > MAX_SUGESTOES ? ` e mais ${mesmoNome.length - MAX_SUGESTOES}` : '';
-    throw new ErroDeUsuario(
-      `Método "${entry}" não encontrado no projeto. Com o nome ${nomeMetodo} existe: ${mostrados}${mais}. Use Classe.metodo.`,
-    );
+    const mais = Math.max(0, mesmoNome.length - MAX_SUGESTOES);
+    throw new ErroDeUsuario(t('methodNotFoundWithSuggestions', entry, nomeMetodo, mostrados, mais));
   }
   const comMetodo = candidatas.filter((c) => metodoNaClasse(c, nomeMetodo));
   if (comMetodo.length > 1) {
     const arquivos = comMetodo.map((c) => relativo(c.getSourceFile().fileName)).sort().join(', ');
-    throw new ErroDeUsuario(
-      `O ponto de entrada "${entry}" é ambíguo: a classe ${nomeClasse} existe em mais de um arquivo (${arquivos}).`,
-    );
+    throw new ErroDeUsuario(t('ambiguousEntry', entry, nomeClasse, arquivos));
   }
   const classeDaEntrada = comMetodo[0];
 
@@ -340,7 +336,7 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
       grafo.addNo({
         id: limite,
         kind: NodeKind.Unresolved,
-        label: 'limite de profundidade',
+        label: t('depthLimit'),
         reason: UnresolvedReason.DepthLimit,
         detail: `MaxDepth = ${depth}`,
       });
@@ -644,7 +640,7 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
       grafo.addNo({
         id: idModal,
         kind: NodeKind.Method,
-        label: `abre o modal ${classe.name.text}`,
+        label: t('opensModal', classe.name.text),
         symbol: classe.name.text,
         location: { file: p.file, line: p.line },
         project: projectName,
@@ -659,7 +655,7 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
       grafo.addNo({
         id: limite,
         kind: NodeKind.Unresolved,
-        label: 'limite de profundidade',
+        label: t('depthLimit'),
         reason: UnresolvedReason.DepthLimit,
         detail: `MaxDepth = ${depth}`,
       });
@@ -673,7 +669,7 @@ export function extrair(ts, { root, project, entry, depth, projectName }) {
       const desc = metodoNaClasse(classe, nome);
       if (!desc) continue;
       const alvo = percorrerMetodo(desc, nivelDoModal + 1, false);
-      grafo.addAresta(idModal, alvo, ROTULO_ACAO_NO_MODAL, undefined, undefined, EdgeConfidence.Inferred);
+      grafo.addAresta(idModal, alvo, t('modalAction'), undefined, undefined, EdgeConfidence.Inferred);
     }
   }
 

@@ -1171,28 +1171,65 @@ Regras da tradução:
   - **Documentação:** README, README do pacote (seção Idioma) e `SECURITY.md` (a rota nova).
   - **Testes:** backend 762/762 (`API-LANG-001` a `007`, `CORE-LANG-001` a `005`, `CORE-FAIL-001` a `008`, `API-FAIL-001` a `006`), frontend 590/590.
 
-## Fase 50: textos que o núcleo gera `[ ]` (depende da Fase 49)
+## Fase 50: textos que o núcleo gera `[x]` (depende da Fase 49)
 
-- [ ] Prompt da mudança e da refatoração, documentação do fluxo, relatório da validação, perguntas, C4, achados do extrator e do acesso ao banco, motivos do extrator TypeScript.
-- [ ] Cultura como parâmetro explícito no núcleo, sem referência à API nem à IA; teste de determinismo por idioma.
-- [ ] Erro do banco em inglês original quando o idioma é inglês.
+- [x] Prompt da mudança e da refatoração, documentação do fluxo, relatório da validação, perguntas, C4, achados do extrator e do acesso ao banco, motivos do extrator TypeScript.
+- [x] Cultura como parâmetro explícito no núcleo, sem referência à API nem à IA; teste de determinismo por idioma.
+- [x] Erro do banco em inglês original quando o idioma é inglês.
+- [x] Texto das regras do `FlowRuleExtractor` ("encerra o fluxo com exceção" e afins), que aparece dentro das respostas das perguntas (resolvido na Fase 51, com `Rastro.Core/Resources/Rules`).
+- **Registro (2026-11-15):**
+  - **Como foi feito:** três agentes em paralelo, cada um com o seu conjunto de recursos: prosa do núcleo (`Rastro.Core/Resources/Messages`, 254 chaves), achados do fluxo (`Rastro.Extractor/Resources/Messages` e `Rastro.Infrastructure/Resources/Messages`) e visão do banco (`Database` no Extractor, 142 chaves, e na Infrastructure, 47). O teste de paridade passou a varrer todo conjunto `Resources/<Nome>.resx`.
+  - **Idioma de cada texto:** o que nasce de um pedido (prompt, documentação, perguntas, C4, análise de consulta, esquema, plano, banco vivo) sai no idioma do pedido, por `RequestLanguage.Current`, o único ponto que lê a cultura da thread. O que nasce fora de pedido (achados gravados pelo levantamento, relatório da validação, MCP, CLI) sai no idioma efetivo (`EffectiveLanguage.Of`: o `config.json`, senão o do sistema). O texto gravado fica no idioma em que nasceu.
+  - **Determinismo:** cada construtor recebe o idioma como parâmetro; testes byte a byte nos três idiomas (`CORE-LANG-101` a `113`).
+  - **Erro do banco:** em inglês, volta a mensagem original do banco; em espanhol, os mesmos casos do português são traduzidos. Na integração apareceu que o ScriptDom já devolve a mensagem traduzida pelo idioma do Windows ("Sintaxe incorreta próxima a" numa máquina em português), o que o tradutor do Rastro não reconhece: o leitor de T-SQL passou a rodar com a cultura invariante (`TSqlParsing`), sempre em inglês, e a tradução fica com o Rastro.
+  - **Extrator Angular:** o script recebe `--lang` e traduz as próprias mensagens (`lib/mensagens.mjs`); sem o argumento, inglês.
+  - **Pacote:** as culturas satélite (`pt-BR/` e `es/`, com os `*.resources.dll` do Core, do Extractor e da Infrastructure) saem no publish e no pacote, sem passo novo no `empacotar.ps1`.
+  - **Ficou para a Fase 51:** o prompt de sistema dos provedores de IA (a análise que o alimenta ainda vai em português) e o texto próprio do MCP, que fixa o idioma ao subir.
+  - **Navegador:** a tela do banco, que na Fase 48 ainda mostrava os avisos do leitor de esquema em português, sai inteira em inglês e em espanhol. Prints em `docs/telas/fase-50/`.
+  - **Testes:** backend 848/848, frontend 590/590, extrator Angular 72/72. Os testes de banco vivo com Testcontainers rodam no CI.
 
-## Fase 51: MCP, provedores de IA e CLI `[ ]` (depende da Fase 50)
+## Fase 51: MCP, provedores de IA e CLI `[x]` (depende da Fase 50)
 
-- [ ] Instruções e descrições das ferramentas do MCP em inglês, pedindo a resposta no idioma do usuário; saída das ferramentas no idioma do `config.json`.
-- [ ] Os prompts dos provedores recebem o idioma; o validador de prova não muda.
-- [ ] CLI no idioma do `config.json` ou do sistema.
+- [x] Instruções e descrições das ferramentas do MCP em inglês, pedindo a resposta no idioma do usuário; saída das ferramentas no idioma do `config.json`.
+- [x] Os prompts dos provedores recebem o idioma; o validador de prova não muda.
+- [x] CLI no idioma do `config.json` ou do sistema.
+- **Registro (2026-11-15):**
+  - **MCP:** `McpInstructions` e todas as descrições das ferramentas em inglês fixo, com o mesmo sentido de cada regra; o agente responde no idioma em que o usuário escreve, e os resultados vêm no idioma do Rastro. O texto que as ferramentas devolvem sai do `Rastro.Mcp/Resources/Messages` (177 chaves), no idioma do `config.json` relido a cada chamada (`IOptionsMonitor`): trocar o idioma na tela vale na resposta seguinte, sem reiniciar o MCP. As falhas com código da Fase 49 são traduzidas pelo código (`Rastro.Core/Resources/Failures`, 57 chaves; o `FailureText` em português continua igual para o log e a coluna antiga). A aceitação de proposta passou a viajar com os dados da aresta (`ProposalOutcome.Edge`, `ProofVerdict.File` e `Line`), para o MCP montar a frase no idioma.
+  - **Provedores de IA:** os seis prompts (completar buraco, regras, refatoração, perguntas, consulta e C4) vão em inglês fixo para o modelo, com a ordem de responder no idioma do pedido; o contexto da consulta que alimenta o prompt vai no mesmo idioma. As mensagens de volta para a tela saem do `Rastro.Ai/Resources/Messages`. O cache da regra escrita pela IA inclui o idioma na chave (em português, a chave antiga, para o cache já gravado continuar valendo). O validador de prova e o formato JSON não mudaram, e o teste de arquitetura da ADR-001 segue verde.
+  - **Regras do fluxo:** o texto gerado pelo `FlowRuleExtractor` sai no idioma do pedido (`Rastro.Core/Resources/Rules`).
+  - **CLI:** ajuda e mensagens no idioma do `config.json` (ou do sistema), inclusive os avisos de porta e de janela do `rastro`. Os nomes de comando e de opção não mudaram; entraram os apelidos em inglês `--tests`, `--no-window` e `--port`.
+  - **Ficou em português:** os motivos de `DesktopEnvironment.WhyUnavailable`, as exceções `AiProviderException` e `FindingNotFoundException` (a tela traduz pelo código) e os logs (regra de observabilidade).
+  - **Documentação:** README e README do pacote (MCP em inglês com resposta no idioma de quem usa, CLI seguindo o `config.json`, apelidos da CLI).
+  - **Testes:** backend 872/876 nesta máquina; as 4 falhas são do banco vivo no SQL Server, porque a imagem do SQL Server 2022 não sobe no Docker local ("The file archive sqlservr.sfp is invalid", defeito conhecido da imagem com núcleos Linux novos) e rodam no job de banco vivo do CI. Na integração, três testes ainda esperavam o prompt da IA em português e um teste novo usava regras falsas curtas demais (menos de 10 caracteres): corrigidos. Testes novos `MCP-LANG-001` a `006`, `CLI-LANG-001` a `005` e `AI-LANG-001` a `005`.
 
-## Fase 52: documentação em três idiomas, inglês na frente `[ ]` (depende da Fase 51)
+## Fase 52: documentação em três idiomas, inglês na frente `[x]` (depende da Fase 51)
 
-- [ ] `README.md` em inglês, com `README.pt-BR.md` e `README.es.md`; README do pacote e `<Description>` em inglês; `SECURITY.md` nos três.
-- [ ] Prints do README em inglês, de repositório público.
-- [ ] `scripts/verificar-traducoes.mjs` no workflow de PR (os três README com as mesmas seções); hook de ambiente do cliente aceitando os três.
+- [x] `README.md` em inglês, com `README.pt-BR.md` e `README.es.md`; README do pacote e `<Description>` em inglês; `SECURITY.md` nos três.
+- [x] Prints do README em inglês, de repositório público.
+- [x] `scripts/verificar-traducoes.mjs` no workflow de PR (os três README com as mesmas seções); hook de ambiente do cliente aceitando os três.
+- **Registro (2026-11-15):**
+  - **Documentos:** `README.md`, `docs/pacote/README.md` e `SECURITY.md` em inglês, cada um com `.pt-BR.md` (o texto em português de antes) e `.es.md` ao lado, e a linha de idiomas logo abaixo do título. O README do pacote aponta para as outras versões por URL absoluta do GitHub, porque o NuGet não segue link relativo. A seção Idioma diz, nos três, que o espanhol foi traduzido com ajuda de IA e aceita correção por PR.
+  - **Conferência:** `scripts/verificar-traducoes.mjs` exige as três versões de cada documento com os mesmos títulos, na mesma ordem e no mesmo nível; roda no job do frontend do workflow de PR. O hook de ambiente do cliente aceita as versões traduzidas como documentação.
+  - **Prints:** o README em inglês e o em espanhol mostram um levantamento do próprio Rastro (`SettingsController.SetLanguage`) na tela do idioma (`docs/telas/readme/`); o em português mantém o print da Fase 24.
+  - **Ficam em português:** ADR, visão, plano, planos de UX e telas; as versões em inglês e espanhol avisam isso entre parênteses.
 
-## Fase 53: conferência visual e versão `[ ]` (depende das Fases 47 a 52)
+## Fase 53: conferência visual e versão (depende das Fases 47 a 52)
 
-- [ ] Todas as telas nos três idiomas, nas três paletas, em 360 px e na largura cheia; `levantamento-ux` com foco em texto que estoura.
-- [ ] Release `0.10.0` pela skill `gerar-release`.
+- [x] Todas as telas nos três idiomas, nas três paletas, em 360 px e na largura cheia; `levantamento-ux` com foco em texto que estoura.
+- [ ] Release `0.10.0` pela skill `gerar-release`, depois do merge dos PRs das Fases 48 a 53 e do pedido do dono.
+- **Registro (2026-11-15):**
+  - **Medição:** um script no navegador (Chrome sem janela, CDP) abriu a lista, o levantamento, a visão consolidada, o banco e as Configurações nos três idiomas, em 1440 e em 360 px, e mediu rolagem horizontal e texto cortado. Nenhuma tela rola na horizontal; o único corte que depende do idioma era o título do levantamento em pt e es, que ganhou `title`. As paletas ficaram de fora da medição: a tradução não muda cor.
+  - **Levantamento de UX:** [`plano-ux-2026-11-15-multilingue.md`](../frontend/plano-ux-2026-11-15-multilingue.md), com 31 achados. Entraram nesta fase: a moldura do laço que repetia o verbo em inglês e espanhol (defeito de código), "Laguna" no lugar de "Hueco", os termos da CLI, "If true / If false", "Ready" no status, "Choose" e "Show only", e o selo "FK, no index". O resto fica nas Fases A (traduções e larguras), B (comportamento em 360 px e "nós/arestas" no servidor) e C (alto risco, com aprovação do dono item a item: minimapa em tela estreita, atalho de idioma no cabeçalho, rótulo bilíngue e legenda do mapa do banco).
+  - **Prints:** a tela em espanhol, nas duas larguras, e o levantamento em 360 px nos três idiomas, em `docs/telas/fase-53/`.
+  - **Testes:** frontend 591/591; CLI e paridade dos recursos 20/20.
+
+### Fim do plano multilíngue: pendências consolidadas
+
+O plano Rastro multilíngue está **EXECUTADO** (Fases 45 a 53), faltando só a versão. Pendências:
+- [ ] Release `0.10.0` (depois dos merges).
+- [ ] Fases A e B do [plano de UX multilíngue](../frontend/plano-ux-2026-11-15-multilingue.md); a Fase C espera a aprovação do dono.
+- [ ] Replicar o ajuste do hook `revisao-ptbr` (arquivo com outro idioma no nome) nos outros repositórios irmãos que têm o hook, quando algum deles ganhar documento em outro idioma; o PR do repositório de origem da governança espera o dono.
+- [ ] Testes do banco vivo no SQL Server rodam só no CI: a imagem do SQL Server 2022 não sobe no Docker da máquina do dono ("sqlservr.sfp is invalid").
 
 ## Levantamento de UX do fim do plano `[x]`
 

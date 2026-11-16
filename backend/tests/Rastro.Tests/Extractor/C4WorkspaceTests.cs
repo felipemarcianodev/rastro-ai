@@ -1,3 +1,4 @@
+using Rastro.Core.Localization;
 using Rastro.Core.Architecture;
 using Rastro.Core.Prompts;
 using Rastro.Extractor;
@@ -14,7 +15,7 @@ public class C4WorkspaceTests
     {
         var graph = await FlowExtractor.ExtractAsync(FixtureWorkspace.Load("Alerts"), "AlertJob.ExecuteAsync",
             new ExtractionOptions { BaseDirectory = FixtureWorkspace.FixturesRoot });
-        return C4WorkspaceBuilder.Build(new PromptContext("fixture", "Fixture.slnx", "AlertJob.ExecuteAsync", "0123456789"), graph, people);
+        return C4WorkspaceBuilder.Build(new PromptContext("fixture", "Fixture.slnx", "AlertJob.ExecuteAsync", "0123456789"), UiLanguage.Portuguese, graph, people);
     }
 
     [Fact] // EXT-C4-001

@@ -210,7 +210,7 @@
     "surveyStatus": {
       "pending": "Queued",
       "running": "Analyzing",
-      "completed": "Done",
+      "completed": "Ready",
       "failed": "Failed"
     },
     "validationVerdict": {
@@ -441,7 +441,7 @@
     "noPrevious": "There is no previous block on this path",
     "nextTitle": "Next: {title} (right arrow)",
     "noNext": "There is no next block on this path",
-    "focusSection": "See only this section",
+    "focusSection": "Show only this section",
     "focusSectionTitle": "Cuts the flow at this block's step",
     "closeSystem": "Collapse this system",
     "openSystem": "Open this system",
@@ -554,9 +554,9 @@
         "break": "Leaves the loop",
         "continue": "Skips to the next one"
       },
-      "branchThen": "If yes",
-      "branchElse": "If not",
-      "branchDefault": "In the other cases",
+      "branchThen": "If true",
+      "branchElse": "If false",
+      "branchDefault": "In all other cases",
       "branchCase": "Case {value}",
       "branchOr": "{text} or {part}",
       "branchOtherCases": "other cases"
@@ -585,7 +585,7 @@
     "closeAria": "Close the step and go back to the overview",
     "closeTitle": "Close (Esc)",
     "showWholeGraph": "Show the whole graph",
-    "focusFlow": "See only this flow",
+    "focusFlow": "Show only this flow",
     "focusHelp": "Hides the other paths: what leads to this step and what runs after it stays",
     "focusHelpText": "Hides the other paths: what leads to this step and what runs after it stays.",
     "origin": "System {system} · {language}",
@@ -743,7 +743,7 @@
     "buildTests": "Repository build and tests",
     "viewOutput": "See the output",
     "docTitle": "Flow documentation",
-    "openNew": "Open the new flow compared",
+    "openNew": "Open the new flow from the comparison",
     "openNewTitle": "Opens the new flow with the original on top: what came in is blue, what left is red (you can stop comparing there)",
     "revalidate": "Validate again",
     "download": "Download documentation",
@@ -829,7 +829,7 @@
     "welcome": {
       "steps": "Two steps to your first flow:",
       "step1": "Register the folder with the code Rastro will read.",
-      "step2": "Pick the entry method and trace your first flow.",
+      "step2": "Choose the entry method and trace your first flow.",
       "aiNote": "AI is optional: Rastro works without it. To turn it on, open the",
       "settingsLink": "Settings"
     },
@@ -1282,7 +1282,7 @@
     "aiNever": "Table data and the connection string never go.",
     "aiGone": "AI is off right now. The suggestion below was received earlier and stays here; to ask for another, turn on suggestions in",
     "aiOffBefore": "Want an AI-made improvement suggestion? Turn on suggestions in",
-    "aiOffAfter": ". Without it, the analysis uses only the fixed rules.",
+    "aiOffAfter": ". Without suggestions, the analysis uses only the fixed rules.",
     "openSettings": "Open Settings",
     "sideAria": "Plan and tables of the query",
     "tablesTitle": "Query tables",
@@ -1444,7 +1444,7 @@
     "finding": {
       "foreignKeyWithoutIndex": {
         "title": "Foreign key without index",
-        "badge": "FK without index",
+        "badge": "FK, no index",
         "text": "{source} creates the FK {columns} without an index. Every lookup by {columns} (and every DELETE on the target table) scans this table."
       }
     },

@@ -4,6 +4,8 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Rastro.Core.Database;
+using Rastro.Core.Localization;
+using Txt = Rastro.Infrastructure.Resources.Database;
 
 namespace Rastro.Infrastructure.Database.Live;
 
@@ -74,15 +76,16 @@ public class LiveConnectionStore(RastroDbContext db, IDataProtectionProvider pro
     public async Task<LiveConnectionView> ViewAsync(string repository, CancellationToken ct) =>
         View(await db.LiveConnections.AsNoTracking().FirstOrDefaultAsync(c => c.Repository == repository, ct));
 
-    // ArgumentException: string vazia, longa demais, que o driver não entende ou sem servidor.
+    // ArgumentException: string vazia, longa demais, que o driver não entende ou sem servidor; a mensagem sai no
+    // idioma do pedido (vai para a tela) e nunca leva um pedaço da string.
     // repositoryDialect: o dialeto do código do repositório, para a string que serve aos dois drivers.
-    public async Task<LiveConnectionView> SaveAsync(string repository, string? connectionString, SqlDialect repositoryDialect, CancellationToken ct)
+    public async Task<LiveConnectionView> SaveAsync(string repository, string? connectionString, SqlDialect repositoryDialect, UiLanguage language, CancellationToken ct)
     {
         var text = connectionString?.Trim() ?? string.Empty;
-        if (text.Length == 0 || text.Length > MaxLength) throw new ArgumentException("String de conexão vazia ou longa demais.");
+        if (text.Length == 0 || text.Length > MaxLength) throw new ArgumentException(Txt.Get("Live.Conn.EmptyOrLong", language));
         var dialect = LiveConnectionDialect.Detect(text, repositoryDialect)
-                      ?? throw new ArgumentException("String de conexão que não está no formato chave=valor;chave=valor.");
-        var (server, database) = dialect == SqlDialect.PostgreSql ? PostgreSql(text) : SqlServer(text);
+                      ?? throw new ArgumentException(Txt.Get("Live.Conn.NotKeyValue", language));
+        var (server, database) = dialect == SqlDialect.PostgreSql ? PostgreSql(text, language) : SqlServer(text, language);
 
         var entity = await db.LiveConnections.FirstOrDefaultAsync(c => c.Repository == repository, ct);
         if (entity is null)
@@ -99,7 +102,7 @@ public class LiveConnectionStore(RastroDbContext db, IDataProtectionProvider pro
         return View(entity);
     }
 
-    private static (string Server, string? Database) SqlServer(string text)
+    private static (string Server, string? Database) SqlServer(string text, UiLanguage language)
     {
         SqlConnectionStringBuilder builder;
         try
@@ -109,16 +112,16 @@ public class LiveConnectionStore(RastroDbContext db, IDataProtectionProvider pro
         catch (Exception ex) when (ex is ArgumentException or FormatException or KeyNotFoundException or InvalidOperationException)
         {
             // A mensagem do driver pode repetir um pedaço da string: não sai daqui.
-            throw new ArgumentException("String de conexão que o driver do SQL Server não entende.");
+            throw new ArgumentException(Txt.Get("Live.Conn.SqlServerUnknown", language));
         }
-        if (string.IsNullOrWhiteSpace(builder.DataSource)) throw new ArgumentException("A string de conexão não diz o servidor (Data Source).");
+        if (string.IsNullOrWhiteSpace(builder.DataSource)) throw new ArgumentException(Txt.Get("Live.Conn.NoDataSource", language));
         return (builder.DataSource, builder.InitialCatalog);
     }
 
-    private static (string Server, string? Database) PostgreSql(string text)
+    private static (string Server, string? Database) PostgreSql(string text, UiLanguage language)
     {
         if (text.Contains("://", StringComparison.Ordinal))
-            throw new ArgumentException("O Rastro lê a string de conexão do PostgreSQL no formato chave=valor (Host=...;Database=...;Username=...;Password=...), não como URL.");
+            throw new ArgumentException(Txt.Get("Live.Conn.PgUrl", language));
         NpgsqlConnectionStringBuilder builder;
         try
         {
@@ -127,9 +130,9 @@ public class LiveConnectionStore(RastroDbContext db, IDataProtectionProvider pro
         catch (Exception ex) when (ex is ArgumentException or FormatException or KeyNotFoundException or InvalidOperationException)
         {
             // A mensagem do driver pode repetir um pedaço da string: não sai daqui.
-            throw new ArgumentException("String de conexão que o driver do PostgreSQL não entende.");
+            throw new ArgumentException(Txt.Get("Live.Conn.PgUnknown", language));
         }
-        if (string.IsNullOrWhiteSpace(builder.Host)) throw new ArgumentException("A string de conexão não diz o servidor (Host).");
+        if (string.IsNullOrWhiteSpace(builder.Host)) throw new ArgumentException(Txt.Get("Live.Conn.NoHost", language));
         var server = builder.Port is > 0 and not NpgsqlConnection.DefaultPort ? $"{builder.Host}:{builder.Port}" : builder.Host;
         return (server, builder.Database);
     }

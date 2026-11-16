@@ -37,7 +37,7 @@ public static class FlowExtractor
         var entryNodeId = await walker.WalkMethodAsync(entry, depth: 0, isEntry: true, ct);
 
         var graph = builder.Build(entryPoint, entryNodeId);
-        var inspected = await QualityInspector.InspectAsync(graph, walker, ct);
-        return new ExtractionResult(await DbAccessInspector.InspectAsync(inspected, walker, solution, baseDirectory, options.Schema, ct), walker.HttpCalls);
+        var inspected = await QualityInspector.InspectAsync(graph, walker, options.Language, ct);
+        return new ExtractionResult(await DbAccessInspector.InspectAsync(inspected, walker, solution, baseDirectory, options.Schema, options.Language, ct), walker.HttpCalls);
     }
 }

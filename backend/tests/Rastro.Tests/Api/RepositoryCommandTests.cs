@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Rastro.Api.Cli;
+using Rastro.Core.Localization;
 using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Repositories;
 
@@ -24,7 +25,7 @@ public sealed class RepositoryCommandTests : IDisposable
     {
         var output = new StringWriter();
         var error = new StringWriter();
-        var code = RepositoryCommand.Run(args, ConfigPath, output, error);
+        var code = RepositoryCommand.Run(args, ConfigPath, output, error, UiLanguage.Portuguese);
         return (code, output.ToString(), error.ToString());
     }
 

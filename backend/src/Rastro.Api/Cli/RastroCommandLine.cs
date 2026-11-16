@@ -1,4 +1,5 @@
 using Rastro.Core;
+using Rastro.Core.Localization;
 using Rastro.Infrastructure.Storage;
 using Rastro.Mcp;
 
@@ -12,17 +13,20 @@ public static class RastroCommandLine
     public static bool IsCommand(string[] args) =>
         args is [var first, ..] && (!first.StartsWith('-') || first is "--version" or "--help" or "-h");
 
-    public static async Task<int> RunAsync(string[] args)
+    // language nulo: o do config.json (e, sem ele, o do sistema). Os nomes de comando e de opção são os mesmos em
+    // qualquer idioma; só a ajuda e as mensagens mudam.
+    public static async Task<int> RunAsync(string[] args, UiLanguage? language = null)
     {
         var output = Console.Out;
         var error = Console.Error;
+        var lang = language ?? ApiText.CliLanguage(RastroHome.ConfigPath);
         return args switch
         {
             ["--version"] => Version(output),
-            ["--help" or "-h" or "ajuda"] => Usage(output, 0),
+            ["--help" or "-h" or "ajuda"] => Usage(output, 0, lang),
             ["mcp", .. var rest] => await Mcp(rest),
-            ["repo", .. var rest] => RepositoryCommand.Run(rest, RastroHome.ConfigPath, output, error),
-            _ => Usage(error, 1)
+            ["repo", .. var rest] => RepositoryCommand.Run(rest, RastroHome.ConfigPath, output, error, lang),
+            _ => Usage(error, 1, lang)
         };
     }
 
@@ -38,20 +42,29 @@ public static class RastroCommandLine
         return 0;
     }
 
-    private static int Usage(TextWriter writer, int exitCode)
+    private static int Usage(TextWriter writer, int exitCode, UiLanguage lang)
     {
-        writer.WriteLine($"rastro {RastroVersion.Current}: o rastro de cada funcionalidade no seu código .NET.");
-        writer.WriteLine();
-        writer.WriteLine("Uso:");
-        writer.WriteLine($"  rastro [--porta N]            abre o Rastro numa janela própria; a tela também fica em http://127.0.0.1:{DefaultPort} (só nesta máquina)");
-        writer.WriteLine("  rastro --sem-janela           só o console e o endereço, para abrir no navegador");
-        writer.WriteLine("  rastro repo add <nome> <pasta> [--build \"comando\"] [--testes \"comando\"]");
-        writer.WriteLine("  rastro repo remove <nome>");
-        writer.WriteLine("  rastro repo list");
-        writer.WriteLine("  rastro mcp                     servidor MCP para o seu agente (ex.: Claude Code)");
-        writer.WriteLine("  rastro --version");
-        writer.WriteLine();
-        writer.WriteLine($"Dados em {RastroHome.Folder} (troque com a variável {RastroHome.EnvironmentVariable}).");
+        writer.Write(Help(lang));
         return exitCode;
+    }
+
+    // A ajuda no idioma pedido. Os nomes de comando e de opção são os mesmos nos três.
+    public static string Help(UiLanguage lang)
+    {
+        var help = new System.Text.StringBuilder();
+        help.AppendLine(ApiText.Get("Cli.Usage.Title", lang, RastroVersion.Current));
+        help.AppendLine();
+        help.AppendLine(ApiText.Get("Cli.Usage.Header", lang));
+        help.AppendLine($"  rastro [--porta N]            {ApiText.Get("Cli.Usage.Open", lang, DefaultPort)}");
+        help.AppendLine($"  rastro --sem-janela           {ApiText.Get("Cli.Usage.NoWindow", lang)}");
+        help.AppendLine("  " + ApiText.Get("Cli.Usage.RepoAdd", lang));
+        help.AppendLine("  " + ApiText.Get("Cli.Usage.RepoRemove", lang));
+        help.AppendLine("  rastro repo list");
+        help.AppendLine($"  rastro mcp                     {ApiText.Get("Cli.Usage.Mcp", lang)}");
+        help.AppendLine("  rastro --version");
+        help.AppendLine();
+        help.AppendLine(ApiText.Get("Cli.Usage.Aliases", lang));
+        help.AppendLine(ApiText.Get("Cli.Usage.Data", lang, RastroHome.Folder, RastroHome.EnvironmentVariable));
+        return help.ToString();
     }
 }

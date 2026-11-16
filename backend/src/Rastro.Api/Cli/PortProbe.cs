@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 using Rastro.Api.Controllers;
+using Rastro.Core.Localization;
 
 namespace Rastro.Api.Cli;
 
@@ -32,15 +33,16 @@ public static class PortProbe
     }
 
     // Devolve o código de saída: Rastro já aberto é o que o usuário queria (0); outro programa na porta é erro (1).
-    public static int Report(PortCheck check, int port, TextWriter output, TextWriter error)
+    public static int Report(PortCheck check, int port, TextWriter output, TextWriter error, UiLanguage? language = null)
     {
+        var lang = language ?? UiLanguages.FromSystem();
         if (check.State == PortState.RastroOpen)
         {
-            output.WriteLine($"O Rastro {check.Version} já está aberto em http://127.0.0.1:{port}. Abra esse endereço no navegador.");
+            output.WriteLine(ApiText.Get("Cli.Port.RastroOpen", lang, check.Version!, port));
             return 0;
         }
 
-        error.WriteLine($"A porta {port} já está em uso por outro programa. Escolha outra: rastro --porta N");
+        error.WriteLine(ApiText.Get("Cli.Port.InUse", lang, port));
         return 1;
     }
 

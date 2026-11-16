@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <data name="Live.CatalogNoAnswer" xml:space="preserve"><value>La base de datos en vivo no respondió ({0}): el esquema salió solo del código.</value></data>
+  <data name="Live.TestOkOne" xml:space="preserve"><value>Conectó: 1 tabla en el catálogo.</value></data>
+  <data name="Live.TestOkMany" xml:space="preserve"><value>Conectó: {0} tablas en el catálogo.</value></data>
+  <data name="Live.TestFailed" xml:space="preserve"><value>No se pudo conectar: {0}.</value></data>
+  <data name="Live.OriginalPlanMissing" xml:space="preserve"><value>No llegó el plan de la consulta original: {0}</value></data>
+  <data name="Live.RewrittenPlanMissing" xml:space="preserve"><value>No llegó el plan de la consulta reescrita: {0}</value></data>
+  <data name="Live.ConnectionRemoved" xml:space="preserve"><value>se eliminó la conexión con la base de datos en vivo.</value></data>
+  <data name="Live.NoAnswer" xml:space="preserve"><value>la base de datos en vivo no respondió</value></data>
+  <data name="Live.Reason.BadCredentials" xml:space="preserve"><value>usuario o contraseña rechazados</value></data>
+  <data name="Live.Reason.DatabaseMissingOrNoAccess" xml:space="preserve"><value>la base de datos indicada no existe o el usuario no tiene acceso a ella</value></data>
+  <data name="Live.Reason.SqlNoPermission" xml:space="preserve"><value>el usuario no tiene permiso sobre la tabla de la consulta: SQL Server solo muestra el plan a quien puede ejecutar la instrucción (SELECT en las tablas, además de SHOWPLAN)</value></data>
+  <data name="Live.Reason.SqlNoViewDefinition" xml:space="preserve"><value>el usuario no tiene el permiso VIEW DEFINITION o SHOWPLAN</value></data>
+  <data name="Live.Reason.Timeout" xml:space="preserve"><value>tiempo agotado</value></data>
+  <data name="Live.Reason.ServerUnreachable" xml:space="preserve"><value>servidor no encontrado o fuera de línea</value></data>
+  <data name="Live.Reason.DatabaseRefused" xml:space="preserve"><value>la base de datos rechazó la consulta (error {0})</value></data>
+  <data name="Live.Reason.SqlError" xml:space="preserve"><value>error {0} de SQL Server</value></data>
+  <data name="Live.Reason.PlanUnreadable" xml:space="preserve"><value>no se pudo leer el plan devuelto</value></data>
+  <data name="Live.Reason.PgDatabaseMissing" xml:space="preserve"><value>la base de datos indicada no existe</value></data>
+  <data name="Live.Reason.PgNoPermission" xml:space="preserve"><value>el usuario no tiene permiso para esta instrucción sobre la tabla de la consulta: PostgreSQL solo muestra el plan a quien puede ejecutar la instrucción (el SELECT, o el INSERT, UPDATE y DELETE, en las tablas, además de USAGE en el schema)</value></data>
+  <data name="Live.Reason.PgReadOnly" xml:space="preserve"><value>la base de datos rechazó la operación porque la conexión es de solo lectura</value></data>
+  <data name="Live.Reason.PgTableMissing" xml:space="preserve"><value>la tabla de la consulta no existe en la base de datos</value></data>
+  <data name="Live.Reason.PgSyntax" xml:space="preserve"><value>PostgreSQL no entendió la consulta (error 42601)</value></data>
+  <data name="Live.Reason.ConnectionDropped" xml:space="preserve"><value>la conexión se cayó</value></data>
+  <data name="Live.Reason.ConnectionFailed" xml:space="preserve"><value>falla en la conexión</value></data>
+  <data name="Live.Reason.PgPlanNeeds12" xml:space="preserve"><value>PostgreSQL {0} solo da el plan de consulta con parámetros a partir de la versión 12: cambia los parámetros por valores</value></data>
+  <data name="Live.Conn.EmptyOrLong" xml:space="preserve"><value>Cadena de conexión vacía o demasiado larga.</value></data>
+  <data name="Live.Conn.NotKeyValue" xml:space="preserve"><value>Cadena de conexión que no está en el formato clave=valor;clave=valor.</value></data>
+  <data name="Live.Conn.SqlServerUnknown" xml:space="preserve"><value>Cadena de conexión que el controlador de SQL Server no entiende.</value></data>
+  <data name="Live.Conn.NoDataSource" xml:space="preserve"><value>La cadena de conexión no indica el servidor (Data Source).</value></data>
+  <data name="Live.Conn.PgUrl" xml:space="preserve"><value>Rastro lee la cadena de conexión de PostgreSQL en el formato clave=valor (Host=...;Database=...;Username=...;Password=...), no como URL.</value></data>
+  <data name="Live.Conn.PgUnknown" xml:space="preserve"><value>Cadena de conexión que el controlador de PostgreSQL no entiende.</value></data>
+  <data name="Live.Conn.NoHost" xml:space="preserve"><value>La cadena de conexión no indica el servidor (Host).</value></data>
+  <data name="Plan.ImplicitConvert" xml:space="preserve"><value>Conversión implícita que puede impedir la búsqueda en el índice: {0}</value></data>
+  <data name="Plan.NoStatistics" xml:space="preserve"><value>Columna sin estadísticas: {0}</value></data>
+  <data name="Plan.NoJoinPredicate" xml:space="preserve"><value>JOIN sin predicado: la base de datos junta cada fila con cada fila.</value></data>
+  <data name="Plan.UnmatchedIndexes" xml:space="preserve"><value>Índice filtrado que la base de datos no pudo usar.</value></data>
+  <data name="Plan.SpillToTempDb" xml:space="preserve"><value>La base de datos estima que usará tempdb por falta de memoria.</value></data>
+  <data name="Plan.Other" xml:space="preserve"><value>Aviso del plan: {0}</value></data>
+  <data name="Schema.TooManyFiles" xml:space="preserve"><value>El repositorio tiene más de {0} archivos .cs y .sql: el esquema salió de los primeros, en orden de ruta.</value></data>
+  <data name="Schema.FileTooBig" xml:space="preserve"><value>Archivo .sql demasiado grande (más de 2 MB, probablemente una carga de datos): quedó fuera.</value></data>
+  <data name="Schema.FileUnreadable" xml:space="preserve"><value>No se pudo leer el archivo (en uso o sin permiso).</value></data>
+  <data name="Live.PlanFailed" xml:space="preserve"><value>El plan no llegó de la base de datos en vivo: {0}.</value></data>
+  <data name="Live.ConnectionMissing" xml:space="preserve"><value>Registra primero la conexión con la base de datos en vivo.</value></data>
+  <data name="Live.QueryInvalid" xml:space="preserve"><value>Pega una consulta de hasta 100 mil caracteres.</value></data>
+  <data name="Live.QueryRefused" xml:space="preserve"><value>Consulta rechazada.</value></data>
+  <data name="Advice.UnreadableTsql" xml:space="preserve"><value>El lector de T-SQL no entendió la consulta: corrígela antes de pedir la sugerencia.</value></data>
+  <data name="Advice.UnreadablePg" xml:space="preserve"><value>El lector de SQL de PostgreSQL no entendió la consulta: corrígela antes de pedir la sugerencia.</value></data>
+</root>

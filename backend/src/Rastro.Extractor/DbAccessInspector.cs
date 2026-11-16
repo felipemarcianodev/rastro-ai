@@ -3,7 +3,9 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Rastro.Core.Database;
 using Rastro.Core.Graph;
+using Rastro.Core.Localization;
 using Rastro.Extractor.Database;
+using Rastro.Extractor.Resources;
 
 namespace Rastro.Extractor;
 
@@ -49,7 +51,7 @@ internal static class DbAccessInspector
     private static readonly Regex Placeholder = new(@"\{(\d+)\}", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
     private static readonly Regex Exec = new(@"^\s*EXEC(?:UTE)?\s+(?:@\w+\s*=\s*)?([\[\]\w\.]+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
 
-    public static async Task<FlowGraph> InspectAsync(FlowGraph graph, FlowWalker walker, Solution solution, string baseDirectory, DbSchema? repositorySchema, CancellationToken ct)
+    public static async Task<FlowGraph> InspectAsync(FlowGraph graph, FlowWalker walker, Solution solution, string baseDirectory, DbSchema? repositorySchema, UiLanguage language, CancellationToken ct)
     {
         var scans = new Dictionary<string, MethodScan>(StringComparer.Ordinal);
         foreach (var (nodeId, method) in walker.Methods)
@@ -81,12 +83,13 @@ internal static class DbAccessInspector
             .ToList(), StringComparer.Ordinal);
 
         var findings = new List<Finding>();
+        string Msg(string key, params object[] args) => ExtractorText.Get(key, language, args);
         foreach (var (nodeId, scan) in scans)
         {
             var name = $"{scan.Method.ContainingType.Name}.{scan.Method.Name}";
             foreach (var hit in scan.Hits.Where(h => h.InLoop && h.Operation == DbOperation.Read))
                 findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
-                    $"{name} consulta {TableOf(hit)} dentro de um laço: uma ida ao banco a cada volta (N+1). Traga os dados antes do laço, com Include ou com um Where que use Contains.",
+                    Msg("Db.QueryInLoop", name, TableOf(hit)),
                     walker.LocationOf(hit.At.GetLocation()), TableOf(hit)));
 
             foreach (var call in scan.LoopCalls)
@@ -104,16 +107,18 @@ internal static class DbAccessInspector
                         if (!reported.Add(table)) continue;
                         var leaf = walker.Methods[path[^1]];
                         findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
-                            $"{name} chama {callee.ContainingType.Name}.{callee.Name} dentro de um laço, e ele{(path.Count == 1 ? string.Empty : $" chega a {leaf.ContainingType.Name}.{leaf.Name}, que")} consulta {table}: uma ida ao banco a cada volta (N+1). Traga os dados antes do laço.",
+                            path.Count == 1
+                                ? Msg("Db.QueryInLoopCall", name, $"{callee.ContainingType.Name}.{callee.Name}", table)
+                                : Msg("Db.QueryInLoopChain", name, $"{callee.ContainingType.Name}.{callee.Name}", $"{leaf.ContainingType.Name}.{leaf.Name}", table),
                             walker.LocationOf(call.GetLocation()), table));
                     }
             }
 
             // N+1 de escrita (Fase 43d): ExecuteUpdate, ExecuteDelete e SQL cru que gravam, no laço ou pela cadeia.
-            string WriteTable(ImmediateWrite w) => w.Hit is not null ? w.Hit.Procedure ?? TableOf(w.Hit) : w.Table ?? "SQL cru";
+            string WriteTable(ImmediateWrite w) => w.Hit is not null ? w.Hit.Procedure ?? TableOf(w.Hit) : w.Table ?? Msg("Db.RawSql");
             foreach (var write in scan.ImmediateWrites.Where(w => w.InLoop))
                 findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
-                    $"{name} grava em {WriteTable(write)} com {write.Method} dentro de um laço: uma ida ao banco a cada volta (N+1 de escrita). Agrupe a gravação fora do laço, com um Where que use Contains sobre os ids.",
+                    Msg("Db.WriteInLoop", name, WriteTable(write), write.Method),
                     walker.LocationOf(write.At.GetLocation()), WriteTable(write)));
 
             foreach (var call in scan.LoopCalls)
@@ -129,7 +134,9 @@ internal static class DbAccessInspector
                         var table = WriteTable(write);
                         if (!reported.Add(table)) continue;
                         findings.Add(new Finding(FindingKind.QueryInLoop, FindingSeverity.Warning, nodeId,
-                            $"{name} chama {callee.ContainingType.Name}.{callee.Name} dentro de um laço, e ele{(path.Count == 1 ? string.Empty : $" chega a {leaf.ContainingType.Name}.{leaf.Name}, que")} grava em {table} com {write.Method}: uma ida ao banco a cada volta (N+1 de escrita). Agrupe a gravação fora do laço.",
+                            path.Count == 1
+                                ? Msg("Db.WriteInLoopCall", name, $"{callee.ContainingType.Name}.{callee.Name}", table, write.Method)
+                                : Msg("Db.WriteInLoopChain", name, $"{callee.ContainingType.Name}.{callee.Name}", $"{leaf.ContainingType.Name}.{leaf.Name}", table, write.Method),
                             walker.LocationOf(call.GetLocation()), table));
                     }
                 }
@@ -138,12 +145,12 @@ internal static class DbAccessInspector
             // ToList só para apagar (Fase 43b): o aviso é o do ExecuteDelete, não o do filtro "Count" da lista.
             foreach (var (hit, removal) in scan.LoadToDelete)
                 findings.Add(new Finding(FindingKind.LoadToDelete, FindingSeverity.Warning, nodeId,
-                    $"{name} traz {TableOf(hit)} com {hit.Materializer} só para apagar com {removal.Name}: o EF lê cada linha e depois manda um DELETE por linha. Use ExecuteDeleteAsync sobre o Where (ele devolve quantas linhas apagou) e apaga numa instrução só.",
+                    Msg("Db.LoadToDelete", name, TableOf(hit), hit.Materializer!, removal.Name),
                     walker.LocationOf(removal.Call.GetLocation()), TableOf(hit)));
 
             foreach (var hit in scan.Hits.Where(h => h.LateFilter is not null && !(h.LateFilter.Value.Filter == "Count" && scan.LoadToDelete.Any(l => l.Hit == h))))
                 findings.Add(new Finding(FindingKind.MaterializeBeforeFilter, FindingSeverity.Warning, nodeId,
-                    $"{name} traz {TableOf(hit)} com {hit.LateFilter!.Value.Materializer} e só depois aplica {hit.LateFilter.Value.Filter}: o filtro roda na memória, depois de ler a tabela. Ponha o {hit.LateFilter.Value.Filter} antes do {hit.LateFilter.Value.Materializer}.",
+                    Msg("Db.MaterializeBeforeFilter", name, TableOf(hit), hit.LateFilter!.Value.Materializer, hit.LateFilter.Value.Filter),
                     walker.LocationOf(hit.LateFilter.Value.At.GetLocation()), TableOf(hit)));
 
             // O repositório devolve a lista já materializada e o chamador filtra na memória (Fase 43b).
@@ -163,9 +170,9 @@ internal static class DbAccessInspector
                     {
                         // A mesma variável pode receber a lista em ramos diferentes: um achado por filtro e tabela.
                         if (!reported.Add(TableOf(source)) || !lateSeen.Add((at.SpanStart, TableOf(source)))) continue;
-                        var origin = path.Count == 1 ? "que já a trouxe" : $"que repassa o resultado de {leaf.ContainingType.Name}.{leaf.Name}, e este já a trouxe";
                         findings.Add(new Finding(FindingKind.MaterializeBeforeFilter, FindingSeverity.Warning, nodeId,
-                            $"{name} recebe {TableOf(source)} de {callee.ContainingType.Name}.{callee.Name}, {origin} com {source.ReturnsMaterializedBy} (a tabela inteira, sem este filtro), e só depois aplica {filter}: o filtro roda na memória. Passe o critério para {leaf.ContainingType.Name}.{leaf.Name} filtrar antes do {source.ReturnsMaterializedBy}.",
+                            Msg(path.Count == 1 ? "Db.MaterializeBeforeFilterCall" : "Db.MaterializeBeforeFilterChain", name, TableOf(source),
+                                $"{callee.ContainingType.Name}.{callee.Name}", $"{leaf.ContainingType.Name}.{leaf.Name}", source.ReturnsMaterializedBy!, filter),
                             walker.LocationOf(at.GetLocation()), TableOf(source)));
                     }
                 }
@@ -175,20 +182,20 @@ internal static class DbAccessInspector
                 if (LikeTable(like, scan) is { } likeHit
                     && !HasTrigramIndex(likeHit.Entity is not null && tableByEntity.TryGetValue(likeHit.Entity, out var likeTable) ? likeTable : null, property))
                     findings.Add(new Finding(FindingKind.LeadingWildcardLike, FindingSeverity.Info, nodeId,
-                        $"{name} busca em {TableOf(likeHit)} com um LIKE que começa por curinga ({pattern}): o banco não usa índice B-tree e lê a tabela inteira. Se a busca é por prefixo, tire o % do começo; no meio do texto, use índice trigram (PostgreSQL) ou busca de texto completo.",
+                        Msg("Db.LeadingWildcardLike", name, TableOf(likeHit), pattern),
                         walker.LocationOf(like.GetLocation()), TableOf(likeHit)));
 
             if (!scan.Writes && scan.Hits.All(h => h.Operation is DbOperation.Read))
                 foreach (var hit in scan.Hits.Where(h => h.TrackedRead).DistinctBy(TableOf))
                     findings.Add(new Finding(FindingKind.ReadWithoutNoTracking, FindingSeverity.Info, nodeId,
-                        $"{name} só lê {TableOf(hit)} e não pede AsNoTracking: o EF rastreia entidades que este método não grava. Se a leitura não alimenta uma gravação, use AsNoTracking.",
+                        Msg("Db.ReadWithoutNoTracking", name, TableOf(hit)),
                         walker.LocationOf(hit.At.GetLocation()), TableOf(hit)));
 
             foreach (var hit in scan.Hits.Where(h => h.Procedure is not null))
             {
-                var missing = procedures.Contains(hit.Procedure!) ? string.Empty : " Ela não aparece nos arquivos .sql do repositório.";
+                var missing = procedures.Contains(hit.Procedure!) ? string.Empty : Msg("Db.ProcedureMissing");
                 findings.Add(new Finding(FindingKind.ProcedureByRawSql, FindingSeverity.Info, nodeId,
-                    $"{name} chama a procedure {hit.Procedure} por {hit.RawMethod}: o compilador não confere o nome nem os parâmetros.{missing}",
+                    Msg("Db.ProcedureByRawSql", name, hit.Procedure!, hit.RawMethod!, missing),
                     walker.LocationOf(hit.At.GetLocation()), hit.Procedure));
             }
         }

@@ -210,7 +210,7 @@ public sealed class NpgsqlLiveDatabase : ILiveDatabase
         await using var connection = await OpenAsync(connectionString, ct);
         var (text, parameters) = PgSqlPlanGuard.Positional(sql);
         if (parameters > 0 && connection.PostgreSqlVersion.Major < GenericPlanMajorVersion)
-            throw new LivePlanUnavailableException($"o PostgreSQL {connection.PostgreSqlVersion.Major} só dá o plano de consulta com parâmetro a partir da versão 12: troque os parâmetros por valores");
+            throw new LivePlanUnavailableException($"o PostgreSQL {connection.PostgreSqlVersion.Major} só dá o plano de consulta com parâmetro a partir da versão 12: troque os parâmetros por valores", connection.PostgreSqlVersion.Major);
 
         // Transação só de leitura que sempre volta atrás; o EXPLAIN sem ANALYZE não executa a instrução.
         await using var transaction = await connection.BeginTransactionAsync(ct);
