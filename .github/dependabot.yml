@@ -9,6 +9,10 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # O Roslyn 5.12 exige o MSBuild 18.7, que só vem nos SDKs 10.0.3xx em diante: subir o Roslyn sobe o
+      # SDK mínimo de quem instala o Rastro. Entra por fase do plano, com aviso de SDK antigo na tela.
+      - dependency-name: "Microsoft.CodeAnalysis*"
+        update-types: ["version-update:semver-minor"]
     # Os pacotes do .NET (ASP.NET Core, EF Core, Extensions) saem juntos a cada patch e dependem uns
     # dos outros: subir um sozinho dá NU1605 (downgrade detectado) com TreatWarningsAsErrors.
     groups:
@@ -17,6 +21,10 @@ updates:
           - "Microsoft.AspNetCore.*"
           - "Microsoft.EntityFrameworkCore*"
           - "Microsoft.Extensions.*"
+      # Os pacotes do Roslyn exigem a mesma versão do Workspaces.Common: um sozinho dá NU1107.
+      roslyn:
+        patterns:
+          - "Microsoft.CodeAnalysis*"
 
   - package-ecosystem: npm
     directory: /frontend
