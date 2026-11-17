@@ -194,3 +194,12 @@ Todo texto que a IA escreve neste repositório, seja criação do zero, seja rev
 - **Fora da revisão:** código, identificadores, caminhos, URLs, placeholders, citação literal e texto em outro idioma. Arquivo com outro idioma no nome (`README.es.md`) não passa pela varredura do hook, e os JSON de tradução não são prosa; o `pt-BR.json` passa pela leitura da skill quando muda.
 - **Falso positivo do hook:** acrescentar a palavra em `.claude/hooks/revisao-ptbr.permitidas.txt` (uma por linha, em minúsculas).
 - **Fonte:** replicada do `meu-portfolio` (`C:Projetosmeu-portfolio`), onde a governança nasceu. Não altere o hook nem a skill só aqui: mude lá e replique nos repositórios irmãos.
+
+## Risco conhecido (bloqueante)
+
+Se, ao implementar, a IA sabe ou suspeita que a solução traz risco de **segurança**, de **interrupção do sistema** ou de **perda de dado/configuração**, ela não implementa calada nem aceita o risco por conta própria. Ou corrige antes de entregar, ou para e pergunta ao usuário, explicando o risco, o impacto e as alternativas.
+
+- Comentário no código ou "o usuário refaz depois" não é solução para risco conhecido.
+- O que precisa sobreviver ao deploy (chaves, segredos, arquivos, sessões) fica em banco ou volume persistente, nunca dentro do container.
+- Antes de criar algo de infra ou segurança, conferir como os projetos irmãos resolvem o mesmo problema.
+- Ao concluir, dizer o que não foi verificado e qualquer risco que tenha ficado.
