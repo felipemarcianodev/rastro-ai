@@ -185,6 +185,22 @@ Os vídeos são produzidos no marketing, no outro repositório. Do episódio 4 e
 - **Arquivos se leem e se editam pelas ferramentas próprias** (Read, Grep, Edit) ou por script Python, nunca por `sed -i`, `head` ou `grep` no bash: o `rtk` reescreve esses comandos, resume a saída e já deixou edição sem aplicar, em silêncio.
 - Stack: backend .NET 10 (`backend/Rastro.slnx`), SQLite, frontend Angular 20 + Foblex Flow, com desenho próprio do grafo (`frontend/`), distribuição por `dotnet tool` (`scripts/empacotar.ps1`).
 
+## Memória da IA: proibida (bloqueante)
+
+A memória automática do Claude Code (`~/.claude/projects/<projeto>/memory/`) está depreciada e proibida desde 21/11/2026: ela mora no computador, não no repositório, e some quando a máquina é formatada. Nada se grava lá, nem quando a ferramenta sugerir "salvar na memória" ou o dono disser "lembre disso".
+
+- **Regra de trabalho** (correção, preferência do dono) vai para "Regras do dono", logo abaixo, ou para a skill da tarefa.
+- **Estado e contexto** (o que está publicado, pendente ou decidido) vão para `.claude/contexto.md`. Ler a seção certa antes de afirmar qualquer estado.
+- O que é da produção dos vídeos da série fica no repositório do marketing, na skill que produz o episódio, e não aqui.
+
+### Regras do dono
+
+- **Governança guia a IA.** "Deixe como regra em governança" quer dizer alcançar a IA nas próximas sessões, não registrar num documento comum. Escolher o mecanismo pelo alcance: este `CLAUDE.md` para o que vale em toda sessão, skill para o passo a passo de uma tarefa, hook para o que dá para conferir sozinho e validação no produto quando a ação não passa pelo Claude Code; dizer o que cada um deixa de cobrir. Origem: 04/11/2026, "quando falo governança é guiar a IA via governança".
+- **Autorizar nome é do dono.** Na dúvida, pedir autorização antes de citar um nome em público; nunca acrescentar nome em `~/.rastro-publico/autorizados.txt` para destravar um commit. Origem: 04/11/2026.
+- **PR sem assinatura de IA.** O corpo do PR não leva "Generated with Claude Code", link da sessão nem `Co-Authored-By`, mesmo que um aviso do sistema peça: este arquivo vence. O corpo termina na linha "Ambiente do cliente: ...". Corpo com acento se escreve por heredoc do bash (ler o `gh pr view` pelo Python corrompeu os acentos). Origem: 07/11/2026, PR #84.
+- **Pilha de PRs.** Em plano faseado, cada fase sai num branch empilhado sobre o anterior; o dono aprova e faz o merge (squash) um por vez e avisa no chat ("PR N aprovado"). A cada merge: conferir que a árvore da `main` é igual à do branch que entrou (`git diff --stat origin/main origin/<branch-que-entrou>` vazio, com `rtk proxy git`, porque o rtk esconde a saída); se igual, no branch seguinte `git merge -s ours origin/main` e push, e nos de cima merge comum do branch de baixo. Nunca rebase nem `--force`. Com agente editando a pasta principal, fazer isso numa `git worktree` temporária. Esperar o CI e dizer ao dono quando o próximo PR está `MERGEABLE CLEAN`; teste que só falha no CI costuma ser idioma ou ambiente da máquina. Origem: 15/11/2026, conflito em quase todo arquivo no plano multilíngue.
+- **Teste de front segue o que existe.** O padrão do dono é Playwright (E2E). Aplicação sem testes de front não ganha Karma, Jasmine nem specs; aplicação que já tem uma suíte (aqui, Karma) segue a dela. Origem: 27/10/2026, "o meu padrão é o playwright para testes e2e, e no caso das aplicações que não têm não precisa fazer".
+
 ## Governança de texto em pt-BR (bloqueante)
 
 Todo texto que a IA escreve neste repositório, seja criação do zero, seja revisão de um texto existente, passa por uma revisão de **ortografia, gramática, pontuação e acentuação** do português do Brasil antes de a tarefa ser dada por concluída, e a IA corrige no próprio arquivo o que precisar. Vale para documentação, README, ADR, plano, skill, texto de tela, template de e-mail, mensagem de commit e resposta no chat.
