@@ -64,7 +64,7 @@ Lo que no se puede leer (URL armada fuera del código, clase elegida solo en tie
 
 El flujo también tiene un **mapa**, al nivel de un diagrama C2: un carril por sistema, pocos bloques en cada uno, las decisiones que cambian el desenlace, las llamadas entre sistemas y los caminos de punta a punta. Al hacer clic en un bloque se muestra solo ese tramo. Las decisiones se convierten en **reglas** en frases, con la fuente en el código, y Rastro responde **preguntas** ya preparadas sobre el flujo; con el modo proveedor activado, también la pregunta libre, que usa el uso "Sugerencias" y envía al proveedor la pregunta, el mapa, las reglas y hasta 8 fragmentos de código.
 
-Cada rastreo tiene una vista resumida en pocos pasos, en frases, como un diagrama Mermaid que editas junto a la vista previa. Haz clic en un paso para elegir su color. La versión editada se guarda en el rastreo. En el flujo, la vista también es uno de los dibujos del botón que cambia el dibujo: al hacer clic en un paso se abre el panel con su contexto, arrastrar mueve el dibujo y la rueda del mouse acerca.
+Cada rastreo tiene una vista resumida en pocos pasos, en frases, como un diagrama Mermaid que editas junto a la vista previa. Haz clic en un paso para elegir su color. La versión editada se guarda en el rastreo. En el flujo, la vista también es uno de los dibujos del botón que cambia el dibujo: al hacer clic en un paso se abre el panel con su contexto, arrastrar mueve el dibujo y la rueda del mouse acerca. El menú Exportar del rastreo también descarga el grafo o el mapa por sistemas como archivo de draw.io (`.drawio`), con las posiciones de la pantalla y el `repositorio · archivo:línea` de cada paso.
 
 ## Esquema de la base de datos
 

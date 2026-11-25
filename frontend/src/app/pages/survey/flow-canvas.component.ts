@@ -20,6 +20,7 @@ import {
 import { Latest } from '../../core/graph/latest';
 import { StepMove, stepFrom } from '../../core/graph/keyboard';
 import { COLLAPSED_PREFIX, collapsedOwner } from '../../core/graph/collapse';
+import { graphToDrawio } from '../../core/graph/drawio';
 import { SvgColors, httpLabel, toMermaid, toSvg } from '../../core/graph/export';
 import {
   LAYOUT_DIRECTION_GLYPH,
@@ -896,6 +897,13 @@ export class FlowCanvasComponent {
 
   exportMermaid(): string {
     return toMermaid(this.display(), this.direction(), this.repository());
+  }
+
+  // draw.io (Fase 54): as mesmas caixas do SVG, inclusive as arrastadas.
+  exportDrawio(name: string): string | null {
+    const boxes = new Map(this.placed().map((p) => [p.node.id, p.box]));
+    if (boxes.size === 0) return null;
+    return graphToDrawio(this.display(), boxes, this.repository() ?? '', name, { repeats: this.repeats(), direction: this.direction() });
   }
 
   centerAfterLayout(id: string): void {

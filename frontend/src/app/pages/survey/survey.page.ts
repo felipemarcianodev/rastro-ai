@@ -51,6 +51,7 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { SurveyPageTitle } from '../../core/page-title.strategy';
 import { FlowCanvasComponent } from './flow-canvas.component';
 import { ConsolidatedViewComponent } from './consolidated-view.component';
+import { DRAWIO_MIME } from '../../core/graph/drawio';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
@@ -101,6 +102,7 @@ export class SurveyPage {
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly canvas = viewChild(FlowCanvasComponent);
+  private readonly mapView = viewChild(FlowMapViewComponent);
   private pollTimer?: ReturnType<typeof setTimeout>;
   private failures = 0;
 
@@ -632,6 +634,19 @@ export class SurveyPage {
     } else {
       this.menuCopy.copy('```mermaid\n' + text + '```\n');
     }
+  }
+
+  // draw.io (Fase 54): o grafo ou o mapa por sistemas, o que estiver na tela.
+  protected exportDrawio(): void {
+    this.closePopovers();
+    const name = this.exportName();
+    const xml = this.showMap() ? this.mapView()?.exportDrawio(name) : this.canvas()?.exportDrawio(name);
+    if (!xml) {
+      this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
+      return;
+    }
+    downloadBlob(new Blob([xml], { type: DRAWIO_MIME }), `${name}.drawio`);
+    this.showExport({ ok: true, text: this.i18n.t('survey.export.started', { file: `${name}.drawio` }) });
   }
 
   private exportName(): string {

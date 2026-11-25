@@ -64,7 +64,7 @@ What cannot be read (a URL built outside the code, a class chosen only at run ti
 
 The flow also has a **map**, at the level of a C2 diagram: one lane per system, a few blocks in each, the decisions that change the outcome, the calls between systems, and the end-to-end paths. Clicking a block shows only that stretch. Decisions become **rules** in plain sentences, with the source in the code, and Rastro answers ready-made **questions** about the flow; with provider mode on, it also answers free-form questions, which use the "Suggestions" use and send the provider the question, the map, the rules, and up to 8 code excerpts.
 
-Each trace has a summary view in a few steps, in plain sentences, as a Mermaid diagram that you edit next to the preview. Click a step to choose its color. The edited version is saved with the trace. In the flow, the view is also one of the drawings of the button that switches the drawing: clicking a step opens the panel with its context, dragging moves the drawing, and the mouse wheel zooms.
+Each trace has a summary view in a few steps, in plain sentences, as a Mermaid diagram that you edit next to the preview. Click a step to choose its color. The edited version is saved with the trace. In the flow, the view is also one of the drawings of the button that switches the drawing: clicking a step opens the panel with its context, dragging moves the drawing, and the mouse wheel zooms. The Export menu of a trace also downloads the graph or the map by systems as a draw.io file (`.drawio`), with the positions on screen and the `repository · file:line` of each step.
 
 ## Database schema
 
