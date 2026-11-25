@@ -147,7 +147,7 @@ Nunca compare slugs ou status com literais: use a constante ou o `Record`. Se a 
 - Tokens e componentes compartilhados ficam em `frontend/src/theme/` (`_tokens`, `_base`, `_controls`, `_flow`). O `.component.scss` só leva o que é específico do componente. O orçamento é de 6 kB por componente (ver `docs/frontend/design-system.md`).
 - Estilo que se repete em dois componentes sobe para o tema.
 - Proibido `window.confirm`, `alert` e `prompt` nativos. Use o diálogo do tema (`.overlay/.dialog`).
-- Paletas: Papel (padrão), Carta náutica e Planta técnica, no seletor. **Nada de verde** na paleta.
+- Paletas: Papel (padrão), Carta náutica e Planta técnica, no seletor. Verde é permitido desde 2026-11-25 (decisão do dono): toda cor nova entra como token de cada paleta, com par claro e escuro, e respeita o tema.
 - Para escolher visual, prefira aplicar na tela e mostrar o print a descrever em texto.
 - **Foco no grafo:** dar foco a um passo usa `focus({ preventScroll: true })`. O contêiner do Foblex tem `overflow: hidden` e, sem isso, o navegador o rola e a imagem descola do que o Foblex calcula (aconteceu na Fase 12). Foco depois de interagir com o canvas (abrir busca, menu) vai com o atraso de `SEARCH_FOCUS_DELAY_MS`, porque o Foblex devolve o foco ao item de acessibilidade dele logo em seguida.
 

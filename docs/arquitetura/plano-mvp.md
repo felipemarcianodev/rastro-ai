@@ -1231,6 +1231,81 @@ O plano Rastro multilíngue está **EXECUTADO** (Fases 45 a 53), faltando só a 
 - [ ] Replicar o ajuste do hook `revisao-ptbr` (arquivo com outro idioma no nome) nos outros repositórios irmãos que têm o hook, quando algum deles ganhar documento em outro idioma; o PR do repositório de origem da governança espera o dono.
 - [ ] Testes do banco vivo no SQL Server rodam só no CI: a imagem do SQL Server 2022 não sobe no Docker da máquina do dono ("sqlservr.sfp is invalid").
 
+## Visão de negócio, quadro de fluxos e draw.io (Fases 54 a 61) (pedido do dono em 2026-11-25)
+
+Proposta em [`proposta-visao-negocio.md`](proposta-visao-negocio.md) e decisões na [ADR-010](../adr/adr-010-visao-de-negocio.md). Em resumo: derivação dos passos-chave no núcleo, sem IA; tela com o Foblex e layout automático próprio, em camadas (o elkjs fica como plano B); exportação feita na tela, como a da Fase 12; cores por tipo como tokens de cada paleta, com o verde liberado pelo dono.
+
+Decisões do dono (2026-11-25): o `.drawio` vale também para o grafo e o Mapa por sistemas que já existem, e entra primeiro; o verde deixa de ser proibido, basta respeitar os temas; a biblioteca da tela se escolhe por pesquisa (feita: Foblex 19.4, que já traz pontos de dobra, ligação ortogonal, grade, zoom com gatilho na roda e pinça).
+
+Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CLAUDE.md`).
+
+## Fase 54: exportar o grafo e o mapa para draw.io `[ ]`
+
+- [ ] `frontend/src/app/core/graph/drawio.ts`: gerador de `mxfile` (uma página, `mxGraphModel`, `mxCell` com `vertex` e `edge`), com escape do atributo XML e do HTML do rótulo (escape duplo), ligação `edgeStyle=orthogonalEdgeStyle` com `labelBackgroundColor` e estilo por tipo de nó.
+- [ ] Grafo: as posições da tela (as mesmas caixas do SVG, inclusive as arrastadas); uma moldura tracejada por sistema quando o fluxo atravessa mais de um; ligação inferida tracejada, confirmada mais grossa, HTTP com o rótulo "VERBO rota".
+- [ ] Mapa por sistemas: as faixas viram retângulos tracejados com o título, os blocos ficam com a geometria do mapa e as ligações de desfecho levam o rótulo do ramo.
+- [ ] Rótulo de cada passo com a referência `repositório · arquivo:linha` (fonte monoespaçada, 9 px) e `tooltip` com o símbolo. O link para o host entra na Fase 56.
+- [ ] Item "draw.io (.drawio)" no menu Exportar do grafo e do mapa, com o mesmo aviso de arquivo salvo dos outros formatos; textos nos três idiomas.
+- [ ] Testes: XML válido (`DOMParser` sem `parsererror`), um `mxCell` por passo e por ligação, escape de `<`, `&` e aspas no rótulo, moldura por sistema, rótulo de ramo no mapa.
+- [ ] Prova manual: o arquivo de um levantamento do próprio Rastro abre no draw.io com as posições da tela; print em `docs/telas/fase-54/`.
+
+## Fase 55: derivação dos passos-chave (núcleo, API e MCP) `[ ]` (depende da Fase 54)
+
+- [ ] `Rastro.Core/Business`: `BusinessKind`, `LabelOrigin`, `LabelState` (valores explícitos), `CodeRef`, `BusinessStep`, `BusinessEdge`, `BusinessFlow`, `BusinessViewOptions` e `BusinessFlowBuilder.Derive`, com as regras R1 a R7, decisão que não muda o resultado fundida ao passo de cima, agrupamento dos nós (`SourceNodeIds`), rótulo do ramo, confiança inferida, corte de ciclo e limite de passos (seção 6 da proposta).
+- [ ] Escrita no banco por `FlowNode.Db` (o `NodeKind` não tem `Database`); recusa por `Return` de tipo de erro e `Throw` não capturado; no Angular, guarda antes do HTTP e `[disabled]` como "Bloqueado na tela".
+- [ ] `config.json`: `Rastro:BusinessView` (`NotificationPatterns`, `RejectionReturnTypes`, `MaxStepsPerFlow`), com os padrões padrão da proposta.
+- [ ] Fixture `loja-web` (Angular), `api-pedidos` e `api-pagamentos` (.NET), fictícia, e o teste de integração que reproduz a tabela 6.7 (tipos, ordem e ligações).
+- [ ] `GET api/surveys/{id}/business` e a ferramenta MCP `get_business_view` (descrição em inglês, saída no idioma escolhido); textos padrão por regra nos três `.resx`.
+- [ ] Documentação do ambiente do cliente: README (três idiomas), README do pacote (três idiomas), instruções do MCP.
+
+## Fase 56: referência de código e links para o host e o editor `[ ]` (depende da Fase 55)
+
+- [ ] `Rastro.Core`: normalizador do remote (HTTPS com usuário, `git@host:`, `.git` no fim, SSH v3 do Azure DevOps) e montador do link por host (Azure DevOps, GitHub, GitLab, Bitbucket), pelo commit do levantamento e, como alternativa, pela branch; remote desconhecido não tem link.
+- [ ] O remote se lê pelo `ProcessRunner` (`git remote get-url origin`), sem shell, a partir do repositório cadastrado.
+- [ ] Link do editor: `vscode://file/...:L` e o modelo `Rastro:Editor:UrlTemplate` do `config.json`; na janela Photino, o link externo abre no navegador padrão.
+- [ ] O `.drawio` da Fase 54 passa a levar `UserObject` com `link`.
+- [ ] Testes de URL por host, com caminho com espaço e acento; `SECURITY.md` e README (o que o Rastro lê do git e o que abre fora).
+
+## Fase 57: tela da visão de negócio `[ ]` (depende da Fase 56)
+
+- [ ] Botão "Visão de negócio" no seletor de desenho do levantamento, com o Foblex e o layout automático próprio em camadas (`business-layout.ts`, determinístico).
+- [ ] Balões por tipo (pílula, losango, retângulo, tracejado), com as cores como tokens de cada paleta, em par claro e escuro; texto de negócio, referência e selos "proposto" e "inferido"; ligação com rótulo sobre o fundo da tela.
+- [ ] Painel do passo: tipo, texto, código (repositório, arquivo, linha, commit, branch, "Abrir no host", "Abrir no editor", trecho), caminho da entrada, passos agrupados, nota e "Ver no grafo".
+- [ ] Estados de carregamento, de levantamento rodando e de fluxo sem passo-chave; aviso de fluxo resumido.
+- [ ] `.drawio` da visão de negócio, com os estilos da seção 14.1 da proposta.
+- [ ] `design-system.md`: os tokens por tipo e o verde liberado (o `CLAUDE.md` já mudou no PR do plano), e a linha da visão de negócio na `visao.md`.
+- [ ] Prints e `levantamento-ux` das telas tocadas.
+
+## Fase 58: tela livre e posição salva `[ ]` (depende da Fase 57)
+
+- [ ] Pan na área vazia e com a barra de espaço, zoom com Ctrl ou Cmd e a roda em volta do ponteiro (25% a 140%), roda sem tecla rola, botões de zoom e "Ajustar", pinça.
+- [ ] Mover balão com grade de 10 px, clique sem arrastar abre o painel, teclado (Tab, Enter, setas, Esc), pontos de dobra editáveis, "Reorganizar".
+- [ ] Posição salva com debounce de 500 ms: tabela de layout por escopo (levantamento sozinho ou quadro), migration e rota em lote; documentação da migration no mesmo PR.
+- [ ] Testes de tela com clique de verdade (regra do `CLAUDE.md`): mover e recarregar, zoom no ponteiro, Reorganizar.
+
+## Fase 59: texto de negócio `[ ]` (depende da Fase 57; pode andar junto com a 58)
+
+- [ ] Regra sem IA (símbolo humanizado, condição e detalhe), decisão com "?", até 120 caracteres.
+- [ ] `business_labels` e `business_kind_overrides` por levantamento, ligados ao hash do código, com o selo "o código mudou desde a confirmação".
+- [ ] IA pelo provedor (uso "Sugestões"), só em `Rastro.Ai`, com o glossário do quadro no prompt e a proibição de inventar o que não está no código; agente pelo MCP (`propose_business_label`, `propose_business_kind`). Nenhuma ferramenta confirma a própria proposta.
+- [ ] Edição no painel e no próprio balão (duplo clique), confirmação, troca de tipo e "Mostrar na visão de negócio" no grafo.
+- [ ] Rotas de rótulo, confirmação, tipo e sugestão; documentação do MCP e do que vai para o provedor de IA (`SECURITY.md`).
+
+## Fase 60: quadro de fluxos `[ ]` (depende das Fases 58 e 59)
+
+- [ ] `boards` e `board_lanes`, rotas de quadro, rota `/boards/{id}` e item "Quadros" na barra de cima; criar pela lista de levantamentos (dois ou mais) e "Adicionar a um quadro" dentro do levantamento.
+- [ ] Faixas lado a lado, com título, entrada e repositórios; ordem arrastável; glossário e legenda.
+- [ ] Desatualização: faixa com "O código mudou" e "Levantar de novo"; ao refazer, o layout casa os passos por símbolo e local e avisa os que saíram.
+- [ ] MCP `list_boards` e `get_business_view` com `board_id`.
+- [ ] Prints e `levantamento-ux` das telas tocadas.
+
+## Fase 61: exportar a visão de negócio e o quadro `[ ]` (depende da Fase 60)
+
+- [ ] `.drawio` do quadro: faixas tracejadas com título, passos com `UserObject` e `link`, pontos de dobra salvos, glossário e legenda em `shape=note`, losango com espaço para o texto.
+- [ ] Mermaid (`flowchart TD`, `subgraph` por faixa, `classDef` por tipo), SVG e PNG da superfície da tela, com as fontes embutidas.
+- [ ] Prova manual: o `.drawio` da fixture abre no draw.io com links e cores.
+- [ ] Fim do plano: `levantamento-ux` completo e pendências consolidadas.
+
 ## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
 
 O Dependabot propôs o Roslyn 5.12 (`Microsoft.CodeAnalysis.CSharp.Workspaces` e `Workspaces.MSBuild`). Ele exige o MSBuild 18.7.1, e o MSBuild vem do SDK do .NET instalado na máquina de quem usa (MSBuildLocator): o SDK 10.0.1xx traz o MSBuild 18.0, o 10.0.2xx traz o 18.3, e só a faixa 10.0.3xx em diante atende. O dono decidiu ficar no Roslyn 5.9 por ora, e o Dependabot deixou de propor versão nova do Roslyn.
