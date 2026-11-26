@@ -38,7 +38,7 @@ public sealed class ApiFixture : IAsyncLifetime
     private string HomeFolder => Path.Combine(RepositoryRoot + "-home");
 
     // Pooling desligado: o arquivo fecha de verdade no fim e a pasta temporária pode ser apagada.
-    private string ConnectionString => $"Data Source={Path.Combine(HomeFolder, "rastro.db")};Pooling=False";
+    public string ConnectionString => $"Data Source={Path.Combine(HomeFolder, "rastro.db")};Pooling=False";
 
     public RastroApiFactory Factory { get; private set; } = null!;
 

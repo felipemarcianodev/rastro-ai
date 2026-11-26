@@ -24,6 +24,7 @@ import { isFrameworkCall, withoutFrameworkCalls } from '../../core/graph/visibil
 import {
   AiUse,
   AI_PROVIDER_LABEL,
+  BusinessKind,
   RefactorSuggestion,
   ChangeKind,
   ChangePrompt,
@@ -55,6 +56,7 @@ import { DRAWIO_MIME } from '../../core/graph/drawio';
 import { HostLinkOf, hostLinkResolver } from '../../core/graph/link-template';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { BusinessViewComponent } from './business-view.component';
+import { AddToBoardDialogComponent } from '../boards/add-to-board-dialog.component';
 import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
 import { NodePanelComponent } from './node-panel.component';
@@ -89,7 +91,7 @@ const POLL_TOLERATED_FAILURES = 2;
 
 @Component({
   selector: 'app-survey-page',
-  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, BusinessViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective, AiDisclosureComponent],
+  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, BusinessViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, AddToBoardDialogComponent, DialogDirective, AiDisclosureComponent],
   templateUrl: './survey.page.html',
   styleUrl: './survey.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
@@ -127,6 +129,7 @@ export class SurveyPage {
   protected readonly softError = signal<string | null>(null);
   protected readonly confirmDiscard = signal(false);
   protected readonly confirmDelete = signal(false);
+  protected readonly addBoardOpen = signal(false);
   protected readonly deleting = signal(false);
   // Menus da barra: "Comparar" e "Exportar".
   protected readonly exportOpen = signal(false);
@@ -301,6 +304,9 @@ export class SurveyPage {
   });
   protected readonly c4Open = signal(false);
   protected readonly menu = signal<{ nodeId: string; x: number; y: number } | null>(null);
+  // "Mostrar na visão de negócio" só aparece para o nó que ainda não é passo-chave: falso ou nulo (ainda sem
+  // resposta, ou a visão não veio) esconde o item; só o "ainda não é passo-chave" confirmado o mostra.
+  protected readonly menuNotKeyStep = signal(false);
 
   // Contagem da comparação pelo que está na tela (chamadas do .NET escondidas não contam).
   protected readonly visibleChanges = computed(() => {
@@ -475,6 +481,7 @@ export class SurveyPage {
   protected onEscape(): void {
     if (this.confirmDiscard()) this.confirmDiscard.set(false);
     else if (this.confirmDelete()) this.confirmDelete.set(false);
+    else if (this.addBoardOpen()) this.addBoardOpen.set(false);
     else if (this.c4Open()) this.c4Open.set(false);
     else if (this.validationOpen()) this.validationOpen.set(false);
     else if (this.prompt()) this.closePrompt();
@@ -609,7 +616,7 @@ export class SurveyPage {
 
   protected exportImage(format: 'png' | 'svg'): void {
     this.closePopovers();
-    const image = this.canvas()?.exportSvg();
+    const image = this.showBusiness() ? this.businessView()?.exportSvg() : this.canvas()?.exportSvg();
     if (!image) {
       this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
@@ -631,7 +638,7 @@ export class SurveyPage {
 
   protected exportMermaid(download: boolean): void {
     this.closePopovers();
-    const text = this.canvas()?.exportMermaid();
+    const text = this.showBusiness() ? this.businessView()?.exportMermaid() : this.canvas()?.exportMermaid();
     if (!text) {
       this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
@@ -1033,6 +1040,17 @@ export class SurveyPage {
     this.select(menu.nodeId);
     // Não deixa o menu sair da janela.
     this.menu.set(menu);
+    this.menuNotKeyStep.set(false);
+    const surveyId = this.detail()?.survey.id;
+    if (surveyId) {
+      this.api.business(surveyId).subscribe({
+        next: (flow) => {
+          if (this.menu()?.nodeId === menu.nodeId) this.menuNotKeyStep.set(!flow.steps.some((s) => s.nodeId === menu.nodeId));
+        },
+        // Sem a visão, o item some: o resto do menu segue igual.
+        error: () => this.menuNotKeyStep.set(false),
+      });
+    }
     setTimeout(() => {
       const element = this.host.nativeElement.querySelector<HTMLElement>('.context-menu');
       if (!element) return;
@@ -1065,6 +1083,18 @@ export class SurveyPage {
     if (next < 0) return;
     event.preventDefault();
     items[next]?.focus();
+  }
+
+  // "Mostrar na visão de negócio": grava o tipo Passo, confirmado, para o nó. A visão lê de novo ao abrir.
+  protected showInBusinessView(): void {
+    const nodeId = this.menu()?.nodeId;
+    const surveyId = this.detail()?.survey.id;
+    this.closeMenu();
+    if (!nodeId || !surveyId) return;
+    this.api.setBusinessKind(surveyId, nodeId, BusinessKind.Step).subscribe({
+      next: () => this.showExport({ ok: true, text: this.i18n.t('survey.menu.businessShown') }),
+      error: (error) => this.showExport({ ok: false, text: apiErrorMessage(error) }),
+    });
   }
 
   // "Ver no grafo" da visão de negócio: volta ao canvas com o nó escolhido (sem mudar o desenho guardado).

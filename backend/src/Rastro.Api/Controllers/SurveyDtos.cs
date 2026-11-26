@@ -122,4 +122,23 @@ public static class ErrorCodes
     public const string PlanNotAllowed = "PLAN_NOT_ALLOWED";
     public const string LiveDatabaseError = "LIVE_DATABASE_ERROR";
     public const string LanguageInvalid = "LANGUAGE_INVALID";
+    public const string BusinessLayoutInvalid = "BUSINESS_LAYOUT_INVALID";
+    public const string BusinessLabelInvalid = "BUSINESS_LABEL_INVALID";
+    public const string BusinessKindInvalid = "BUSINESS_KIND_INVALID";
+    public const string BusinessStepNotFound = "BUSINESS_STEP_NOT_FOUND";
+    public const string BusinessProposalNotFound = "BUSINESS_PROPOSAL_NOT_FOUND";
+    public const string BoardNotFound = "BOARD_NOT_FOUND";
+    public const string BoardNameInvalid = "BOARD_NAME_INVALID";
+    public const string BoardGlossaryInvalid = "BOARD_GLOSSARY_INVALID";
+    public const string BoardLanesInvalid = "BOARD_LANES_INVALID";
+    public const string BoardSurveyNotFound = "BOARD_SURVEY_NOT_FOUND";
+    public const string BoardSurveyNotReady = "BOARD_SURVEY_NOT_READY";
+    public const string BoardLaneExists = "BOARD_LANE_EXISTS";
+    public const string BoardLaneNotFound = "BOARD_LANE_NOT_FOUND";
 }
+
+// Corpo de PUT business/steps/{stepId}/label: texto vazio volta ao da regra.
+public record BusinessLabelRequest(string? Text);
+
+// Corpo de PUT business/steps/{stepId}/kind: o BusinessKind em int; nulo volta ao detectado.
+public record BusinessKindRequest(int? Kind);

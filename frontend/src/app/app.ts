@@ -13,11 +13,13 @@ export enum NavArea {
   Surveys = 0,
   Database = 1,
   Settings = 2,
+  Boards = 3,
 }
 
 const SETTINGS_PATH = '/configuracoes';
 const DATABASE_PREFIX = '/repositorios/';
 const SURVEY_PREFIX = '/surveys/';
+const BOARDS_PATH = '/boards';
 const MAIN_ID = 'conteudo';
 const HOME_PATH = '/';
 export const FRAGMENT_AI = 'ia';
@@ -31,6 +33,7 @@ interface BancoTarget {
 export function areaOf(url: string): NavArea | null {
   const path = url.split(/[?#]/)[0];
   if (path === '/' || path === '' || path.startsWith(SURVEY_PREFIX)) return NavArea.Surveys;
+  if (path === BOARDS_PATH || path.startsWith(`${BOARDS_PATH}/`)) return NavArea.Boards;
   if (path.startsWith(DATABASE_PREFIX)) return NavArea.Database;
   if (path === SETTINGS_PATH) return NavArea.Settings;
   return null;

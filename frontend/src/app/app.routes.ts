@@ -21,6 +21,16 @@ export const routes: Routes = [
     loadComponent: () => import('./pages/diagram/diagram.page').then((m) => m.DiagramPage),
   },
   {
+    path: 'boards',
+    title: 'route.boards',
+    loadComponent: () => import('./pages/boards/boards.page').then((m) => m.BoardsPage),
+  },
+  {
+    path: 'boards/:id',
+    title: 'route.board',
+    loadComponent: () => import('./pages/board/board.page').then((m) => m.BoardPage),
+  },
+  {
     path: 'repositorios/:nome/banco',
     title: 'route.database',
     loadComponent: () => import('./pages/database/database.page').then((m) => m.DatabasePage),

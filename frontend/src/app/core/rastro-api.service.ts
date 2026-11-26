@@ -6,7 +6,17 @@ import {
   AiSettingsUpdate,
   AiSettingsView,
   AiStatus,
+  BoardCreateRequest,
+  BoardDetail,
+  BoardLayout,
+  BoardSummary,
+  BoardUpdateRequest,
   BusinessFlow,
+  BusinessKind,
+  ReplaceLaneResult,
+  BusinessLabelSuggestion,
+  BusinessLayout,
+  BusinessStep,
   DescribeResponse,
   FillHoleResponse,
   ChangePrompt,
@@ -228,6 +238,92 @@ export class RastroApi {
   // Visão de negócio (Fase 55): os passos-chave do fluxo.
   business(id: string): Observable<BusinessFlow> {
     return this.http.get<BusinessFlow>(`/api/surveys/${id}/business`);
+  }
+
+  // Texto e tipo do passo-chave (Fase 59). O segmento do passo é o id do passo ou o id do nó, sempre codificado.
+  private businessStepUrl(id: string, stepId: string): string {
+    return `/api/surveys/${id}/business/steps/${encodeURIComponent(stepId)}`;
+  }
+
+  saveBusinessLabel(id: string, stepId: string, text: string | null): Observable<BusinessStep> {
+    return this.http.put<BusinessStep>(`${this.businessStepUrl(id, stepId)}/label`, { text });
+  }
+
+  confirmBusinessLabel(id: string, stepId: string): Observable<BusinessStep> {
+    return this.http.post<BusinessStep>(`${this.businessStepUrl(id, stepId)}/label/confirm`, {});
+  }
+
+  setBusinessKind(id: string, stepId: string, kind: BusinessKind | null): Observable<BusinessFlow> {
+    return this.http.put<BusinessFlow>(`${this.businessStepUrl(id, stepId)}/kind`, { kind });
+  }
+
+  confirmBusinessKind(id: string, stepId: string): Observable<BusinessFlow> {
+    return this.http.post<BusinessFlow>(`${this.businessStepUrl(id, stepId)}/kind/confirm`, {});
+  }
+
+  dismissBusinessKind(id: string, stepId: string): Observable<BusinessFlow> {
+    return this.http.post<BusinessFlow>(`${this.businessStepUrl(id, stepId)}/kind/dismiss`, {});
+  }
+
+  suggestBusinessLabels(id: string): Observable<BusinessLabelSuggestion> {
+    return this.http.post<BusinessLabelSuggestion>(`/api/surveys/${id}/business/labels/suggest`, {});
+  }
+
+  // Posição dos balões da visão de negócio (Fase 58): ler, salvar em lote e reorganizar (apagar).
+  businessLayout(id: string): Observable<BusinessLayout> {
+    return this.http.get<BusinessLayout>(`/api/surveys/${id}/business/layout`);
+  }
+
+  saveBusinessLayout(id: string, layout: BusinessLayout): Observable<void> {
+    return this.http.put<void>(`/api/surveys/${id}/business/layout`, layout);
+  }
+
+  resetBusinessLayout(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/surveys/${id}/business/layout`);
+  }
+
+  // Quadros de fluxos (Fase 60).
+  boards(): Observable<BoardSummary[]> {
+    return this.http.get<BoardSummary[]>('/api/boards');
+  }
+
+  board(id: string): Observable<BoardDetail> {
+    return this.http.get<BoardDetail>(`/api/boards/${id}`);
+  }
+
+  createBoard(request: BoardCreateRequest): Observable<BoardDetail> {
+    return this.http.post<BoardDetail>('/api/boards', request);
+  }
+
+  updateBoard(id: string, request: BoardUpdateRequest): Observable<BoardDetail> {
+    return this.http.put<BoardDetail>(`/api/boards/${id}`, request);
+  }
+
+  deleteBoard(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/boards/${id}`);
+  }
+
+  addBoardLane(id: string, surveyId: string, title?: string): Observable<BoardDetail> {
+    return this.http.post<BoardDetail>(`/api/boards/${id}/lanes`, { surveyId, ...(title ? { title } : {}) });
+  }
+
+  // "Levantar de novo": a faixa passa a apontar para o levantamento novo e leva as posições dos passos que continuam.
+  replaceBoardLane(id: string, surveyId: string, newSurveyId: string): Observable<ReplaceLaneResult> {
+    return this.http.put<ReplaceLaneResult>(`/api/boards/${id}/lanes/${surveyId}/replace`, { newSurveyId });
+  }
+
+  saveBoardLayout(id: string, layout: BoardLayout): Observable<void> {
+    return this.http.put<void>(`/api/boards/${id}/layout`, layout);
+  }
+
+  // Sem a faixa, apaga a posição do quadro inteiro.
+  resetBoardLayout(id: string, laneSurveyId?: string): Observable<void> {
+    const params = laneSurveyId ? new HttpParams().set('lane', laneSurveyId) : undefined;
+    return this.http.delete<void>(`/api/boards/${id}/layout`, { params });
+  }
+
+  suggestBoardLabels(id: string): Observable<BusinessLabelSuggestion> {
+    return this.http.post<BusinessLabelSuggestion>(`/api/boards/${id}/labels/suggest`, {});
   }
 
   // Modelos de link de cada repositório do levantamento (Fase 56).

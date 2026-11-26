@@ -1239,6 +1239,8 @@ Decisões do dono (2026-11-25): o `.drawio` vale também para o grafo e o Mapa p
 
 Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CLAUDE.md`).
 
+Decisão do dono (2026-11-26), depois do merge das Fases 54 a 57: as Fases 58 a 61 saem num branch só (`feat/visao-negocio-fases-58-61`), com um commit por fase e um único PR no fim, em vez da pilha. Os quatro itens de risco alto do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md) seguem esperando a aprovação do dono e não entram sem ela. No fim, depois que o dono aprovar o PR das Fases 58 a 61, o levantamento de UX completo (skill `levantamento-ux`) roda num branch e PR próprios, e todos os pontos que ele achar são corrigidos ali (pedido do dono em 2026-11-26).
+
 ## Fase 54: exportar o grafo e o mapa para draw.io `[x]`
 
 - [x] `frontend/src/app/core/graph/drawio.ts`: gerador de `mxfile` (uma página, `mxGraphModel`, `mxCell` com `vertex` e `edge`), com escape do atributo XML e do HTML do rótulo (escape duplo), ligação `edgeStyle=orthogonalEdgeStyle` com `labelBackgroundColor` e estilo por tipo de nó.
@@ -1308,36 +1310,79 @@ Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CL
   - **Prints:** `docs/telas/fase-57/` (claro, escuro, painel da decisão, estado vazio e o `.drawio` no draw.io), com um levantamento do próprio Rastro, numa pasta de dados temporária. As larguras de 1280 e 360 não foram vistas: a janela do navegador não redimensionou.
   - **Testes:** backend 1019/1019; frontend 652/652.
 
-## Fase 58: tela livre e posição salva `[ ]` (depende da Fase 57)
+## Fase 58: tela livre e posição salva `[x]` (depende da Fase 57)
 
-- [ ] Pan na área vazia e com a barra de espaço, zoom com Ctrl ou Cmd e a roda em volta do ponteiro (25% a 140%), roda sem tecla rola, botões de zoom e "Ajustar", pinça.
-- [ ] Mover balão com grade de 10 px, clique sem arrastar abre o painel, teclado (Tab, Enter, setas, Esc), pontos de dobra editáveis, "Reorganizar".
-- [ ] Posição salva com debounce de 500 ms: tabela de layout por escopo (levantamento sozinho ou quadro), migration e rota em lote; documentação da migration no mesmo PR.
-- [ ] Testes de tela com clique de verdade (regra do `CLAUDE.md`): mover e recarregar, zoom no ponteiro, Reorganizar.
-- [ ] Fase C do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md): Tab na ordem do fluxo mesmo depois de clicar num balão (o Foblex reordena os nós), setas pelas ligações, "100%" e atalhos de zoom, balão escolhido trazido para a área visível ao abrir o painel, foco sem `setTimeout`.
+- [x] Pan na área vazia e com a barra de espaço, zoom com Ctrl ou Cmd e a roda em volta do ponteiro (25% a 140%), roda sem tecla rola, botões de zoom e "Ajustar", pinça.
+- [x] Mover balão com grade de 10 px, clique sem arrastar abre o painel, teclado (Tab, Enter, setas, Esc), pontos de dobra editáveis, "Reorganizar".
+- [x] Posição salva com debounce de 500 ms: tabela de layout por escopo (levantamento sozinho ou quadro), migration e rota em lote; documentação da migration no mesmo PR.
+- [x] Testes de tela com clique de verdade (regra do `CLAUDE.md`): mover e recarregar, zoom no ponteiro, Reorganizar.
+- [x] Fase C do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md): Tab na ordem do fluxo mesmo depois de clicar num balão (o Foblex reordena os nós), setas pelas ligações, "100%" e atalhos de zoom, balão escolhido trazido para a área visível ao abrir o painel, foco sem `setTimeout`.
+- **Registro (2026-11-26):**
+  - **Banco:** migration `VisaoDeNegocioLayout`, com `business_layouts` (posição de cada passo) e `business_edge_layouts` (pontos de dobra), as duas por escopo (`LayoutScope`: levantamento ou quadro, para a Fase 60 reaproveitar). Sem FK, porque o escopo pode ser um quadro; o levantamento excluído leva junto as posições dele. O tamanho do balão não se guarda (sai do layout da tela).
+  - **Rotas:** `GET`, `PUT` (em lote: troca só o que veio) e `DELETE` ("Reorganizar") em `api/surveys/{id}/business/layout`, com limites (500 passos, 500 ligações, 20 pontos por ligação, números finitos de -100000 a 100000, ids até 64 caracteres) e o código `BUSINESS_LAYOUT_INVALID`.
+  - **Tela:** arrastar o balão com encaixe na grade de 10 px; clique sem arrastar (menos de 4 px) abre o painel; salvar com debounce de 500 ms, num `PUT` só, e aviso sem desfazer o movimento quando falha; pontos de dobra do Foblex salvos no mesmo lote; "Reorganizar" com o diálogo do tema; zoom com Ctrl ou Cmd e a roda em volta do ponteiro (25% a 140%), roda sem tecla rola, botão "100%" e atalhos `+`, `-` e `0`; Espaço e arrastar movem a tela mesmo sobre balão (por isso o Espaço deixou de escolher o balão: só o Enter escolhe); Tab na ordem do fluxo com tabindex itinerante, que não depende da ordem dos nós no DOM; setas movem o balão 10 px; Esc limpa a escolha; o balão escolhido vem para a área visível ao abrir o painel, sem `setTimeout`.
+  - **Verificado no navegador, com clique de verdade:** arrastar o "Fim" moveu o balão e saiu uma única gravação; depois de recarregar, o balão continuou no lugar e o "Reorganizar" apareceu; o "Reorganizar" pediu confirmação no diálogo do tema (botão alcançável pelo mouse, conferido com `elementFromPoint`) e apagou posições e pontos de dobra; Ctrl e a roda aproximaram de 100% para 105% em volta do ponteiro, e a roda sem tecla só rolou. A captura de tela falhava enquanto a janela do Chrome ficava em segundo plano (o navegador desenha 2 quadros por segundo assim); não é defeito da tela, porque antes de arrastar já era igual.
+  - **Para o levantamento de UX final:** os pontos de dobra candidatos (os círculos no meio das ligações) ficam sempre à vista e poluem o desenho.
+  - **Testes:** backend 1037/1037; frontend 679/679.
 
-## Fase 59: texto de negócio `[ ]` (depende da Fase 57; pode andar junto com a 58)
+## Fase 59: texto de negócio `[x]` (depende da Fase 57; pode andar junto com a 58)
 
-- [ ] Regra sem IA (símbolo humanizado, condição e detalhe), decisão com "?", até 120 caracteres.
-- [ ] `business_labels` e `business_kind_overrides` por levantamento, ligados ao hash do código, com o selo "o código mudou desde a confirmação".
-- [ ] IA pelo provedor (uso "Sugestões"), só em `Rastro.Ai`, com o glossário do quadro no prompt e a proibição de inventar o que não está no código; agente pelo MCP (`propose_business_label`, `propose_business_kind`). Nenhuma ferramenta confirma a própria proposta.
-- [ ] Edição no painel e no próprio balão (duplo clique), confirmação, troca de tipo e "Mostrar na visão de negócio" no grafo.
-- [ ] Rotas de rótulo, confirmação, tipo e sugestão; documentação do MCP e do que vai para o provedor de IA (`SECURITY.md`).
+- [x] Regra sem IA (símbolo humanizado, condição e detalhe), decisão com "?", até 120 caracteres.
+- [x] `business_labels` e `business_kind_overrides` por levantamento, ligados ao hash do código, com o selo "o código mudou desde a confirmação".
+- [x] IA pelo provedor (uso "Sugestões"), só em `Rastro.Ai`, com o glossário do quadro no prompt e a proibição de inventar o que não está no código; agente pelo MCP (`propose_business_label`, `propose_business_kind`). Nenhuma ferramenta confirma a própria proposta.
+- [x] Edição no painel e no próprio balão (duplo clique), confirmação, troca de tipo e "Mostrar na visão de negócio" no grafo.
+- [x] Rotas de rótulo, confirmação, tipo e sugestão; documentação do MCP e do que vai para o provedor de IA (`SECURITY.md`).
+- **Registro (2026-11-26):**
+  - **Texto por regra (núcleo, sem IA):** `BusinessLabelRule` humaniza a condição da decisão (identificadores em palavras, `this.` fora, operadores em palavras, `!` vira "não", `is { } v` vira "não é vazio"), com o idioma como parâmetro explícito; passou de 118 caracteres, fica a primeira parte e "…". `this.pedido.enviado` vira "Pedido enviado?". Limite: os nomes do código não se traduzem, então o texto sai misturado quando o nome está em inglês ("Request language não é vazio e não (ui languages is defined)?"). A primeira versão punha o "não" no meio do verbo inglês ("is não defined"); visto no navegador e corrigido: fora do inglês, a negação vem antes da expressão, entre parênteses.
+  - **Gravado por levantamento:** migration `VisaoDeNegocioTexto`, com `business_labels` e `business_kind_overrides` (FK com cascata para o levantamento). O texto gravado vale no lugar do da regra; o `code_hash` (SHA-256 do trecho de 30 linhas em volta do passo, lido pelo `RepositoryCatalog`) acende o "o código mudou desde a confirmação". O tipo confirmado troca o tipo do passo, e um nó que não era passo-chave passa a ser ("Mostrar na visão de negócio"); a proposta de tipo do agente não muda o desenho até o usuário confirmar.
+  - **Rotas:** texto (`PUT .../label`, vazio volta à regra), confirmar o texto, trocar o tipo (`null` volta ao detectado), confirmar e descartar a proposta de tipo, e `POST .../labels/suggest`. O passo na rota aceita o id curto do passo ou o id do nó codificado, sempre conferido contra os nós do próprio levantamento. Códigos novos: `BUSINESS_LABEL_INVALID`, `BUSINESS_KIND_INVALID`, `BUSINESS_STEP_NOT_FOUND` e `BUSINESS_PROPOSAL_NOT_FOUND`.
+  - **IA e agente só propõem:** a sugestão (uso "Sugestões", só em `Rastro.Ai`) manda por passo o tipo, o texto da regra, até 30 linhas de código e o caminho da entrada, marcados como dado, e nunca o nome de arquivo, o caminho da máquina, o commit nem chave; a resposta vira proposta. O MCP ganhou `propose_business_label` e `propose_business_kind`, sem ferramenta de confirmar (um teste confere por reflexão). O que o usuário confirmou nunca é sobrescrito.
+  - **Tela:** editar no painel e no balão (duplo clique ou F2), confirmar, origem e estado, selo do código que mudou, trocar o tipo (com "Detectado"), proposta de tipo do agente com "Confirmar" e "Descartar", "Sugerir textos" só com IA e o uso "Sugestões", e "Mostrar na visão de negócio" no menu do nó do grafo. O estilo do painel subiu para o tema (`_business.scss`), para o componente caber nos 6 kB.
+  - **Verificado no navegador, com clique de verdade:** duplo clique no losango abriu o campo (com o foco, o texto e o limite de 120); Enter gravou como "Confirmado por você", tirou o selo "proposto" e mostrou o aviso; "Usar o texto da regra" voltou à regra; no grafo, o menu do nó comum trouxe "Mostrar na visão de negócio", e o clique incluiu o passo. Os dados de teste foram desfeitos no fim (pasta de dados temporária). A sugestão pela IA não foi vista no navegador (IA desligada nesta máquina): está coberta por testes com provedor de mentira.
+  - **Para o levantamento de UX final:** o texto do passo comum e do início ainda é o nome do método (`UiLanguages.IsDefined`); a regra humaniza só a decisão.
+  - **Testes:** backend 1080/1080; frontend 693/693.
 
-## Fase 60: quadro de fluxos `[ ]` (depende das Fases 58 e 59)
+## Fase 60: quadro de fluxos `[x]` (depende das Fases 58 e 59)
 
-- [ ] `boards` e `board_lanes`, rotas de quadro, rota `/boards/{id}` e item "Quadros" na barra de cima; criar pela lista de levantamentos (dois ou mais) e "Adicionar a um quadro" dentro do levantamento.
-- [ ] Faixas lado a lado, com título, entrada e repositórios; ordem arrastável; glossário e legenda.
-- [ ] Desatualização: faixa com "O código mudou" e "Levantar de novo"; ao refazer, o layout casa os passos por símbolo e local e avisa os que saíram.
-- [ ] MCP `list_boards` e `get_business_view` com `board_id`.
-- [ ] Prints e `levantamento-ux` das telas tocadas.
+- [x] `boards` e `board_lanes`, rotas de quadro, rota `/boards/{id}` e item "Quadros" na barra de cima; criar pela lista de levantamentos (dois ou mais) e "Adicionar a um quadro" dentro do levantamento.
+- [x] Faixas lado a lado, com título, entrada e repositórios; ordem arrastável; glossário e legenda.
+- [x] Desatualização: faixa com "O código mudou" e "Levantar de novo"; ao refazer, o layout casa os passos por símbolo e local e avisa os que saíram.
+- [x] MCP `list_boards` e `get_business_view` com `board_id`.
+- [x] Prints e `levantamento-ux` das telas tocadas.
+- **Registro (2026-11-26):**
+  - **Banco:** migration `QuadroDeFluxos`, com `boards` e `board_lanes` (FK com cascata para o quadro e para o levantamento) e a coluna `lane_survey_id` nas duas tabelas de layout (vazia no escopo do levantamento), com as chaves refeitas. Um teste migra um banco com posições da Fase 58 gravadas e confere que nada se perde. Excluir o levantamento tira a faixa; excluir o quadro apaga as faixas e as posições dele.
+  - **Rotas e serviço:** `api/boards` (listar, criar com 1 a 12 levantamentos prontos, ler, editar nome, glossário, ordem e títulos, adicionar faixa, trocar o levantamento da faixa, excluir), a posição por faixa (`api/boards/{id}/layout`, com "Reorganizar" por faixa) e a sugestão de textos do quadro, que manda o glossário à IA como dado. O "O código mudou" saiu do controller para o `SurveyStalenessService`, que o levantamento e o quadro usam. Trocar o levantamento de uma faixa ("Levantar de novo") leva as posições dos passos que continuam, casando pelo nó, e devolve os que saíram. Oito códigos de erro novos (`BOARD_*`).
+  - **MCP:** `list_boards`, e o `get_business_view` aceita `boardId`.
+  - **Tela:** "Quadros" no cabeçalho, lista de quadros, criar pela lista de levantamentos (caixas de seleção e "Criar quadro") ou dentro do levantamento ("Adicionar a um quadro"), tela do quadro com as faixas lado a lado (título editável, ponto de entrada, repositórios, "Abrir", "Tirar do quadro", ordem por arrastar a alça ou pelos botões ← e →), "O código mudou" com "Levantar de novo", glossário em texto simples (`Termo: significado` por linha) e legenda só com os tipos presentes. A superfície de desenho é o próprio `business-view.component`, num modo de faixa, sem código duplicado.
+  - **Verificado no navegador, com clique de verdade:** marcar dois levantamentos na lista e criar o quadro; a tela do quadro com as duas faixas; "Excluir quadro" com o diálogo do tema (o quadro saiu e os levantamentos ficaram); a seta → trocou a ordem das faixas e a ordem ficou salva. Na primeira criação a página não foi para o quadro novo (o quadro foi criado e o diálogo fechou); na segunda, foi. Não reproduzi a falha e não achei a causa no código (a navegação está lá e nenhuma outra a cancela): fica registrado como não reproduzido.
+  - **Corrigido junto:** a recusa com texto longo saía com uma vírgula solta ("Recusa: O comando precisa caber numa linha,"), porque o extrator encurta o rótulo do retorno antes de fechar as aspas; agora sai "Recusa: O comando precisa caber numa linha…".
+  - **Para o levantamento de UX final:** depois de mover uma faixa pela seta, o foco sai do botão; as faixas têm largura fixa e sobra espaço à direita em 1920 px; a lista de quadros ficou sem print (a captura falhava com a janela em segundo plano).
+  - **Testes:** backend 1107/1107; frontend 740/740.
 
-## Fase 61: exportar a visão de negócio e o quadro `[ ]` (depende da Fase 60)
+## Fase 61: exportar a visão de negócio e o quadro `[x]` (depende da Fase 60)
 
-- [ ] `.drawio` do quadro: faixas tracejadas com título, passos com `UserObject` e `link`, pontos de dobra salvos, glossário e legenda em `shape=note`, losango com espaço para o texto.
-- [ ] Mermaid (`flowchart TD`, `subgraph` por faixa, `classDef` por tipo), SVG e PNG da superfície da tela, com as fontes embutidas.
-- [ ] Prova manual: o `.drawio` da fixture abre no draw.io com links e cores.
-- [ ] Fim do plano: `levantamento-ux` completo e pendências consolidadas.
+- [x] `.drawio` do quadro: faixas tracejadas com título, passos com `UserObject` e `link`, pontos de dobra salvos, glossário e legenda em `shape=note`, losango com espaço para o texto.
+- [x] Mermaid (`flowchart TD`, `subgraph` por faixa, `classDef` por tipo), SVG e PNG da superfície da tela, com as fontes embutidas.
+- [x] Prova manual: o `.drawio` da fixture abre no draw.io com links e cores.
+- [x] Fim do plano: pendências consolidadas abaixo. O levantamento de UX completo ficou para um branch e PR próprios, depois da aprovação deste PR (decisão do dono, ver o começo desta seção).
+- **Registro (2026-11-26):**
+  - **Geradores:** `business-export.ts` monta o `.drawio` do quadro (uma moldura por faixa, as faixas lado a lado sem sobrepor, as ligações de cada faixa, a nota com o glossário e a legenda dos tipos presentes), o Mermaid (`subgraph` por faixa, `classDef` por tipo com as cores do draw.io, losango e pílula) e o SVG (cores dos tokens `--biz-*` do tema, referência e caminho completo na dica); o PNG sai do SVG. As posições vêm da geometria da tela (com as arrastadas, inclusive o que ainda não foi salvo) e os pontos de dobra também vão para o `.drawio` da visão de um levantamento. Os links vêm do modelo de link de cada faixa; sem a rota de links, o arquivo sai sem link em vez de falhar. As fontes vão pelo nome (`Instrument Sans` e `JetBrains Mono`): o arquivo da fonte não é embutido.
+  - **Menu:** na visão de negócio do levantamento, PNG, SVG e Mermaid voltaram a funcionar (antes ficavam desabilitados); a tela do quadro ganhou o menu Exportar, com teclado. Quadro sem faixa desenhada avisa em vez de baixar arquivo vazio.
+  - **Verificado no navegador, com clique de verdade:** o menu do quadro com os cinco itens alcançáveis pelo mouse (`elementFromPoint`); o `.drawio` do quadro com dois fluxos do próprio Rastro abriu no draw.io (modo embutido, que desenha no navegador): duas molduras com o título da faixa, 13 balões, 3 losangos, 10 ligações, 12 links e a nota com o glossário de teste e a legenda. O download foi interceptado na página, sem gravar arquivo na pasta do dono.
+  - **Teste com sistema real (pedido do dono):** um fluxo Angular de um dos repositórios privados que o dono liberou, levantado numa pasta de dados temporária (nada dele entra neste repositório). Ele achou dois problemas: o `return;` vazio de serviços de log e de autenticação virava "Bloqueado na tela" (corrigido: só a guarda do componente clicado bloqueia, de 16 para 12 passos) e a chamada HTTP não foi costurada, porque o serviço monta a URL num campo da classe (pendência do extrator, abaixo). O SVG e o PNG não foram vistos com a fonte real, e a quebra de texto do SVG usa largura estimada de caractere.
+  - **Testes:** backend 1108/1108; frontend 766/766.
+
+### Fim das Fases 54 a 61: pendências consolidadas
+
+As Fases 54 a 61 estão **EXECUTADAS**. Pendências:
+- [ ] Levantamento de UX completo e correção de todos os pontos, em branch e PR próprios, depois da aprovação do PR das Fases 58 a 61 (pedido do dono). Já anotados: os quatro itens de risco alto do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md) e as Fases B e C dele que sobraram; os pontos de dobra candidatos sempre à vista; o texto do passo comum e do início ainda é o nome do método; o foco sai do botão depois de mover uma faixa; as faixas com largura fixa sobrando espaço em 1920 px; a lista de quadros sem print.
+- [ ] Extrator Angular: resolver a URL montada num campo da classe (`` private readonly url = `${environment.apiUrl}/...` ``), para a costura achar a API; hoje a rota fica "?" e o fluxo para na tela. Achado num sistema real.
+- [ ] Visão de negócio em sistema real: decisões de autenticação e de log (interceptadores) ainda aparecem quando mudam o caminho até outra chamada HTTP; agrupar o código de infraestrutura fora do fluxo de negócio.
+- [ ] Texto por regra misturado quando o nome do código está em inglês ("Request language não é vazio e não (ui languages is defined)?"); a IA, o agente ou o usuário resolvem pelo texto proposto.
+- [ ] Cache da visão de negócio por levantamento, se a tela sentir o tempo dos fluxos grandes (483 nós levam de 500 a 800 ms).
+- [ ] Abrir o link de verdade pela janela própria nos três sistemas (só a decisão de abrir ou recusar tem teste).
+- [ ] Na criação do quadro pela lista, a página uma vez não foi para o quadro novo; não reproduzido.
+- [ ] Release com as Fases 54 a 61 pela skill `gerar-release`, quando o dono pedir.
 
 ## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
 

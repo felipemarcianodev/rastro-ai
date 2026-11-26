@@ -555,6 +555,10 @@ export const API_ERROR_MESSAGE_KEY: Record<string, string> = {
   AI_SETTINGS_INVALID: 'error.AI_SETTINGS_INVALID',
   AI_DISABLED: 'error.AI_DISABLED',
   AI_USE_DISABLED: 'error.AI_USE_DISABLED',
+  BUSINESS_LABEL_INVALID: 'error.BUSINESS_LABEL_INVALID',
+  BUSINESS_KIND_INVALID: 'error.BUSINESS_KIND_INVALID',
+  BUSINESS_STEP_NOT_FOUND: 'error.BUSINESS_STEP_NOT_FOUND',
+  BUSINESS_PROPOSAL_NOT_FOUND: 'error.BUSINESS_PROPOSAL_NOT_FOUND',
   AI_NOT_CONFIGURED: 'error.AI_NOT_CONFIGURED',
   AI_BUDGET_EXCEEDED: 'error.AI_BUDGET_EXCEEDED',
   AI_PROVIDER_ERROR: 'error.AI_PROVIDER_ERROR',
@@ -571,6 +575,14 @@ export const API_ERROR_MESSAGE_KEY: Record<string, string> = {
   PLAN_NOT_ALLOWED: 'error.PLAN_NOT_ALLOWED',
   LIVE_DATABASE_ERROR: 'error.LIVE_DATABASE_ERROR',
   ORIGIN_NOT_ALLOWED: 'error.ORIGIN_NOT_ALLOWED',
+  BOARD_NOT_FOUND: 'error.BOARD_NOT_FOUND',
+  BOARD_NAME_INVALID: 'error.BOARD_NAME_INVALID',
+  BOARD_GLOSSARY_INVALID: 'error.BOARD_GLOSSARY_INVALID',
+  BOARD_LANES_INVALID: 'error.BOARD_LANES_INVALID',
+  BOARD_SURVEY_NOT_FOUND: 'error.BOARD_SURVEY_NOT_FOUND',
+  BOARD_SURVEY_NOT_READY: 'error.BOARD_SURVEY_NOT_READY',
+  BOARD_LANE_EXISTS: 'error.BOARD_LANE_EXISTS',
+  BOARD_LANE_NOT_FOUND: 'error.BOARD_LANE_NOT_FOUND',
 };
 
 export function isFinished(status: SurveyStatus): boolean {
@@ -992,6 +1004,20 @@ export interface BusinessStep {
   // Nós do grafo que este passo-chave resume.
   sourceNodeIds: string[];
   inferred: boolean;
+  // Fase 59: o código do passo mudou depois de o texto ser confirmado.
+  codeChanged: boolean;
+  // Proposta de tipo do agente, à espera do usuário (some quando não há proposta).
+  kindProposal?: BusinessKindProposal;
+}
+
+export interface BusinessKindProposal {
+  kind: BusinessKind;
+  reason: string;
+}
+
+export interface BusinessLabelSuggestion {
+  proposed: number;
+  skipped: number;
 }
 
 export interface BusinessEdge {
@@ -1007,6 +1033,100 @@ export interface BusinessFlow {
   steps: BusinessStep[];
   edges: BusinessEdge[];
   collapsedDecisions: number;
+}
+
+// Posição salva dos balões da visão de negócio (Fase 58): a posição de cada passo-chave e os pontos de dobra
+// de cada ligação. Passo ou ligação que não está aqui fica na organização automática.
+export interface StepPosition {
+  stepId: string;
+  x: number;
+  y: number;
+}
+
+export interface EdgePoints {
+  from: string;
+  to: string;
+  points: { x: number; y: number }[];
+}
+
+export interface BusinessLayout {
+  steps: StepPosition[];
+  edges: EdgePoints[];
+}
+
+// Quadro de fluxos (Fase 60): vários levantamentos lado a lado, cada um numa faixa. A posição é por quadro, e o
+// id do passo é por levantamento: cada item leva o levantamento da faixa.
+export const BOARD_MAX_LANES = 12;
+export const BOARD_NAME_MAX = 120;
+export const BOARD_TITLE_MAX = 120;
+export const BOARD_GLOSSARY_MAX = 8000;
+
+export interface BoardSummary {
+  id: string;
+  name: string;
+  laneCount: number;
+  updatedAt: string;
+}
+
+export interface BoardLane {
+  surveyId: string;
+  order: number;
+  title: string;
+  entryPoint: string;
+  repositories: string[];
+  status: SurveyStatus;
+  stale: boolean;
+  flow: BusinessFlow | null;
+}
+
+export interface BoardStepPosition extends StepPosition {
+  laneSurveyId: string;
+}
+
+export interface BoardEdgePoints extends EdgePoints {
+  laneSurveyId: string;
+}
+
+export interface BoardLayout {
+  steps: BoardStepPosition[];
+  edges: BoardEdgePoints[];
+}
+
+export interface BoardDetail {
+  id: string;
+  name: string;
+  glossary: string | null;
+  lanes: BoardLane[];
+  layout: BoardLayout;
+}
+
+export interface BoardCreateRequest {
+  name: string;
+  surveyIds: string[];
+  titles?: string[];
+}
+
+export interface BoardLaneUpdate {
+  surveyId: string;
+  order: number;
+  title: string;
+}
+
+export interface BoardUpdateRequest {
+  name: string;
+  glossary: string | null;
+  lanes: BoardLaneUpdate[];
+}
+
+export interface RemovedStep {
+  stepId: string;
+  nodeId: string;
+  label: string;
+}
+
+export interface ReplaceLaneResult {
+  board: BoardDetail;
+  removedSteps: RemovedStep[];
 }
 
 // Mapa do fluxo (Fase 30): faixas por sistema, blocos de leitura, ligações e caminhos de ponta a ponta.

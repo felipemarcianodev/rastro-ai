@@ -46,6 +46,7 @@ public class RastroTools(
     Rastro.Infrastructure.Database.Live.LiveConnectionStore liveConnections,
     Rastro.Infrastructure.Database.Live.LiveDatabaseService liveDatabase,
     Rastro.Infrastructure.Business.BusinessViewService business,
+    Rastro.Infrastructure.Business.BusinessAnnotationService businessAnnotations,
     Rastro.Infrastructure.Links.CodeLinkService codeLinks,
     ILogger<RastroTools> logger)
 {
@@ -195,12 +196,79 @@ public class RastroTools(
         return text.ToString();
     }
 
-    [McpServerTool(Name = "get_business_view"), Description("Shows the business view of a trace, without AI: only the key steps (Start, Decision, Notification, Rejection, CrossSystem, Step, End) with the business text proposed by rule, the node handle and the code reference (repository · file:line), and the links between them with the branch label. Read-only. Use it to explain the business rules of a flow; the texts are proposals until the user confirms them on screen.")]
-    public async Task<string> GetBusinessView([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "list_boards"), Description("Lists the flow boards (several traces side by side, one lane per trace) with the lanes of each one: order, title, trace id, entry point and repositories. Read-only. Use get_business_view with boardId to read the business view of every lane.")]
+    public async Task<string> ListBoards(CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph || await business.GetAsync(surveyId, Language, ct) is not { } flow)
+        var all = await db.Boards.AsNoTracking().OrderByDescending(b => b.UpdatedAt).ToListAsync(ct);
+        if (all.Count == 0) return T("Boards.None");
+
+        var lanes = await db.BoardLanes.AsNoTracking().OrderBy(l => l.Order).ToListAsync(ct);
+        var surveyIds = lanes.Select(l => l.SurveyId).Distinct().ToList();
+        var surveys = await db.Surveys.AsNoTracking().Where(s => surveyIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, ct);
+        var segments = (await db.SurveySegments.AsNoTracking().Where(g => surveyIds.Contains(g.SurveyId)).OrderBy(g => g.Order).ToListAsync(ct))
+            .ToLookup(g => g.SurveyId);
+
+        var text = new StringBuilder();
+        foreach (var board in all)
+        {
+            var own = lanes.Where(l => l.BoardId == board.Id).ToList();
+            text.AppendLine(T("Boards.Row", board.Id, board.Name, own.Count));
+            foreach (var lane in own.Where(l => surveys.ContainsKey(l.SurveyId)))
+            {
+                var survey = surveys[lane.SurveyId];
+                var repositories = new[] { survey.Repository }.Concat(segments[survey.Id].Select(g => g.Repository))
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+                text.AppendLine(T("Boards.Lane", lane.Order + 1, lane.Title, lane.SurveyId, survey.EntryPoint, string.Join(", ", repositories)));
+            }
+        }
+        return text.ToString();
+    }
+
+    [McpServerTool(Name = "get_business_view"), Description("Shows the business view of a trace, without AI: only the key steps (Start, Decision, Notification, Rejection, CrossSystem, Step, End) with the business text proposed by rule, the node handle and the code reference (repository · file:line), and the links between them with the branch label. Read-only. Use it to explain the business rules of a flow; the texts are proposals until the user confirms them on screen. Give surveyId for one trace, or boardId (list_boards) for every lane of a flow board, with the board glossary: each lane is the business view of its trace and its steps are cited by the trace id of the lane.")]
+    public async Task<string> GetBusinessView(
+        [Description("Trace id. Use this or boardId.")] Guid? surveyId = null,
+        [Description("Board id (list_boards). Use this or surveyId.")] Guid? boardId = null,
+        CancellationToken ct = default)
+    {
+        if ((surveyId is null) == (boardId is null)) return T("Boards.NeedOne");
+
+        if (boardId is { } board) return await BoardBusinessViewAsync(board, ct);
+
+        if (await GraphAsync(surveyId!.Value, ct) is not { } graph || await business.GetAsync(surveyId.Value, Language, ct) is not { } flow)
             return T("Surveys.NotFound");
 
+        return await RenderBusinessViewAsync(surveyId.Value, graph, flow, ct);
+    }
+
+    // Cada faixa é a visão de negócio do levantamento dela; as faixas que ainda não têm grafo dizem isso.
+    private async Task<string> BoardBusinessViewAsync(Guid boardId, CancellationToken ct)
+    {
+        if (await db.Boards.AsNoTracking().FirstOrDefaultAsync(b => b.Id == boardId, ct) is not { } board) return T("Boards.NotFound");
+
+        var lanes = await db.BoardLanes.AsNoTracking().Where(l => l.BoardId == boardId).OrderBy(l => l.Order).ToListAsync(ct);
+        var text = new StringBuilder();
+        text.AppendLine(T("Boards.Header", board.Name, lanes.Count));
+        if (!string.IsNullOrWhiteSpace(board.Glossary))
+        {
+            text.AppendLine(T("Boards.Glossary"));
+            foreach (var line in board.Glossary.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                text.AppendLine($"  {line}");
+        }
+
+        foreach (var lane in lanes)
+        {
+            var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == lane.SurveyId, ct);
+            text.AppendLine(T("Boards.LaneHeader", lane.Order + 1, lane.Title, lane.SurveyId, survey?.EntryPoint ?? string.Empty));
+            if (await GraphAsync(lane.SurveyId, ct) is { } graph && await business.GetAsync(lane.SurveyId, Language, ct) is { } flow)
+                text.Append(await RenderBusinessViewAsync(lane.SurveyId, graph, flow, ct));
+            else
+                text.AppendLine(T("Boards.LaneNoView"));
+        }
+        return text.ToString();
+    }
+
+    private async Task<string> RenderBusinessViewAsync(Guid surveyId, FlowGraph graph, Rastro.Core.Business.BusinessFlow flow, CancellationToken ct)
+    {
         var handles = Handles(graph);
         // Apelido curto de cada passo (b1, b2...), na ordem da visão, para as ligações ficarem legíveis.
         var steps = flow.Steps.Select((step, index) => (step, handle: $"b{index + 1}")).ToList();
@@ -217,6 +285,8 @@ public class RastroTools(
             if (step.Ref is { } at && templates.TryGetValue(at.Repository, out var template))
                 where += " " + Rastro.Core.Links.CodeLinks.Fill(template, at.File, at.Line);
             var proposed = step.LabelState == Rastro.Core.Business.LabelState.Proposed ? " " + T("Business.Proposed") : string.Empty;
+            if (step.CodeChanged) proposed += " " + T("Business.CodeChanged");
+            if (step.KindProposal is { } kindProposal) proposed += " " + T("Business.KindProposal", kindProposal.Kind, kindProposal.Reason);
             text.AppendLine(T("Business.Step", handle, step.Kind, step.Label, handles.GetValueOrDefault(step.NodeId, step.NodeId), where, proposed));
         }
         text.AppendLine(T("Business.Links"));
@@ -229,6 +299,67 @@ public class RastroTools(
         if (flow.CollapsedDecisions > 0) text.AppendLine(T("Business.Collapsed", flow.Steps.Count, flow.CollapsedDecisions));
         return text.ToString();
     }
+
+    [McpServerTool(Name = "propose_business_label"), Description("Proposes the business text of a key step of the business view (get_business_view): a single line of up to 120 characters, in the user's language; a decision is a question that ends with \"?\"; no method, class or variable names, and nothing the code does not show. It shows on the screen as proposed by an agent and only the user confirms it. A text the user already confirmed is never changed. Does not use the compiler: the text is not proof, it is a proposal.")]
+    public async Task<string> ProposeBusinessLabel(
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Step handle (b3, from get_business_view), node handle (n12), node id or step id. Use the step handle to point to the End step.")] string nodeId,
+        [Description("The text of the step: one line, up to 120 characters.")] string text,
+        CancellationToken ct = default)
+    {
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
+        var segment = await StepSegmentAsync(surveyId, graph, nodeId, ct);
+        if (segment is null) return T("Business.StepNotFound");
+
+        var outcome = await businessAnnotations.ProposeLabelAsync(surveyId, segment, text, Rastro.Core.Business.LabelOrigin.Agent, Language, ct);
+        return outcome.Ok
+            ? T("Business.LabelProposed", nodeId.Trim(), outcome.Step!.Label)
+            : BusinessEditText(outcome.Error);
+    }
+
+    [McpServerTool(Name = "propose_business_kind"), Description("Proposes another business type for a key step of the business view (get_business_view): Start, Decision, Notification, Rejection, CrossSystem, Step or End (or the number 0 to 6), with a short reason (up to 300 characters, one line) that points to what the code shows. The drawing does not change: it shows on the screen as a proposal of an agent and only the user confirms or dismisses it. A type the user already confirmed is never changed.")]
+    public async Task<string> ProposeBusinessKind(
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Step handle (b3, from get_business_view), node handle (n12), node id or step id.")] string nodeId,
+        [Description("The type: Start, Decision, Notification, Rejection, CrossSystem, Step or End.")] string kind,
+        [Description("Why this step is of that type (what in the code shows it).")] string reason,
+        CancellationToken ct = default)
+    {
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
+        var segment = await StepSegmentAsync(surveyId, graph, nodeId, ct);
+        if (segment is null) return T("Business.StepNotFound");
+
+        var text = kind.Trim();
+        if (!Enum.TryParse<Rastro.Core.Business.BusinessKind>(text, true, out var parsed) || !Enum.IsDefined(parsed))
+            return T("Business.KindInvalid");
+
+        var outcome = await businessAnnotations.ProposeKindAsync(surveyId, segment, (int)parsed, reason, Language, ct);
+        return outcome.Ok
+            ? T("Business.KindProposed", nodeId.Trim(), parsed)
+            : BusinessEditText(outcome.Error);
+    }
+
+    // b3 (passo da visão de negócio), n12 (nó), id do nó ou Id do passo. Nulo se não apontar para nada.
+    private async Task<string?> StepSegmentAsync(Guid surveyId, FlowGraph graph, string reference, CancellationToken ct)
+    {
+        var text = reference.Trim();
+        if (text.Length > 1 && text[0] is 'b' or 'B' && int.TryParse(text[1..], out var index) && index >= 1)
+        {
+            var flow = await business.GetAsync(surveyId, Language, ct);
+            return flow is not null && index <= flow.Steps.Count ? flow.Steps[index - 1].Id : null;
+        }
+        return FindNode(graph, text)?.Id ?? (text.Length > 0 ? text : null);
+    }
+
+    private string BusinessEditText(Rastro.Infrastructure.Business.BusinessEditError error) => error switch
+    {
+        Rastro.Infrastructure.Business.BusinessEditError.LabelInvalid => T("Business.LabelInvalid"),
+        Rastro.Infrastructure.Business.BusinessEditError.KindInvalid => T("Business.KindInvalid"),
+        Rastro.Infrastructure.Business.BusinessEditError.ReasonInvalid => T("Business.ReasonInvalid"),
+        Rastro.Infrastructure.Business.BusinessEditError.AlreadyConfirmed => T("Business.AlreadyConfirmed"),
+        Rastro.Infrastructure.Business.BusinessEditError.SurveyNotFound => T("Surveys.NotFound"),
+        _ => T("Business.StepNotFound")
+    };
 
     [McpServerTool(Name = "list_unresolved"), Description("Lists the calls the compiler did not resolve (the gaps to fill), with the reason and where they are.")]
     public async Task<string> ListUnresolved([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)

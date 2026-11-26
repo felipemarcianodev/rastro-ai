@@ -40,6 +40,7 @@ public static class RastroAiServices
         services.AddScoped<Suggestions.ContextAdvisor>();
         services.AddScoped<Suggestions.QuestionAdvisor>();
         services.AddScoped<Suggestions.QueryAdvisor>();
+        services.AddScoped<Suggestions.BusinessLabelAdvisor>();
         return services;
     }
 

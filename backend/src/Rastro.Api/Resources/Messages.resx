@@ -31,4 +31,17 @@
   <data name="Cli.Window.Failed" xml:space="preserve"><value>The own window did not open: {0}.</value></data>
   <data name="Cli.Window.StillUp" xml:space="preserve"><value>Rastro is still running: open {0} in the browser. Ctrl+C to quit.</value></data>
   <data name="Cli.Window.FailedReason" xml:space="preserve"><value>the window failed to open (details in the log)</value></data>
+  <data name="BusinessLayout.Invalid" xml:space="preserve"><value>Invalid layout: up to 500 steps and 500 links, up to 20 bend points per link, finite numbers between -100000 and 100000, and step ids up to 64 characters.</value></data>
+  <data name="BusinessLabel.Invalid" xml:space="preserve"><value>Invalid text: use a single line of up to 120 characters.</value></data>
+  <data name="BusinessKind.Invalid" xml:space="preserve"><value>Invalid step type.</value></data>
+  <data name="BusinessStep.NotFound" xml:space="preserve"><value>Step not found in this trace's business view.</value></data>
+  <data name="BusinessProposal.NotFound" xml:space="preserve"><value>There is no pending type proposal for this step.</value></data>
+  <data name="Board.NotFound" xml:space="preserve"><value>Board not found.</value></data>
+  <data name="Board.NameInvalid" xml:space="preserve"><value>Invalid board name: use a single line of 1 to 120 characters.</value></data>
+  <data name="Board.GlossaryInvalid" xml:space="preserve"><value>Invalid glossary: use plain text of up to 8000 characters.</value></data>
+  <data name="Board.LanesInvalid" xml:space="preserve"><value>Invalid lanes: a board has 1 to 12 different traces, and each lane title has up to 120 characters on a single line.</value></data>
+  <data name="Board.SurveyNotFound" xml:space="preserve"><value>Trace not found.</value></data>
+  <data name="Board.SurveyNotReady" xml:space="preserve"><value>The trace is not ready yet: wait for the analysis to finish (a failed trace cannot go on a board).</value></data>
+  <data name="Board.LaneExists" xml:space="preserve"><value>This trace is already a lane of the board.</value></data>
+  <data name="Board.LaneNotFound" xml:space="preserve"><value>This trace is not a lane of the board.</value></data>
 </root>

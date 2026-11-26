@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { Router, provideRouter } from '@angular/router';
-import { App } from './app';
+import { App, NavArea, areaOf } from './app';
 import { LastRepositoryService } from './core/last-repository.service';
 import { RepositoryItem } from './core/models';
 
@@ -41,12 +41,12 @@ describe('App', () => {
   });
 
   // UX-H01, UX-H05
-  it('a nav tem os três itens e marca Levantamentos na tela inicial', async () => {
+  it('a nav tem os quatro itens e marca Levantamentos na tela inicial', async () => {
     const { fixture, el, link } = render([repo('a')]);
     await TestBed.inject(Router).navigateByUrl('/');
     fixture.detectChanges();
     const labels = Array.from(el.querySelectorAll('nav[aria-label="Principal"] a')).map((a) => a.textContent?.trim());
-    expect(labels).toEqual(['Levantamentos', 'Banco', 'Configurações']);
+    expect(labels).toEqual(['Levantamentos', 'Quadros', 'Banco', 'Configurações']);
     expect(link('Levantamentos').getAttribute('aria-current')).toBe('page');
     expect(link('Banco').getAttribute('aria-current')).toBeNull();
   });
@@ -57,6 +57,10 @@ describe('App', () => {
     await router.navigateByUrl('/surveys/5');
     fixture.detectChanges();
     expect(link('Levantamentos').getAttribute('aria-current')).toBe('page');
+    await router.navigateByUrl('/boards/b1');
+    fixture.detectChanges();
+    expect(link('Quadros').getAttribute('aria-current')).toBe('page');
+    expect(link('Levantamentos').getAttribute('aria-current')).toBeNull();
     await router.navigateByUrl('/repositorios/a/banco');
     fixture.detectChanges();
     expect(link('Banco').getAttribute('aria-current')).toBe('page');
@@ -236,5 +240,15 @@ describe('App, foco no h1 depois da navegação', () => {
     await tick();
     expect(document.activeElement).toBe(item);
     fixture.nativeElement.remove();
+  });
+});
+
+describe('areaOf, quadros (Fase 60)', () => {
+  // WEB-BOARD-080
+  it('rotasDosQuadros_pertencemAAreaQuadros', () => {
+    expect(areaOf('/boards')).toBe(NavArea.Boards);
+    expect(areaOf('/boards/b1')).toBe(NavArea.Boards);
+    expect(areaOf('/boards/b1?x=1#y')).toBe(NavArea.Boards);
+    expect(areaOf('/boardsx')).toBeNull();
   });
 });

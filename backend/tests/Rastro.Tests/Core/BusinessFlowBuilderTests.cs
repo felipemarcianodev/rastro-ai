@@ -120,7 +120,7 @@ public class BusinessFlowBuilderTests
         // CORE-BIZ-003
         var flow = Derive(Cancelamento());
 
-        Assert.Equal("pedido.Enviado?", Step(flow, "if:1").Label);
+        Assert.Equal("Pedido enviado?", Step(flow, "if:1").Label);
         Assert.Equal("Rejected: enviado", Step(flow, "ret:1").Label);
         Assert.Equal("Repo.Gravar", Step(flow, "m:db").Label);
         Assert.Equal("Sends email", Step(flow, "m:mail").Label);
@@ -389,7 +389,7 @@ public class BusinessFlowBuilderTests
 
         Assert.Equal("case Cartao", Link(flow, "sw:1", "m:mail").Label);
         Assert.Equal("case Boleto", Link(flow, "sw:1", "thr:1").Label);
-        Assert.Equal("meio?", Step(flow, "sw:1").Label);
+        Assert.Equal("Meio?", Step(flow, "sw:1").Label);
     }
 
     [Fact]
@@ -563,9 +563,9 @@ public class BusinessFlowBuilderTests
     }
 
     [Theory]
-    [InlineData(UiLanguage.English, "Sends email", "cond?", "Rejected: Erro")]
-    [InlineData(UiLanguage.Portuguese, "Envia e-mail", "cond?", "Recusa: Erro")]
-    [InlineData(UiLanguage.Spanish, "Envía correo", "¿cond?", "Rechazo: Erro")]
+    [InlineData(UiLanguage.English, "Sends email", "Cond?", "Rejected: Erro")]
+    [InlineData(UiLanguage.Portuguese, "Envia e-mail", "Cond?", "Recusa: Erro")]
+    [InlineData(UiLanguage.Spanish, "Envía correo", "¿Cond?", "Rechazo: Erro")]
     public void Derive_Idioma_TextosNosTresIdiomas(UiLanguage language, string email, string decisao, string recusa)
     {
         // CORE-BIZ-025
@@ -628,12 +628,41 @@ public class BusinessFlowBuilderTests
         Assert.Equal("Bloqueado na tela", Step(flow, "if:html").Label);
         Assert.Equal("detalhe-pedido.component.html", Step(flow, "if:html").Ref!.File);
         Assert.Equal(BusinessKind.Decision, Step(flow, "if:ts").Kind);
-        Assert.Equal("this.pedido.enviado?", Step(flow, "if:ts").Label);
+        Assert.Equal("Pedido enviado?", Step(flow, "if:ts").Label);
         Assert.Equal(BusinessKind.Rejection, Step(flow, "ret:ts").Kind);
         Assert.Equal("Bloqueado na tela", Step(flow, "ret:ts").Label);
         Assert.Equal("POST api/pedidos/{}/cancelamento", Step(flow, "m:svc").Label);
         Link(flow, "m:e", "if:html");
         Assert.Equal("then", Link(flow, "if:ts", "ret:ts").Label);
+    }
+
+    [Fact]
+    public void Derive_ReturnVazioNumServicoAngular_NaoViraBloqueadoNaTela()
+    {
+        // CORE-BIZ-039 (achado num sistema real: guardas de log e de autenticação viravam "Bloqueado na tela")
+        var graph = G("m:e",
+            [
+                M("m:e", "ConfigComponent.salvar", kind: NodeKind.Entry, file: "config.component.ts"),
+                M("m:log", "LoggerService.registrar", file: "logger.service.ts", line: 5),
+                new FlowNode("if:log", NodeKind.Decision, "if (!this.logger)", Location: new SourceLocation("logger.service.ts", 6),
+                    Condition: "!this.logger"),
+                new FlowNode("ret:log", NodeKind.Return, "return", Location: new SourceLocation("logger.service.ts", 7)),
+                M("m:svc", "ConfigService.salvar", file: "config.service.ts", line: 9),
+                M(SystemIds.Prefix("api", "m:ctrl"), "ConfigController.Salvar", system: "api")
+            ],
+            [
+                E("m:e", "m:log", 1),
+                E("m:log", "if:log", 1),
+                E("if:log", "ret:log", 1, "then"),
+                E("m:e", "m:svc", 2),
+                E("m:svc", SystemIds.Prefix("api", "m:ctrl"), 1, http: new HttpCall("POST", "api/config"))
+            ]);
+
+        var flow = Derive(graph, language: UiLanguage.Portuguese);
+
+        Assert.DoesNotContain(flow.Steps, s => s.Kind == BusinessKind.Rejection);
+        Assert.DoesNotContain(flow.Steps, s => s.NodeId == "if:log");
+        Assert.Contains(flow.Steps, s => s.Kind == BusinessKind.CrossSystem);
     }
 
     [Fact]
@@ -793,6 +822,26 @@ public class BusinessFlowBuilderTests
         Assert.Equal(comLiteral, Step(flow, "ret:1").Label);
         Assert.Equal(semLiteral, Step(flow, "ret:2").Label);
         Assert.Equal(excecao, Step(flow, "thr:3").Label);
+    }
+
+    [Fact]
+    public void Derive_RecusaComTextoCortadoPeloExtrator_SemVirgulaSoltaEComReticencias()
+    {
+        // CORE-BIZ-038 (o rótulo do nó encurta retornos longos e termina em "…" antes de fechar as aspas)
+        var graph = G("m:e",
+            [
+                M("m:e", "Ctrl.A", kind: NodeKind.Entry),
+                Dec("if:1", "a"), Ret("ret:1", "return BadRequest(\"O comando precisa caber numa linha, …"),
+                M("m:fim", "Ctrl.Fim")
+            ],
+            [
+                E("m:e", "if:1", 1), E("if:1", "ret:1", 1, "then"),
+                E("m:e", "m:fim", 2)
+            ]);
+
+        var flow = Derive(graph, language: UiLanguage.Portuguese);
+
+        Assert.Equal("Recusa: O comando precisa caber numa linha…", Step(flow, "ret:1").Label);
     }
 
     [Fact]

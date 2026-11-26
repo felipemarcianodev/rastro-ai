@@ -98,15 +98,16 @@
                   <div class="menu-backdrop" (click)="closePopovers()"></div>
                   <ul id="export-menu" class="popover-menu" role="menu" [attr.aria-label]="'survey.export.button' | translate" (keydown)="onMenuKey($event)">
                     <li class="popover-group" role="presentation">{{ 'survey.export.group' | translate }}</li>
-                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
                     <li role="none"><button type="button" role="menuitem" (click)="exportDrawio()">{{ 'survey.export.drawio' | translate }}</button></li>
                     <li role="none"><button type="button" role="menuitem" (click)="openC4()">{{ 'survey.export.c4' | translate }}</button></li>
                   </ul>
                 }
               </span>
+              <button type="button" class="btn btn-g btn-small" (click)="addBoardOpen.set(true)" [title]="'survey.addToBoardTitle' | translate">{{ 'survey.addToBoard' | translate }}</button>
             </div>
             <div class="bar-group" role="group" [attr.aria-label]="'survey.group.change' | translate">
               <button type="button" class="btn btn-p btn-small" (click)="startEditing()">{{ 'survey.edit.button' | translate }}</button>
@@ -432,6 +433,11 @@
         <button type="button" role="menuitem" (click)="copyMenuLocation()">{{ 'survey.menu.copyLocation' | translate }}</button>
       </li>
     }
+    @if (menuNotKeyStep()) {
+      <li role="none">
+        <button type="button" role="menuitem" (click)="showInBusinessView()" [title]="'survey.menu.businessShowTitle' | translate">{{ 'survey.menu.businessShow' | translate }}</button>
+      </li>
+    }
     <li role="none">
       <button type="button" role="menuitem" (click)="closeMenu(); toggleCollapse(m.nodeId)">{{ (menuCollapsed() ? 'survey.menu.expand' : 'survey.menu.collapse') | translate }}</button>
     </li>
@@ -459,6 +465,10 @@
     [text]="(changes() > 0 ? 'survey.confirm.discardTextWithChanges' : 'survey.confirm.discardText') | translate: { count: changes() }"
     [confirmLabel]="(changes() > 0 ? 'survey.confirm.discardWithChanges' : 'survey.confirm.discard') | translate: { count: changes() }"
     (confirm)="discardDraft()" (cancel)="confirmDiscard.set(false)" />
+}
+
+@if (addBoardOpen() && detail(); as d) {
+  <app-add-to-board-dialog [surveyId]="d.survey.id" [entryPoint]="d.survey.entryPoint" (cancel)="addBoardOpen.set(false)" />
 }
 
 @if (confirmDelete() && detail(); as d) {

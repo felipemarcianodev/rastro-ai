@@ -7,17 +7,6 @@
   overflow: hidden;
 }
 
-// Cada tipo de balão define as três variáveis; o resto do estilo lê só elas (tokens --biz-* do tema).
-$kinds: start, decision, notification, rejection, cross-system, step, end;
-
-@each $kind in $kinds {
-  .biz-kind-#{$kind} {
-    --biz-fill: var(--biz-#{$kind}-fill);
-    --biz-stroke: var(--biz-#{$kind}-stroke);
-    --biz-ink: var(--biz-#{$kind}-ink);
-  }
-}
-
 .biz-bar {
   display: flex;
   flex-wrap: wrap;
@@ -77,7 +66,6 @@ $kinds: start, decision, notification, rejection, cross-system, step, end;
   background: var(--biz-fill);
   color: var(--biz-ink);
   text-align: left;
-  cursor: pointer;
 
   &.biz-kind-start,
   &.biz-kind-end {
@@ -251,126 +239,4 @@ $kinds: start, decision, notification, rejection, cross-system, step, end;
   &.is-out {
     bottom: -4px;
   }
-}
-
-.biz-panel {
-  flex: none;
-  max-height: 45%;
-  padding: var(--space-3) var(--space-4);
-  overflow: auto;
-  border-top: 1px solid var(--line);
-  background: var(--surface);
-  font-size: var(--text-sm);
-
-  p {
-    margin: 0;
-  }
-}
-
-.biz-panel-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2);
-
-  .kind,
-  .kind-glyph {
-    border: 1px solid var(--biz-stroke);
-    background: var(--biz-fill);
-    color: var(--biz-ink);
-  }
-
-  .kind {
-    padding: 2px var(--space-2) 2px var(--space-1);
-    border-radius: var(--radius-pill);
-  }
-}
-
-.biz-panel-title {
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.biz-panel-close {
-  margin-left: auto;
-}
-
-.biz-panel-h {
-  margin: var(--space-3) 0 var(--space-1);
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.biz-code {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 2px var(--space-3);
-  margin: 0;
-
-  dt {
-    color: var(--ink-soft);
-  }
-
-  dd {
-    min-width: 0;
-    margin: 0;
-    overflow-wrap: anywhere;
-  }
-}
-
-.biz-open,
-.biz-panel-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-
-.biz-path,
-.biz-grouped-list {
-  margin: 0;
-  padding-left: var(--space-5);
-}
-
-.biz-grouped-list {
-  list-style: none;
-}
-
-.biz-via {
-  margin-right: var(--space-1);
-  padding: 0 var(--space-1);
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  color: var(--ink-soft);
-  font-family: var(--font-code);
-  font-size: var(--text-xs);
-}
-
-.biz-link {
-  padding: 2px var(--space-1);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: none;
-  color: inherit;
-  font-size: var(--text-sm);
-  text-align: left;
-  cursor: pointer;
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: var(--focus);
-  }
-
-  &:hover,
-  &.is-current {
-    background: var(--trail-wash);
-  }
-}
-
-.biz-grouped {
-  margin-top: var(--space-3);
-}
-
-.biz-note {
-  white-space: pre-wrap;
 }

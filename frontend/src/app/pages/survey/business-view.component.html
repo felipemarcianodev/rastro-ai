@@ -1,14 +1,22 @@
 <div class="biz-bar" role="group" [attr.aria-label]="'business.barLabel' | translate">
+  @if (!inBoard()) {
   <button type="button" class="btn btn-icon" (click)="toggleDirection()"
     [attr.aria-label]="'graph.layout.directionAria' | translate: { current: (directionLabel[LayoutDirection.Business] | translate), next: (directionLabel[next] | translate) }"
     [title]="'graph.layout.directionTitle' | translate: { next: (directionLabel[next] | translate) }">{{ directionGlyph[next] }}</button>
+  }
   @if (geometry() && !empty()) {
   <span class="biz-zoom" role="group" [attr.aria-label]="'business.zoomLabel' | translate">
     <button type="button" class="btn btn-icon" (click)="zoomOut()" [attr.aria-label]="'flowCanvas.zoomOut' | translate" [title]="'flowCanvas.zoomOut' | translate">−</button>
-    <span class="biz-zoom-value" role="status" [attr.aria-label]="'business.zoomValueAria' | translate: { percent: percent() }">{{ percent() }}%</span>
+    <button type="button" class="btn btn-icon biz-zoom-value" (click)="actualSize()" [attr.aria-label]="'flowMap.zoomActualAria' | translate: { percent: percent() }" [title]="'flowMap.zoomActualTitle' | translate">{{ percent() }}%</button>
     <button type="button" class="btn btn-icon" (click)="zoomIn()" [attr.aria-label]="'flowCanvas.zoomIn' | translate" [title]="'flowCanvas.zoomIn' | translate">+</button>
     <button type="button" class="btn btn-icon" (click)="fit()" [attr.aria-label]="'flowCanvas.fit' | translate" [title]="'flowCanvas.fit' | translate">⤢</button>
   </span>
+  @if (hasLayout()) {
+    <button type="button" class="btn btn-g btn-small" (click)="askReset()" [title]="'business.resetTitle' | translate">{{ 'business.reset' | translate }}</button>
+  }
+  }
+  @if (canSuggest() && geometry() && !empty()) {
+    <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()" [attr.aria-busy]="suggesting()" [title]="'business.suggest.title' | translate">{{ (suggesting() ? 'business.suggest.running' : 'business.suggest.button') | translate }}</button>
   }
   @if (flow(); as f) {
     @if (f.collapsedDecisions > 0) {
@@ -32,12 +40,15 @@
 } @else if (empty()) {
   <div class="biz-status is-empty" role="status">
     <p class="muted">{{ 'business.empty' | translate }}</p>
-    <button type="button" class="btn btn-g btn-small" (click)="seeGraph()">{{ 'business.seeGraph' | translate }}</button>
+    @if (!inBoard()) {
+      <button type="button" class="btn btn-g btn-small" (click)="seeGraph()">{{ 'business.seeGraph' | translate }}</button>
+    }
   </div>
 } @else if (geometry()) {
-  <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate">
-    <f-flow fDraggable class="flow-host biz-host" (fFullRendered)="onFullRendered()">
-      <f-canvas fZoom [fZoomMinimum]="0.25" [fZoomMaximum]="2" (fCanvasChange)="scale.set($event.scale)">
+  <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate" (keydown)="onStageKey($event)">
+    <f-flow fDraggable class="flow-host biz-host" [class.is-panning]="panning()" [hCellSize]="grid" [vCellSize]="grid" [fCellSizeWhileDragging]="true"
+      [fNodeMoveTrigger]="nodeMoveTrigger" [fCanvasMoveTrigger]="canvasMoveTrigger" (fConnectionWaypointsChanged)="bent($event)" (fFullRendered)="onFullRendered()">
+      <f-canvas fZoom [fZoomMinimum]="zoomMin" [fZoomMaximum]="zoomMax" (fCanvasChange)="scale.set($event.scale)">
         <ng-container ngProjectAs="[fConnections]">
           @for (edge of edges(); track edge.index) {
             <f-connection
@@ -51,6 +62,7 @@
               [fReassignDisabled]="true"
               [class.edge-inferred]="edge.inferred">
               <f-connection-marker-arrow [type]="markerEnd" />
+              <f-connection-waypoints [waypoints]="edge.bends" [radius]="6" />
               @if (edge.label) {
                 <div fConnectionContent [position]="labelPosition">
                   <span class="edge-label">{{ edge.label }}</span>
@@ -64,28 +76,44 @@
           @for (p of placed(); track p.step.id) {
             <div
               fNode
+              fDragHandle
               [fNodeId]="p.step.id"
               [fNodePosition]="{ x: p.x, y: p.y }"
+              (fNodePositionChange)="moved(p.step, $event)"
               [fNodeSize]="{ width: p.width, height: p.height }"
               class="biz-node biz-kind-{{ slug[p.step.kind] }}"
               [class.is-selected]="stepId() === p.step.id"
               [class.is-proposed]="isProposed(p.step)"
               [attr.data-step-id]="p.step.id"
               [attr.title]="p.whereFull"
-              tabindex="0"
+              [attr.tabindex]="p.step.id === tabStop() ? 0 : -1"
               role="button"
               [attr.aria-pressed]="stepId() === p.step.id"
               [attr.aria-label]="stepAria(p.step)"
-              (click)="pick(p.step)"
+              aria-describedby="biz-keys-help"
+              (pointerdown)="pointerDown($event)"
+              (click)="click($event, p.step)"
+              (focus)="focusedId.set(p.step.id)"
+              (dblclick)="startEdit(p.step, EditPlace.Node)"
+              (keydown.f2)="startEdit(p.step, EditPlace.Node)"
               (keydown.enter)="pick(p.step)"
-              (keydown.space)="$event.preventDefault(); pick(p.step)">
+              (keydown.tab)="walk($event, p.step.id, 1)"
+              (keydown.shift.tab)="walk($event, p.step.id, -1)"
+              (keydown.arrowleft)="nudge($event, p.step, -1, 0)" (keydown.arrowright)="nudge($event, p.step, 1, 0)"
+              (keydown.arrowup)="nudge($event, p.step, 0, -1)" (keydown.arrowdown)="nudge($event, p.step, 0, 1)">
               <div fConnector fConnectorType="target" fConnectorConnectableSide="top" [fConnectorDisabled]="true" [fConnectorId]="'in:' + p.step.id" class="biz-port is-in"></div>
               @if (p.step.kind === BusinessKind.Decision) {
                 <svg class="biz-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="50,1 99,50 50,99 1,50" /></svg>
               }
               <span class="biz-glyph" aria-hidden="true">{{ glyph[p.step.kind] }}</span>
               <span class="biz-body">
-                <span class="biz-text" [title]="p.step.label">@for (part of parts(p.step.label); track $index) {{{ part }}<wbr>}</span>
+                @if (isEditing(p.step.id, EditPlace.Node)) {
+                  <input type="text" class="input is-small biz-edit-input" [attr.data-edit]="EditPlace.Node" [maxLength]="labelMax" [value]="draft()" [attr.aria-label]="'business.edit.label' | translate"
+                    (input)="onDraft($event)" (keydown)="editKey($event)" (blur)="commitEdit()"
+                    (pointerdown)="$event.stopPropagation()" (mousedown)="$event.stopPropagation()" (click)="$event.stopPropagation()" (dblclick)="$event.stopPropagation()" />
+                } @else {
+                  <span class="biz-text" [title]="p.step.label">@for (part of parts(p.step.label); track $index) {{{ part }}<wbr>}</span>
+                }
                 @if (p.where || isProposed(p.step) || p.step.inferred) {
                   <span class="biz-meta">
                     @if (p.where) {
@@ -109,14 +137,80 @@
   </div>
 }
 
+<span id="biz-keys-help" class="visually-hidden">{{ 'business.keysHelp' | translate }}</span>
+
+@if (notice() !== null) {
+  <div class="toast" role="status">
+    <span>{{ noticeKey[notice()!] | translate }}</span>
+    <button type="button" class="btn btn-g btn-small" (click)="dismissNotice()">{{ 'common.close' | translate }}</button>
+  </div>
+}
+
+@if (feedback(); as f) {
+  <div class="toast" [class.is-error]="f.error" [attr.role]="f.error ? 'alert' : 'status'">
+    <span>{{ f.text }}</span>
+    <button type="button" class="btn btn-g btn-small" (click)="dismissFeedback()">{{ 'common.close' | translate }}</button>
+  </div>
+}
+
+@if (confirmingReset()) {
+  <app-confirm-dialog [title]="'business.resetConfirm.title' | translate" [text]="'business.resetConfirm.text' | translate" [confirmLabel]="'business.resetConfirm.action' | translate" (confirm)="confirmReset()" (cancel)="cancelReset()" />
+}
+
+@if (!inBoard() || panel()) {
 <section class="biz-panel" [attr.aria-label]="'business.panelLabel' | translate">
   @if (panel(); as p) {
     <header class="biz-panel-head">
       <span class="kind biz-kind-{{ slug[p.step.kind] }}"><span class="kind-glyph" aria-hidden="true">{{ glyph[p.step.kind] }}</span>{{ kindLabel[p.step.kind] | translate }}</span>
-      <strong class="biz-panel-title" aria-live="polite">{{ p.step.label }}</strong>
+      <strong class="biz-panel-title" [class.biz-proposed-text]="isProposed(p.step)" aria-live="polite">{{ p.step.label }}</strong>
       <button type="button" class="btn btn-g btn-small biz-panel-close" (click)="close()" [title]="'flowMap.closeBlockTitle' | translate">{{ 'common.close' | translate }}</button>
     </header>
-    <p class="muted biz-origin">{{ stateLabel[p.step.labelState] | translate: { origin: (originLabel[p.step.labelOrigin] | translate) } }}</p>
+    <p class="muted biz-origin">{{ stateLabel[p.step.labelState] | translate: { origin: (originLabel[p.step.labelOrigin] | translate) } }}
+      @if (p.step.codeChanged) {
+        <span class="biz-badge is-changed" [title]="'business.codeChangedTitle' | translate">{{ 'business.codeChanged' | translate }}</span>
+      }
+    </p>
+
+    @if (isEditing(p.step.id, EditPlace.Panel)) {
+      <div class="biz-edit">
+        <input type="text" class="input is-small biz-edit-input" [attr.data-edit]="EditPlace.Panel" [maxLength]="labelMax" [value]="draft()" [attr.aria-label]="'business.edit.label' | translate"
+          (input)="onDraft($event)" (keydown)="editKey($event)" (blur)="commitEdit()" />
+        <span class="muted field-help">{{ 'business.edit.help' | translate: { max: labelMax } }}</span>
+      </div>
+    } @else {
+      <div class="biz-edit">
+        <button type="button" class="btn btn-g btn-small" [disabled]="busy()" (click)="startEdit(p.step, EditPlace.Panel)" [title]="'business.edit.title' | translate">{{ 'business.edit.button' | translate }}</button>
+        @if (isProposed(p.step)) {
+          <button type="button" class="btn btn-small" [disabled]="busy()" (click)="confirmLabel(p.step)" [title]="'business.confirm.title' | translate">{{ 'business.confirm.button' | translate }}</button>
+        }
+        @if (p.step.labelOrigin === LabelOrigin.User) {
+          <button type="button" class="btn btn-g btn-small" [disabled]="busy()" (click)="useRuleText(p.step)" [title]="'business.ruleText.title' | translate">{{ 'business.ruleText.button' | translate }}</button>
+        }
+      </div>
+    }
+
+    <div class="biz-edit">
+      <label class="field-label" [for]="'biz-kind-pick-' + detail().survey.id">{{ 'business.kind.pick' | translate }}</label>
+      <select [id]="'biz-kind-pick-' + detail().survey.id" class="input is-small" [disabled]="busy()" (change)="onKindChange(p.step, $event)">
+        <option [value]="kindDetected">{{ 'business.kind.detected' | translate }}</option>
+        @for (kind of kindOrder; track kind) {
+          <option [value]="kind" [selected]="kind === p.step.kind">{{ kindLabel[kind] | translate }}</option>
+        }
+      </select>
+    </div>
+
+    @if (p.step.kindProposal; as proposal) {
+      <div class="biz-proposal" role="group" [attr.aria-label]="'business.kindProposal.label' | translate">
+        <p>{{ 'business.kindProposal.text' | translate: { kind: (kindLabel[proposal.kind] | translate) } }}</p>
+        @if (proposal.reason) {
+          <p class="muted">{{ proposal.reason }}</p>
+        }
+        <div class="biz-edit">
+          <button type="button" class="btn btn-small" [disabled]="busy()" (click)="confirmKind(p.step)">{{ 'business.kindProposal.confirm' | translate }}</button>
+          <button type="button" class="btn btn-g btn-small" [disabled]="busy()" (click)="dismissKind(p.step)">{{ 'business.kindProposal.dismiss' | translate }}</button>
+        </div>
+      </div>
+    }
 
     <h3 class="biz-panel-h">{{ 'business.code.title' | translate }}</h3>
     @if (p.ref; as ref) {
@@ -176,11 +270,14 @@
       <p class="biz-note">{{ p.note }}</p>
     }
 
+    @if (!inBoard()) {
     <footer class="biz-panel-foot">
       <button type="button" class="btn btn-g btn-small" (click)="viewInGraph()" [title]="'business.seeInGraphTitle' | translate">{{ 'business.seeInGraph' | translate }}</button>
       <button type="button" class="btn btn-g btn-small" (click)="focusSection()" [title]="'flowMap.focusSectionTitle' | translate">{{ 'flowMap.focusSection' | translate }}</button>
     </footer>
+    }
   } @else {
     <p class="muted biz-hint">{{ 'business.hint' | translate }}</p>
   }
 </section>
+}

@@ -13,6 +13,17 @@ export const BUSINESS_KIND_SLUG: Record<BusinessKind, string> = {
   [BusinessKind.End]: 'end',
 };
 
+// Ordem da lista de tipos do painel (os sete, sempre explícitos).
+export const BUSINESS_KIND_ORDER: readonly BusinessKind[] = [
+  BusinessKind.Start,
+  BusinessKind.Decision,
+  BusinessKind.Notification,
+  BusinessKind.Rejection,
+  BusinessKind.CrossSystem,
+  BusinessKind.Step,
+  BusinessKind.End,
+];
+
 export const BUSINESS_KIND_LABEL_KEY: Record<BusinessKind, string> = {
   [BusinessKind.Start]: 'business.kind.start',
   [BusinessKind.Decision]: 'business.kind.decision',

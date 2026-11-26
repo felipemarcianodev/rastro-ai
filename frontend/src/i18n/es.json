@@ -19,7 +19,8 @@
       "surveys": "Rastreos",
       "database": "Base de datos",
       "databaseFailed": "Base de datos (no se pudieron leer los repositorios)",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "boards": "Tableros"
     },
     "aiState": {
       "title": "Configuración de la IA y del modo agente",
@@ -292,6 +293,10 @@
     "AI_SETTINGS_INVALID": "Configuración inválida: revisa los modelos, las claves y el presupuesto.",
     "AI_DISABLED": "La IA está desactivada en la configuración.",
     "AI_USE_DISABLED": "Este uso de la IA está desactivado en la configuración.",
+    "BUSINESS_LABEL_INVALID": "El texto del paso está vacío, es demasiado largo o tiene más de una línea.",
+    "BUSINESS_KIND_INVALID": "El tipo elegido no existe.",
+    "BUSINESS_STEP_NOT_FOUND": "Este paso ya no está en la vista de negocio. Recarga la pantalla.",
+    "BUSINESS_PROPOSAL_NOT_FOUND": "No hay propuesta pendiente para este paso.",
     "AI_NOT_CONFIGURED": "Falta la clave de API del proveedor elegido.",
     "AI_BUDGET_EXCEEDED": "Se agotó el presupuesto diario de tokens.",
     "AI_PROVIDER_ERROR": "El proveedor de IA no respondió. Inténtalo de nuevo en unos instantes.",
@@ -311,7 +316,15 @@
     "noResponse": "Rastro no respondió. Comprueba que el comando rastro siga abierto en la terminal e inténtalo de nuevo.",
     "notFound": "No encontrado.",
     "generic": "Algo salió mal en Rastro. Inténtalo de nuevo.",
-    "LANGUAGE_INVALID": "Idioma no válido. Elige español, inglés o portugués."
+    "LANGUAGE_INVALID": "Idioma no válido. Elige español, inglés o portugués.",
+    "BOARD_NOT_FOUND": "Este tablero ya no existe. Vuelva a la lista de tableros.",
+    "BOARD_NAME_INVALID": "El nombre del tablero está vacío o tiene más de 120 caracteres.",
+    "BOARD_GLOSSARY_INVALID": "El glosario pasa de 8000 caracteres.",
+    "BOARD_LANES_INVALID": "Los carriles del tablero no son válidos: un tablero tiene de 1 a 12 carriles, sin repetir levantamiento.",
+    "BOARD_SURVEY_NOT_FOUND": "Ese levantamiento ya no existe.",
+    "BOARD_SURVEY_NOT_READY": "El levantamiento todavía no está listo. Espere a que termine.",
+    "BOARD_LANE_EXISTS": "Ese levantamiento ya está en el tablero.",
+    "BOARD_LANE_NOT_FOUND": "Ese carril ya no está en el tablero. Recargue la pantalla."
   },
   "flowCanvas": {
     "mark": {
@@ -585,7 +598,6 @@
   "business": {
     "barLabel": "Dibujo de la vista de negocio",
     "zoomLabel": "Zoom de la vista de negocio",
-    "zoomValueAria": "Zoom al {percent}%",
     "collapsed": "Flujo resumido en {steps} pasos. {count, plural, one {Se agrupó una decisión} other {Se agruparon # decisiones}}.",
     "loading": "Armando la vista de negocio…",
     "empty": "No se encontró ninguna decisión ni notificación en este flujo.",
@@ -599,7 +611,20 @@
     "inferred": "inferido",
     "inferredTitle": "Este paso vino de un enlace inferido, por revisar",
     "panelLabel": "Panel del paso clave",
-    "hint": "Elige un globo para ver el texto de negocio, el código y el camino desde la entrada hasta él. Arrastra un área vacía para mover la vista.",
+    "reset": "Reorganizar",
+    "resetTitle": "Devuelve los globos y los enlaces que ajustaste a la organización automática",
+    "resetConfirm": {
+      "title": "¿Reorganizar la vista de negocio?",
+      "text": "Las posiciones de los globos y los puntos de quiebre de los enlaces que ajustaste vuelven a la organización automática. No se puede deshacer.",
+      "action": "Reorganizar"
+    },
+    "layout": {
+      "saveFailed": "No se pudo guardar la posición.",
+      "resetFailed": "No se pudo reorganizar. Inténtalo de nuevo.",
+      "loadFailed": "No se pudieron cargar las posiciones guardadas. Se usó la organización automática."
+    },
+    "keysHelp": "Tab: siguiente globo. Enter: abrir el panel. Flechas: mover el globo de 10 en 10 píxeles. Esc: limpiar la elección. Más, menos y cero: zoom. F2: editar el texto.",
+    "hint": "Elige un globo para ver el texto de negocio, el código y el camino desde la entrada hasta él. Arrastra un globo para cambiarlo de lugar y un área vacía (o Espacio y arrastrar) para mover la vista. Ctrl y la rueda acercan.",
     "kind": {
       "start": "Inicio",
       "decision": "Decisión",
@@ -607,7 +632,9 @@
       "rejection": "Rechazo",
       "cross-system": "Llamada entre sistemas",
       "step": "Paso",
-      "end": "Fin"
+      "end": "Fin",
+      "pick": "Tipo del paso",
+      "detected": "Detectado"
     },
     "origin": {
       "rule": "por la regla",
@@ -647,7 +674,45 @@
       "title": "Nota del paso"
     },
     "seeInGraph": "Ver en el grafo",
-    "seeInGraphTitle": "Vuelve al grafo con este paso elegido"
+    "seeInGraphTitle": "Vuelve al grafo con este paso elegido",
+    "codeChanged": "El código cambió desde la confirmación",
+    "codeChangedTitle": "El código de este paso cambió después de que confirmaras el texto. Revisa si el texto sigue valiendo.",
+    "edit": {
+      "label": "Texto de negocio del paso",
+      "help": "Enter guarda y Esc cancela. Hasta {max} caracteres, una línea. Vacío vuelve al texto de la regla.",
+      "title": "Escribir el texto de negocio de este paso",
+      "button": "Editar texto"
+    },
+    "confirm": {
+      "button": "Confirmar",
+      "title": "Confirma el texto propuesto tal como está"
+    },
+    "ruleText": {
+      "button": "Usar el texto de la regla",
+      "title": "Descarta tu texto y vuelve al texto que genera la regla"
+    },
+    "kindProposal": {
+      "label": "Propuesta de tipo del agente",
+      "text": "El agente propone el tipo {kind}.",
+      "confirm": "Confirmar",
+      "dismiss": "Descartar"
+    },
+    "suggest": {
+      "button": "Sugerir textos",
+      "running": "Sugiriendo…",
+      "title": "Pide a la IA un texto de negocio para los pasos sin texto confirmado. Tú confirmas cada uno."
+    },
+    "feedback": {
+      "labelSaved": "Texto guardado.",
+      "labelRule": "Volvió al texto de la regla.",
+      "labelConfirmed": "Texto confirmado.",
+      "kindSaved": "Tipo cambiado.",
+      "kindDetected": "Volvió al tipo detectado.",
+      "kindConfirmed": "Tipo confirmado.",
+      "kindDismissed": "Propuesta de tipo descartada.",
+      "suggested": "{count, plural, =1 {# texto propuesto} other {# textos propuestos}}. Confirma los que sirvan.",
+      "suggestedNone": "Ningún texto nuevo para proponer."
+    }
   },
   "nodePanel": {
     "closeAria": "Cerrar el paso y volver a la vista general",
@@ -886,7 +951,9 @@
     "survey": "Flujo",
     "consolidated": "Vista consolidada",
     "database": "Base de datos de {nome}",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "boards": "Tableros",
+    "board": "Tablero"
   },
   "surveys": {
     "title": "Rastreos",
@@ -983,6 +1050,14 @@
       "solution": "Elige una solution.",
       "entry": "Indica el método de entrada, por ejemplo PedidosController.Criar.",
       "depth": "Usa un número entero de {min} a {max}."
+    },
+    "pick": {
+      "group": "Elegir para el tablero",
+      "selected": "{count, plural, =1 {# levantamiento elegido} other {# levantamientos elegidos}}",
+      "hint": "Elija al menos {min} para crear un tablero.",
+      "create": "Crear tablero",
+      "clear": "Limpiar elección",
+      "label": "Elegir {entryPoint} para el tablero"
     }
   },
   "survey": {
@@ -1054,7 +1129,6 @@
       "copyMermaid": "Copiar como Mermaid",
       "downloadMermaid": "Descargar como Mermaid (.mmd)",
       "drawio": "Descargar para draw.io (.drawio)",
-      "businessOnly": "Esta vista se exporta a draw.io: usa la opción draw.io",
       "c4": "Diagramas C4 (Structurizr DSL)",
       "notDrawn": "El grafo aún no está dibujado. Espera a que aparezca e inténtalo de nuevo.",
       "started": "Descarga iniciada: {file}",
@@ -1192,7 +1266,10 @@
       "openVsCode": "Abrir en VS Code",
       "copyLocation": "Copiar archivo:línea",
       "expand": "Expandir lo que viene después",
-      "collapse": "Contraer lo que viene después"
+      "collapse": "Contraer lo que viene después",
+      "businessShow": "Mostrar en la vista de negocio",
+      "businessShowTitle": "Marca este paso como paso clave en la vista de negocio",
+      "businessShown": "Paso incluido en la vista de negocio."
     },
     "toast": {
       "copied": "Copiado."
@@ -1212,7 +1289,9 @@
     "note": {
       "saved": "Nota guardada.",
       "deleted": "Nota eliminada."
-    }
+    },
+    "addToBoard": "Agregar a un tablero",
+    "addToBoardTitle": "Pone este flujo en un carril de un tablero, junto a otros levantamientos."
   },
   "aiDisclosure": {
     "goes": "Va a {provider}: {goes}.",
@@ -1748,5 +1827,116 @@
     "edgeMarkedNew": "El enlace {a0} → {a1} ya existe en el código; no se puede marcar como nuevo.",
     "edgeDangling": "Un enlace nuevo apunta a un paso que no está en el borrador.",
     "foreignSystem": "Solo se puede editar el primer sistema del flujo."
+  },
+  "boards": {
+    "title": "Tableros",
+    "subtitle": "Un tablero junta los flujos de varios levantamientos lado a lado, cada uno en un carril, para ver el proceso de punta a punta.",
+    "new": "Nuevo tablero",
+    "loading": "Cargando los tableros…",
+    "empty": {
+      "none": "Ningún tablero todavía.",
+      "hint": "Cree un tablero eligiendo dos o más levantamientos listos."
+    },
+    "laneCount": "{count, plural, =1 {# carril} other {# carriles}}",
+    "updated": "actualizado el {date}",
+    "openLabel": "Abrir el tablero {name}",
+    "delete": "Eliminar",
+    "deleteLabel": "Eliminar el tablero {name}",
+    "deleting": "Eliminando…",
+    "deleted": "Tablero \"{name}\" eliminado.",
+    "deleteConfirm": {
+      "title": "¿Eliminar el tablero \"{name}\"?",
+      "text": "Se borran el tablero y las posiciones de sus globos. Los levantamientos siguen como están. No se puede deshacer.",
+      "action": "Eliminar"
+    },
+    "create": {
+      "title": "Crear tablero",
+      "intro": "Elija de 1 a {max} levantamientos listos. El orden en que los elige se vuelve el orden de los carriles.",
+      "name": "Nombre del tablero",
+      "surveys": "Levantamientos listos",
+      "selected": "({count} de {max})",
+      "none": "No hay ningún levantamiento listo. Levante un flujo primero.",
+      "submit": "Crear tablero",
+      "creating": "Creando…",
+      "errors": {
+        "name": "Indique el nombre del tablero.",
+        "surveys": "Elija de 1 a {max} levantamientos."
+      }
+    },
+    "addTo": {
+      "title": "Agregar a un tablero",
+      "intro": "Elija el tablero que recibe {entryPoint}. El carril entra al final.",
+      "choose": "Tablero",
+      "newOption": "Crear un tablero nuevo",
+      "newName": "Nombre del tablero nuevo",
+      "submit": "Agregar",
+      "adding": "Agregando…",
+      "done": "Agregado al tablero \"{name}\".",
+      "open": "Abrir el tablero",
+      "noBoards": "Todavía no tiene tableros. Cree el primero aquí."
+    }
+  },
+  "board": {
+    "heading": "Tablero",
+    "backToList": "Volver a los tableros",
+    "nameLabel": "Nombre del tablero",
+    "rename": "Renombrar",
+    "delete": "Eliminar tablero",
+    "lanes": "Carriles del tablero",
+    "loading": "Cargando el tablero…",
+    "resurveyFailed": "El levantamiento nuevo falló. El carril sigue con el anterior.",
+    "suggest": {
+      "button": "Sugerir textos del tablero",
+      "title": "Pide a la IA un texto de negocio para los pasos sin texto confirmado en todos los carriles, con el glosario del tablero. Usted confirma cada uno."
+    },
+    "addLane": {
+      "button": "Agregar levantamiento",
+      "title": "Agregar un levantamiento al tablero",
+      "full": "El tablero ya tiene el máximo de {max} carriles.",
+      "none": "No hay otro levantamiento listo para agregar.",
+      "pick": "Levantamiento",
+      "submit": "Agregar"
+    },
+    "replaced": {
+      "title": "Carril \"{title}\" actualizado con el levantamiento nuevo",
+      "removed": "{count, plural, =1 {# paso de la versión anterior ya no existe en el código y salió del dibujo:} other {# pasos de la versión anterior ya no existen en el código y salieron del dibujo:}}",
+      "none": "Todos los pasos de la versión anterior siguen en el levantamiento nuevo."
+    },
+    "glossary": {
+      "summary": "Glosario del tablero ({count})",
+      "label": "Glosario",
+      "help": "Texto simple, una entrada por línea, con el formato Término: significado. La IA usa el glosario al sugerir los textos.",
+      "save": "Guardar glosario",
+      "saved": "Glosario guardado.",
+      "placeholder": "Pedido: compra hecha por el cliente"
+    },
+    "legend": {
+      "label": "Leyenda de los tipos de paso"
+    },
+    "export": {
+      "title": "PNG, SVG, Mermaid y draw.io",
+      "notDrawn": "El tablero aún no tiene ningún carril dibujado. Espera a que aparezcan e inténtalo de nuevo."
+    },
+    "lane": {
+      "aria": "Carril {title}",
+      "drag": "Arrastre para cambiar el orden del carril",
+      "titleLabel": "Título del carril",
+      "moveLeft": "Mover el carril {title} a la izquierda",
+      "moveRight": "Mover el carril {title} a la derecha",
+      "open": "Abrir",
+      "openTitle": "Abre el levantamiento de este carril",
+      "remove": "Quitar del tablero",
+      "removeTitle": "Quita el carril del tablero. El levantamiento sigue guardado.",
+      "removeLast": "Un tablero necesita al menos un carril.",
+      "removeConfirm": {
+        "title": "¿Quitar el carril \"{title}\" del tablero?",
+        "text": "Salen el carril y las posiciones de sus globos en este tablero. El levantamiento sigue guardado.",
+        "action": "Quitar"
+      },
+      "running": "Levantando…",
+      "runningHint": "Rastro está leyendo el código. El dibujo aparece cuando termine.",
+      "failed": "El levantamiento de este carril falló.",
+      "loadFailed": "No se pudo abrir el levantamiento de este carril."
+    }
   }
 }

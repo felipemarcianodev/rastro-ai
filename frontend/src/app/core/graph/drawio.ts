@@ -1,6 +1,6 @@
 import { BusinessFlow, BusinessKind, EdgeConfidence, FlowGraph, FlowNode, MapBlock, MapBlockKind, MapLane, MapLaneKind, MapLinkKind, NodeKind, SourceLocation } from '../models';
 import { EdgeShape, PORT, edgeRoutes, httpLabel, mermaidSystems } from './export';
-import { BusinessGeometry } from './business-layout';
+import { BusinessGeometry, edgeKey } from './business-layout';
 import { MAP_BOX, MapGeometry, linkText } from './flow-map';
 import { LayoutDirection, NodeBox } from './layout';
 import { plainBranch } from './plain';
@@ -103,8 +103,8 @@ const CALL_STYLE = 'dashed=1;';
 
 // Margem em volta do desenho e folga da moldura em volta dos balões do sistema.
 const MARGIN = 40;
-const FRAME_PAD = 20;
-const FRAME_HEADER = 28;
+export const FRAME_PAD = 20;
+export const FRAME_HEADER = 28;
 
 // "repositório · arquivo:linha", só com o nome do arquivo (o caminho completo vai na dica).
 export function codeReference(repository: string | null | undefined, location: SourceLocation | null | undefined): string | null {
@@ -239,7 +239,7 @@ export function mapToDrawio(
 
 // Estilos da visão de negócio (seção 14.1 da proposta): a decisão é um losango e a chamada entre
 // sistemas é tracejada.
-const BUSINESS_STYLE: Record<BusinessKind, string> = {
+export const BUSINESS_STYLE: Record<BusinessKind, string> = {
   [BusinessKind.Start]: DRAWIO_STYLE.start,
   [BusinessKind.Decision]: 'rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;',
   [BusinessKind.Notification]: DRAWIO_STYLE.notification,
@@ -249,9 +249,20 @@ const BUSINESS_STYLE: Record<BusinessKind, string> = {
   [BusinessKind.End]: DRAWIO_STYLE.end,
 };
 
-// A visão de negócio como está na tela: um balão por passo-chave, com o texto de negócio e a
-// referência ao código, e as ligações com o rótulo do ramo (a inferida, tracejada).
-export function businessToDrawio(flow: BusinessFlow, geometry: BusinessGeometry, name: string, linkOf?: HostLinkOf): string {
+// Pontos de dobra salvos da tela, por ligação (de, para): o draw.io os leva em <Array as="points">.
+export type BusinessBends = ReadonlyMap<string, readonly { x: number; y: number }[]>;
+
+// Na tela a ligação sai do meio da borda de baixo e chega no meio da borda de cima.
+const BUSINESS_PORTS = 'exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;';
+
+export interface BusinessCells {
+  vertices: DrawioVertex[];
+  edges: DrawioEdge[];
+}
+
+// Os balões e as ligações de um fluxo, na geometria que vier (a da tela, com as posições arrastadas) e com os
+// pontos de dobra salvos. Os índices das ligações são os da lista de balões devolvida.
+export function businessCells(flow: BusinessFlow, geometry: BusinessGeometry, bends: BusinessBends, linkOf?: HostLinkOf): BusinessCells {
   const shown = flow.steps.filter((step) => geometry.boxes.has(step.id));
   const index = new Map(shown.map((step, i) => [step.id, i]));
   const vertices = shown.map((step): DrawioVertex => {
@@ -273,12 +284,29 @@ export function businessToDrawio(flow: BusinessFlow, geometry: BusinessGeometry,
     const source = index.get(edge.from);
     const target = index.get(edge.to);
     if (source === undefined || target === undefined || source === target) return [];
-    return [{ source, target, label: edge.label ? plainBranch(edge.label) : null, style: DRAWIO_STYLE.edge + (edge.inferred ? CALL_STYLE : '') }];
+    const points = bends.get(edgeKey(edge.from, edge.to));
+    return [
+      {
+        source,
+        target,
+        label: edge.label ? plainBranch(edge.label) : null,
+        style: DRAWIO_STYLE.edge + (edge.inferred ? CALL_STYLE : '') + BUSINESS_PORTS,
+        ...(points?.length ? { points: points.map((p) => ({ x: p.x, y: p.y })) } : {}),
+      },
+    ];
   });
+  return { vertices, edges };
+}
+
+// A visão de negócio como está na tela: um balão por passo-chave, com o texto de negócio e a
+// referência ao código, e as ligações com o rótulo do ramo (a inferida, tracejada). A posição é a da tela
+// (inclusive a arrastada) e os pontos de dobra salvos vão nas ligações.
+export function businessToDrawio(flow: BusinessFlow, geometry: BusinessGeometry, name: string, linkOf?: HostLinkOf, bends: BusinessBends = new Map()): string {
+  const { vertices, edges } = businessCells(flow, geometry, bends, linkOf);
   return toDrawio(shift({ name, frames: [], vertices, edges }));
 }
 
-function frameAround(title: string, boxes: readonly NodeBox[]): DrawioFrame | null {
+export function frameAround(title: string, boxes: readonly NodeBox[]): DrawioFrame | null {
   if (boxes.length === 0) return null;
   const x = Math.min(...boxes.map((b) => b.x)) - FRAME_PAD;
   const y = Math.min(...boxes.map((b) => b.y)) - FRAME_PAD - FRAME_HEADER;
@@ -288,7 +316,7 @@ function frameAround(title: string, boxes: readonly NodeBox[]): DrawioFrame | nu
 }
 
 // Leva o desenho para perto da origem, com margem: as posições da tela podem começar longe do zero.
-function shift(page: DrawioPage): DrawioPage {
+export function shift(page: DrawioPage): DrawioPage {
   const all = [...page.frames, ...page.vertices];
   if (all.length === 0) return page;
   const dx = MARGIN - Math.min(...all.map((b) => b.x));

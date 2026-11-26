@@ -123,6 +123,12 @@ public class SurveysController(
         if (validating) return Error(ErrorCodes.ValidationRunning, "Há uma validação rodando com este levantamento. Espere terminar para excluir.");
 
         db.Surveys.Remove(survey);
+        // Sem FK (o escopo também pode ser um quadro): as posições da visão de negócio saem junto, aqui.
+        db.BusinessStepLayouts.RemoveRange(db.BusinessStepLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Survey && l.ScopeId == id));
+        db.BusinessEdgeLayouts.RemoveRange(db.BusinessEdgeLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Survey && l.ScopeId == id));
+        // Quadros (Fase 60): a faixa do levantamento sai por cascata (FK); as posições dela, que não têm FK, saem aqui.
+        db.BusinessStepLayouts.RemoveRange(db.BusinessStepLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Board && l.LaneSurveyId == id));
+        db.BusinessEdgeLayouts.RemoveRange(db.BusinessEdgeLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Board && l.LaneSurveyId == id));
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Levantamento {SurveyId} excluído.", id);
         return NoContent();
@@ -130,30 +136,14 @@ public class SurveysController(
 
     // O código mudou desde o levantamento? Compara o commit salvo com o HEAD atual.
     [HttpGet("{id:guid}/stale")]
-    public async Task<ActionResult<SurveyStaleness>> Stale(Guid id, CancellationToken ct)
+    public async Task<ActionResult<SurveyStaleness>> Stale(Guid id,
+        [FromServices] Rastro.Infrastructure.Surveys.SurveyStalenessService staleness, CancellationToken ct)
     {
-        var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
-        if (survey is null) return NotFound();
+        var freshness = await staleness.CheckAsync(id, ct);
+        if (freshness is null) return NotFound();
 
-        var root = catalog.RootOf(survey.Repository);
-        var head = root is null ? null : await git.HeadAsync(root, ct);
-        var stale = survey.CommitHash is not null && head is not null && head.Commit != survey.CommitHash;
-
-        // Um item por trecho além do primeiro (Fase 25): diz qual sistema mudou.
-        var segments = new List<SegmentStaleness>();
-        var segmentHeads = new Dictionary<string, GitHead?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var segment in await db.SurveySegments.AsNoTracking().Where(g => g.SurveyId == id).OrderBy(g => g.Order).ToListAsync(ct))
-        {
-            if (!segmentHeads.TryGetValue(segment.Repository, out var segmentHead))
-            {
-                var segmentRoot = catalog.RootOf(segment.Repository);
-                segmentHeads[segment.Repository] = segmentHead = segmentRoot is null ? null : await git.HeadAsync(segmentRoot, ct);
-            }
-            var segmentStale = segment.CommitHash is not null && segmentHead is not null && segmentHead.Commit != segment.CommitHash;
-            segments.Add(new SegmentStaleness(segment.Repository, segmentStale, segment.CommitHash, segmentHead?.Commit));
-        }
-
-        return new SurveyStaleness(stale || segments.Any(g => g.Stale), survey.CommitHash, head?.Commit, segments);
+        return new SurveyStaleness(freshness.Stale, freshness.SurveyCommit, freshness.CurrentCommit,
+            freshness.Segments.Select(g => new SegmentStaleness(g.Repository, g.Stale, g.SurveyCommit, g.CurrentCommit)).ToList());
     }
 
     // Trecho do código em volta de uma linha (o arquivo atual do disco, que pode ter mudado
@@ -442,6 +432,97 @@ public class SurveysController(
     {
         var flow = await business.GetAsync(id, RequestLanguage.Current, ct);
         return flow is null ? NotFound() : flow;
+    }
+
+    // Tela livre da visão de negócio (Fase 58): a posição dos balões e os pontos de dobra das ligações, por levantamento.
+    // O tamanho do balão não se guarda. O serviço recebe escopo e id para a Fase 60 reaproveitar com o quadro.
+    [HttpGet("{id:guid}/business/layout")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessLayoutDto>> BusinessLayout(Guid id,
+        [FromServices] Rastro.Infrastructure.Business.BusinessLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        return await layouts.GetAsync(Rastro.Core.Business.LayoutScope.Survey, id, ct);
+    }
+
+    [HttpPut("{id:guid}/business/layout")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessLayoutDto>> SaveBusinessLayout(Guid id,
+        Rastro.Core.Business.BusinessLayoutDto layout,
+        [FromServices] Rastro.Infrastructure.Business.BusinessLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        if (!Rastro.Core.Business.BusinessLayoutLimits.IsValid(layout))
+        {
+            var language = UiLanguages.FromCulture(System.Globalization.CultureInfo.CurrentUICulture);
+            return Error(ErrorCodes.BusinessLayoutInvalid, Rastro.Api.Cli.ApiText.Get("BusinessLayout.Invalid", language));
+        }
+
+        await layouts.SaveAsync(Rastro.Core.Business.LayoutScope.Survey, id, layout, ct);
+        return await layouts.GetAsync(Rastro.Core.Business.LayoutScope.Survey, id, ct);
+    }
+
+    [HttpDelete("{id:guid}/business/layout")]
+    public async Task<IActionResult> ResetBusinessLayout(Guid id,
+        [FromServices] Rastro.Infrastructure.Business.BusinessLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        await layouts.ResetAsync(Rastro.Core.Business.LayoutScope.Survey, id, ct);
+        logger.LogInformation("Posições da visão de negócio do levantamento {SurveyId} apagadas.", id);
+        return NoContent();
+    }
+
+    // Texto e tipo dos passos da visão de negócio (Fase 59). O passo vem na rota pelo Id do passo (16 hexadecimais,
+    // seguro na URL) ou pelo id do nó do grafo (com ':' e '/', codificado); o servidor resolve contra os nós do
+    // próprio levantamento e nunca trata o valor como caminho. Só o usuário confirma: estas rotas são da tela.
+    [HttpPut("{id:guid}/business/steps/{stepId}/label")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessStep>> SetBusinessLabel(Guid id, string stepId, BusinessLabelRequest request,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        StepResult(await annotations.SetLabelAsync(id, stepId, request.Text, RequestLanguage.Current, ct));
+
+    [HttpPost("{id:guid}/business/steps/{stepId}/label/confirm")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessStep>> ConfirmBusinessLabel(Guid id, string stepId,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        StepResult(await annotations.ConfirmLabelAsync(id, stepId, RequestLanguage.Current, ct));
+
+    // Devolve a visão inteira: trocar o tipo muda o desenho (um nó pode virar passo-chave).
+    [HttpPut("{id:guid}/business/steps/{stepId}/kind")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessFlow>> SetBusinessKind(Guid id, string stepId, BusinessKindRequest request,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        FlowResult(await annotations.SetKindAsync(id, stepId, request.Kind, RequestLanguage.Current, ct));
+
+    [HttpPost("{id:guid}/business/steps/{stepId}/kind/confirm")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessFlow>> ConfirmBusinessKind(Guid id, string stepId,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        FlowResult(await annotations.ConfirmKindAsync(id, stepId, RequestLanguage.Current, ct));
+
+    [HttpPost("{id:guid}/business/steps/{stepId}/kind/dismiss")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessFlow>> DismissBusinessKind(Guid id, string stepId,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        FlowResult(await annotations.DismissKindAsync(id, stepId, RequestLanguage.Current, ct));
+
+    private ActionResult<Rastro.Core.Business.BusinessStep> StepResult(Rastro.Infrastructure.Business.BusinessEditOutcome outcome) =>
+        outcome.Ok ? outcome.Step! : BusinessError(outcome.Error);
+
+    private ActionResult<Rastro.Core.Business.BusinessFlow> FlowResult(Rastro.Infrastructure.Business.BusinessEditOutcome outcome) =>
+        outcome.Ok ? outcome.Flow! : BusinessError(outcome.Error);
+
+    // Erro estável da edição de texto e de tipo: código para a tela traduzir e mensagem no idioma do pedido.
+    private ActionResult BusinessError(Rastro.Infrastructure.Business.BusinessEditError error)
+    {
+        var language = UiLanguages.FromCulture(System.Globalization.CultureInfo.CurrentUICulture);
+        if (error == Rastro.Infrastructure.Business.BusinessEditError.SurveyNotFound) return StatusCode(StatusCodes.Status404NotFound);
+        var (status, code, key) = error switch
+        {
+            Rastro.Infrastructure.Business.BusinessEditError.LabelInvalid =>
+                (StatusCodes.Status400BadRequest, ErrorCodes.BusinessLabelInvalid, "BusinessLabel.Invalid"),
+            Rastro.Infrastructure.Business.BusinessEditError.KindInvalid =>
+                (StatusCodes.Status400BadRequest, ErrorCodes.BusinessKindInvalid, "BusinessKind.Invalid"),
+            Rastro.Infrastructure.Business.BusinessEditError.ProposalNotFound =>
+                (StatusCodes.Status404NotFound, ErrorCodes.BusinessProposalNotFound, "BusinessProposal.NotFound"),
+            _ => (StatusCodes.Status404NotFound, ErrorCodes.BusinessStepNotFound, "BusinessStep.NotFound")
+        };
+        var problem = new ProblemDetails { Status = status, Title = Rastro.Api.Cli.ApiText.Get(key, language) };
+        problem.Extensions["code"] = code;
+        return StatusCode(status, problem);
     }
 
     // Links do código (Fase 56): por repositório do levantamento, os modelos de link para o host (pelo commit e pela

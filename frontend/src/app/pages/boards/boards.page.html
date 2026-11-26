@@ -1,0 +1,56 @@
+<div class="board-page">
+  <header class="board-head">
+    <div>
+      <h1 id="boards-title" tabindex="-1">{{ 'boards.title' | translate }}</h1>
+      <p class="muted">{{ 'boards.subtitle' | translate }}</p>
+    </div>
+    <button type="button" class="btn btn-p" (click)="openCreate()">{{ 'boards.new' | translate }}</button>
+  </header>
+
+  <span class="visually-hidden" role="status">{{ notice() ?? '' }}</span>
+  @if (notice(); as text) {
+    <p class="note-ok" aria-hidden="true">{{ text }}</p>
+  }
+  @if (createError(); as message) {
+    <p class="notice is-error" role="alert">{{ message }}</p>
+  }
+
+  @if (error(); as message) {
+    <div class="notice is-error" role="alert">
+      <p>{{ message }}</p>
+      <button type="button" class="btn btn-g btn-small" (click)="load()">{{ 'common.retry' | translate }}</button>
+    </div>
+  } @else if (boards() === null) {
+    <div class="board-skeleton" aria-busy="true">
+      <p class="visually-hidden" role="status">{{ 'boards.loading' | translate }}</p>
+      @for (i of skeletonRows; track i) {
+        <div class="board-skeleton-row" aria-hidden="true"></div>
+      }
+    </div>
+  } @else if (boards()!.length === 0) {
+    <div class="board-empty">
+      <p>{{ 'boards.empty.none' | translate }}</p>
+      <p class="muted">{{ 'boards.empty.hint' | translate }}</p>
+    </div>
+  } @else {
+    <ul class="board-rows" [attr.aria-label]="'boards.title' | translate">
+      @for (board of boards(); track board.id) {
+        <li class="board-row">
+          <a class="board-row-main" [routerLink]="['/boards', board.id]" [attr.aria-label]="'boards.openLabel' | translate: { name: board.name }">
+            <span class="board-row-name">{{ board.name }}</span>
+            <span class="muted">{{ 'boards.laneCount' | translate: { count: board.laneCount } }} · {{ 'boards.updated' | translate: { date: shortDate(board.updatedAt) } }}</span>
+          </a>
+          <button type="button" class="btn btn-g btn-small" (click)="askDelete(board)" [attr.aria-label]="'boards.deleteLabel' | translate: { name: board.name }">{{ 'boards.delete' | translate }}</button>
+        </li>
+      }
+    </ul>
+  }
+</div>
+
+@if (creating(); as surveys) {
+  <app-board-create-dialog [surveys]="surveys" (created)="onCreated($event)" (cancel)="creating.set(null)" />
+}
+
+@if (removing(); as board) {
+  <app-confirm-dialog [title]="'boards.deleteConfirm.title' | translate: { name: board.name }" [text]="'boards.deleteConfirm.text' | translate" [confirmLabel]="(deleting() ? 'boards.deleting' : 'boards.deleteConfirm.action') | translate" [busy]="deleting()" (confirm)="confirmDelete()" (cancel)="removing.set(null)" />
+}

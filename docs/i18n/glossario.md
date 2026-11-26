@@ -46,6 +46,18 @@ Nunca se traduz: Rastro AI, nomes de produto (.NET, Angular, Roslyn, MCP, Claude
 | chamada entre sistemas | cross-system call | llamada entre sistemas |
 | proposto (texto ainda não confirmado) | proposed | propuesto |
 | balão (passo-chave desenhado) | bubble | globo |
+| ponto de dobra (da ligação) | bend point | punto de quiebre |
+| reorganizar (volta à organização automática) | rearrange | reorganizar |
+| texto de negócio (do passo-chave) | business text | texto de negocio |
+| texto da regra (gerado sem IA) | rule text | texto de la regla |
+| detectado (tipo que a regra achou) | detected | detectado |
+| sugerir textos (a IA propõe os textos que faltam) | suggest texts | sugerir textos |
+| o código mudou desde a confirmação | code changed since confirmation | el código cambió desde la confirmación |
+| mostrar na visão de negócio (nó vira passo-chave) | show in the business view | mostrar en la vista de negocio |
+| quadro (vários fluxos lado a lado) | board | tablero |
+| faixa (o fluxo de um levantamento no quadro) | lane | carril |
+| glossário do quadro (termos da empresa, um por linha) | board glossary | glosario del tablero |
+| legenda (cores e formas dos tipos de passo) | legend | leyenda |
 
 ## Tipos de passo
 

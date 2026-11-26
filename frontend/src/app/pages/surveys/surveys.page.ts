@@ -10,6 +10,7 @@ import { surveyFailureText } from '../../core/failure-text';
 import { shortCommit, shortDate } from '../../core/format';
 import { LastRepositoryService } from '../../core/last-repository.service';
 import {
+  BoardDetail,
   CreateSurveyRequest,
   RepositoryItem,
   SURVEY_STATUS_LABEL_KEY,
@@ -19,6 +20,7 @@ import {
   isFinished,
 } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { BoardCreateDialogComponent } from '../boards/board-create-dialog.component';
 import { RegisterRepositoryComponent } from '../settings/register-repository.component';
 
 const POLL_MS = 2500;
@@ -26,6 +28,8 @@ const POLL_MS = 2500;
 const TSCONFIG_SUFFIX = '.json';
 // Ponto de entrada que parece de componente Angular: "DetalhePedidoComponent.cancelar".
 const COMPONENT_ENTRY = /Component\.\w/;
+// Quantos levantamentos se escolhem na lista para criar um quadro.
+const MIN_BOARD_PICK = 2;
 const MIN_DEPTH = 1;
 const MAX_DEPTH = 40;
 // Linhas do esqueleto da lista enquanto os levantamentos carregam.
@@ -98,7 +102,7 @@ export function matchesSearch(survey: SurveySummary, query: string): boolean {
 
 @Component({
   selector: 'app-surveys-page',
-  imports: [FormsModule, RouterLink, TranslatePipe, DialogDirective, RegisterRepositoryComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, DialogDirective, RegisterRepositoryComponent, BoardCreateDialogComponent],
   templateUrl: './surveys.page.html',
   styleUrl: './surveys.page.scss',
 })
@@ -262,6 +266,30 @@ export class SurveysPage implements OnInit {
   protected clearFilters(): void {
     this.query.set('');
     this.filter.set(SurveyFilter.All);
+  }
+
+  // Quadro de fluxos (Fase 60): os levantamentos prontos escolhidos na lista, na ordem em que foram marcados.
+  protected readonly picked = signal<string[]>([]);
+  protected readonly boardDialogOpen = signal(false);
+  protected readonly Completed = SurveyStatus.Completed;
+  protected readonly minBoardPick = MIN_BOARD_PICK;
+
+  protected isPicked(id: string): boolean {
+    return this.picked().includes(id);
+  }
+
+  protected pick(id: string, on: boolean): void {
+    this.picked.update((list) => (on ? (list.includes(id) ? list : [...list, id]) : list.filter((x) => x !== id)));
+  }
+
+  protected clearPick(): void {
+    this.picked.set([]);
+  }
+
+  protected onBoardCreated(board: BoardDetail): void {
+    this.boardDialogOpen.set(false);
+    this.picked.set([]);
+    this.router.navigate(['/boards', board.id]);
   }
 
   constructor() {

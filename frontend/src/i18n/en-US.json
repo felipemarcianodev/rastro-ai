@@ -19,7 +19,8 @@
       "surveys": "Traces",
       "database": "Database",
       "databaseFailed": "Database (could not read the repositories)",
-      "settings": "Settings"
+      "settings": "Settings",
+      "boards": "Boards"
     },
     "aiState": {
       "title": "AI and agent mode settings",
@@ -292,6 +293,10 @@
     "AI_SETTINGS_INVALID": "Invalid settings: check the models, keys and budget.",
     "AI_DISABLED": "AI is turned off in the settings.",
     "AI_USE_DISABLED": "This use of AI is turned off in the settings.",
+    "BUSINESS_LABEL_INVALID": "The step text is empty, too long or has more than one line.",
+    "BUSINESS_KIND_INVALID": "The chosen type does not exist.",
+    "BUSINESS_STEP_NOT_FOUND": "This step is no longer in the business view. Reload the screen.",
+    "BUSINESS_PROPOSAL_NOT_FOUND": "There is no pending proposal for this step.",
     "AI_NOT_CONFIGURED": "The API key for the chosen provider is missing.",
     "AI_BUDGET_EXCEEDED": "The daily token budget has run out.",
     "AI_PROVIDER_ERROR": "The AI provider did not respond. Try again in a moment.",
@@ -311,7 +316,15 @@
     "noResponse": "Rastro did not respond. Check that the rastro command is still open in the terminal and try again.",
     "notFound": "Not found.",
     "generic": "Something went wrong in Rastro. Try again.",
-    "LANGUAGE_INVALID": "Invalid language. Choose English, Portuguese or Spanish."
+    "LANGUAGE_INVALID": "Invalid language. Choose English, Portuguese or Spanish.",
+    "BOARD_NOT_FOUND": "This board no longer exists. Go back to the list of boards.",
+    "BOARD_NAME_INVALID": "The board name is empty or longer than 120 characters.",
+    "BOARD_GLOSSARY_INVALID": "The glossary is longer than 8000 characters.",
+    "BOARD_LANES_INVALID": "The board lanes are invalid: a board has 1 to 12 lanes, with no repeated survey.",
+    "BOARD_SURVEY_NOT_FOUND": "That survey no longer exists.",
+    "BOARD_SURVEY_NOT_READY": "The survey is not ready yet. Wait for it to finish.",
+    "BOARD_LANE_EXISTS": "That survey is already on the board.",
+    "BOARD_LANE_NOT_FOUND": "That lane is no longer on the board. Reload the screen."
   },
   "flowCanvas": {
     "mark": {
@@ -585,7 +598,6 @@
   "business": {
     "barLabel": "Business view drawing",
     "zoomLabel": "Business view zoom",
-    "zoomValueAria": "Zoom at {percent}%",
     "collapsed": "Flow summarized in {steps} steps. {count, plural, one {One decision was grouped} other {# decisions were grouped}}.",
     "loading": "Building the business view…",
     "empty": "No decision or notification found in this flow.",
@@ -599,7 +611,20 @@
     "inferred": "inferred",
     "inferredTitle": "This step came from an inferred link, to be reviewed",
     "panelLabel": "Key step panel",
-    "hint": "Choose a bubble to see the business text, the code and the path from the entry to it. Drag an empty area to move the view.",
+    "reset": "Rearrange",
+    "resetTitle": "Puts the bubbles and links you adjusted back into the automatic layout",
+    "resetConfirm": {
+      "title": "Rearrange the business view?",
+      "text": "The bubble positions and the link bend points you adjusted go back to the automatic layout. This cannot be undone.",
+      "action": "Rearrange"
+    },
+    "layout": {
+      "saveFailed": "Could not save the position.",
+      "resetFailed": "Could not rearrange. Try again.",
+      "loadFailed": "Could not load the saved positions. The automatic layout was used."
+    },
+    "keysHelp": "Tab: next bubble. Enter: open the panel. Arrows: move the bubble 10 pixels at a time. Esc: clear the choice. Plus, minus and zero: zoom. F2: edit the text.",
+    "hint": "Choose a bubble to see the business text, the code and the path from the entry to it. Drag a bubble to move it and an empty area (or Space and drag) to move the view. Ctrl and the wheel zoom.",
     "kind": {
       "start": "Start",
       "decision": "Decision",
@@ -607,7 +632,9 @@
       "rejection": "Rejection",
       "cross-system": "Cross-system call",
       "step": "Step",
-      "end": "End"
+      "end": "End",
+      "pick": "Step type",
+      "detected": "Detected"
     },
     "origin": {
       "rule": "by the rule",
@@ -647,7 +674,45 @@
       "title": "Step note"
     },
     "seeInGraph": "See in graph",
-    "seeInGraphTitle": "Goes back to the graph with this step selected"
+    "seeInGraphTitle": "Goes back to the graph with this step selected",
+    "codeChanged": "Code changed since confirmation",
+    "codeChangedTitle": "The code of this step changed after you confirmed the text. Check that the text still holds.",
+    "edit": {
+      "label": "Business text of the step",
+      "help": "Enter saves and Esc cancels. Up to {max} characters, one line. Empty goes back to the rule text.",
+      "title": "Write the business text of this step",
+      "button": "Edit text"
+    },
+    "confirm": {
+      "button": "Confirm",
+      "title": "Confirms the proposed text as it is"
+    },
+    "ruleText": {
+      "button": "Use the rule text",
+      "title": "Discards your text and goes back to the text the rule generates"
+    },
+    "kindProposal": {
+      "label": "Agent type proposal",
+      "text": "The agent proposes the type {kind}.",
+      "confirm": "Confirm",
+      "dismiss": "Dismiss"
+    },
+    "suggest": {
+      "button": "Suggest texts",
+      "running": "Suggesting…",
+      "title": "Asks the AI for a business text for the steps without a confirmed text. You confirm each one."
+    },
+    "feedback": {
+      "labelSaved": "Text saved.",
+      "labelRule": "Back to the rule text.",
+      "labelConfirmed": "Text confirmed.",
+      "kindSaved": "Type changed.",
+      "kindDetected": "Back to the detected type.",
+      "kindConfirmed": "Type confirmed.",
+      "kindDismissed": "Type proposal dismissed.",
+      "suggested": "{count, plural, =1 {# text proposed} other {# texts proposed}}. Confirm the ones that fit.",
+      "suggestedNone": "No new text to propose."
+    }
   },
   "nodePanel": {
     "closeAria": "Close the step and go back to the overview",
@@ -886,7 +951,9 @@
     "survey": "Flow",
     "consolidated": "Consolidated view",
     "database": "Database of {nome}",
-    "settings": "Settings"
+    "settings": "Settings",
+    "boards": "Boards",
+    "board": "Board"
   },
   "surveys": {
     "title": "Traces",
@@ -983,6 +1050,14 @@
       "solution": "Choose a solution.",
       "entry": "Enter the entry method, for example PedidosController.Criar.",
       "depth": "Use a whole number from {min} to {max}."
+    },
+    "pick": {
+      "group": "Pick for the board",
+      "selected": "{count, plural, =1 {# survey picked} other {# surveys picked}}",
+      "hint": "Pick at least {min} to create a board.",
+      "create": "Create board",
+      "clear": "Clear picks",
+      "label": "Pick {entryPoint} for the board"
     }
   },
   "survey": {
@@ -1054,7 +1129,6 @@
       "copyMermaid": "Copy as Mermaid",
       "downloadMermaid": "Download as Mermaid (.mmd)",
       "drawio": "Download for draw.io (.drawio)",
-      "businessOnly": "This view exports to draw.io: use the draw.io option",
       "c4": "C4 diagrams (Structurizr DSL)",
       "notDrawn": "The graph is not drawn yet. Wait for it to appear and try again.",
       "started": "Download started: {file}",
@@ -1192,7 +1266,10 @@
       "openVsCode": "Open in VS Code",
       "copyLocation": "Copy file:line",
       "expand": "Expand what comes next",
-      "collapse": "Collapse what comes next"
+      "collapse": "Collapse what comes next",
+      "businessShow": "Show in the business view",
+      "businessShowTitle": "Marks this step as a key step in the business view",
+      "businessShown": "Step added to the business view."
     },
     "toast": {
       "copied": "Copied."
@@ -1212,7 +1289,9 @@
     "note": {
       "saved": "Note saved.",
       "deleted": "Note deleted."
-    }
+    },
+    "addToBoard": "Add to a board",
+    "addToBoardTitle": "Puts this flow in a lane of a board, next to other surveys."
   },
   "aiDisclosure": {
     "goes": "Goes to {provider}: {goes}.",
@@ -1748,5 +1827,116 @@
     "edgeMarkedNew": "The link {a0} → {a1} already exists in the code; it cannot be marked as new.",
     "edgeDangling": "A new link points to a step that is not in the draft.",
     "foreignSystem": "Editing is allowed only in the first system of the flow."
+  },
+  "boards": {
+    "title": "Boards",
+    "subtitle": "A board puts the flows of several surveys side by side, each in its own lane, so you can see the process from end to end.",
+    "new": "New board",
+    "loading": "Loading the boards…",
+    "empty": {
+      "none": "No boards yet.",
+      "hint": "Create a board by picking two or more ready surveys."
+    },
+    "laneCount": "{count, plural, =1 {# lane} other {# lanes}}",
+    "updated": "updated {date}",
+    "openLabel": "Open the board {name}",
+    "delete": "Delete",
+    "deleteLabel": "Delete the board {name}",
+    "deleting": "Deleting…",
+    "deleted": "Board \"{name}\" deleted.",
+    "deleteConfirm": {
+      "title": "Delete the board \"{name}\"?",
+      "text": "The board and its bubble positions are deleted. The surveys stay as they are. This cannot be undone.",
+      "action": "Delete"
+    },
+    "create": {
+      "title": "Create board",
+      "intro": "Pick 1 to {max} ready surveys. The order you pick them in becomes the order of the lanes.",
+      "name": "Board name",
+      "surveys": "Ready surveys",
+      "selected": "({count} of {max})",
+      "none": "There is no ready survey. Trace a flow first.",
+      "submit": "Create board",
+      "creating": "Creating…",
+      "errors": {
+        "name": "Enter the board name.",
+        "surveys": "Pick 1 to {max} surveys."
+      }
+    },
+    "addTo": {
+      "title": "Add to a board",
+      "intro": "Pick the board that receives {entryPoint}. The lane goes at its end.",
+      "choose": "Board",
+      "newOption": "Create a new board",
+      "newName": "New board name",
+      "submit": "Add",
+      "adding": "Adding…",
+      "done": "Added to the board \"{name}\".",
+      "open": "Open the board",
+      "noBoards": "You have no boards yet. Create the first one here."
+    }
+  },
+  "board": {
+    "heading": "Board",
+    "backToList": "Back to the boards",
+    "nameLabel": "Board name",
+    "rename": "Rename",
+    "delete": "Delete board",
+    "lanes": "Board lanes",
+    "loading": "Loading the board…",
+    "resurveyFailed": "The new survey failed. The lane keeps the previous one.",
+    "suggest": {
+      "button": "Suggest board texts",
+      "title": "Asks the AI for a business text for the steps without a confirmed text in every lane, using the board glossary. You confirm each one."
+    },
+    "addLane": {
+      "button": "Add survey",
+      "title": "Add a survey to the board",
+      "full": "The board already has the maximum of {max} lanes.",
+      "none": "There is no other ready survey to add.",
+      "pick": "Survey",
+      "submit": "Add"
+    },
+    "replaced": {
+      "title": "Lane \"{title}\" updated with the new survey",
+      "removed": "{count, plural, =1 {# step from the previous version no longer exists in the code and left the drawing:} other {# steps from the previous version no longer exist in the code and left the drawing:}}",
+      "none": "All the steps from the previous version are still in the new survey."
+    },
+    "glossary": {
+      "summary": "Board glossary ({count})",
+      "label": "Glossary",
+      "help": "Plain text, one entry per line, in the format Term: meaning. The AI uses the glossary when it suggests the texts.",
+      "save": "Save glossary",
+      "saved": "Glossary saved.",
+      "placeholder": "Order: purchase made by the customer"
+    },
+    "legend": {
+      "label": "Legend of the step types"
+    },
+    "export": {
+      "title": "PNG, SVG, Mermaid and draw.io",
+      "notDrawn": "The board has no lane drawn yet. Wait for the lanes to appear and try again."
+    },
+    "lane": {
+      "aria": "Lane {title}",
+      "drag": "Drag to change the lane order",
+      "titleLabel": "Lane title",
+      "moveLeft": "Move lane {title} to the left",
+      "moveRight": "Move lane {title} to the right",
+      "open": "Open",
+      "openTitle": "Opens the survey of this lane",
+      "remove": "Remove from board",
+      "removeTitle": "Removes the lane from the board. The survey stays saved.",
+      "removeLast": "A board needs at least one lane.",
+      "removeConfirm": {
+        "title": "Remove the lane \"{title}\" from the board?",
+        "text": "The lane and its bubble positions on this board are removed. The survey stays saved.",
+        "action": "Remove"
+      },
+      "running": "Tracing…",
+      "runningHint": "Rastro is reading the code. The drawing shows up when it finishes.",
+      "failed": "The survey of this lane failed.",
+      "loadFailed": "Could not open the survey of this lane."
+    }
   }
 }

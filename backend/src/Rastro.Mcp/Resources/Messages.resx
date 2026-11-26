@@ -37,6 +37,24 @@ Use list_unresolved to see the gaps and get_flow for the whole flow.</value></da
   <data name="Business.Links" xml:space="preserve"><value>Links:</value></data>
   <data name="Business.Inferred" xml:space="preserve"><value>[inferred]</value></data>
   <data name="Business.Collapsed" xml:space="preserve"><value>Flow summarized in {0} steps; {1} decisions were grouped.</value></data>
+  <data name="Business.CodeChanged" xml:space="preserve"><value>[code changed since the text was saved]</value></data>
+  <data name="Business.KindProposal" xml:space="preserve"><value>[type proposed: {0}. {1}]</value></data>
+  <data name="Business.LabelProposed" xml:space="preserve"><value>Text proposed for step {0}: "{1}". It shows on the screen as proposed by an agent; only the user confirms it.</value></data>
+  <data name="Business.KindProposed" xml:space="preserve"><value>Type {1} proposed for step {0}. The drawing does not change until the user confirms it on the screen.</value></data>
+  <data name="Business.StepNotFound" xml:space="preserve"><value>Step not found in the business view of this trace. Use get_business_view to see the steps (b1, b2...).</value></data>
+  <data name="Business.LabelInvalid" xml:space="preserve"><value>Invalid text: use a single line of 1 to 120 characters.</value></data>
+  <data name="Business.KindInvalid" xml:space="preserve"><value>Invalid type. Use Start, Decision, Notification, Rejection, CrossSystem, Step or End.</value></data>
+  <data name="Business.ReasonInvalid" xml:space="preserve"><value>Invalid reason: use a single line of 1 to 300 characters that says what in the code shows the type.</value></data>
+  <data name="Business.AlreadyConfirmed" xml:space="preserve"><value>The user already confirmed this on the screen; nothing was changed.</value></data>
+  <data name="Boards.None" xml:space="preserve"><value>No flow boards yet. The user creates them on the Boards screen.</value></data>
+  <data name="Boards.Row" xml:space="preserve"><value>- {0} "{1}": {2} lanes</value></data>
+  <data name="Boards.Lane" xml:space="preserve"><value>    {0}. "{1}" trace {2}: {3} ({4})</value></data>
+  <data name="Boards.NotFound" xml:space="preserve"><value>Board not found. Use list_boards.</value></data>
+  <data name="Boards.NeedOne" xml:space="preserve"><value>Give surveyId (one trace) or boardId (a flow board), not both and not neither.</value></data>
+  <data name="Boards.Header" xml:space="preserve"><value>Board "{0}": {1} lanes</value></data>
+  <data name="Boards.Glossary" xml:space="preserve"><value>Glossary (the user's terms; prefer them in the texts):</value></data>
+  <data name="Boards.LaneHeader" xml:space="preserve"><value>Lane {0} "{1}" (trace {2}, entry {3}):</value></data>
+  <data name="Boards.LaneNoView" xml:space="preserve"><value>  No business view yet: the trace has no graph (still running or failed).</value></data>
   <data name="Unresolved.None" xml:space="preserve"><value>No gaps: the compiler resolved every call in this flow.</value></data>
   <data name="Unresolved.Call" xml:space="preserve"><value>- {0} call `{1}` at {2}</value></data>
   <data name="Unresolved.Reason" xml:space="preserve"><value>  reason: {0}{1}</value></data>

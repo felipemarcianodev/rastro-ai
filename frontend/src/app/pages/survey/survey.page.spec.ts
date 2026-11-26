@@ -94,8 +94,8 @@ const BUSINESS_FLOW: BusinessFlow = {
   schemaVersion: 1,
   collapsedDecisions: 0,
   steps: [
-    { id: 'b1', nodeId: 'entry', kind: BusinessKind.Start, label: 'Pedido recebido', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['entry'], inferred: false },
-    { id: 'b2', nodeId: 'm0', kind: BusinessKind.Decision, label: 'O pedido é válido?', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['m0'], inferred: false },
+    { id: 'b1', nodeId: 'entry', kind: BusinessKind.Start, label: 'Pedido recebido', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['entry'], inferred: false, codeChanged: false },
+    { id: 'b2', nodeId: 'm0', kind: BusinessKind.Decision, label: 'O pedido é válido?', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['m0'], inferred: false, codeChanged: false },
   ],
   edges: [{ from: 'b1', to: 'b2', label: null, inferred: false }],
 };
@@ -107,6 +107,7 @@ async function showBusiness(el: HTMLElement): Promise<void> {
   const http = TestBed.inject(HttpTestingController);
   http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(BUSINESS_FLOW));
   http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+  http.match((r) => r.url.endsWith('/business/layout')).forEach((r) => r.flush({ steps: [], edges: [] }));
   lastFixture!.detectChanges();
   await lastFixture!.whenStable();
   lastFixture!.detectChanges();
@@ -322,8 +323,45 @@ describe('SurveyPage', () => {
     localStorage.removeItem('rastro.layoutDirection');
   });
 
+  // WEB-BIZV-073 (Fase 59)
+  it('menuDoNo_mostrarNaVisaoDeNegocio_soApareceParaONoQueAindaNaoEPassoChaveEGravaOTipoPasso', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(2, 0);
+    const el = open(SurveyStatus.Completed);
+    const http = TestBed.inject(HttpTestingController);
+    const page = lastFixture!.componentInstance as unknown as { openMenu(menu: { nodeId: string; x: number; y: number }): void };
+    const hasItem = () => [...el.querySelectorAll('.context-menu button')].some((b) => b.textContent!.includes('Mostrar na visão de negócio'));
+    const answerBusiness = () => {
+      http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(BUSINESS_FLOW));
+      lastFixture!.detectChanges();
+    };
+
+    // Antes de a visão responder, o item não aparece; e a entrada já é passo-chave.
+    page.openMenu({ nodeId: 'entry', x: 10, y: 10 });
+    lastFixture!.detectChanges();
+    expect(hasItem()).toBeFalse();
+    answerBusiness();
+    expect(hasItem()).toBeFalse();
+
+    page.openMenu({ nodeId: 'm1', x: 10, y: 10 });
+    lastFixture!.detectChanges();
+    answerBusiness();
+    expect(hasItem()).toBeTrue();
+
+    [...el.querySelectorAll<HTMLButtonElement>('.context-menu button')].find((b) => b.textContent!.includes('Mostrar na visão de negócio'))!.click();
+    const put = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/business/steps/m1/kind'));
+    expect(put.request.body).toEqual({ kind: BusinessKind.Step });
+    put.flush(BUSINESS_FLOW);
+    lastFixture!.detectChanges();
+
+    expect(el.querySelector('.context-menu')).toBeNull();
+    expect(el.querySelector('.menu-toast')!.textContent).toContain('Passo incluído na visão de negócio');
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
   // WEB-BIZV-034 (Fase 57)
-  it('menuExportar_comAVisaoDeNegocio_desabilitaImagemEMermaidEMantemODrawioEOC4', async () => {
+  it('menuExportar_comAVisaoDeNegocio_deixaTodosOsFormatosHabilitados', async () => {
     TestBed.resetTestingModule();
     localStorage.removeItem('rastro.layoutDirection');
     graphOverride = graphWith(1, 0);
@@ -333,15 +371,45 @@ describe('SurveyPage', () => {
     [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!.click();
     lastFixture!.detectChanges();
     const items = [...el.querySelectorAll<HTMLButtonElement>('#export-menu button')];
-    const by = (text: string) => items.find((b) => b.textContent!.includes(text))!;
 
-    for (const text of ['PNG', 'SVG', 'Copiar como Mermaid', 'Baixar como Mermaid']) {
-      expect(by(text).disabled).withContext(text).toBeTrue();
-      expect(by(text).getAttribute('aria-disabled')).toBe('true');
-      expect(by(text).title).toContain('draw.io');
+    expect(items.length).toBe(6);
+    for (const item of items) {
+      expect(item.disabled).withContext(item.textContent!).toBeFalse();
+      expect(item.hasAttribute('aria-disabled')).withContext(item.textContent!).toBeFalse();
     }
-    expect(by('draw.io').disabled).toBeFalse();
-    expect(items.some((b) => b.textContent!.includes('C4') && !b.disabled)).toBeTrue();
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-BIZV-035 (Fase 61)
+  it('baixarComoSvgEMermaid_comAVisaoDeNegocioNaTela_geraOsArquivosDaVisao', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+    const exported: Blob[] = [];
+    spyOn(URL, 'createObjectURL').and.callFake((blob) => {
+      exported.push(blob as Blob);
+      return 'blob:teste';
+    });
+    spyOn(HTMLAnchorElement.prototype, 'click');
+    const choose = (text: string) => {
+      [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!.click();
+      lastFixture!.detectChanges();
+      [...el.querySelectorAll<HTMLButtonElement>('#export-menu button')].find((b) => b.textContent!.includes(text))!.click();
+      lastFixture!.detectChanges();
+    };
+
+    choose('Imagem SVG');
+    choose('Baixar como Mermaid');
+
+    const svg = await exported[0].text();
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('O pedido é válido?');
+    expect(new DOMParser().parseFromString(svg, 'image/svg+xml').getElementsByTagName('parsererror').length).toBe(0);
+    const mermaid = await exported[1].text();
+    expect(mermaid.startsWith('flowchart TD')).toBeTrue();
+    expect(mermaid).toContain('O pedido é válido?');
     localStorage.removeItem('rastro.layoutDirection');
   });
 
@@ -380,7 +448,7 @@ describe('SurveyPage', () => {
     const groups = [...el.querySelectorAll('.page-bar-side .bar-group')].map((g) => g.getAttribute('aria-label'));
     expect(groups).toEqual(['Ver', 'Compartilhar', 'Alterar']);
     const share = [...el.querySelectorAll<HTMLButtonElement>('.bar-group[aria-label="Compartilhar"] button')];
-    expect(share.map((b) => b.textContent!.trim())).toEqual(['Comparar', 'Exportar']);
+    expect(share.map((b) => b.textContent!.trim())).toEqual(['Comparar', 'Exportar', 'Adicionar a um quadro']);
     expect(share[1].title).toBe('PNG, SVG, Mermaid, draw.io e C4');
     expect(el.querySelector('.bar-group[aria-label="Alterar"] .btn-p')!.textContent!.trim()).toBe('Editar fluxo');
     const remove = [...el.querySelectorAll<HTMLButtonElement>('.page-bar-side button')].find((b) => b.textContent!.trim() === 'Excluir levantamento…');

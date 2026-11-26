@@ -4,3 +4,4 @@ repositorio
 sugerencia
 sugerencias
 negocio
+glosario

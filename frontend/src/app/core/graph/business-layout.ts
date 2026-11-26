@@ -30,6 +30,41 @@ export function businessBoxSize(step: BusinessStep): { width: number; height: nu
 
 const snap = (value: number): number => Math.ceil(value / BUSINESS_BOX.grid) * BUSINESS_BOX.grid;
 
+export interface LayoutPoint {
+  x: number;
+  y: number;
+}
+
+// Encaixe na grade ao mover um balão ou um ponto de dobra (o ponto mais próximo, e não para cima como o layout).
+export const snapToGrid = (value: number): number => Math.round(value / BUSINESS_BOX.grid) * BUSINESS_BOX.grid;
+
+// Chave de uma ligação nas posições salvas: de onde sai e aonde chega.
+export const edgeKey = (from: string, to: string): string => `${from}\u0000${to}`;
+
+// A posição salva vence a do layout automático; passo sem posição salva fica onde o layout o pôs.
+export function withSavedPositions(geometry: BusinessGeometry, saved: ReadonlyMap<string, LayoutPoint>): BusinessGeometry {
+  if (saved.size === 0) return geometry;
+  const boxes = new Map<string, NodeBox>();
+  let width = 0;
+  let height = 0;
+  for (const [id, box] of geometry.boxes) {
+    const at = saved.get(id);
+    const placed = at ? { ...box, x: at.x, y: at.y } : box;
+    boxes.set(id, placed);
+    width = Math.max(width, placed.x + placed.width);
+    height = Math.max(height, placed.y + placed.height);
+  }
+  return { boxes, width, height };
+}
+
+// O vizinho de um passo na ordem do fluxo (a ordem da lista de passos), ou null nas pontas. Sem passo atual, o
+// primeiro (ou o último, voltando).
+export function flowNeighbour(order: readonly string[], current: string | null, direction: 1 | -1): string | null {
+  const at = current === null ? -1 : order.indexOf(current);
+  if (at < 0) return (direction === 1 ? order[0] : order[order.length - 1]) ?? null;
+  return order[at + direction] ?? null;
+}
+
 // Ligações que fecham um ciclo (a ponta chega a um passo que ainda está no caminho da busca) ficam
 // de fora do cálculo das camadas. A busca parte da entrada e depois dos passos que sobraram, na ordem da lista.
 function backEdges(flow: BusinessFlow, order: readonly string[]): Set<number> {
