@@ -96,8 +96,11 @@
   gap: var(--space-2);
 }
 
-// As faixas ficam lado a lado e a fileira rola na horizontal; cada faixa tem a altura toda da área.
+// As faixas ficam lado a lado e a fileira rola na horizontal; cada faixa tem a altura toda da área e cresce até um
+// máximo quando sobra espaço (o mínimo cabe no celular).
 .lanes {
+  --lane-min: min(560px, 92vw);
+  --lane-max: 880px;
   display: flex;
   flex: 1 1 auto;
   gap: var(--space-4);
@@ -108,8 +111,9 @@
 
 .lane {
   display: flex;
-  flex: 0 0 min(560px, 92vw);
+  flex: 1 0 var(--lane-min);
   flex-direction: column;
+  max-width: var(--lane-max);
   min-height: 0;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
@@ -118,6 +122,12 @@
 
   &.is-dragging {
     opacity: 0.5;
+  }
+
+  // Destino da soltura durante o arraste.
+  &.is-drop-target {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 var(--space-0-5) var(--ink);
   }
 }
 

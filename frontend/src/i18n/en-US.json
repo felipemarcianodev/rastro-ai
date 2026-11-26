@@ -621,7 +621,8 @@
     "layout": {
       "saveFailed": "Could not save the position.",
       "resetFailed": "Could not rearrange. Try again.",
-      "loadFailed": "Could not load the saved positions. The automatic layout was used."
+      "loadFailed": "Could not load the saved positions. The automatic layout was used.",
+      "saved": "Position saved"
     },
     "keysHelp": "Tab: next bubble. Enter: open the panel. Arrows: move the bubble 10 pixels at a time. Esc: clear the choice. Plus, minus and zero: zoom. F2: edit the text.",
     "hint": "Choose a bubble to see the business text, the code and the path from the entry to it. Drag a bubble to move it and an empty area (or Space and drag) to move the view. Ctrl and the wheel zoom.",
@@ -711,8 +712,18 @@
       "kindConfirmed": "Type confirmed.",
       "kindDismissed": "Type proposal dismissed.",
       "suggested": "{count, plural, =1 {# text proposed} other {# texts proposed}}. Confirm the ones that fit.",
-      "suggestedNone": "No new text to propose."
-    }
+      "suggestedNone": "No new text to propose.",
+      "labelRestored": "Text restored."
+    },
+    "opening": "Opening…",
+    "openFailed": "Could not open the link.",
+    "undo": "Undo",
+    "originBadge": {
+      "ai": "AI",
+      "agent": "agent",
+      "user": "edited"
+    },
+    "stepAriaOrigin": "text {origin}"
   },
   "nodePanel": {
     "closeAria": "Close the step and go back to the overview",
@@ -1107,7 +1118,8 @@
       "business": {
         "label": "Business view",
         "title": "Only the decisions, notifications and cross-system calls, in business language"
-      }
+      },
+      "announce": "Drawing: {name}"
     },
     "databaseMap": "Database map",
     "databaseMapTitle": "The database map of this repository, read from the code",
@@ -1132,7 +1144,9 @@
       "c4": "C4 diagrams (Structurizr DSL)",
       "notDrawn": "The graph is not drawn yet. Wait for it to appear and try again.",
       "started": "Download started: {file}",
-      "imageFailed": "Could not export the image: {message} Try the SVG."
+      "imageFailed": "Could not export the image: {message} Try the SVG.",
+      "onlyGraph": "Available in the graph and the business view",
+      "startedNoLinks": "Download started: {file}. It has no links to the code (the server did not respond)."
     },
     "edit": {
       "button": "Edit flow",
@@ -1269,7 +1283,8 @@
       "collapse": "Collapse what comes next",
       "businessShow": "Show in the business view",
       "businessShowTitle": "Marks this step as a key step in the business view",
-      "businessShown": "Step added to the business view."
+      "businessShown": "Step added to the business view.",
+      "businessSee": "View"
     },
     "toast": {
       "copied": "Copied."
@@ -1861,7 +1876,9 @@
       "errors": {
         "name": "Enter the board name.",
         "surveys": "Pick 1 to {max} surveys."
-      }
+      },
+      "openFailed": "The board \"{name}\" was created, but its page did not open.",
+      "position": "Position {position} on the board"
     },
     "addTo": {
       "title": "Add to a board",
@@ -1874,7 +1891,8 @@
       "done": "Added to the board \"{name}\".",
       "open": "Open the board",
       "noBoards": "You have no boards yet. Create the first one here."
-    }
+    },
+    "opening": "Opening…"
   },
   "board": {
     "heading": "Board",
@@ -1908,14 +1926,16 @@
       "help": "Plain text, one entry per line, in the format Term: meaning. The AI uses the glossary when it suggests the texts.",
       "save": "Save glossary",
       "saved": "Glossary saved.",
-      "placeholder": "Order: purchase made by the customer"
+      "placeholder": "Order: purchase made by the customer",
+      "unsaved": "Unsaved changes"
     },
     "legend": {
       "label": "Legend of the step types"
     },
     "export": {
       "title": "PNG, SVG, Mermaid and draw.io",
-      "notDrawn": "The board has no lane drawn yet. Wait for the lanes to appear and try again."
+      "notDrawn": "The board has no lane drawn yet. Wait for the lanes to appear and try again.",
+      "needsLane": "Wait for the lanes to appear before exporting."
     },
     "lane": {
       "aria": "Lane {title}",
@@ -1936,7 +1956,18 @@
       "running": "Tracing…",
       "runningHint": "Rastro is reading the code. The drawing shows up when it finishes.",
       "failed": "The survey of this lane failed.",
-      "loadFailed": "Could not open the survey of this lane."
-    }
+      "loadFailed": "Could not open the survey of this lane.",
+      "retitled": "Lane renamed to \"{title}\".",
+      "added": "Lane added to the board.",
+      "removed": "Lane \"{title}\" removed from the board.",
+      "moved": "Lane {title} at position {position} of {total}.",
+      "resurveyStarted": "Tracing the lane {title} again.",
+      "runningNamed": "Tracing the lane {title}.",
+      "openLabel": "Open the lane {title}",
+      "removeLabel": "Remove from board the lane {title}",
+      "resurveyLabel": "Trace again the lane {title}",
+      "retryLabel": "Try again the lane {title}"
+    },
+    "renamed": "Board renamed."
   }
 }

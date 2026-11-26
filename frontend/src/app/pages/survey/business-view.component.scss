@@ -30,6 +30,15 @@
   text-align: center;
 }
 
+// Retorno discreto de "Posição salva": não ocupa espaço quando vazio.
+.biz-saved {
+  font-size: var(--text-xs);
+
+  &:empty {
+    display: none;
+  }
+}
+
 .biz-status {
   display: flex;
   flex-wrap: wrap;
@@ -58,10 +67,10 @@
   position: absolute;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   box-sizing: border-box;
-  padding: 6px 12px;
-  border: 1.5px solid var(--biz-stroke);
+  padding: var(--space-1-5) var(--space-3);
+  border: var(--biz-border) solid var(--biz-stroke);
   border-radius: var(--radius-md);
   background: var(--biz-fill);
   color: var(--biz-ink);
@@ -70,7 +79,8 @@
   &.biz-kind-start,
   &.biz-kind-end {
     border-radius: var(--radius-pill);
-    padding: 6px 18px;
+    // 18 px: o pill pede um pouco mais de lado que os 16 do token.
+    padding: var(--space-1-5) calc(var(--space-4) + var(--space-0-5));
   }
 
   &.biz-kind-notification .biz-text {
@@ -83,26 +93,28 @@
 
   // O losango é um SVG por trás do texto: a borda de um clip-path não aparece.
   // Espaço lateral fixo: em porcentagem, o padding se mede pela largura da tela inteira (o contêiner), e o
-  // losango crescia para 470 px com o texto espremido em largura zero.
+  // losango crescia para 470 px com o texto espremido em largura zero. 56 px = 32 + 24 dos tokens.
   &.biz-kind-decision {
     justify-content: center;
     --biz-lines: 3;
-    padding: 12px 56px;
+    padding: var(--space-3) calc(var(--space-6) + var(--space-5));
     border: 0;
     background: transparent;
     box-shadow: none;
   }
 
   &.is-selected {
-    box-shadow: 0 0 0 3px var(--trail);
+    box-shadow: 0 0 0 var(--biz-ring) var(--trail);
   }
 
+  // No losango o anel da escolha é um segundo polígono, mais grosso e por trás do traço principal: assim o foco
+  // (traço de tinta por cima) não apaga a escolha, e os dois aparecem juntos.
   &.biz-kind-decision.is-selected {
     box-shadow: none;
 
-    .biz-shape polygon {
+    .biz-ring {
       stroke: var(--trail);
-      stroke-width: 3;
+      stroke-width: calc(2 * var(--biz-ring) + var(--biz-border));
     }
   }
 
@@ -113,15 +125,19 @@
   }
 
   &.is-selected:focus-visible {
-    box-shadow: 0 0 0 3px var(--trail), var(--focus);
+    box-shadow: 0 0 0 var(--biz-ring) var(--trail), var(--focus);
   }
 
   &.biz-kind-decision:focus-visible {
     box-shadow: none;
 
-    .biz-shape polygon {
+    .biz-shape polygon:not(.biz-ring) {
       stroke: var(--ink);
       stroke-width: 4;
+    }
+
+    &.is-selected .biz-ring {
+      stroke-width: calc(2 * var(--biz-ring) + 4px);
     }
   }
 }
@@ -147,6 +163,11 @@
     stroke-width: 1.5;
     vector-effect: non-scaling-stroke;
   }
+
+  .biz-ring {
+    fill: none;
+    stroke: transparent;
+  }
 }
 
 .biz-glyph,
@@ -158,8 +179,8 @@
   flex: none;
   display: inline-grid;
   place-items: center;
-  width: 18px;
-  height: 18px;
+  width: calc(var(--space-4) + var(--space-0-5));
+  height: calc(var(--space-4) + var(--space-0-5));
   border: 1px solid var(--biz-stroke);
   border-radius: var(--radius-sm);
   font-size: var(--text-2xs);
@@ -192,13 +213,14 @@
   min-width: 0;
 }
 
-// Até duas linhas: o repositório e o arquivo raramente cabem numa linha só em 220 px.
+// Até duas linhas: o repositório e o arquivo raramente cabem numa linha só em 220 px. A tinta do tipo a 80%
+// dá de 6,1:1 a 8,1:1 sobre os sete preenchimentos, nos dois temas (o --ink-soft chegava a 3,9:1).
 .biz-ref {
   display: -webkit-box;
   flex: 1 1 100%;
   min-width: 0;
   overflow: hidden;
-  color: var(--ink-soft);
+  color: color-mix(in srgb, var(--biz-ink) 80%, transparent);
   font-family: var(--font-code);
   font-size: var(--text-2xs);
   overflow-wrap: anywhere;
@@ -219,9 +241,9 @@
 .biz-host .biz-port.f-connector {
   position: absolute;
   left: 50%;
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
+  width: var(--space-2);
+  height: var(--space-2);
+  margin-left: calc(-1 * var(--space-1));
   border: 0;
   background: transparent;
   box-shadow: none;
@@ -233,10 +255,10 @@
   }
 
   &.is-in {
-    top: -4px;
+    top: calc(-1 * var(--space-1));
   }
 
   &.is-out {
-    bottom: -4px;
+    bottom: calc(-1 * var(--space-1));
   }
 }

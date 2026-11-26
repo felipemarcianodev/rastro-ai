@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, inject, input, output, signal } from '@angular/core';
+import { Component, ElementRef, Injector, OnInit, afterNextRender, computed, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { TranslatePipe } from '@ngx-translate/core';
 import { DialogDirective } from '../../core/dialog.directive';
@@ -26,13 +26,18 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
           <form class="form-stack" (ngSubmit)="submit()" novalidate>
             <div class="field">
               <label class="field-label" for="board-create-name">{{ 'boards.create.name' | translate }}</label>
-              <input id="board-create-name" class="input" name="name" [(ngModel)]="name" [maxLength]="nameMax" autocomplete="off" [attr.aria-invalid]="!!nameError()" aria-describedby="board-create-name-error" />
-              <span id="board-create-name-error" class="field-error" [hidden]="!nameError()">{{ nameError() }}</span>
+              <input id="board-create-name" class="input" name="name" [(ngModel)]="name" [maxLength]="nameMax" autocomplete="off" [attr.aria-invalid]="!!nameError()" [attr.aria-describedby]="nameError() ? 'board-create-name-error' : null" />
+              @if (nameError(); as message) {
+                <span id="board-create-name-error" class="field-error" role="alert">{{ message }}</span>
+              }
             </div>
-            <fieldset class="field pick-group">
+            <fieldset class="field pick-group" [attr.aria-describedby]="surveysError() ? 'board-create-surveys-error' : null">
               <legend class="field-label">{{ 'boards.create.surveys' | translate }} <span class="muted">{{ 'boards.create.selected' | translate: { count: chosen().length, max: max } }}</span></legend>
               @for (survey of ready(); track survey.id) {
                 <label class="pick">
+                  @if (positionOf(survey.id); as position) {
+                    <span class="pick-position" [attr.aria-label]="'boards.create.position' | translate: { position: position }">{{ position }}</span>
+                  }
                   <input type="checkbox" [checked]="isChosen(survey.id)" [disabled]="!isChosen(survey.id) && chosen().length >= max" (change)="toggle(survey.id, $any($event.target).checked)" />
                   <span class="pick-text">
                     <span class="code">{{ survey.entryPoint }}</span>
@@ -42,12 +47,14 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
               } @empty {
                 <p class="muted">{{ 'boards.create.none' | translate }}</p>
               }
-              <span id="board-create-surveys-error" class="field-error" [hidden]="!surveysError()">{{ surveysError() }}</span>
+              @if (surveysError(); as message) {
+                <span id="board-create-surveys-error" class="field-error" role="alert">{{ message }}</span>
+              }
             </fieldset>
             @if (error(); as message) {
               <p class="field-error" role="alert">{{ message }}</p>
             }
-            <button class="btn btn-p" type="submit" [disabled]="submitting()">{{ (submitting() ? 'boards.create.creating' : 'boards.create.submit') | translate }}</button>
+            <button class="btn btn-p" type="submit" [disabled]="submitting() || ready().length === 0">{{ (submitting() ? 'boards.create.creating' : 'boards.create.submit') | translate }}</button>
           </form>
         </div>
       </section>
@@ -57,6 +64,8 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 export class BoardCreateDialogComponent implements OnInit {
   private readonly api = inject(RastroApi);
   private readonly i18n = inject(LanguageService);
+  private readonly injector = inject(Injector);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly surveys = input.required<readonly SurveySummary[]>();
   readonly preselected = input<readonly string[]>([]);
@@ -74,7 +83,6 @@ export class BoardCreateDialogComponent implements OnInit {
   protected readonly nameError = signal<string | null>(null);
   protected readonly surveysError = signal<string | null>(null);
   protected readonly error = signal<string | null>(null);
-
   // A escolha feita na lista de levantamentos entra uma vez, ao abrir.
   ngOnInit(): void {
     const ids = new Set(this.ready().map((s) => s.id));
@@ -83,6 +91,11 @@ export class BoardCreateDialogComponent implements OnInit {
 
   protected isChosen(id: string): boolean {
     return this.chosen().includes(id);
+  }
+
+  // Posição (1, 2, ...) que a levantamento escolhido terá no quadro; 0 quando não está escolhido.
+  protected positionOf(id: string): number {
+    return this.chosen().indexOf(id) + 1;
   }
 
   protected toggle(id: string, on: boolean): void {
@@ -98,7 +111,11 @@ export class BoardCreateDialogComponent implements OnInit {
     const name = this.name.trim();
     this.nameError.set(name ? null : this.i18n.t('boards.create.errors.name'));
     this.surveysError.set(this.chosen().length >= 1 ? null : this.i18n.t('boards.create.errors.surveys', { max: BOARD_MAX_LANES }));
-    if (this.nameError() || this.surveysError()) return;
+    if (this.nameError() || this.surveysError()) {
+      // O foco vai ao primeiro campo com erro, que acaba de aparecer.
+      afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>(this.nameError() ? '#board-create-name' : '.pick input')?.focus(), { injector: this.injector });
+      return;
+    }
     this.submitting.set(true);
     this.api.createBoard({ name, surveyIds: this.chosen() }).subscribe({
       next: (board) => {

@@ -10,18 +10,18 @@
 } @else if (board(); as b) {
   <div class="board-layout">
     <header class="board-bar">
-      <a class="page-back" routerLink="/boards" [attr.aria-label]="'board.backToList' | translate">←</a>
+      <a class="page-back" routerLink="/boards" [attr.aria-label]="'board.backToList' | translate" [title]="'board.backToList' | translate">←</a>
       <div class="board-bar-title">
         @if (renaming()) {
-          <form class="board-rename" (submit)="$event.preventDefault(); commitRename()">
+          <form class="board-rename" (submit)="$event.preventDefault(); commitRename()" (keydown.escape)="cancelRename(); $event.stopPropagation()">
             <label class="visually-hidden" for="board-name">{{ 'board.nameLabel' | translate }}</label>
-            <input id="board-name" class="input is-small" name="name" [(ngModel)]="nameDraft" [maxLength]="nameMax" autocomplete="off" (keydown.escape)="cancelRename(); $event.stopPropagation()" />
+            <input id="board-name" class="input is-small" name="name" [(ngModel)]="nameDraft" [maxLength]="nameMax" autocomplete="off" />
             <button type="submit" class="btn btn-small">{{ 'common.save' | translate }}</button>
             <button type="button" class="btn btn-g btn-small" (click)="cancelRename()">{{ 'common.cancel' | translate }}</button>
           </form>
         } @else {
           <h1 id="board-title" tabindex="-1">{{ b.name }}</h1>
-          <button type="button" class="btn btn-g btn-small" (click)="startRename()" [disabled]="saving()">{{ 'board.rename' | translate }}</button>
+          <button type="button" id="board-rename-btn" class="btn btn-g btn-small" (click)="startRename()" [attr.aria-disabled]="saving() || null">{{ 'board.rename' | translate }}</button>
         }
         <span class="muted">{{ 'boards.laneCount' | translate: { count: lanes().length } }}</span>
       </div>
@@ -30,20 +30,20 @@
           <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()" [attr.aria-busy]="suggesting()" [title]="'board.suggest.title' | translate">{{ (suggesting() ? 'business.suggest.running' : 'board.suggest.button') | translate }}</button>
         }
         <span class="popover">
-          <button type="button" class="btn btn-g btn-small" (click)="toggleExport()" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'board-export-menu' : null" [title]="'board.export.title' | translate">{{ 'survey.export.button' | translate }}</button>
+          <button type="button" id="board-export-btn" class="btn btn-g btn-small" (click)="toggleExport()" aria-haspopup="menu" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'board-export-menu' : null" [title]="'board.export.title' | translate">{{ 'survey.export.button' | translate }}</button>
           @if (exportOpen()) {
             <div class="menu-backdrop" (click)="closeExport()"></div>
             <ul id="board-export-menu" class="popover-menu" role="menu" [attr.aria-label]="'survey.export.button' | translate" (keydown)="onExportKey($event)">
               <li class="popover-group" role="presentation">{{ 'survey.export.group' | translate }}</li>
-              <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
-              <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
-              <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
-              <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
-              <li role="none"><button type="button" role="menuitem" (click)="exportDrawio()">{{ 'survey.export.drawio' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')" [attr.aria-disabled]="hasDrawn() ? null : true" [title]="hasDrawn() ? '' : ('board.export.needsLane' | translate)">{{ 'survey.export.png' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')" [attr.aria-disabled]="hasDrawn() ? null : true" [title]="hasDrawn() ? '' : ('board.export.needsLane' | translate)">{{ 'survey.export.svg' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)" [attr.aria-disabled]="hasDrawn() ? null : true" [title]="hasDrawn() ? '' : ('board.export.needsLane' | translate)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)" [attr.aria-disabled]="hasDrawn() ? null : true" [title]="hasDrawn() ? '' : ('board.export.needsLane' | translate)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportDrawio()" [attr.aria-disabled]="hasDrawn() ? null : true" [title]="hasDrawn() ? '' : ('board.export.needsLane' | translate)">{{ 'survey.export.drawio' | translate }}</button></li>
             </ul>
           }
         </span>
-        <button type="button" class="btn btn-g btn-small" (click)="openAdd()" [disabled]="!canAdd() || saving()" [title]="(canAdd() ? 'board.addLane.title' : 'board.addLane.full') | translate: { max: maxLanes }">{{ 'board.addLane.button' | translate }}</button>
+        <button type="button" id="board-add-btn" class="btn btn-g btn-small" (click)="openAdd()" [disabled]="!canAdd() || saving()" [title]="(canAdd() ? 'board.addLane.title' : 'board.addLane.full') | translate: { max: maxLanes }">{{ 'board.addLane.button' | translate }}</button>
         <button type="button" class="btn btn-g btn-small" (click)="confirmingDelete.set(true)">{{ 'board.delete' | translate }}</button>
       </div>
     </header>
@@ -69,7 +69,7 @@
 
     <div class="board-tools">
       <details class="board-glossary">
-        <summary>{{ 'board.glossary.summary' | translate: { count: glossaryCount() } }}</summary>
+        <summary>{{ 'board.glossary.summary' | translate: { count: glossaryCount() } }}@if (glossaryDirty()) { <span class="muted" role="status"> · {{ 'board.glossary.unsaved' | translate }}</span> }</summary>
         <div class="board-glossary-body">
           <label class="field-label" for="board-glossary">{{ 'board.glossary.label' | translate }}</label>
           <textarea id="board-glossary" class="input" rows="5" [maxLength]="glossaryMax" [value]="glossaryDraft" (input)="onGlossary($event)" [placeholder]="'board.glossary.placeholder' | translate" aria-describedby="board-glossary-help"></textarea>
@@ -88,17 +88,25 @@
       }
     </div>
 
+    <div class="visually-hidden" role="status">
+      @for (lane of lanes(); track lane.surveyId) {
+        @if (replacing().has(lane.surveyId) || laneRunning(lane)) {
+          <span>{{ 'board.lane.runningNamed' | translate: { title: lane.title } }}</span>
+        }
+      }
+    </div>
+
     <div class="lanes" role="group" [attr.aria-label]="'board.lanes' | translate" (dragend)="dragEnd()">
       @for (lane of lanes(); track lane.surveyId; let i = $index; let last = $last) {
-        <section class="lane" role="group" [attr.aria-label]="'board.lane.aria' | translate: { title: lane.title }" [class.is-dragging]="dragFrom() === i"
-          (dragover)="dragOver($event)" (drop)="drop($event, i)">
+        <section class="lane" role="group" [attr.aria-label]="'board.lane.aria' | translate: { title: lane.title }" [attr.data-lane-id]="lane.surveyId" [class.is-dragging]="dragFrom() === i"
+          [class.is-drop-target]="dragOverIndex() === i && dragFrom() !== i" (dragover)="dragOver($event, i)" (dragleave)="dragLeave($event, i)" (drop)="drop($event, i)">
           <header class="lane-head">
             <span class="lane-grip" draggable="true" (dragstart)="dragStart($event, i)" [title]="'board.lane.drag' | translate" aria-hidden="true">⠿</span>
             <input class="input is-small lane-title" [value]="lane.title" [maxLength]="titleMax" [attr.aria-label]="'board.lane.titleLabel' | translate"
               (blur)="renameLane(lane, $event)" (keydown.enter)="$any($event.target).blur()" />
             <span class="lane-move">
-              <button type="button" class="btn btn-icon btn-small" (click)="move(i, -1)" [disabled]="i === 0 || saving()" [attr.aria-label]="'board.lane.moveLeft' | translate: { title: lane.title }" [title]="'board.lane.moveLeft' | translate: { title: lane.title }">←</button>
-              <button type="button" class="btn btn-icon btn-small" (click)="move(i, 1)" [disabled]="last || saving()" [attr.aria-label]="'board.lane.moveRight' | translate: { title: lane.title }" [title]="'board.lane.moveRight' | translate: { title: lane.title }">→</button>
+              <button type="button" class="btn btn-icon btn-small" (click)="move(i, -1, true)" data-move="left" [disabled]="i === 0" [attr.aria-disabled]="saving() || null" [attr.aria-label]="'board.lane.moveLeft' | translate: { title: lane.title }" [title]="'board.lane.moveLeft' | translate: { title: lane.title }">←</button>
+              <button type="button" class="btn btn-icon btn-small" (click)="move(i, 1, true)" data-move="right" [disabled]="last" [attr.aria-disabled]="saving() || null" [attr.aria-label]="'board.lane.moveRight' | translate: { title: lane.title }" [title]="'board.lane.moveRight' | translate: { title: lane.title }">→</button>
             </span>
           </header>
           <div class="lane-meta">
@@ -110,14 +118,14 @@
           <div class="lane-actions">
             @if (lane.stale && !replacing().has(lane.surveyId)) {
               <span class="pill is-stale" [title]="'survey.stale.title' | translate">{{ 'survey.stale.changed' | translate }}</span>
-              <button type="button" class="btn btn-g btn-small" (click)="resurvey(lane)">{{ 'survey.resurvey' | translate }}</button>
+              <button type="button" class="btn btn-g btn-small" (click)="resurvey(lane)" [attr.aria-label]="'board.lane.resurveyLabel' | translate: { title: lane.title }">{{ 'survey.resurvey' | translate }}</button>
             }
-            <a class="btn btn-g btn-small" [routerLink]="['/surveys', lane.surveyId]" [title]="'board.lane.openTitle' | translate">{{ 'board.lane.open' | translate }}</a>
-            <button type="button" class="btn btn-g btn-small" (click)="askRemove(lane)" [disabled]="lanes().length <= 1 || saving()" [title]="(lanes().length <= 1 ? 'board.lane.removeLast' : 'board.lane.removeTitle') | translate">{{ 'board.lane.remove' | translate }}</button>
+            <a class="btn btn-g btn-small" [routerLink]="['/surveys', lane.surveyId]" [title]="'board.lane.openTitle' | translate" [attr.aria-label]="'board.lane.openLabel' | translate: { title: lane.title }">{{ 'board.lane.open' | translate }}</a>
+            <button type="button" class="btn btn-g btn-small" (click)="askRemove(lane)" [disabled]="lanes().length <= 1 || saving()" [attr.aria-label]="'board.lane.removeLabel' | translate: { title: lane.title }" [title]="(lanes().length <= 1 ? 'board.lane.removeLast' : 'board.lane.removeTitle') | translate">{{ 'board.lane.remove' | translate }}</button>
           </div>
 
           @if (replacing().has(lane.surveyId) || laneRunning(lane)) {
-            <div class="canvas-status lane-status" role="status">
+            <div class="canvas-status lane-status" tabindex="-1" [attr.data-lane-status]="lane.surveyId">
               <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
                 <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
               </svg>
@@ -127,17 +135,17 @@
           } @else if (lane.status === SurveyStatus.Failed) {
             <div class="notice is-error lane-status" role="alert">
               <p>{{ 'board.lane.failed' | translate }}</p>
-              <button type="button" class="btn btn-g btn-small" (click)="resurvey(lane)">{{ 'survey.resurvey' | translate }}</button>
+              <button type="button" class="btn btn-g btn-small" (click)="resurvey(lane)" [attr.aria-label]="'board.lane.resurveyLabel' | translate: { title: lane.title }">{{ 'survey.resurvey' | translate }}</button>
             </div>
           } @else if (detailFailed().has(lane.surveyId)) {
             <div class="notice is-error lane-status" role="alert">
               <p>{{ 'board.lane.loadFailed' | translate }}</p>
-              <button type="button" class="btn btn-g btn-small" (click)="fetchDetail(lane.surveyId)">{{ 'common.retry' | translate }}</button>
+              <button type="button" class="btn btn-g btn-small" (click)="fetchDetail(lane.surveyId)" [attr.aria-label]="'board.lane.retryLabel' | translate: { title: lane.title }">{{ 'common.retry' | translate }}</button>
             </div>
           } @else if (details().get(lane.surveyId); as detail) {
             <app-business-view #laneView class="lane-view" [detail]="detail" [boardId]="b.id" [boardFlow]="lane.flow" [boardLayout]="layouts().get(lane.surveyId) ?? null" />
           } @else {
-            <div class="canvas-status lane-status" role="status">
+            <div class="canvas-status lane-status">
               <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
                 <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
               </svg>
@@ -155,7 +163,10 @@
       <button type="button" class="btn btn-g btn-small" (click)="dismissFeedback()">{{ 'common.close' | translate }}</button>
     </div>
   } @else if (menuCopy.status() !== 'idle') {
-    <p class="toast" role="status">{{ menuCopy.status() === 'copied' ? ('survey.toast.copied' | translate) : menuCopy.label('') }}</p>
+    <div class="toast" [class.is-error]="menuCopy.status() === 'failed'" [attr.role]="menuCopy.status() === 'failed' ? 'alert' : 'status'">
+      <span>{{ menuCopy.status() === 'copied' ? ('survey.toast.copied' | translate) : menuCopy.label('') }}</span>
+      <button type="button" class="btn btn-g btn-small" (click)="menuCopy.reset()">{{ 'common.close' | translate }}</button>
+    </div>
   }
 
   @if (removing(); as lane) {

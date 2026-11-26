@@ -1,0 +1,122 @@
+// Barra do levantamento e busca no grafo: peças que o levantamento e os desenhos dividem.
+
+// Contagem de não resolvidos que leva ao próximo deles.
+.link-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+// Busca no grafo (Ctrl+F): faixa logo acima do canvas.
+.graph-search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+
+  flex-wrap: wrap;
+
+  .input {
+    flex: 1;
+    max-width: 420px;
+  }
+}
+
+.search-hint {
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+
+// Lista curta das ocorrências, abaixo do campo (UX-G-F22).
+.search-results {
+  display: flex;
+  flex-basis: 100%;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.search-hit {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: 2px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  &.is-current {
+    border-color: var(--ink);
+  }
+}
+
+.search-count {
+  min-width: 80px;
+  font-size: var(--text-sm);
+}
+
+.popover-empty {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+}
+
+// Seletor das visões: um controle só, com a visão atual marcada.
+.segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+}
+
+.segmented-item {
+  min-height: var(--control-h-sm);
+  padding: 0 var(--space-3);
+  border: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+
+  &[aria-pressed='true'] {
+    background: var(--ink);
+    color: var(--paper);
+    font-weight: 600;
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--trail);
+  }
+}
+
+// Aviso de copiar e exportar (o menu já fechou): no alto, abaixo da barra, longe do "Desfazer" do canvas.
+.menu-toast {
+  position: fixed;
+  // Abaixo da barra do levantamento: o aviso não cobre o seletor de desenho nem os botões.
+  top: calc(var(--header-h) + var(--space-2));
+  bottom: auto;
+  margin: 0;
+  z-index: var(--z-toast);
+
+  &.is-error {
+    color: var(--danger);
+  }
+
+  // Ação do aviso (ex.: "Ver").
+  .btn {
+    flex: none;
+  }
+}
+

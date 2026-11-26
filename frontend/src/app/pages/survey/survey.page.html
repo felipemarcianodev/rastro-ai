@@ -63,8 +63,10 @@
             @if (d.survey.status === SurveyStatus.Completed) {
               <div class="segmented" role="group" [attr.aria-label]="'survey.group.drawing' | translate">
                 @for (view of drawingViews; track view.direction) {
-                  <button type="button" class="segmented-item" (click)="showDrawing(view.direction)" [attr.aria-pressed]="drawingPressed(view.direction)" [title]="view.title | translate">{{ view.label | translate }}</button>
+                  <button type="button" class="segmented-item" (click)="showDrawing(view.direction)" [attr.aria-pressed]="drawingPressed(view.direction)" [title]="view.title | translate" [attr.aria-describedby]="'drawing-desc-' + view.direction">{{ view.label | translate }}</button>
+                  <span class="visually-hidden" [id]="'drawing-desc-' + view.direction">{{ view.title | translate }}</span>
                 }
+                <span class="visually-hidden" role="status" aria-live="polite">{{ drawingAnnouncement() }}</span>
               </div>
             }
             <a class="btn btn-g btn-small" [routerLink]="['/repositorios', d.survey.repository, 'banco']" [queryParams]="dbOriginQuery(d.survey.id)" [title]="'survey.databaseMapTitle' | translate">{{ 'survey.databaseMap' | translate }}</a>
@@ -72,7 +74,7 @@
           @if (d.survey.status === SurveyStatus.Completed) {
             <div class="bar-group" role="group" [attr.aria-label]="'survey.group.share' | translate">
               <span class="popover">
-                <button type="button" class="btn btn-g btn-small" (click)="togglePopover('compare')" [attr.aria-expanded]="compareOpen()" [attr.aria-controls]="compareOpen() ? 'compare-menu' : null" [title]="'survey.compare.menu' | translate">{{ 'survey.compare.button' | translate }}</button>
+                <button type="button" class="btn btn-g btn-small" (click)="togglePopover('compare')" aria-haspopup="menu" [attr.aria-expanded]="compareOpen()" [attr.aria-controls]="compareOpen() ? 'compare-menu' : null" [title]="'survey.compare.menu' | translate">{{ 'survey.compare.button' | translate }}</button>
                 @if (compareOpen()) {
                   <div class="menu-backdrop" (click)="closePopovers()"></div>
                   <ul id="compare-menu" class="popover-menu" role="menu" [attr.aria-label]="'survey.compare.menu' | translate" (keydown)="onMenuKey($event)">
@@ -93,21 +95,24 @@
                 }
               </span>
               <span class="popover">
-                <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null" [title]="'survey.export.title' | translate">{{ 'survey.export.button' | translate }}</button>
+                <button type="button" class="btn btn-g btn-small" (click)="togglePopover('export')" aria-haspopup="menu" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'export-menu' : null" [title]="'survey.export.title' | translate">{{ 'survey.export.button' | translate }}</button>
                 @if (exportOpen()) {
                   <div class="menu-backdrop" (click)="closePopovers()"></div>
                   <ul id="export-menu" class="popover-menu" role="menu" [attr.aria-label]="'survey.export.button' | translate" (keydown)="onMenuKey($event)">
                     <li class="popover-group" role="presentation">{{ 'survey.export.group' | translate }}</li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportDrawio()">{{ 'survey.export.drawio' | translate }}</button></li>
+                    @if (exportNeedsGraph() || drawioNeedsGraph()) {
+                      <li id="export-only-graph" class="visually-hidden" role="presentation">{{ 'survey.export.onlyGraph' | translate }}</li>
+                    }
+                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')" [attr.aria-disabled]="exportNeedsGraph() ? 'true' : null" [attr.title]="exportNeedsGraph() ? ('survey.export.onlyGraph' | translate) : null" [attr.aria-describedby]="exportNeedsGraph() ? 'export-only-graph' : null">{{ 'survey.export.png' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')" [attr.aria-disabled]="exportNeedsGraph() ? 'true' : null" [attr.title]="exportNeedsGraph() ? ('survey.export.onlyGraph' | translate) : null" [attr.aria-describedby]="exportNeedsGraph() ? 'export-only-graph' : null">{{ 'survey.export.svg' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)" [attr.aria-disabled]="exportNeedsGraph() ? 'true' : null" [attr.title]="exportNeedsGraph() ? ('survey.export.onlyGraph' | translate) : null" [attr.aria-describedby]="exportNeedsGraph() ? 'export-only-graph' : null">{{ 'survey.export.copyMermaid' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)" [attr.aria-disabled]="exportNeedsGraph() ? 'true' : null" [attr.title]="exportNeedsGraph() ? ('survey.export.onlyGraph' | translate) : null" [attr.aria-describedby]="exportNeedsGraph() ? 'export-only-graph' : null">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportDrawio()" [attr.aria-disabled]="drawioNeedsGraph() ? 'true' : null" [attr.title]="drawioNeedsGraph() ? ('survey.export.onlyGraph' | translate) : null" [attr.aria-describedby]="drawioNeedsGraph() ? 'export-only-graph' : null">{{ 'survey.export.drawio' | translate }}</button></li>
                     <li role="none"><button type="button" role="menuitem" (click)="openC4()">{{ 'survey.export.c4' | translate }}</button></li>
                   </ul>
                 }
               </span>
-              <button type="button" class="btn btn-g btn-small" (click)="addBoardOpen.set(true)" [title]="'survey.addToBoardTitle' | translate">{{ 'survey.addToBoard' | translate }}</button>
+              <button type="button" class="btn btn-g btn-small" (click)="addBoardOpen.set(true)" aria-haspopup="dialog" [title]="'survey.addToBoardTitle' | translate">{{ 'survey.addToBoard' | translate }}</button>
             </div>
             <div class="bar-group" role="group" [attr.aria-label]="'survey.group.change' | translate">
               <button type="button" class="btn btn-p btn-small" (click)="startEditing()">{{ 'survey.edit.button' | translate }}</button>
@@ -453,9 +458,17 @@
   <app-c4-dialog [surveyId]="d.survey.id" (closed)="c4Open.set(false)" />
 }
 
-<!-- Retorno de copiar e exportar: um aviso só, que some sozinho. -->
+<!-- Retorno de copiar e exportar: um aviso só. O de sucesso some sozinho; o de erro fica até fechar. -->
 @if (exportMessage(); as message) {
-  <p [class]="'toast menu-toast ' + (message.ok ? '' : 'is-error')" [attr.role]="message.ok ? 'status' : 'alert'">{{ message.text }}</p>
+  <p [class]="'toast menu-toast ' + (message.ok ? '' : 'is-error')" [attr.role]="message.ok ? 'status' : 'alert'">
+    {{ message.text }}
+    @if (message.action; as action) {
+      <button type="button" class="btn btn-g btn-small" (click)="runMessageAction(message)">{{ action.label }}</button>
+    }
+    @if (!message.ok) {
+      <button type="button" class="btn btn-g btn-small" (click)="dismissExportMessage()">{{ 'common.close' | translate }}</button>
+    }
+  </p>
 } @else if (menuCopy.status() !== 'idle') {
   <p class="toast menu-toast" role="status">{{ menuCopy.status() === 'copied' ? ('survey.toast.copied' | translate) : menuCopy.label('') }}</p>
 }

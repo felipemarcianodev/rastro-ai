@@ -104,6 +104,12 @@
           <button type="button" class="btn btn-g btn-small" (click)="clearPick()">{{ 'surveys.pick.clear' | translate }}</button>
         </div>
       }
+      @if (boardOpenFailed(); as created) {
+        <p class="notice is-error" role="alert">
+          {{ 'boards.create.openFailed' | translate: { name: created.name } }}
+          <a [routerLink]="['/boards', created.id]">{{ 'boards.addTo.open' | translate }}</a>
+        </p>
+      }
       <p class="visually-hidden" role="status">{{ announcement() }}</p>
       @if (visible().length === 0) {
         <div class="empty">

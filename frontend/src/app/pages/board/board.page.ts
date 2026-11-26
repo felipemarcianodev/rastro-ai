@@ -31,13 +31,22 @@ import {
   isFinished,
 } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { BOARDS_DELETED_STATE } from '../boards/boards.page';
 import { ConfirmDialogComponent } from '../survey/confirm-dialog.component';
 import { BusinessViewComponent } from '../survey/business-view.component';
 
 // Intervalo de leitura enquanto algum levantamento do quadro está rodando.
 export const BOARD_POLL_MS = 2500;
-// Quanto tempo o retorno curto de uma ação fica na tela.
+// Quanto tempo o retorno curto de uma ação que deu certo fica na tela (o erro fica até a pessoa fechar).
 export const BOARD_FEEDBACK_MS = 4000;
+// Prefixo do nome dos arquivos exportados do quadro.
+const BOARD_EXPORT_PREFIX = 'rastro-quadro-';
+
+// Aviso de uma ação que gravou: a chave do texto e os parâmetros.
+interface Done {
+  key: string;
+  params?: Record<string, unknown>;
+}
 
 // O que a tela de uma faixa entrega para exportar (o BusinessViewComponent, ou o que o substitua nos testes).
 interface LaneExporter {
@@ -94,7 +103,8 @@ export class BoardPage {
   protected readonly renaming = signal(false);
   protected nameDraft = '';
   protected glossaryDraft = '';
-  protected readonly glossaryCount = computed(() => glossaryEntries(this.glossaryText()).length);
+  // A contagem segue o que está salvo; o rascunho aparece como "Alterações não salvas".
+  protected readonly glossaryCount = computed(() => glossaryEntries(this.board()?.glossary ?? '').length);
   private readonly glossaryText = signal('');
   protected readonly glossaryDirty = computed(() => this.glossaryText() !== (this.board()?.glossary ?? ''));
   protected readonly saving = signal(false);
@@ -108,6 +118,9 @@ export class BoardPage {
   protected readonly confirmingDelete = signal(false);
   protected readonly deleting = signal(false);
   protected readonly dragFrom = signal<number | null>(null);
+  protected readonly dragOverIndex = signal<number | null>(null);
+  // Só as faixas já desenhadas entram na exportação.
+  protected readonly hasDrawn = computed(() => this.laneViews().length > 0);
 
   protected readonly addOpen = signal(false);
   protected readonly candidates = signal<SurveySummary[] | null>(null);
@@ -137,6 +150,14 @@ export class BoardPage {
         this.board.set(null);
         this.details.set(new Map());
         this.detailFailed.set(new Set());
+        this.error.set(null);
+        this.replaced.set(null);
+        this.replacing.set(new Set());
+        this.removing.set(null);
+        this.addOpen.set(false);
+        this.confirmingDelete.set(false);
+        this.renaming.set(false);
+        this.dismissFeedback();
         this.load(true);
       });
     });
@@ -195,20 +216,37 @@ export class BoardPage {
 
   // ---- Nome, glossário e títulos ----
 
+  // Leva o foco a um elemento depois da próxima renderização (o elemento pode nascer ou mudar agora).
+  private focusAfterRender(find: () => HTMLElement | null | undefined): void {
+    afterNextRender(() => find()?.focus(), { injector: this.injector });
+  }
+
+  private byId(id: string): HTMLElement | null {
+    return this.host.nativeElement.querySelector<HTMLElement>(`#${id}`);
+  }
+
   protected startRename(): void {
+    if (this.saving()) return;
     this.nameDraft = this.board()?.name ?? '';
     this.renaming.set(true);
+    this.focusAfterRender(() => {
+      const field = this.byId('board-name') as HTMLInputElement | null;
+      field?.select();
+      return field;
+    });
   }
 
   protected cancelRename(): void {
     this.renaming.set(false);
+    this.focusAfterRender(() => this.byId('board-rename-btn'));
   }
 
   protected commitRename(): void {
     const name = this.nameDraft.trim();
     this.renaming.set(false);
+    this.focusAfterRender(() => this.byId('board-rename-btn'));
     if (!name || name === this.board()?.name) return;
-    this.update({ name });
+    this.update({ name }, { key: 'board.renamed' });
   }
 
   protected onGlossary(event: Event): void {
@@ -217,7 +255,7 @@ export class BoardPage {
 
   protected saveGlossary(): void {
     const text = this.glossaryText().trim();
-    this.update({ glossary: text ? text : null }, 'board.glossary.saved');
+    this.update({ glossary: text ? text : null }, { key: 'board.glossary.saved' });
   }
 
   protected renameLane(lane: BoardLane, event: Event): void {
@@ -228,15 +266,31 @@ export class BoardPage {
       return;
     }
     if (title === lane.title) return;
-    this.update({ lanes: this.lanes().map((l) => (l.surveyId === lane.surveyId ? { ...l, title } : l)) });
+    this.update({ lanes: this.lanes().map((l) => (l.surveyId === lane.surveyId ? { ...l, title } : l)) }, { key: 'board.lane.retitled', params: { title } });
   }
 
   // ---- Ordem das faixas ----
 
-  protected move(index: number, delta: number): void {
+  // Com `refocus` (setas da faixa), o foco volta à seta da mesma direção na faixa que andou, ou à oposta se ela ficou
+  // na ponta. O botão fica ativo durante a gravação (o foco não cai) e a guarda daqui impede a segunda gravação.
+  protected move(index: number, delta: number, refocus = false): void {
+    if (this.saving()) return;
+    const lane = this.lanes()[index];
     const next = moveLane(this.lanes(), index, delta);
-    if (next.every((lane, i) => lane === this.lanes()[i])) return;
-    this.update({ lanes: next });
+    if (!lane || next.every((l, i) => l === this.lanes()[i])) return;
+    const position = next.findIndex((l) => l.surveyId === lane.surveyId) + 1;
+    this.update({ lanes: next }, { key: 'board.lane.moved', params: { title: lane.title, position, total: next.length } }, () => {
+      if (refocus) this.focusMove(lane.surveyId, delta);
+    });
+  }
+
+  private focusMove(surveyId: string, delta: number): void {
+    this.focusAfterRender(() => {
+      const section = Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('.lane')).find((el) => el.dataset['laneId'] === surveyId);
+      const arrow = (side: string) => section?.querySelector<HTMLButtonElement>(`[data-move="${side}"]`);
+      const same = arrow(delta < 0 ? 'left' : 'right');
+      return same && !same.disabled ? same : arrow(delta < 0 ? 'right' : 'left');
+    });
   }
 
   protected dragStart(event: DragEvent, index: number): void {
@@ -245,23 +299,33 @@ export class BoardPage {
     if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
   }
 
-  protected dragOver(event: DragEvent): void {
-    if (this.dragFrom() !== null) event.preventDefault();
+  // A faixa sobre a qual o arraste está fica destacada (o destino da soltura).
+  protected dragOver(event: DragEvent, index: number): void {
+    if (this.dragFrom() === null) return;
+    event.preventDefault();
+    this.dragOverIndex.set(index);
+  }
+
+  protected dragLeave(event: DragEvent, index: number): void {
+    const into = event.relatedTarget;
+    if (this.dragOverIndex() === index && !(into instanceof Node && (event.currentTarget as HTMLElement).contains(into))) this.dragOverIndex.set(null);
   }
 
   protected drop(event: DragEvent, index: number): void {
     event.preventDefault();
     const from = this.dragFrom();
     this.dragFrom.set(null);
+    this.dragOverIndex.set(null);
     if (from !== null && from !== index) this.move(from, index - from);
   }
 
   protected dragEnd(): void {
     this.dragFrom.set(null);
+    this.dragOverIndex.set(null);
   }
 
   // Grava nome, glossário, ordem e títulos de uma vez (a rota é uma só) e passa a mostrar o que o servidor devolveu.
-  private update(change: { name?: string; glossary?: string | null; lanes?: readonly BoardLane[] }, doneKey?: string): void {
+  private update(change: { name?: string; glossary?: string | null; lanes?: readonly BoardLane[] }, done?: Done, after?: (updated: BoardDetail) => void): void {
     const board = this.board();
     if (!board) return;
     const request: BoardUpdateRequest = {
@@ -274,7 +338,8 @@ export class BoardPage {
       next: (updated) => {
         this.saving.set(false);
         this.applyBoard(updated, change.glossary !== undefined);
-        if (doneKey) this.say(doneKey);
+        if (done) this.say(done.key, false, done.params);
+        after?.(updated);
       },
       error: (error) => {
         this.saving.set(false);
@@ -293,7 +358,14 @@ export class BoardPage {
     const lane = this.removing();
     this.removing.set(null);
     if (!lane) return;
-    this.update({ lanes: this.lanes().filter((l) => l.surveyId !== lane.surveyId) });
+    const index = this.lanes().findIndex((l) => l.surveyId === lane.surveyId);
+    // O foco vai para a faixa que ocupou o lugar da tirada; sem faixa, para "Adicionar levantamento".
+    this.update({ lanes: this.lanes().filter((l) => l.surveyId !== lane.surveyId) }, { key: 'board.lane.removed', params: { title: lane.title } }, (updated) => {
+      this.focusAfterRender(() => {
+        const titles = this.host.nativeElement.querySelectorAll<HTMLElement>('.lane-title');
+        return titles[Math.min(index, updated.lanes.length - 1)] ?? this.byId('board-add-btn');
+      });
+    });
   }
 
   protected openAdd(): void {
@@ -324,6 +396,8 @@ export class BoardPage {
         this.saving.set(false);
         this.addOpen.set(false);
         this.applyBoard(updated, false);
+        this.say('board.lane.added');
+        this.focusAfterRender(() => this.byId('board-add-btn'));
       },
       error: (error) => {
         this.saving.set(false);
@@ -340,6 +414,9 @@ export class BoardPage {
     const board = this.board();
     if (!board || this.replacing().has(lane.surveyId)) return;
     this.setReplacing(lane.surveyId, true);
+    this.say('board.lane.resurveyStarted', false, { title: lane.title });
+    // O botão some e a faixa passa a mostrar o estado: o foco vai para ele.
+    this.focusAfterRender(() => this.laneStatus(lane.surveyId));
     this.api
       .survey(lane.surveyId)
       .pipe(
@@ -370,6 +447,10 @@ export class BoardPage {
           else this.sayError(error);
         },
       });
+  }
+
+  private laneStatus(surveyId: string): HTMLElement | undefined {
+    return Array.from(this.host.nativeElement.querySelectorAll<HTMLElement>('[data-lane-status]')).find((el) => el.dataset['laneStatus'] === surveyId);
   }
 
   private untilFinished(surveyId: string): Observable<SurveyDetail> {
@@ -421,7 +502,8 @@ export class BoardPage {
       next: () => {
         this.deleting.set(false);
         this.confirmingDelete.set(false);
-        this.router.navigate(['/boards']);
+        // A lista de quadros mostra o aviso de exclusão (o estado da navegação leva o nome).
+        void this.router.navigate(['/boards'], { state: { [BOARDS_DELETED_STATE]: board.name } });
       },
       error: (error) => {
         this.deleting.set(false);
@@ -437,21 +519,31 @@ export class BoardPage {
   protected readonly menuCopy = new CopyFeedback();
 
   protected toggleExport(): void {
-    const opening = !this.exportOpen();
-    this.exportOpen.set(opening);
-    if (opening) afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>('#board-export-menu button')?.focus(), { injector: this.injector });
+    if (this.exportOpen()) {
+      this.closeExport();
+      return;
+    }
+    this.exportOpen.set(true);
+    this.focusAfterRender(() => this.host.nativeElement.querySelector<HTMLElement>('#board-export-menu button'));
   }
 
+  // Fechar o menu (Esc, clique fora ou escolha de um item) devolve o foco ao botão Exportar.
   protected closeExport(): void {
     this.exportOpen.set(false);
+    this.focusAfterRender(() => this.byId('board-export-btn'));
   }
 
-  // Esc fecha o menu, e as setas, Home e End andam pelos itens.
+  // Esc fecha o menu, Tab fecha e segue para o próximo controle, e as setas, Home e End andam pelos itens.
   protected onExportKey(event: KeyboardEvent): void {
     if (event.key === 'Escape') {
       event.preventDefault();
       event.stopPropagation();
       this.closeExport();
+      return;
+    }
+    if (event.key === 'Tab') {
+      this.byId('board-export-btn')?.focus();
+      this.exportOpen.set(false);
       return;
     }
     const items = Array.from((event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button'));
@@ -481,7 +573,7 @@ export class BoardPage {
   }
 
   private exportName(): string {
-    return `rastro-quadro-${fileSlug(this.board()?.name ?? 'quadro')}`;
+    return `${BOARD_EXPORT_PREFIX}${fileSlug(this.board()?.name ?? 'quadro')}`;
   }
 
   private notDrawn(): void {
@@ -576,10 +668,11 @@ export class BoardPage {
     this.showFeedback({ text: apiErrorMessage(error), error: true });
   }
 
+  // O que deu certo some em alguns segundos; o erro fica até a pessoa fechar (dá tempo de ler e de agir).
   private showFeedback(feedback: { text: string; error: boolean }): void {
     this.feedback.set(feedback);
     clearTimeout(this.feedbackTimer);
-    this.feedbackTimer = setTimeout(() => this.feedback.set(null), BOARD_FEEDBACK_MS);
+    if (!feedback.error) this.feedbackTimer = setTimeout(() => this.feedback.set(null), BOARD_FEEDBACK_MS);
   }
 
   protected dismissFeedback(): void {

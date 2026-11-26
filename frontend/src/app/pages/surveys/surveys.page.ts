@@ -286,10 +286,22 @@ export class SurveysPage implements OnInit {
     this.picked.set([]);
   }
 
+  // O quadro que foi criado mas não abriu (a navegação foi cancelada ou falhou): o aviso leva o link para ele.
+  protected readonly boardOpenFailed = signal<BoardDetail | null>(null);
+
+  // Navega primeiro: a seleção só se limpa se a tela do quadro abriu. Se não abriu, o diálogo fecha (o quadro já existe
+  // e outro envio criaria um repetido), a seleção fica e o aviso leva o link "Abrir o quadro".
   protected onBoardCreated(board: BoardDetail): void {
+    this.router.navigate(['/boards', board.id]).then(
+      (opened) => this.afterBoardCreated(board, opened),
+      () => this.afterBoardCreated(board, false),
+    );
+  }
+
+  private afterBoardCreated(board: BoardDetail, opened: boolean): void {
     this.boardDialogOpen.set(false);
-    this.picked.set([]);
-    this.router.navigate(['/boards', board.id]);
+    if (opened) this.picked.set([]);
+    this.boardOpenFailed.set(opened ? null : board);
   }
 
   constructor() {

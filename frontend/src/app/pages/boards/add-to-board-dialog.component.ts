@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, input, output, signal } from '@angular/core';
+import { Component, ElementRef, Injector, OnInit, afterNextRender, inject, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -51,8 +51,10 @@ export const NEW_BOARD_CHOICE = 'new';
               @if (choice === newChoice) {
                 <div class="field">
                   <label class="field-label" for="add-board-name">{{ 'boards.addTo.newName' | translate }}</label>
-                  <input id="add-board-name" class="input" name="name" [(ngModel)]="name" [maxLength]="nameMax" autocomplete="off" [attr.aria-invalid]="!!nameError()" aria-describedby="add-board-name-error" />
-                  <span id="add-board-name-error" class="field-error" [hidden]="!nameError()">{{ nameError() }}</span>
+                  <input id="add-board-name" class="input" name="name" [(ngModel)]="name" [maxLength]="nameMax" autocomplete="off" [attr.aria-invalid]="!!nameError()" [attr.aria-describedby]="nameError() ? 'add-board-name-error' : null" />
+                  @if (nameError(); as message) {
+                    <span id="add-board-name-error" class="field-error" role="alert">{{ message }}</span>
+                  }
                 </div>
               }
               @if (error(); as message) {
@@ -72,6 +74,8 @@ export const NEW_BOARD_CHOICE = 'new';
 export class AddToBoardDialogComponent implements OnInit {
   private readonly api = inject(RastroApi);
   private readonly i18n = inject(LanguageService);
+  private readonly injector = inject(Injector);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly surveyId = input.required<string>();
   readonly entryPoint = input.required<string>();
@@ -112,13 +116,18 @@ export class AddToBoardDialogComponent implements OnInit {
     const creating = this.choice === NEW_BOARD_CHOICE;
     const name = this.name.trim();
     this.nameError.set(creating && !name ? this.i18n.t('boards.create.errors.name') : null);
-    if (this.nameError()) return;
+    if (this.nameError()) {
+      afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>('#add-board-name')?.focus(), { injector: this.injector });
+      return;
+    }
     this.submitting.set(true);
     const request = creating ? this.api.createBoard({ name, surveyIds: [this.surveyId()] }) : this.api.addBoardLane(this.choice, this.surveyId());
     request.subscribe({
       next: (board) => {
         this.submitting.set(false);
         this.done.set(board);
+        // O botão de enviar sumiu com o formulário: o foco vai para "Abrir o quadro".
+        afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>('a.btn-p')?.focus(), { injector: this.injector });
       },
       error: (error) => {
         this.submitting.set(false);

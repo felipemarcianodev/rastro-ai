@@ -9,7 +9,8 @@ import { AiProvider, AiUse, BoardDetail, BoardLane, BusinessFlow, BusinessKind, 
 import { BusinessExportData } from '../../core/graph/business-export';
 import { businessLayout } from '../../core/graph/business-layout';
 import { BusinessViewComponent } from '../survey/business-view.component';
-import { BoardPage } from './board.page';
+import { BOARDS_DELETED_STATE } from '../boards/boards.page';
+import { BOARD_FEEDBACK_MS, BoardPage } from './board.page';
 
 // A visão de negócio da faixa tem teste próprio (business-view.component.spec): aqui só se confere o que a tela lhe entrega.
 @Component({ selector: 'app-business-view', template: '<span class="stub-view">{{ boardId() }}</span>' })
@@ -213,12 +214,17 @@ describe('BoardPage (Fase 60)', () => {
     area.value = 'Pedido: compra do cliente\nSKU: código do produto';
     area.dispatchEvent(new Event('input'));
     fixture.detectChanges();
-    expect(details.querySelector('summary')!.textContent).toContain('(2)');
+    // UX-FIM-107: a contagem segue o salvo e o rascunho aparece como alteração não salva.
+    expect(details.querySelector('summary')!.textContent).toContain('(1)');
+    expect(details.querySelector('summary [role="status"]')).not.toBeNull();
     Array.from(el.querySelectorAll<HTMLButtonElement>('.board-glossary-actions button'))[0].click();
 
     const request = put();
     expect(request.request.body.glossary).toBe('Pedido: compra do cliente\nSKU: código do produto');
     request.flush(board([lane('s1', 0)], { glossary: 'Pedido: compra do cliente\nSKU: código do produto' }));
+    fixture.detectChanges();
+    expect(details.querySelector('summary')!.textContent).toContain('(2)');
+    expect(details.querySelector('summary [role="status"]')).toBeNull();
   });
 
   // WEB-BOARD-029
@@ -366,7 +372,7 @@ describe('BoardPage (Fase 60)', () => {
     Array.from(el.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find((b) => b.textContent!.trim() === 'Excluir')!.click();
     http.expectOne({ method: 'DELETE', url: '/api/boards/b1' }).flush(null);
 
-    expect(navigate).toHaveBeenCalledWith(['/boards']);
+    expect(navigate).toHaveBeenCalledWith(['/boards'], { state: { [BOARDS_DELETED_STATE]: 'Compra' } });
   });
 
   // WEB-BOARD-037
@@ -505,5 +511,245 @@ describe('BoardPage (Fase 60)', () => {
     expect(el.querySelector('.toast')!.textContent).toContain('ainda não tem faixa desenhada');
     fixture.destroy();
     TestBed.inject(HttpTestingController).match(() => true);
+  });
+  // Plano de UX do fim da visão de negócio (Fases B e C)
+  async function settle(fixture: ComponentFixture<BoardPage>) {
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+  }
+
+  // UX-FIM-201, UX-FIM-101
+  it('moverComASeta_mantemOFocoNaSetaDaFaixaQueAndou_eAvisaAPosicao', async () => {
+    const { el, fixture, put } = await setup();
+    const arrows = (index: number) => el.querySelectorAll('.lane')[index].querySelectorAll<HTMLButtonElement>('.lane-move button');
+    arrows(0)[1].focus();
+
+    arrows(0)[1].click();
+    fixture.detectChanges();
+    // Durante a gravação a seta não fica desabilitada (o foco não cai), só marcada como ocupada.
+    expect(arrows(0)[1].disabled).toBeFalse();
+    expect(arrows(0)[1].getAttribute('aria-disabled')).toBe('true');
+    arrows(0)[1].click();
+    const request = put();
+    request.flush(board([lane('s2', 0), lane('s1', 1)]));
+    await settle(fixture);
+
+    // A faixa s1 foi para o fim: a seta para a direita ficou desabilitada, então o foco vai à da esquerda.
+    expect(document.activeElement).toBe(arrows(1)[0]);
+    expect(el.querySelector('.toast')!.textContent).toContain('na posição');
+  });
+
+  // UX-FIM-202
+  it('renomearOQuadro_focaEMarcaOCampo_escCancelaEOFocoVoltaAoBotao', async () => {
+    const { el, fixture, button } = await setup();
+
+    button('Renomear').click();
+    await settle(fixture);
+    const input = el.querySelector<HTMLInputElement>('#board-name')!;
+    expect(document.activeElement).toBe(input);
+    expect(input.selectionStart).toBe(0);
+    expect(input.selectionEnd).toBe(input.value.length);
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await settle(fixture);
+
+    expect(el.querySelector('#board-name')).toBeNull();
+    expect(document.activeElement).toBe(el.querySelector('#board-rename-btn'));
+  });
+
+  // UX-FIM-202, UX-FIM-101
+  it('renomearOQuadro_avisaEDevolveOFocoAoBotao', async () => {
+    const { el, fixture, button, put } = await setup();
+
+    button('Renomear').click();
+    await settle(fixture);
+    const input = el.querySelector<HTMLInputElement>('#board-name')!;
+    input.value = 'Outro nome';
+    input.dispatchEvent(new Event('input'));
+    el.querySelector<HTMLFormElement>('.board-rename')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    put().flush(board([lane('s1', 0), lane('s2', 1)], { name: 'Outro nome' }));
+    await settle(fixture);
+
+    expect(el.querySelector('.toast')!.textContent).toContain('Quadro renomeado');
+    expect(document.activeElement).toBe(el.querySelector('#board-rename-btn'));
+  });
+
+  // UX-FIM-101, UX-FIM-204
+  it('renomearOTituloDaFaixaETirarFaixa_avisamDepoisDeGravar_eOFocoVaiParaAFaixaQueFicou', async () => {
+    const { el, fixture, http, put } = await setup();
+    const input = el.querySelectorAll<HTMLInputElement>('.lane-title')[1];
+
+    input.value = 'Pagamento';
+    input.dispatchEvent(new Event('blur'));
+    put().flush(board([lane('s1', 0), lane('s2', 1, { title: 'Pagamento' })]));
+    fixture.detectChanges();
+    expect(el.querySelector('.toast')!.textContent).toContain('Faixa renomeada para');
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.lane-actions button')).filter((b) => b.textContent!.includes('Tirar do quadro'))[1].click();
+    fixture.detectChanges();
+    Array.from(el.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find((b) => b.textContent!.trim() === 'Tirar')!.click();
+    put().flush(board([lane('s1', 0)]));
+    await settle(fixture);
+
+    expect(el.querySelector('.toast')!.textContent).toContain('tirada do quadro');
+    expect(document.activeElement).toBe(el.querySelector('.lane-title'));
+    http.match(() => true);
+  });
+
+  // UX-FIM-101, UX-FIM-204
+  it('adicionarFaixa_avisaEDevolveOFocoAoBotaoAdicionar', async () => {
+    const { el, fixture, http, button } = await setup(board([lane('s1', 0)]));
+
+    button('Adicionar levantamento').click();
+    fixture.detectChanges();
+    http.expectOne('/api/surveys').flush([detailOf('s5').survey]);
+    await settle(fixture);
+    el.querySelector<HTMLFormElement>('.dialog form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    http.expectOne({ method: 'POST', url: '/api/boards/b1/lanes' }).flush(board([lane('s1', 0), lane('s5', 1)]));
+    http.expectOne('/api/surveys/s5').flush(detailOf('s5'));
+    await settle(fixture);
+
+    expect(el.querySelector('.toast')!.textContent).toContain('Faixa adicionada ao quadro');
+    expect(document.activeElement).toBe(el.querySelector('#board-add-btn'));
+  });
+
+  // UX-FIM-102
+  it('erroDeGravacao_ficaAteAPessoaFechar', async () => {
+    const { el, fixture, put } = await setup();
+    const input = el.querySelectorAll<HTMLInputElement>('.lane-title')[0];
+    input.value = 'Novo';
+    input.dispatchEvent(new Event('blur'));
+    jasmine.clock().install();
+    try {
+      put().flush({ code: 'BOARD_NOT_FOUND' }, { status: 404, statusText: 'Not Found' });
+      fixture.detectChanges();
+      jasmine.clock().tick(BOARD_FEEDBACK_MS * 3);
+      fixture.detectChanges();
+
+      expect(el.querySelector('.toast.is-error')).not.toBeNull();
+      el.querySelector<HTMLButtonElement>('.toast button')!.click();
+      fixture.detectChanges();
+      expect(el.querySelector('.toast')).toBeNull();
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  // UX-FIM-203
+  it('menuExportar_temAriaHasPopup_eOFocoVoltaAoBotaoAoFecharPorEscEPorCliqueFora', async () => {
+    const { el, fixture } = await setup();
+    const trigger = el.querySelector<HTMLButtonElement>('#board-export-btn')!;
+    expect(trigger.getAttribute('aria-haspopup')).toBe('menu');
+
+    trigger.click();
+    await settle(fixture);
+    expect(document.activeElement).toBe(el.querySelector('#board-export-menu button'));
+    el.querySelector('#board-export-menu')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await settle(fixture);
+    expect(document.activeElement).toBe(trigger);
+
+    trigger.click();
+    await settle(fixture);
+    el.querySelector<HTMLElement>('.menu-backdrop')!.click();
+    await settle(fixture);
+    expect(el.querySelector('#board-export-menu')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  // UX-FIM-203
+  it('menuExportar_tabFechaOMenuESeguePeloBotao', async () => {
+    const { el, fixture } = await setup();
+    const trigger = el.querySelector<HTMLButtonElement>('#board-export-btn')!;
+    trigger.click();
+    await settle(fixture);
+
+    el.querySelector('#board-export-menu')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    await settle(fixture);
+
+    expect(el.querySelector('#board-export-menu')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+  });
+
+  // UX-FIM-110
+  it('menuExportarSemFaixaDesenhada_marcaOsItensComoDesabilitadosComADica', async () => {
+    const { el, fixture } = await setup(board([lane('s1', 0, { status: SurveyStatus.Running, flow: null })]));
+    el.querySelector<HTMLButtonElement>('#board-export-btn')!.click();
+    fixture.detectChanges();
+
+    const items = Array.from(el.querySelectorAll<HTMLButtonElement>('#board-export-menu button'));
+    expect(items.every((b) => b.getAttribute('aria-disabled') === 'true')).toBeTrue();
+    expect(items[0].title).toContain('Espere as faixas aparecerem para exportar');
+    fixture.destroy();
+    TestBed.inject(HttpTestingController).match(() => true);
+  });
+
+  // UX-FIM-205
+  it('arrastar_destacaAFaixaDeDestinoEApagaNaSoltura', async () => {
+    const { el, fixture, put } = await setup();
+    const lanes = el.querySelectorAll('.lane');
+    const dataTransfer = new DataTransfer();
+
+    lanes[0].querySelector('.lane-grip')!.dispatchEvent(new DragEvent('dragstart', { dataTransfer, bubbles: true }));
+    lanes[1].dispatchEvent(new DragEvent('dragover', { dataTransfer, bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(lanes[1].classList).toContain('is-drop-target');
+    expect(lanes[0].classList).not.toContain('is-drop-target');
+
+    lanes[1].dispatchEvent(new DragEvent('drop', { dataTransfer, bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+    expect(lanes[1].classList).not.toContain('is-drop-target');
+    put();
+  });
+
+  // UX-FIM-103
+  it('botoesDaFaixa_levamOTituloNoNomeAcessivel', async () => {
+    const { el } = await setup(board([lane('s1', 0, { stale: true }), lane('s2', 1)]));
+
+    const first = el.querySelectorAll('.lane')[0];
+    expect(first.querySelector('a.btn')!.getAttribute('aria-label')).toContain('Abrir a faixa');
+    expect(Array.from(first.querySelectorAll('.lane-actions button')).every((b) => !!b.getAttribute('aria-label'))).toBeTrue();
+  });
+
+  // UX-FIM-111
+  it('voltarAosQuadros_temTitle', async () => {
+    const { el } = await setup();
+
+    expect(el.querySelector('.page-back')!.getAttribute('title')).toBeTruthy();
+  });
+
+  // UX-FIM-207, UX-FIM-113
+  it('levantarDeNovo_avisaOInicioEMoveOFocoParaOEstadoDaFaixa', async () => {
+    const { el, fixture, http, button } = await setup(board([lane('s1', 0, { stale: true }), lane('s2', 1)]));
+
+    button('Levantar de novo').click();
+    await settle(fixture);
+
+    expect(el.querySelector('.toast')!.textContent).toContain('Levantando de novo a faixa');
+    expect(document.activeElement).toBe(el.querySelector('[data-lane-status="s1"]'));
+    // Uma região viva só para todos os estados de faixa, e nenhuma dentro da faixa.
+    expect(el.querySelector('.lane-status[role="status"]')).toBeNull();
+    expect(el.querySelector('.board-layout > .visually-hidden[role="status"]')!.textContent).toContain('Levantando a faixa');
+    fixture.destroy();
+    http.match(() => true);
+  });
+
+  // UX-FIM-108
+  it('trocarDeQuadro_limpaOAvisoEOErroDoAnterior', async () => {
+    const { el, fixture, http, put } = await setup();
+    const input = el.querySelectorAll<HTMLInputElement>('.lane-title')[0];
+    input.value = 'Novo';
+    input.dispatchEvent(new Event('blur'));
+    put().flush({ code: 'BOARD_NOT_FOUND' }, { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+    expect(el.querySelector('.toast.is-error')).not.toBeNull();
+
+    fixture.componentRef.setInput('id', 'b2');
+    fixture.detectChanges();
+    http.expectOne('/api/boards/b2');
+    fixture.detectChanges();
+
+    expect(el.querySelector('.toast')).toBeNull();
+    fixture.destroy();
   });
 });

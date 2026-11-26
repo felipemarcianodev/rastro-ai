@@ -13,10 +13,41 @@ $kinds: start, decision, notification, rejection, cross-system, step, end;
   }
 }
 
+// Medidas do desenho (anel da escolha e espessura da borda dos balões), lidas pelo componente.
+.biz-host {
+  --biz-ring: 3px;
+  --biz-border: 1.5px;
+  // O rótulo do ramo não passa da largura do balão de passo (220 px, BUSINESS_BOX.step), menos a folga entre
+  // vizinhos: os casos de um switch ficam lado a lado sem se cobrir. O texto inteiro fica na dica.
+  --biz-label-max: 200px;
+}
+
+.biz-host .edge-label {
+  display: inline-block;
+  max-width: var(--biz-label-max);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+// Pontos de dobra candidatos do Foblex (UX-FIM-001): só aparecem com o ponteiro na ligação ou com o foco no desenho.
+// Os pontos reais (.f-waypoint) ficam sempre à vista. Só na visão de negócio, não no grafo.
+.biz-host .f-connection .f-candidate {
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.biz-host .f-connection:hover .f-candidate,
+.biz-host .f-connection .f-candidate:hover {
+  opacity: 1;
+}
+
+// Painel do passo: no máximo 45% da área ou 22 rem (o que for menor), com o conteúdo limitado a 72 rem em tela
+// larga (o fundo e a borda seguem de ponta a ponta).
 .biz-panel {
   flex: none;
-  max-height: 45%;
-  padding: var(--space-3) var(--space-4);
+  max-height: min(45%, 22rem);
+  padding: var(--space-3) max(var(--space-4), calc((100% - 72rem) / 2));
   overflow: auto;
   border-top: 1px solid var(--line);
   background: var(--surface);
@@ -143,9 +174,12 @@ $kinds: start, decision, notification, rejection, cross-system, step, end;
   font-style: italic;
 }
 
+// No painel o selo é de leitura: --text-xs e sem itálico (no balão ele segue pequeno e inclinado).
 .biz-origin .biz-badge {
   margin-left: var(--space-2);
   color: var(--ink);
+  font-size: var(--text-xs);
+  font-style: normal;
 }
 
 // Campo de uma linha (painel e balão): ocupa o que sobra da linha.
@@ -160,4 +194,16 @@ $kinds: start, decision, notification, rejection, cross-system, step, end;
   padding: var(--space-2) var(--space-3);
   border: 1px dashed var(--line-strong);
   border-radius: var(--radius-md);
+}
+
+// Abaixo de 40 rem o painel vira uma coluna: o código passa de duas colunas (rótulo e valor) para uma.
+@media (max-width: 40rem) {
+  .biz-code {
+    grid-template-columns: 1fr;
+    gap: 0;
+
+    dd {
+      margin-bottom: var(--space-1);
+    }
+  }
 }

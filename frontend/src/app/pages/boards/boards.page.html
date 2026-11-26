@@ -4,15 +4,21 @@
       <h1 id="boards-title" tabindex="-1">{{ 'boards.title' | translate }}</h1>
       <p class="muted">{{ 'boards.subtitle' | translate }}</p>
     </div>
-    <button type="button" class="btn btn-p" (click)="openCreate()">{{ 'boards.new' | translate }}</button>
+    <button type="button" class="btn btn-p" (click)="openCreate()" [attr.aria-busy]="opening()" [attr.aria-disabled]="opening() || null">{{ (opening() ? 'boards.opening' : 'boards.new') | translate }}</button>
   </header>
 
   <span class="visually-hidden" role="status">{{ notice() ?? '' }}</span>
   @if (notice(); as text) {
     <p class="note-ok" aria-hidden="true">{{ text }}</p>
   }
-  @if (createError(); as message) {
+  @if (createError() ?? actionError(); as message) {
     <p class="notice is-error" role="alert">{{ message }}</p>
+  }
+  @if (openFailed(); as created) {
+    <p class="notice is-error" role="alert">
+      {{ 'boards.create.openFailed' | translate: { name: created.name } }}
+      <a [routerLink]="['/boards', created.id]">{{ 'boards.addTo.open' | translate }}</a>
+    </p>
   }
 
   @if (error(); as message) {

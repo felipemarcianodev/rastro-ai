@@ -57,6 +57,13 @@ export function withSavedPositions(geometry: BusinessGeometry, saved: ReadonlyMa
   return { boxes, width, height };
 }
 
+// Posição do rótulo ao longo da ligação (0 = origem, 1 = destino): perto da chegada. Quando duas ligações saem da
+// mesma porta, o trecho do meio é comum às duas, e só o final mostra de que ramo é o rótulo. Assim cada rótulo fica
+// centrado sobre o seu destino; os irmãos (casos de um switch) não se sobrepõem porque o rótulo não passa da largura
+// do balão (`--biz-label-max`, em _business.scss). Escalonar a posição ao longo da ligação foi tentado e não
+// resolve: nas ligações dos lados quase todo o caminho é o trecho horizontal comum, e os rótulos caem na mesma altura.
+export const BRANCH_LABEL_POSITION = 0.88;
+
 // O vizinho de um passo na ordem do fluxo (a ordem da lista de passos), ou null nas pontas. Sem passo atual, o
 // primeiro (ou o último, voltando).
 export function flowNeighbour(order: readonly string[], current: string | null, direction: 1 | -1): string | null {

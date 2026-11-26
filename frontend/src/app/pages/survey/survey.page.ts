@@ -54,6 +54,7 @@ import { FlowCanvasComponent } from './flow-canvas.component';
 import { ConsolidatedViewComponent } from './consolidated-view.component';
 import { DRAWIO_MIME } from '../../core/graph/drawio';
 import { HostLinkOf, hostLinkResolver } from '../../core/graph/link-template';
+import { MERMAID_MIME, SVG_MIME, mermaidFenced } from '../../core/graph/export';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { BusinessViewComponent } from './business-view.component';
 import { AddToBoardDialogComponent } from '../boards/add-to-board-dialog.component';
@@ -79,6 +80,12 @@ const SEARCH_FOCUS_DELAY_MS = 120;
 const SEARCH_LIST_LIMIT = 8;
 const CANVAS_BACK_DELAY_MS = 150;
 const EXPORT_MESSAGE_MS = 4000;
+// Aviso do menu de exportar e do menu do nó; a ação opcional (ex.: "Ver") fecha o aviso ao ser usada.
+interface ExportMessage {
+  ok: boolean;
+  text: string;
+  action?: { label: string; run: () => void };
+}
 const NOTE_MESSAGE_MS = 3000;
 const NOTE_UNDO_MS = 8000;
 const SHOW_FRAMEWORK_KEY = 'rastro.showFrameworkCalls';
@@ -307,6 +314,8 @@ export class SurveyPage {
   // "Mostrar na visão de negócio" só aparece para o nó que ainda não é passo-chave: falso ou nulo (ainda sem
   // resposta, ou a visão não veio) esconde o item; só o "ainda não é passo-chave" confirmado o mostra.
   protected readonly menuNotKeyStep = signal(false);
+  // Passos-chave da visão de negócio por levantamento: o menu do nó não consulta a rota a cada abertura.
+  private readonly businessNodeIds = new Map<string, ReadonlySet<string>>();
 
   // Contagem da comparação pelo que está na tela (chamadas do .NET escondidas não contam).
   protected readonly visibleChanges = computed(() => {
@@ -424,6 +433,8 @@ export class SurveyPage {
 
   // Troca de desenho pelo botão do canvas, do consolidado ou do mapa (Fases 28 e 31).
   protected onDirection(direction: LayoutDirection): void {
+    // A visão de negócio pode ter mudado enquanto outro desenho estava na tela: o menu do nó consulta de novo.
+    this.businessNodeIds.clear();
     saveLayoutDirection(direction);
     this.drawing.set(direction);
   }
@@ -444,9 +455,20 @@ export class SurveyPage {
     return !this.mapped() && !this.consolidated() && !this.business();
   }
 
+  // Texto lido pelo leitor de tela ao trocar de desenho (a troca não move o foco).
+  protected readonly drawingAnnouncement = signal('');
+
   protected showDrawing(direction: LayoutDirection): void {
-    if (!this.drawingPressed(direction)) this.onDirection(direction);
+    if (this.drawingPressed(direction)) return;
+    this.onDirection(direction);
+    const view = DRAWING_VIEWS.find((v) => v.direction === direction);
+    if (view) this.drawingAnnouncement.set(this.i18n.t('survey.view.announce', { name: this.i18n.t(view.label) }));
   }
+
+  // Mapa por sistemas e consolidado não têm o desenho do grafo: PNG, SVG e Mermaid só valem no grafo e na
+  // visão de negócio. O draw.io vale também no mapa, mas não no consolidado.
+  protected readonly exportNeedsGraph = computed(() => this.showMap() || this.showConsolidated());
+  protected readonly drawioNeedsGraph = computed(() => this.showConsolidated());
 
   // Atalho do painel: liga o mapa do fluxo e abre a aba Perguntas.
   protected readonly mapTabRequest = signal<{ tab: MapTab; seq: number } | null>(null);
@@ -604,17 +626,24 @@ export class SurveyPage {
   }
 
   // Exportar o recorte: imagem e Mermaid do que está na tela (inteiro, recortado ou recolhido).
-  protected readonly exportMessage = signal<{ ok: boolean; text: string } | null>(null);
+  protected readonly exportMessage = signal<ExportMessage | null>(null);
 
   private exportTimer?: ReturnType<typeof setTimeout>;
 
-  private showExport(message: { ok: boolean; text: string }): void {
+  private showExport(message: ExportMessage): void {
     this.exportMessage.set(message);
     clearTimeout(this.exportTimer);
-    this.exportTimer = setTimeout(() => this.exportMessage.set(null), EXPORT_MESSAGE_MS);
+    // O erro fica até a pessoa fechar (quem lê devagar ou usa leitor de tela não o perde); o sucesso some sozinho.
+    if (message.ok) this.exportTimer = setTimeout(() => this.exportMessage.set(null), EXPORT_MESSAGE_MS);
+  }
+
+  protected dismissExportMessage(): void {
+    clearTimeout(this.exportTimer);
+    this.exportMessage.set(null);
   }
 
   protected exportImage(format: 'png' | 'svg'): void {
+    if (this.exportNeedsGraph()) return;
     this.closePopovers();
     const image = this.showBusiness() ? this.businessView()?.exportSvg() : this.canvas()?.exportSvg();
     if (!image) {
@@ -623,7 +652,7 @@ export class SurveyPage {
     }
     const name = this.exportName();
     if (format === 'svg') {
-      downloadBlob(new Blob([image.svg], { type: 'image/svg+xml' }), `${name}.svg`);
+      downloadBlob(new Blob([image.svg], { type: SVG_MIME }), `${name}.svg`);
       this.showExport({ ok: true, text: this.i18n.t('survey.export.started', { file: `${name}.svg` }) });
       return;
     }
@@ -637,6 +666,7 @@ export class SurveyPage {
   }
 
   protected exportMermaid(download: boolean): void {
+    if (this.exportNeedsGraph()) return;
     this.closePopovers();
     const text = this.showBusiness() ? this.businessView()?.exportMermaid() : this.canvas()?.exportMermaid();
     if (!text) {
@@ -644,19 +674,21 @@ export class SurveyPage {
       return;
     }
     if (download) {
-      downloadBlob(new Blob([text], { type: 'text/plain' }), `${this.exportName()}.mmd`);
+      downloadBlob(new Blob([text], { type: MERMAID_MIME }), `${this.exportName()}.mmd`);
       this.showExport({ ok: true, text: this.i18n.t('survey.export.started', { file: `${this.exportName()}.mmd` }) });
     } else {
-      this.menuCopy.copy('```mermaid\n' + text + '```\n');
+      this.menuCopy.copy(mermaidFenced(text));
     }
   }
 
   // draw.io (Fase 54): o grafo ou o mapa por sistemas, o que estiver na tela. Cada balão leva o link para o código
   // no host (Fase 56), quando o remote do repositório é reconhecido.
   protected exportDrawio(): void {
+    if (this.drawioNeedsGraph()) return;
     this.closePopovers();
     const id = this.detail()?.survey.id;
-    if (!id) {
+    // Sem nada desenhado, avisa já: não vale pedir os links à API.
+    if (!id || !this.drawioView()) {
       this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
     }
@@ -664,25 +696,38 @@ export class SurveyPage {
       next: (links) => this.downloadDrawio(hostLinkResolver(links)),
       // Sem os links (rota fora do ar), o arquivo sai do mesmo jeito, só sem o link de cada balão: o link é um
       // acréscimo e não deve impedir a exportação.
-      error: () => this.downloadDrawio(undefined),
+      error: () => this.downloadDrawio(undefined, true),
     });
   }
 
-  private downloadDrawio(linkOf: HostLinkOf | undefined): void {
+  // O componente que desenha o que está na tela (mapa, visão de negócio ou grafo), se já existe.
+  private drawioView(): { exportDrawio(name: string, linkOf?: HostLinkOf): string | null } | undefined {
+    return this.showMap() ? this.mapView() : this.showBusiness() ? this.businessView() : this.canvas();
+  }
+
+  private downloadDrawio(linkOf: HostLinkOf | undefined, withoutLinks = false): void {
     const name = this.exportName();
-    const xml = this.showMap() ? this.mapView()?.exportDrawio(name, linkOf) : this.showBusiness() ? this.businessView()?.exportDrawio(name, linkOf) : this.canvas()?.exportDrawio(name, linkOf);
+    const xml = this.drawioView()?.exportDrawio(name, linkOf);
     if (!xml) {
       this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
     }
     downloadBlob(new Blob([xml], { type: DRAWIO_MIME }), `${name}.drawio`);
-    this.showExport({ ok: true, text: this.i18n.t('survey.export.started', { file: `${name}.drawio` }) });
+    // Sem a rota de links, o arquivo sai sem o link de cada balão: o aviso diz isso em vez de parecer completo.
+    const key = withoutLinks ? 'survey.export.startedNoLinks' : 'survey.export.started';
+    this.showExport({ ok: true, text: this.i18n.t(key, { file: `${name}.drawio` }) });
   }
 
   private exportName(): string {
     const survey = this.detail()?.survey;
     const focus = this.focusId() ? '-recorte' : '';
     return `rastro-${fileSlug(survey?.entryPoint ?? 'fluxo')}${focus}`;
+  }
+
+  protected runMessageAction(message: ExportMessage): void {
+    clearTimeout(this.exportTimer);
+    this.exportMessage.set(null);
+    message.action?.run();
   }
 
   protected openC4(): void {
@@ -1043,13 +1088,20 @@ export class SurveyPage {
     this.menuNotKeyStep.set(false);
     const surveyId = this.detail()?.survey.id;
     if (surveyId) {
-      this.api.business(surveyId).subscribe({
-        next: (flow) => {
-          if (this.menu()?.nodeId === menu.nodeId) this.menuNotKeyStep.set(!flow.steps.some((s) => s.nodeId === menu.nodeId));
-        },
-        // Sem a visão, o item some: o resto do menu segue igual.
-        error: () => this.menuNotKeyStep.set(false),
-      });
+      const known = this.businessNodeIds.get(surveyId);
+      if (known) {
+        this.menuNotKeyStep.set(!known.has(menu.nodeId));
+      } else {
+        this.api.business(surveyId).subscribe({
+          next: (flow) => {
+            const ids = new Set(flow.steps.map((s) => s.nodeId));
+            this.businessNodeIds.set(surveyId, ids);
+            if (this.menu()?.nodeId === menu.nodeId) this.menuNotKeyStep.set(!ids.has(menu.nodeId));
+          },
+          // Sem a visão, o item some: o resto do menu segue igual.
+          error: () => this.menuNotKeyStep.set(false),
+        });
+      }
     }
     setTimeout(() => {
       const element = this.host.nativeElement.querySelector<HTMLElement>('.context-menu');
@@ -1080,6 +1132,11 @@ export class SurveyPage {
       : event.key === 'Home' ? 0
       : event.key === 'End' ? items.length - 1
       : -1;
+    // Tab sai do menu suspenso: fecha e o foco volta ao botão que o abriu (o Esc já faz isso pelo documento).
+    if (event.key === 'Tab' && (this.exportOpen() || this.compareOpen())) {
+      this.closePopovers();
+      return;
+    }
     if (next < 0) return;
     event.preventDefault();
     items[next]?.focus();
@@ -1092,13 +1149,21 @@ export class SurveyPage {
     this.closeMenu();
     if (!nodeId || !surveyId) return;
     this.api.setBusinessKind(surveyId, nodeId, BusinessKind.Step).subscribe({
-      next: () => this.showExport({ ok: true, text: this.i18n.t('survey.menu.businessShown') }),
+      next: () => {
+        this.businessNodeIds.delete(surveyId);
+        this.showExport({
+          ok: true,
+          text: this.i18n.t('survey.menu.businessShown'),
+          action: { label: this.i18n.t('survey.menu.businessSee'), run: () => this.onDirection(LayoutDirection.Business) },
+        });
+      },
       error: (error) => this.showExport({ ok: false, text: apiErrorMessage(error) }),
     });
   }
 
   // "Ver no grafo" da visão de negócio: volta ao canvas com o nó escolhido (sem mudar o desenho guardado).
   protected showNodeInGraph(nodeId: string): void {
+    this.businessNodeIds.clear();
     this.drawing.set(LayoutDirection.Horizontal);
     this.select(nodeId, false);
     this.focusNodeElement(nodeId);

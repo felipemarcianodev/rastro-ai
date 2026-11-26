@@ -35,6 +35,16 @@ export function mermaidSystems(graph: FlowGraph, firstName?: string): { id: stri
   }));
 }
 
+// Tipos de arquivo e cercado do Mermaid: o levantamento baixa o SVG e o .mmd e copia o bloco para o Markdown.
+export const SVG_MIME = 'image/svg+xml';
+export const MERMAID_MIME = 'text/plain';
+const MERMAID_FENCE = '```';
+
+// Texto Mermaid dentro do cercado de código que o Markdown, o GitHub e o Notion reconhecem.
+export function mermaidFenced(text: string): string {
+  return `${MERMAID_FENCE}mermaid\n${text}${MERMAID_FENCE}\n`;
+}
+
 export function toMermaid(graph: FlowGraph, direction = LayoutDirection.Horizontal, firstSystem?: string): string {
   const ids = new Map(graph.nodes.map((node, index) => [node.id, `n${index}`]));
   const lines = [`flowchart ${MERMAID_DIRECTION[direction]}`];
