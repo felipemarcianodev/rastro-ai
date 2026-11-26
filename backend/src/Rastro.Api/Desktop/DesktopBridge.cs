@@ -9,16 +9,20 @@ public enum DesktopMessageType
     // Tela -> .NET: abrir a caixa "Escolher pasta".
     PickFolder = 0,
     // .NET -> tela: a pasta escolhida (ou null, se o usuário cancelou).
-    FolderPicked = 1
+    FolderPicked = 1,
+    // Tela -> .NET: abrir um link no navegador ou no editor (só o que o ExternalLinkPolicy aceita). Sem resposta.
+    OpenLink = 2
 }
 
-public sealed record DesktopRequest(DesktopMessageType Type, string RequestId);
+public sealed record DesktopRequest(DesktopMessageType Type, string RequestId, string? Url = null);
 
-// Ponte de mensagens da janela própria. Formato fixo, conferido aqui: a página só pede "escolher pasta" e só
-// recebe o caminho escolhido pelo usuário na caixa do sistema. Nenhuma mensagem executa comando nem lê disco.
+// Ponte de mensagens da janela própria. Formato fixo, conferido aqui: a página pede "escolher pasta" (e só recebe
+// o caminho escolhido pelo usuário na caixa do sistema) ou "abrir link" (só host reconhecido ou editor
+// configurado). Nenhuma mensagem executa comando nem lê disco.
 public static partial class DesktopBridge
 {
-    public const int MaxMessageLength = 512;
+    // Cabe a URL do Azure DevOps com caminho e linha (ExternalLinkPolicy.MaxLength) mais o envelope.
+    public const int MaxMessageLength = 4200;
     public const int MaxPathLength = 4096;
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -39,6 +43,16 @@ public static partial class DesktopBridge
                 return null;
             if (!root.TryGetProperty("type", out var type) || type.ValueKind != JsonValueKind.Number || !type.TryGetInt32(out var kind))
                 return null;
+            if (kind == (int)DesktopMessageType.OpenLink)
+            {
+                // {"type":2,"url":"..."}: sem requestId, sem resposta.
+                if (!root.TryGetProperty("url", out var url) || url.ValueKind != JsonValueKind.String)
+                    return null;
+                var text = url.GetString()!;
+                return text.Length is > 0 and <= ExternalLinkPolicy.MaxLength
+                    ? new DesktopRequest(DesktopMessageType.OpenLink, string.Empty, text)
+                    : null;
+            }
             if (!root.TryGetProperty("requestId", out var id) || id.ValueKind != JsonValueKind.String)
                 return null;
             var requestId = id.GetString()!;
@@ -61,12 +75,24 @@ public static partial class DesktopBridge
     }
 
     // Trata uma mensagem da página: devolve a resposta, ou null quando a mensagem é recusada.
-    public static string? Handle(string? message, Func<string?> pickFolder, ILogger logger)
+    // openLink abre um link já aprovado; editorTemplate é o Rastro:Editor:UrlTemplate (ou nulo). Sem openLink, "abrir link" é recusado.
+    public static string? Handle(string? message, Func<string?> pickFolder, ILogger logger, Action<string>? openLink = null, string? editorTemplate = null)
     {
         var request = Parse(message);
         if (request is null)
         {
             logger.LogWarning("Mensagem da janela recusada: formato fora do combinado ({Length} caracteres).", message?.Length ?? 0);
+            return null;
+        }
+        if (request.Type == DesktopMessageType.OpenLink)
+        {
+            if (openLink is null || !ExternalLinkPolicy.IsAllowed(request.Url, editorTemplate))
+            {
+                var (scheme, host) = ExternalLinkPolicy.Describe(request.Url);
+                logger.LogWarning("Link recusado pela janela: esquema {Scheme}, host {Host}.", scheme, host);
+                return null;
+            }
+            openLink(request.Url!);
             return null;
         }
         return FolderPickedMessage(request.RequestId, pickFolder());

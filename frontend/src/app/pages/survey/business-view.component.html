@@ -1,0 +1,186 @@
+<div class="biz-bar" role="group" [attr.aria-label]="'business.barLabel' | translate">
+  <button type="button" class="btn btn-icon" (click)="toggleDirection()"
+    [attr.aria-label]="'graph.layout.directionAria' | translate: { current: (directionLabel[LayoutDirection.Business] | translate), next: (directionLabel[next] | translate) }"
+    [title]="'graph.layout.directionTitle' | translate: { next: (directionLabel[next] | translate) }">{{ directionGlyph[next] }}</button>
+  @if (geometry() && !empty()) {
+  <span class="biz-zoom" role="group" [attr.aria-label]="'business.zoomLabel' | translate">
+    <button type="button" class="btn btn-icon" (click)="zoomOut()" [attr.aria-label]="'flowCanvas.zoomOut' | translate" [title]="'flowCanvas.zoomOut' | translate">−</button>
+    <span class="biz-zoom-value" role="status" [attr.aria-label]="'business.zoomValueAria' | translate: { percent: percent() }">{{ percent() }}%</span>
+    <button type="button" class="btn btn-icon" (click)="zoomIn()" [attr.aria-label]="'flowCanvas.zoomIn' | translate" [title]="'flowCanvas.zoomIn' | translate">+</button>
+    <button type="button" class="btn btn-icon" (click)="fit()" [attr.aria-label]="'flowCanvas.fit' | translate" [title]="'flowCanvas.fit' | translate">⤢</button>
+  </span>
+  }
+  @if (flow(); as f) {
+    @if (f.collapsedDecisions > 0) {
+      <span class="muted biz-bar-note" role="note">{{ 'business.collapsed' | translate: { steps: f.steps.length, count: f.collapsedDecisions } }}</span>
+    }
+  }
+</div>
+
+@if (error(); as message) {
+  <div class="notice is-error biz-status" role="alert">
+    <span>{{ message }}</span>
+    <button type="button" class="btn btn-g btn-small" (click)="retry()">{{ 'common.retry' | translate }}</button>
+  </div>
+} @else if (loading()) {
+  <div class="canvas-status" role="status">
+    <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+      <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+    </svg>
+    <p class="muted">{{ 'business.loading' | translate }}</p>
+  </div>
+} @else if (empty()) {
+  <div class="biz-status is-empty" role="status">
+    <p class="muted">{{ 'business.empty' | translate }}</p>
+    <button type="button" class="btn btn-g btn-small" (click)="seeGraph()">{{ 'business.seeGraph' | translate }}</button>
+  </div>
+} @else if (geometry()) {
+  <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate">
+    <f-flow fDraggable class="flow-host biz-host" (fFullRendered)="onFullRendered()">
+      <f-canvas fZoom [fZoomMinimum]="0.25" [fZoomMaximum]="2" (fCanvasChange)="scale.set($event.scale)">
+        <ng-container ngProjectAs="[fConnections]">
+          @for (edge of edges(); track edge.index) {
+            <f-connection
+              [fConnectionId]="'e' + edge.index"
+              [fSourceId]="'out:' + edge.from"
+              [fTargetId]="'in:' + edge.to"
+              fType="segment"
+              fBehavior="fixed"
+              [fRadius]="10"
+              [fSelectionDisabled]="true"
+              [fReassignDisabled]="true"
+              [class.edge-inferred]="edge.inferred">
+              <f-connection-marker-arrow [type]="markerEnd" />
+              @if (edge.label) {
+                <div fConnectionContent [position]="labelPosition">
+                  <span class="edge-label">{{ edge.label }}</span>
+                </div>
+              }
+            </f-connection>
+          }
+        </ng-container>
+
+        <ng-container ngProjectAs="[fNodes]">
+          @for (p of placed(); track p.step.id) {
+            <div
+              fNode
+              [fNodeId]="p.step.id"
+              [fNodePosition]="{ x: p.x, y: p.y }"
+              [fNodeSize]="{ width: p.width, height: p.height }"
+              class="biz-node biz-kind-{{ slug[p.step.kind] }}"
+              [class.is-selected]="stepId() === p.step.id"
+              [class.is-proposed]="isProposed(p.step)"
+              [attr.data-step-id]="p.step.id"
+              [attr.title]="p.whereFull"
+              tabindex="0"
+              role="button"
+              [attr.aria-pressed]="stepId() === p.step.id"
+              [attr.aria-label]="stepAria(p.step)"
+              (click)="pick(p.step)"
+              (keydown.enter)="pick(p.step)"
+              (keydown.space)="$event.preventDefault(); pick(p.step)">
+              <div fConnector fConnectorType="target" fConnectorConnectableSide="top" [fConnectorDisabled]="true" [fConnectorId]="'in:' + p.step.id" class="biz-port is-in"></div>
+              @if (p.step.kind === BusinessKind.Decision) {
+                <svg class="biz-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="50,1 99,50 50,99 1,50" /></svg>
+              }
+              <span class="biz-glyph" aria-hidden="true">{{ glyph[p.step.kind] }}</span>
+              <span class="biz-body">
+                <span class="biz-text" [title]="p.step.label">@for (part of parts(p.step.label); track $index) {{{ part }}<wbr>}</span>
+                @if (p.where || isProposed(p.step) || p.step.inferred) {
+                  <span class="biz-meta">
+                    @if (p.where) {
+                      <span class="biz-ref" [title]="p.whereFull">{{ p.where }}</span>
+                    }
+                    @if (isProposed(p.step)) {
+                      <span class="biz-badge is-proposed" [title]="'business.proposedTitle' | translate">{{ 'business.proposed' | translate }}</span>
+                    }
+                    @if (p.step.inferred) {
+                      <span class="biz-badge is-inferred" [title]="'business.inferredTitle' | translate">{{ 'business.inferred' | translate }}</span>
+                    }
+                  </span>
+                }
+              </span>
+              <div fConnector fConnectorType="source" fConnectorConnectableSide="bottom" fConnectorMultiple [fConnectorDisabled]="true" [fConnectorId]="'out:' + p.step.id" class="biz-port is-out"></div>
+            </div>
+          }
+        </ng-container>
+      </f-canvas>
+    </f-flow>
+  </div>
+}
+
+<section class="biz-panel" [attr.aria-label]="'business.panelLabel' | translate">
+  @if (panel(); as p) {
+    <header class="biz-panel-head">
+      <span class="kind biz-kind-{{ slug[p.step.kind] }}"><span class="kind-glyph" aria-hidden="true">{{ glyph[p.step.kind] }}</span>{{ kindLabel[p.step.kind] | translate }}</span>
+      <strong class="biz-panel-title" aria-live="polite">{{ p.step.label }}</strong>
+      <button type="button" class="btn btn-g btn-small biz-panel-close" (click)="close()" [title]="'flowMap.closeBlockTitle' | translate">{{ 'common.close' | translate }}</button>
+    </header>
+    <p class="muted biz-origin">{{ stateLabel[p.step.labelState] | translate: { origin: (originLabel[p.step.labelOrigin] | translate) } }}</p>
+
+    <h3 class="biz-panel-h">{{ 'business.code.title' | translate }}</h3>
+    @if (p.ref; as ref) {
+      <dl class="biz-code">
+        <dt>{{ 'business.code.repository' | translate }}</dt><dd>{{ ref.repository }}</dd>
+        <dt>{{ 'business.code.file' | translate }}</dt><dd><code>{{ ref.file }}</code></dd>
+        <dt>{{ 'business.code.line' | translate }}</dt><dd>{{ ref.line }}</dd>
+        @if (p.commit) {
+          <dt>{{ 'business.code.commit' | translate }}</dt><dd><code>{{ p.commit }}</code></dd>
+        }
+        @if (ref.branch) {
+          <dt>{{ 'business.code.branch' | translate }}</dt><dd><code>{{ ref.branch }}</code></dd>
+        }
+      </dl>
+      @if (linksFailed()) {
+        <p class="muted biz-none biz-links-note" role="note">{{ 'business.linksUnavailable' | translate }}</p>
+      }
+      <div class="biz-open">
+        @if (p.hostUrl) {
+          <button type="button" class="btn btn-g btn-small" (click)="open(p.hostUrl)" [title]="'business.openHostTitle' | translate: { host: (hostLabel[p.host] | translate) }">{{ 'business.openHost' | translate: { host: (hostLabel[p.host] | translate) } }}</button>
+        }
+        @if (p.editorUrl) {
+          <button type="button" class="btn btn-g btn-small" (click)="open(p.editorUrl)" [title]="'business.openEditorTitle' | translate">{{ 'business.openEditor' | translate }}</button>
+        }
+      </div>
+    } @else {
+      <p class="muted biz-none">{{ 'business.code.none' | translate }}</p>
+    }
+
+    @if (p.path.length > 0) {
+      <h3 class="biz-panel-h">{{ 'business.path.title' | translate }}</h3>
+      <ol class="biz-path">
+        @for (item of p.path; track item.step.id) {
+          <li>
+            @if (item.via) {
+              <span class="biz-via">{{ branchText(item.via) }}</span>
+            }
+            <button type="button" class="biz-link" [class.is-current]="item.step.id === p.step.id" [attr.aria-current]="item.step.id === p.step.id ? 'step' : null" (click)="pickPath(item.step)">{{ item.step.label }}</button>
+          </li>
+        }
+      </ol>
+    }
+
+    @if (p.grouped.length > 0) {
+      <details class="biz-grouped">
+        <summary>{{ 'business.grouped' | translate: { count: p.grouped.length } }}</summary>
+        <ul class="biz-grouped-list">
+          @for (item of p.grouped; track item.id) {
+            <li><button type="button" class="biz-link" (click)="pickGrouped(item.id)">{{ item.text }}@if (item.where) { <code class="muted biz-where">{{ item.where }}</code> }</button></li>
+          }
+        </ul>
+      </details>
+    }
+
+    @if (p.note) {
+      <h3 class="biz-panel-h">{{ 'business.note.title' | translate }}</h3>
+      <p class="biz-note">{{ p.note }}</p>
+    }
+
+    <footer class="biz-panel-foot">
+      <button type="button" class="btn btn-g btn-small" (click)="viewInGraph()" [title]="'business.seeInGraphTitle' | translate">{{ 'business.seeInGraph' | translate }}</button>
+      <button type="button" class="btn btn-g btn-small" (click)="focusSection()" [title]="'flowMap.focusSectionTitle' | translate">{{ 'flowMap.focusSection' | translate }}</button>
+    </footer>
+  } @else {
+    <p class="muted biz-hint">{{ 'business.hint' | translate }}</p>
+  }
+</section>

@@ -7,6 +7,7 @@ import { Injectable, InjectionToken, NgZone, inject } from '@angular/core';
 export enum DesktopMessageType {
   PickFolder = 0,
   FolderPicked = 1,
+  OpenLink = 2,
 }
 
 export interface DesktopExternal {
@@ -74,6 +75,16 @@ export class DesktopBridge {
       this.pending.set(requestId, resolve);
       this.external!.sendMessage(JSON.stringify({ type: DesktopMessageType.PickFolder, requestId }));
     });
+  }
+
+  // Abre um link fora do Rastro. Na janela própria, quem decide é o .NET (só host reconhecido e editor configurado);
+  // no navegador, abre numa aba nova sem dar à página aberta acesso a esta.
+  openExternal(url: string): void {
+    if (this.external) {
+      this.external.sendMessage(JSON.stringify({ type: DesktopMessageType.OpenLink, url }));
+      return;
+    }
+    window.open(url, '_blank', 'noopener');
   }
 
   private receive(message: unknown): void {

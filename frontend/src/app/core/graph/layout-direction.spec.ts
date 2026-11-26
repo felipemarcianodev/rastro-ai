@@ -4,10 +4,10 @@ describe('troca de desenho (Fases 28 e 31)', () => {
   afterEach(() => localStorage.removeItem('rastro.layoutDirection'));
 
   // WEB-DIR-001
-  it('botao_passaPelosCincoDesenhosEVoltaAoHorizontal', () => {
+  it('botao_passaPelosSeisDesenhosEVoltaAoHorizontal', () => {
     let direction: LayoutDirection = LayoutDirection.Horizontal;
     const seen: LayoutDirection[] = [direction];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       direction = NEXT_LAYOUT_DIRECTION[direction];
       seen.push(direction);
     }
@@ -18,6 +18,7 @@ describe('troca de desenho (Fases 28 e 31)', () => {
       LayoutDirection.Tree,
       LayoutDirection.Consolidated,
       LayoutDirection.Map,
+      LayoutDirection.Business,
       LayoutDirection.Horizontal,
     ]);
   });
@@ -36,6 +37,9 @@ describe('troca de desenho (Fases 28 e 31)', () => {
 
     saveLayoutDirection(LayoutDirection.Map);
     expect(readLayoutDirection()).toBe(LayoutDirection.Map);
+
+    saveLayoutDirection(LayoutDirection.Business);
+    expect(readLayoutDirection()).toBe(LayoutDirection.Business);
 
     localStorage.setItem('rastro.layoutDirection', '42');
     expect(readLayoutDirection()).toBe(LayoutDirection.Horizontal);

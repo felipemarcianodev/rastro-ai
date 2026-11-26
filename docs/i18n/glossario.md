@@ -39,6 +39,13 @@ Nunca se traduz: Rastro AI, nomes de produto (.NET, Angular, Roslyn, MCP, Claude
 | entre fluxos (regra cruzada) | cross-flow | entre flujos |
 | desfecho (fim de um caminho) | outcome | desenlace |
 | recolhido / expandido | collapsed / expanded | contraído / expandido |
+| visão de negócio | business view | vista de negocio |
+| passo-chave | key step | paso clave |
+| notificação | notification | notificación |
+| recusa | rejection | rechazo |
+| chamada entre sistemas | cross-system call | llamada entre sistemas |
+| proposto (texto ainda não confirmado) | proposed | propuesto |
+| balão (passo-chave desenhado) | bubble | globo |
 
 ## Tipos de passo
 

@@ -1,5 +1,6 @@
-import { EdgeConfidence, FlowGraph, FlowNode, MapBlock, MapBlockKind, MapLane, MapLaneKind, MapLinkKind, NodeKind, SourceLocation } from '../models';
+import { BusinessFlow, BusinessKind, EdgeConfidence, FlowGraph, FlowNode, MapBlock, MapBlockKind, MapLane, MapLaneKind, MapLinkKind, NodeKind, SourceLocation } from '../models';
 import { EdgeShape, PORT, edgeRoutes, httpLabel, mermaidSystems } from './export';
+import { BusinessGeometry } from './business-layout';
 import { MAP_BOX, MapGeometry, linkText } from './flow-map';
 import { LayoutDirection, NodeBox } from './layout';
 import { plainBranch } from './plain';
@@ -234,6 +235,47 @@ export function mapToDrawio(
     return frame ? [frame] : [];
   });
   return toDrawio(shift({ name, frames, vertices, edges }));
+}
+
+// Estilos da visão de negócio (seção 14.1 da proposta): a decisão é um losango e a chamada entre
+// sistemas é tracejada.
+const BUSINESS_STYLE: Record<BusinessKind, string> = {
+  [BusinessKind.Start]: DRAWIO_STYLE.start,
+  [BusinessKind.Decision]: 'rhombus;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;',
+  [BusinessKind.Notification]: DRAWIO_STYLE.notification,
+  [BusinessKind.Rejection]: DRAWIO_STYLE.rejection,
+  [BusinessKind.CrossSystem]: 'rounded=1;whiteSpace=wrap;html=1;fillColor=#eeeeee;strokeColor=#999999;dashed=1;fontSize=10;align=left;spacingLeft=6;',
+  [BusinessKind.Step]: DRAWIO_STYLE.step,
+  [BusinessKind.End]: DRAWIO_STYLE.end,
+};
+
+// A visão de negócio como está na tela: um balão por passo-chave, com o texto de negócio e a
+// referência ao código, e as ligações com o rótulo do ramo (a inferida, tracejada).
+export function businessToDrawio(flow: BusinessFlow, geometry: BusinessGeometry, name: string, linkOf?: HostLinkOf): string {
+  const shown = flow.steps.filter((step) => geometry.boxes.has(step.id));
+  const index = new Map(shown.map((step, i) => [step.id, i]));
+  const vertices = shown.map((step): DrawioVertex => {
+    const box = geometry.boxes.get(step.id)!;
+    const location = step.ref ? { file: step.ref.file, line: step.ref.line } : null;
+    return {
+      text: step.label,
+      reference: codeReference(step.ref?.repository, location),
+      tooltip: tooltipOf(null, location),
+      link: step.ref ? (linkOf?.(step.ref.repository, location) ?? null) : null,
+      style: BUSINESS_STYLE[step.kind],
+      x: box.x,
+      y: box.y,
+      width: box.width,
+      height: box.height,
+    };
+  });
+  const edges = flow.edges.flatMap((edge): DrawioEdge[] => {
+    const source = index.get(edge.from);
+    const target = index.get(edge.to);
+    if (source === undefined || target === undefined || source === target) return [];
+    return [{ source, target, label: edge.label ? plainBranch(edge.label) : null, style: DRAWIO_STYLE.edge + (edge.inferred ? CALL_STYLE : '') }];
+  });
+  return toDrawio(shift({ name, frames: [], vertices, edges }));
 }
 
 function frameAround(title: string, boxes: readonly NodeBox[]): DrawioFrame | null {

@@ -6,6 +6,7 @@ import {
   AiSettingsUpdate,
   AiSettingsView,
   AiStatus,
+  BusinessFlow,
   DescribeResponse,
   FillHoleResponse,
   ChangePrompt,
@@ -222,6 +223,11 @@ export class RastroApi {
   // Mapa do fluxo (Fase 30): faixas por sistema, blocos, ligações e caminhos.
   map(id: string): Observable<FlowMap> {
     return this.http.get<FlowMap>(`/api/surveys/${id}/map`);
+  }
+
+  // Visão de negócio (Fase 55): os passos-chave do fluxo.
+  business(id: string): Observable<BusinessFlow> {
+    return this.http.get<BusinessFlow>(`/api/surveys/${id}/business`);
   }
 
   // Modelos de link de cada repositório do levantamento (Fase 56).

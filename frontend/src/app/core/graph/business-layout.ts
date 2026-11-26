@@ -1,0 +1,114 @@
+import { BusinessFlow, BusinessKind, BusinessStep } from '../models';
+import { NodeBox } from './layout';
+
+// Desenho da visão de negócio (Fase 57): uma camada por distância da entrada, de cima para baixo.
+// Puro e determinístico: o mesmo fluxo dá sempre o mesmo desenho.
+
+// Medidas em px. A decisão é um losango e precisa de espaço para o texto.
+export const BUSINESS_BOX = {
+  decision: { width: 240, height: 110 },
+  decisionLong: { width: 280, height: 150 },
+  // 88 px: duas linhas de texto, a referência em até duas linhas e o selo.
+  step: { width: 220, height: 88 },
+  gapY: 60,
+  gapX: 40,
+  grid: 10,
+  // Acima deste tamanho de texto, a decisão usa o losango maior.
+  longLabel: 40,
+} as const;
+
+export interface BusinessGeometry {
+  boxes: Map<string, NodeBox>;
+  width: number;
+  height: number;
+}
+
+export function businessBoxSize(step: BusinessStep): { width: number; height: number } {
+  if (step.kind !== BusinessKind.Decision) return BUSINESS_BOX.step;
+  return step.label.length > BUSINESS_BOX.longLabel ? BUSINESS_BOX.decisionLong : BUSINESS_BOX.decision;
+}
+
+const snap = (value: number): number => Math.ceil(value / BUSINESS_BOX.grid) * BUSINESS_BOX.grid;
+
+// Ligações que fecham um ciclo (a ponta chega a um passo que ainda está no caminho da busca) ficam
+// de fora do cálculo das camadas. A busca parte da entrada e depois dos passos que sobraram, na ordem da lista.
+function backEdges(flow: BusinessFlow, order: readonly string[]): Set<number> {
+  const out = new Map<string, number[]>();
+  flow.edges.forEach((edge, i) => out.set(edge.from, [...(out.get(edge.from) ?? []), i]));
+  const state = new Map<string, 1 | 2>();
+  const back = new Set<number>();
+  const visit = (id: string) => {
+    state.set(id, 1);
+    for (const i of out.get(id) ?? []) {
+      const to = flow.edges[i].to;
+      if (state.get(to) === 1) back.add(i);
+      else if (!state.has(to)) visit(to);
+    }
+    state.set(id, 2);
+  };
+  for (const id of order) if (!state.has(id)) visit(id);
+  return back;
+}
+
+export function businessLayout(flow: BusinessFlow): BusinessGeometry {
+  const ids = new Set(flow.steps.map((s) => s.id));
+  const edges = flow.edges.filter((e) => ids.has(e.from) && ids.has(e.to) && e.from !== e.to);
+  const clean: BusinessFlow = { ...flow, edges };
+
+  // Raízes da busca: os passos Start primeiro, depois os demais na ordem da lista.
+  const starts = flow.steps.filter((s) => s.kind === BusinessKind.Start).map((s) => s.id);
+  const order = [...starts, ...flow.steps.map((s) => s.id).filter((id) => !starts.includes(id))];
+  const back = backEdges(clean, order);
+  const forward = edges.filter((_, i) => !back.has(i));
+
+  // Camada: maior distância da raiz pelas ligações que sobraram (sem ciclo).
+  const layer = new Map<string, number>(flow.steps.map((s) => [s.id, 0]));
+  const incoming = new Map<string, number>(flow.steps.map((s) => [s.id, 0]));
+  for (const e of forward) incoming.set(e.to, (incoming.get(e.to) ?? 0) + 1);
+  const ready = flow.steps.map((s) => s.id).filter((id) => incoming.get(id) === 0);
+  for (let head = 0; head < ready.length; head++) {
+    const id = ready[head];
+    for (const e of forward) {
+      if (e.from !== id) continue;
+      layer.set(e.to, Math.max(layer.get(e.to)!, layer.get(id)! + 1));
+      incoming.set(e.to, incoming.get(e.to)! - 1);
+      if (incoming.get(e.to) === 0) ready.push(e.to);
+    }
+  }
+
+  const depth = flow.steps.reduce((max, s) => Math.max(max, layer.get(s.id)!), -1) + 1;
+  const rows: string[][] = Array.from({ length: depth }, () => []);
+  const placed = new Set<string>();
+  const put = (id: string) => {
+    if (placed.has(id)) return;
+    placed.add(id);
+    rows[layer.get(id)!].push(id);
+  };
+  // Camada 0 na ordem da lista (a entrada primeiro); as seguintes na ordem das ligações de quem chega,
+  // o que deixa os ramos de uma decisão lado a lado.
+  flow.steps.filter((s) => layer.get(s.id) === 0).forEach((s) => put(s.id));
+  for (let l = 0; l < depth - 1; l++) {
+    for (const id of rows[l]) for (const e of forward) if (e.from === id && layer.get(e.to)! > l) put(e.to);
+    for (const s of flow.steps) if (layer.get(s.id) === l + 1) put(s.id);
+  }
+
+  const byId = new Map(flow.steps.map((s) => [s.id, s]));
+  const rowWidth = (row: string[]) => row.reduce((sum, id) => sum + businessBoxSize(byId.get(id)!).width, 0) + Math.max(0, row.length - 1) * BUSINESS_BOX.gapX;
+  const width = rows.reduce((max, row) => Math.max(max, rowWidth(row)), 0);
+
+  const boxes = new Map<string, NodeBox>();
+  let y = 0;
+  for (const row of rows) {
+    let x = snap((width - rowWidth(row)) / 2);
+    let tallest = 0;
+    for (const id of row) {
+      const size = businessBoxSize(byId.get(id)!);
+      boxes.set(id, { x, y, width: size.width, height: size.height });
+      x += size.width + BUSINESS_BOX.gapX;
+      tallest = Math.max(tallest, size.height);
+    }
+    y = snap(y + tallest + BUSINESS_BOX.gapY);
+  }
+  const height = [...boxes.values()].reduce((max, b) => Math.max(max, b.y + b.height), 0);
+  return { boxes, width, height };
+}

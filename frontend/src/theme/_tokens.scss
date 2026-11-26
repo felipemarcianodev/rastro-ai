@@ -27,6 +27,31 @@
   --kind-decision: #2f5d8a;
   --kind-external: #5c6a6e;
 
+  // Visão de negócio (Fase 57): preenchimento, borda e tinta de cada tipo de balão. São as cores do draw.io
+  // (proposta 10.4), para o arquivo exportado sair igual à tela. O verde (início) é permitido aqui porque vale
+  // nas paletas todas: o tipo nunca depende só da cor (cada balão leva glifo e rótulo).
+  --biz-start-fill: #d5e8d4;
+  --biz-start-stroke: #82b366;
+  --biz-start-ink: #1d2a2e;
+  --biz-decision-fill: #fff2cc;
+  --biz-decision-stroke: #d6b656;
+  --biz-decision-ink: #1d2a2e;
+  --biz-notification-fill: #ffe6cc;
+  --biz-notification-stroke: #d79b00;
+  --biz-notification-ink: #1d2a2e;
+  --biz-rejection-fill: #f8cecc;
+  --biz-rejection-stroke: #b85450;
+  --biz-rejection-ink: #1d2a2e;
+  --biz-cross-system-fill: #eeeeee;
+  --biz-cross-system-stroke: #9a9a9a;
+  --biz-cross-system-ink: #1d2a2e;
+  --biz-step-fill: #ffffff;
+  --biz-step-stroke: #666666;
+  --biz-step-ink: #1d2a2e;
+  --biz-end-fill: #dae8fc;
+  --biz-end-stroke: #6c8ebf;
+  --biz-end-ink: #1d2a2e;
+
   --font-sans: 'Instrument Sans', 'Segoe UI', system-ui, sans-serif;
   --font-code: 'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
 
@@ -97,6 +122,28 @@
 
   --kind-decision: #7fb0e0;
   --kind-external: #9aa8a4;
+
+  --biz-start-fill: #243a2a;
+  --biz-start-stroke: #6fa35c;
+  --biz-start-ink: #e8efe9;
+  --biz-decision-fill: #3b3420;
+  --biz-decision-stroke: #c9a642;
+  --biz-decision-ink: #e8efe9;
+  --biz-notification-fill: #40301c;
+  --biz-notification-stroke: #e0a13a;
+  --biz-notification-ink: #e8efe9;
+  --biz-rejection-fill: #42262a;
+  --biz-rejection-stroke: #d0706a;
+  --biz-rejection-ink: #e8efe9;
+  --biz-cross-system-fill: #2a2f2e;
+  --biz-cross-system-stroke: #6f7874;
+  --biz-cross-system-ink: #e8efe9;
+  --biz-step-fill: #262c2b;
+  --biz-step-stroke: #6f7874;
+  --biz-step-ink: #e8efe9;
+  --biz-end-fill: #1f2d42;
+  --biz-end-stroke: #7ea2d6;
+  --biz-end-ink: #e8efe9;
 
   --shadow-lift: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
 

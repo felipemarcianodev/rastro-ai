@@ -1,0 +1,497 @@
+import { Component, signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { DesktopBridge } from '../../core/desktop-bridge.service';
+import { MAP_FIXTURE_GRAPH } from '../../core/graph/flow-map-fixture.spec';
+import { LayoutDirection } from '../../core/graph/layout';
+import { FlowSummary } from '../../core/graph/summary';
+import { BusinessFlow, BusinessKind, BusinessStep, LabelOrigin, LabelState, RepositoryHostKind, RepositoryLinks, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
+import { By } from '@angular/platform-browser';
+import { FConnectionContent } from '@foblex/flow';
+import { BRANCH_LABEL_POSITION, BusinessViewComponent } from './business-view.component';
+
+const detail: SurveyDetail = {
+  survey: {
+    id: 's1',
+    repository: 'pedidos-web',
+    solutionPath: 'a.sln',
+    language: SourceLanguage.DotNet,
+    entryPoint: 'PedidosController.Criar',
+    maxDepth: 5,
+    commitHash: 'abc',
+    status: SurveyStatus.Completed,
+    schemaVersion: 1,
+    nodeCount: 6,
+    edgeCount: 3,
+    unresolvedCount: 0,
+    createdAt: '2026-11-04T10:00:00Z',
+    crossRepositories: [],
+    segments: [],
+  },
+  graph: MAP_FIXTURE_GRAPH,
+};
+
+function step(id: string, nodeId: string, kind: BusinessKind, label: string, extra: Partial<BusinessStep> = {}): BusinessStep {
+  return {
+    id,
+    nodeId,
+    kind,
+    label,
+    labelOrigin: LabelOrigin.Rule,
+    labelState: LabelState.Confirmed,
+    ref: { repository: 'pedidos-web', file: 'src/Pedidos.cs', line: 10, commitHash: 'abcdef1234567890', branch: 'main' },
+    sourceNodeIds: [nodeId],
+    inferred: false,
+    ...extra,
+  };
+}
+
+const FLOW: BusinessFlow = {
+  surveyId: 's1',
+  schemaVersion: 1,
+  collapsedDecisions: 0,
+  steps: [
+    step('s1', 'n1', BusinessKind.Start, 'Pedido recebido', { sourceNodeIds: ['n1', 'n2'] }),
+    step('s2', 'n3', BusinessKind.Decision, 'O pagamento foi aprovado?', { labelOrigin: LabelOrigin.Ai, labelState: LabelState.Proposed }),
+    step('s3', 'n4', BusinessKind.Notification, 'Cliente é avisado do estorno', { inferred: true, ref: null }),
+    step('s4', 'n5', BusinessKind.End, 'Pedido concluído'),
+  ],
+  edges: [
+    { from: 's1', to: 's2', label: null, inferred: false },
+    { from: 's2', to: 's3', label: 'else', inferred: false },
+    { from: 's2', to: 's4', label: 'then', inferred: true },
+  ],
+};
+
+const LINKS: RepositoryLinks[] = [
+  {
+    repository: 'pedidos-web',
+    host: RepositoryHostKind.GitHub,
+    commitTemplate: 'https://github.com/org/pedidos-web/blob/abcdef1/{path}#L{line}',
+    branchTemplate: null,
+    editorTemplate: 'vscode://file/C:/repos/pedidos-web/{path}:{line}',
+  },
+];
+
+@Component({
+  imports: [BusinessViewComponent],
+  // O Foblex avisa (e não desenha) um fluxo sem altura: na página, o contêiner da visão dá a altura.
+  styles: ['app-business-view { display: block; width: 900px; height: 600px; }'],
+  template: `<app-business-view [detail]="detail" [selectedId]="selected()" [notes]="notes" (selectNode)="picked.push($event)" (directionChange)="directions.push($event)" (summaryChange)="summaries.push($event)" (focusFlow)="focused.push($event)" (showInGraph)="inGraph.push($event)" />`,
+})
+class HostComponent {
+  readonly detail = detail;
+  readonly selected = signal<string | null>(null);
+  readonly notes = new Map([['n3', 'Nota de teste do passo']]);
+  readonly picked: (string | null)[] = [];
+  readonly directions: LayoutDirection[] = [];
+  readonly summaries: FlowSummary[] = [];
+  readonly focused: string[] = [];
+  readonly inGraph: string[] = [];
+}
+
+async function setup(flow: BusinessFlow | { status: number } = FLOW, links: RepositoryLinks[] = LINKS) {
+  const opened: string[] = [];
+  TestBed.configureTestingModule({
+    imports: [HostComponent],
+    providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: (url: string) => opened.push(url) } }],
+  });
+  const fixture = TestBed.createComponent(HostComponent);
+  fixture.detectChanges();
+  const http = TestBed.inject(HttpTestingController);
+  const business = http.expectOne('/api/surveys/s1/business');
+  const linksRequest = http.expectOne('/api/surveys/s1/links');
+  linksRequest.flush(links);
+  if ('status' in flow) business.flush({ code: 'NOT_FOUND' }, { status: flow.status, statusText: 'Not Found' });
+  else business.flush(flow);
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
+  const el = fixture.nativeElement as HTMLElement;
+  const node = (id: string) => el.querySelector<HTMLElement>(`[data-step-id="${id}"]`)!;
+  const button = (text: string) => Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent!.includes(text))!;
+  return { fixture, el, host: fixture.componentInstance, node, button, opened, http };
+}
+
+async function setupLinksError() {
+  TestBed.configureTestingModule({
+    imports: [HostComponent],
+    providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: () => undefined } }],
+  });
+  const fixture = TestBed.createComponent(HostComponent);
+  fixture.detectChanges();
+  const http = TestBed.inject(HttpTestingController);
+  http.expectOne('/api/surveys/s1/links').flush({ code: 'ERRO' }, { status: 500, statusText: 'Erro' });
+  http.expectOne('/api/surveys/s1/business').flush(FLOW);
+  fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
+  const el = fixture.nativeElement as HTMLElement;
+  return { fixture, el, node: (id: string) => el.querySelector<HTMLElement>(`[data-step-id="${id}"]`)! };
+}
+
+describe('BusinessViewComponent (Fase 57)', () => {
+  // WEB-BIZV-001
+  it('fluxoCarregado_desenhaUmBalaoPorPassoComAClasseDoTipo', async () => {
+    const { node } = await setup();
+
+    expect(node('s1').classList).toContain('biz-kind-start');
+    expect(node('s2').classList).toContain('biz-kind-decision');
+    expect(node('s3').classList).toContain('biz-kind-notification');
+    expect(node('s4').classList).toContain('biz-kind-end');
+    expect(node('s2').textContent).toContain('O pagamento foi aprovado?');
+  });
+
+  // WEB-BIZV-002
+  it('decisao_desenhaOLosangoEOsOutrosTiposNao', async () => {
+    const { node } = await setup();
+
+    expect(node('s2').querySelector('.biz-shape polygon')).not.toBeNull();
+    expect(node('s1').querySelector('.biz-shape')).toBeNull();
+  });
+
+  // WEB-BIZV-003
+  it('balao_mostraAReferenciaOsSelosDePropostoEInferidoEOGlifo', async () => {
+    const { node } = await setup();
+
+    expect(node('s1').querySelector('.biz-ref')!.textContent).toBe('pedidos-web · Pedidos.cs:10');
+    expect(node('s1').querySelector('.biz-ref')!.getAttribute('title')).toBe('pedidos-web · src/Pedidos.cs:10');
+    expect(node('s1').getAttribute('title')).toBe('pedidos-web · src/Pedidos.cs:10');
+    expect(node('s2').querySelector('.biz-badge.is-proposed')!.textContent).toContain('proposto');
+    expect(node('s1').querySelector('.biz-badge.is-proposed')).toBeNull();
+    expect(node('s3').querySelector('.biz-badge.is-inferred')!.textContent).toContain('inferido');
+    expect(node('s3').querySelector('.biz-ref')).toBeNull();
+    expect(node('s2').querySelector('.biz-glyph')!.textContent).toBe('?');
+  });
+
+  // WEB-BIZV-004
+  it('ligacoes_desenhamUmaPorArestaComORotuloDoRamoEATracejadaDaInferida', async () => {
+    const { el } = await setup();
+
+    expect(el.querySelectorAll('f-connection').length).toBe(3);
+    const labels = Array.from(el.querySelectorAll('.edge-label')).map((l) => l.textContent!.trim());
+    // O rótulo da API vem em código (then, else) e a tela mostra em texto simples, como no grafo.
+    expect(labels).toEqual(jasmine.arrayContaining(['Se sim', 'Se não']));
+    expect(el.querySelectorAll('f-connection.edge-inferred').length).toBe(1);
+  });
+
+  // WEB-BIZV-025
+  it('textoLongo_ganhaPontoDeQuebraDepoisDoPontoSemMudarOTexto', async () => {
+    const longo = { ...FLOW, steps: [FLOW.steps[0], { ...FLOW.steps[1], label: 'SettingsController.SetLanguage' }, ...FLOW.steps.slice(2)] };
+    const { node } = await setup(longo);
+
+    const text = node('s2').querySelector('.biz-text')!;
+    expect(text.textContent).toBe('SettingsController.SetLanguage');
+    expect(text.querySelectorAll('wbr').length).toBe(2);
+    expect(text.firstChild!.textContent).toBe('SettingsController.');
+    expect(text.querySelector('wbr')!.previousSibling!.textContent).toBe('SettingsController.');
+  });
+
+  // WEB-BIZV-026
+  // O Foblex não dá medida aos elementos no Karma (tudo sai com 0 x 0), então o teste confere a posição que o desenho pede.
+  it('rotuloDoRamo_ficaPertoDoDestinoDaLigacao', async () => {
+    const { fixture } = await setup();
+
+    const contents = fixture.debugElement.queryAll(By.directive(FConnectionContent));
+
+    expect(contents.length).toBe(2);
+    for (const content of contents) {
+      const position = content.injector.get(FConnectionContent).position();
+      expect(position).toBe(BRANCH_LABEL_POSITION);
+      expect(position).toBeGreaterThan(0.5);
+    }
+  });
+
+  // WEB-BIZV-027
+  it('rotuloDoBalao_naoRepeteOTipoEIncluiOEstado', async () => {
+    const flow = { ...FLOW, steps: [FLOW.steps[0], FLOW.steps[1], { ...FLOW.steps[2], label: 'Notificação ao cliente' }, { ...FLOW.steps[3], label: 'Fim' }] };
+    const { node } = await setup(flow);
+
+    expect(node('s1').getAttribute('aria-label')).toBe('Início: Pedido recebido');
+    expect(node('s2').getAttribute('aria-label')).toBe('Decisão: O pagamento foi aprovado? (proposto)');
+    expect(node('s3').getAttribute('aria-label')).toBe('Notificação ao cliente (inferido)');
+    expect(node('s4').getAttribute('aria-label')).toBe('Fim');
+  });
+
+  // WEB-BIZV-028
+  it('tituloDoPainel_eRegiaoViva', async () => {
+    const { fixture, el, node } = await setup();
+
+    node('s1').click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.biz-panel-title')!.getAttribute('aria-live')).toBe('polite');
+  });
+
+  // WEB-BIZV-029
+  it('rotaDeLinksComErro_avisaNoPainelEmVezDeSumirComOsBotoes', async () => {
+    const { fixture, el, node } = await setupLinksError();
+
+    node('s1').click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.biz-links-note')!.textContent).toContain('Links do repositório indisponíveis');
+    expect(el.querySelector('.biz-open')!.children.length).toBe(0);
+  });
+
+  // WEB-BIZV-033
+  it('dica_dizQueArrastarMoveATela', async () => {
+    const { el } = await setup();
+
+    expect(el.querySelector('.biz-hint')!.textContent).toContain('Arraste');
+  });
+
+  // WEB-BIZV-005
+  it('cliqueNoBalao_escolheONoDoGrafoEAbreOPainelDoPasso', async () => {
+    const { fixture, el, host, node } = await setup();
+
+    node('s2').click();
+    fixture.detectChanges();
+
+    expect(host.picked).toEqual(['n3']);
+    expect(node('s2').classList).toContain('is-selected');
+    expect(node('s2').getAttribute('aria-pressed')).toBe('true');
+    const panel = el.querySelector('.biz-panel')!;
+    expect(panel.querySelector('.kind')!.textContent).toContain('Decisão');
+    expect(panel.querySelector('.biz-panel-title')!.textContent).toBe('O pagamento foi aprovado?');
+    expect(panel.querySelector('.biz-origin')!.textContent).toContain('Proposto pela IA');
+  });
+
+  // WEB-BIZV-006
+  it('painel_mostraOCodigoComRepositorioArquivoLinhaCommitCurtoEBranch', async () => {
+    const { fixture, el, node } = await setup();
+
+    node('s1').click();
+    fixture.detectChanges();
+
+    const code = el.querySelector('.biz-code')!.textContent!;
+    expect(code).toContain('pedidos-web');
+    expect(code).toContain('src/Pedidos.cs');
+    expect(code).toContain('10');
+    expect(code).toContain('abcdef1');
+    expect(code).not.toContain('abcdef12');
+    expect(code).toContain('main');
+    expect(el.querySelector('.biz-origin')!.textContent).toContain('Confirmado pela regra');
+  });
+
+  // WEB-BIZV-007
+  it('abrirNoHostEAbrirNoEditor_entregamAUrlPreenchidaAPonteDaJanela', async () => {
+    const { fixture, el, node, button, opened } = await setup();
+
+    node('s1').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-open')!.textContent).toContain('Abrir no GitHub');
+    button('Abrir no GitHub').click();
+    button('Abrir no editor').click();
+
+    expect(opened).toEqual(['https://github.com/org/pedidos-web/blob/abcdef1/src/Pedidos.cs#L10', 'vscode://file/C:/repos/pedidos-web/src/Pedidos.cs:10']);
+  });
+
+  // WEB-BIZV-008
+  it('semModeloDeLink_osBotoesDeAbrirNaoAparecem', async () => {
+    const { fixture, el, node } = await setup(FLOW, []);
+
+    node('s1').click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.biz-open')!.children.length).toBe(0);
+    expect(el.querySelector('.biz-code')).not.toBeNull();
+  });
+
+  // WEB-BIZV-009
+  it('passoSemReferencia_dizQueNaoTemCodigoENaoMostraBotoes', async () => {
+    const { fixture, el, node } = await setup();
+
+    node('s3').click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.biz-code')).toBeNull();
+    expect(el.querySelector('.biz-none')!.textContent).toContain('não tem referência ao código');
+    expect(el.querySelector('.biz-open')).toBeNull();
+  });
+
+  // WEB-BIZV-010
+  it('painel_mostraOCaminhoDaEntradaComORotuloDoRamoEClicarNele_escolheOPasso', async () => {
+    const { fixture, el, host, node } = await setup();
+
+    node('s3').click();
+    fixture.detectChanges();
+    const items = Array.from(el.querySelectorAll('.biz-path li'));
+
+    expect(items.map((li) => li.querySelector('button')!.textContent!.trim())).toEqual(['Pedido recebido', 'O pagamento foi aprovado?', 'Cliente é avisado do estorno']);
+    expect(items.map((li) => li.querySelector('.biz-via')?.textContent ?? null)).toEqual([null, null, 'Se não']);
+    (items[0].querySelector('button') as HTMLButtonElement).click();
+    expect(host.picked).toEqual(['n4', 'n1']);
+  });
+
+  // WEB-BIZV-011
+  it('passosDeCodigoAgrupados_ficamRecolhidosEClicarNeles_escolheONo', async () => {
+    const { fixture, el, host, node } = await setup();
+
+    node('s1').click();
+    fixture.detectChanges();
+    const grouped = el.querySelector<HTMLDetailsElement>('.biz-grouped')!;
+
+    expect(grouped.open).toBeFalse();
+    expect(grouped.querySelector('summary')!.textContent).toContain('1 passo de código neste bloco');
+    (grouped.querySelector('.biz-grouped-list button') as HTMLButtonElement).click();
+    expect(host.picked).toEqual(['n1', 'n2']);
+  });
+
+  // WEB-BIZV-012
+  it('notaDoPasso_apareceNoPainelQuandoExiste', async () => {
+    const { fixture, el, node } = await setup();
+
+    node('s2').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-note')!.textContent).toBe('Nota de teste do passo');
+
+    node('s1').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-note')).toBeNull();
+  });
+
+  // WEB-BIZV-013
+  it('verNoGrafoEVerSoEsteTrecho_emitemOsNosDoPasso', async () => {
+    const { fixture, host, node, button } = await setup();
+
+    node('s2').click();
+    fixture.detectChanges();
+    button('Ver no grafo').click();
+    button('Ver só este trecho').click();
+
+    expect(host.inGraph).toEqual(['n3']);
+    expect(host.focused).toEqual(['n3']);
+  });
+
+  // WEB-BIZV-014
+  it('selecaoDeFora_acendeOBalaoQueResumeOnoEAbreOPainel', async () => {
+    const { fixture, el, host, node } = await setup();
+
+    host.selected.set('n2');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(node('s1').classList).toContain('is-selected');
+    expect(el.querySelector('.biz-panel-title')!.textContent).toBe('Pedido recebido');
+    host.selected.set(null);
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-panel-title')).toBeNull();
+  });
+
+  // WEB-BIZV-015
+  it('fechar_limpaOPassoEEmiteNulo', async () => {
+    const { fixture, el, host, node, button } = await setup();
+
+    node('s1').click();
+    fixture.detectChanges();
+    button('Fechar').click();
+    fixture.detectChanges();
+
+    expect(host.picked).toEqual(['n1', null]);
+    expect(el.querySelector('.biz-panel-title')).toBeNull();
+  });
+
+  // WEB-BIZV-016
+  it('semPassoAlemDaEntrada_explicaEOferecePararOGrafo', async () => {
+    const { fixture, el, host, button } = await setup({ ...FLOW, steps: [FLOW.steps[0]], edges: [] });
+
+    expect(el.textContent).toContain('Nenhuma decisão ou notificação encontrada neste fluxo.');
+    expect(el.querySelector('f-flow')).toBeNull();
+    button('Ver o grafo completo').click();
+    fixture.detectChanges();
+
+    expect(host.directions).toEqual([LayoutDirection.Horizontal]);
+  });
+
+  // WEB-BIZV-017
+  it('decisoesAgrupadas_mostraOAvisoComAsContagens', async () => {
+    const { el } = await setup({ ...FLOW, collapsedDecisions: 3 });
+
+    expect(el.querySelector('.biz-bar-note')!.textContent).toContain('Fluxo resumido em 4 passos. 3 decisões foram agrupadas.');
+  });
+
+  // WEB-BIZV-018
+  it('semDecisoesAgrupadas_naoMostraOAviso', async () => {
+    const { el } = await setup();
+
+    expect(el.querySelector('.biz-bar-note')).toBeNull();
+  });
+
+  // WEB-BIZV-019
+  it('erroDaApi_mostraAMensagemPeloCodigoETentaDeNovo', async () => {
+    const { fixture, el, http } = await setup({ status: 404 });
+
+    expect(el.querySelector('[role="alert"]')!.textContent).toContain('Não encontrado.');
+    expect(el.querySelector('.biz-node')).toBeNull();
+    (el.querySelector('[role="alert"] button') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    http.expectOne('/api/surveys/s1/business').flush(FLOW);
+    http.expectOne('/api/surveys/s1/links').flush(LINKS);
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.biz-node').length).toBe(4);
+  });
+
+  // WEB-BIZV-020
+  it('carregando_mostraOAvisoAntesDaResposta', () => {
+    TestBed.configureTestingModule({ imports: [HostComponent], providers: [provideHttpClient(), provideHttpClientTesting()] });
+    const fixture = TestBed.createComponent(HostComponent);
+    fixture.detectChanges();
+
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('Montando a visão de negócio');
+    TestBed.inject(HttpTestingController).match(() => true).forEach((r) => r.flush(r.request.url.endsWith('/links') ? [] : FLOW));
+  });
+
+  // WEB-BIZV-021
+  it('botaoDoDesenho_voltaAoHorizontalEOResumoVaiParaOPainel', async () => {
+    const { el, host } = await setup();
+
+    (el.querySelector('[aria-label^="Desenho em visão de negócio"]') as HTMLButtonElement).click();
+
+    expect(host.directions).toEqual([LayoutDirection.Horizontal]);
+    expect(host.summaries.length).toBeGreaterThan(0);
+  });
+
+  // WEB-BIZV-022
+  it('balao_eAlcancavelPeloTecladoEEnterEscolheOPasso', async () => {
+    const { fixture, host, node } = await setup();
+
+    expect(node('s1').getAttribute('tabindex')).toBe('0');
+    expect(node('s1').getAttribute('role')).toBe('button');
+    node('s1').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
+    fixture.detectChanges();
+
+    expect(host.picked).toEqual(['n1']);
+  });
+
+  // WEB-BIZV-023
+  it('exportDrawio_geraOLosangoEOLinkDeCadaBalao', async () => {
+    const { fixture } = await setup();
+    const view = fixture.debugElement.children[0].componentInstance as BusinessViewComponent;
+
+    const xml = view.exportDrawio('teste', (repository, location) => (location ? `https://host/${repository}/${location.file}#${location.line}` : null))!;
+
+    expect(xml).toContain('rhombus');
+    expect(xml).toContain('https://host/pedidos-web/src/Pedidos.cs#10');
+    expect(xml).toContain('O pagamento foi aprovado?');
+  });
+
+  // WEB-BIZV-024
+  it('botoesDeZoom_atualizamOPercentualEEnquadrar_naoQuebra', async () => {
+    const { fixture, el, button } = await setup();
+
+    button('+').click();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    fixture.detectChanges();
+    const aumentado = el.querySelector('.biz-zoom-value')!.textContent!;
+    button('⤢').click();
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    fixture.detectChanges();
+
+    expect(aumentado).toMatch(/^\d+%$/);
+    expect(el.querySelector('.biz-zoom-value')!.textContent).toMatch(/^\d+%$/);
+  });
+});

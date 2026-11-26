@@ -950,6 +950,65 @@ export interface RepositoryLinks {
   editorTemplate: string | null;
 }
 
+// Visão de negócio (Fases 55 a 57): os passos-chave do fluxo, com texto de negócio e referência ao código.
+export enum BusinessKind {
+  Start = 0,
+  Decision = 1,
+  Notification = 2,
+  Rejection = 3,
+  CrossSystem = 4,
+  Step = 5,
+  End = 6,
+}
+
+export enum LabelOrigin {
+  Rule = 0,
+  Ai = 1,
+  Agent = 2,
+  User = 3,
+}
+
+export enum LabelState {
+  Proposed = 0,
+  Confirmed = 1,
+}
+
+export interface CodeRef {
+  repository: string;
+  file: string;
+  line: number;
+  commitHash: string | null;
+  branch: string | null;
+}
+
+export interface BusinessStep {
+  id: string;
+  nodeId: string;
+  kind: BusinessKind;
+  label: string;
+  labelOrigin: LabelOrigin;
+  labelState: LabelState;
+  ref: CodeRef | null;
+  // Nós do grafo que este passo-chave resume.
+  sourceNodeIds: string[];
+  inferred: boolean;
+}
+
+export interface BusinessEdge {
+  from: string;
+  to: string;
+  label: string | null;
+  inferred: boolean;
+}
+
+export interface BusinessFlow {
+  surveyId: string;
+  schemaVersion: number;
+  steps: BusinessStep[];
+  edges: BusinessEdge[];
+  collapsedDecisions: number;
+}
+
 // Mapa do fluxo (Fase 30): faixas por sistema, blocos de leitura, ligações e caminhos de ponta a ponta.
 export enum MapLaneKind {
   Code = 0,

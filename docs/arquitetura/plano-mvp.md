@@ -1289,16 +1289,24 @@ Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CL
   - **Ficou para a Fase 57:** abrir o link externo a partir da janela Photino. A página pediria ao Rastro que abrisse uma URL no sistema, o que é sensível (uma URL qualquer pode chamar outro programa) e precisa de lista fechada de hosts e esquemas; faz sentido junto com os botões "Abrir no host" e "Abrir no editor", que nascem na tela da 57.
   - **Testes:** backend 955/955 (CORE-LNK-001 a 010 e API-LNK-001); frontend 605/605 (link do host no `.drawio` do grafo e do mapa, e o preenchimento do modelo).
 
-## Fase 57: tela da visão de negócio `[ ]` (depende da Fase 56)
+## Fase 57: tela da visão de negócio `[x]` (depende da Fase 56)
 
-- [ ] Botão "Visão de negócio" no seletor de desenho do levantamento, com o Foblex e o layout automático próprio em camadas (`business-layout.ts`, determinístico).
-- [ ] Balões por tipo (pílula, losango, retângulo, tracejado), com as cores como tokens de cada paleta, em par claro e escuro; texto de negócio, referência e selos "proposto" e "inferido"; ligação com rótulo sobre o fundo da tela.
-- [ ] Painel do passo: tipo, texto, código (repositório, arquivo, linha, commit, branch, "Abrir no host", "Abrir no editor", trecho), caminho da entrada, passos agrupados, nota e "Ver no grafo".
-- [ ] Estados de carregamento, de levantamento rodando e de fluxo sem passo-chave; aviso de fluxo resumido.
-- [ ] "Abrir no host" e "Abrir no editor" na janela Photino: o Rastro abre no navegador ou no editor padrão só URL que veio de um modelo de link do próprio levantamento (hosts reconhecidos e o esquema do editor), nunca uma URL qualquer pedida pela página (vindo da Fase 56).
-- [ ] `.drawio` da visão de negócio, com os estilos da seção 14.1 da proposta.
-- [ ] `design-system.md`: os tokens por tipo e o verde liberado (o `CLAUDE.md` já mudou no PR do plano), e a linha da visão de negócio na `visao.md`.
-- [ ] Prints e `levantamento-ux` das telas tocadas.
+- [x] Botão "Visão de negócio" no seletor de desenho do levantamento, com o Foblex e o layout automático próprio em camadas (`business-layout.ts`, determinístico).
+- [x] Balões por tipo (pílula, losango, retângulo, tracejado), com as cores como tokens de cada paleta, em par claro e escuro; texto de negócio, referência e selos "proposto" e "inferido"; ligação com rótulo sobre o fundo da tela.
+- [x] Painel do passo: tipo, texto, código (repositório, arquivo, linha, commit, branch, "Abrir no host", "Abrir no editor", trecho), caminho da entrada, passos agrupados, nota e "Ver no grafo".
+- [x] Estados de carregamento, de levantamento rodando e de fluxo sem passo-chave; aviso de fluxo resumido.
+- [x] "Abrir no host" e "Abrir no editor" na janela Photino: o Rastro abre no navegador ou no editor padrão só URL que veio de um modelo de link do próprio levantamento (hosts reconhecidos e o esquema do editor), nunca uma URL qualquer pedida pela página (vindo da Fase 56).
+- [x] `.drawio` da visão de negócio, com os estilos da seção 14.1 da proposta.
+- [x] `design-system.md`: os tokens por tipo e o verde liberado (o `CLAUDE.md` já mudou no PR do plano), e a linha da visão de negócio na `visao.md`.
+- [x] Prints e `levantamento-ux` das telas tocadas.
+- **Registro (2026-11-26):**
+  - **Tela:** `business-view.component`, no molde do mapa por sistemas, com o Foblex (ligação `segment`, portas invisíveis em cima e embaixo) e os balões posicionados pelo layout em camadas. O losango é um SVG atrás do texto (a borda de `clip-path` não aparece). As cores são tokens `--biz-<tipo>-fill`, `-stroke` e `-ink`, com par claro e escuro, valendo em todas as paletas; o verde do início vale (decisão do dono). Nesta fase os balões não se arrastam: só a tela se move (a Fase 58 traz mover e salvar).
+  - **Janela:** a página pede à janela para abrir um link, e o Rastro só abre `https` de `dev.azure.com`, `github.com`, `gitlab.com` e `bitbucket.org` (host exato, sem usuário nem porta), o `vscode://file/` e o esquema do editor configurado; o resto é recusado e o log leva só o esquema e o host. No Windows, a URL abre pelo sistema (`UseShellExecute`), com o validador como proteção; no macOS e no Linux, `open` e `xdg-open` pelo `ProcessRunner`, sem shell. Não foi testada a abertura real nos três sistemas, só a decisão de abrir ou recusar.
+  - **Derivação corrigida pelo navegador:** a visão nos levantamentos do próprio Rastro mostrou dois defeitos que as fixtures não pegavam. O fim caía num método qualquer (em `SetLanguage`, numa checagem do começo), e em `Create` saíam dois fins sem decisão entre eles. Agora há um fim só por fluxo, "Fim", preso ao método de entrada, e a decisão cujos ramos só terminam se funde. O `return Error(StatusCodes.Status400BadRequest, ...)` passou a contar como recusa (constante 4xx em qualquer argumento).
+  - **Defeitos de tela achados no navegador e corrigidos:** o losango crescia para 470 px com o texto espremido em largura zero (o padding em porcentagem se media pela tela inteira); a referência cortava o nome do arquivo (agora em até duas linhas, com o balão de 88 px); nome de método quebrava no meio da palavra (agora quebra no ponto); o rótulo do ramo ficava no trecho comum de duas ligações (agora perto do destino) e saía em código (`then`, `else`; agora "Se sim" e "Se não", também no painel e no `.drawio`); o estado vazio virava uma faixa no alto (agora ocupa o desenho).
+  - **Levantamento de UX:** [`plano-ux-2026-11-26-visao-de-negocio.md`](../frontend/plano-ux-2026-11-26-visao-de-negocio.md), com 23 achados. Entraram nesta fase os de risco baixo da Fase A (menu Exportar sem item que falha nesta visão, rótulo do balão sem o tipo repetido e com o estado, aviso do painel ao leitor de tela, foco visível como o do mapa, selos com cara de selo, cursor de arrastar e nota quando os links falham). Os de risco médio vão para a Fase 58; os de risco alto esperam o dono.
+  - **Prints:** `docs/telas/fase-57/` (claro, escuro, painel da decisão, estado vazio e o `.drawio` no draw.io), com um levantamento do próprio Rastro, numa pasta de dados temporária. As larguras de 1280 e 360 não foram vistas: a janela do navegador não redimensionou.
+  - **Testes:** backend 1019/1019; frontend 652/652.
 
 ## Fase 58: tela livre e posição salva `[ ]` (depende da Fase 57)
 
@@ -1306,6 +1314,7 @@ Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CL
 - [ ] Mover balão com grade de 10 px, clique sem arrastar abre o painel, teclado (Tab, Enter, setas, Esc), pontos de dobra editáveis, "Reorganizar".
 - [ ] Posição salva com debounce de 500 ms: tabela de layout por escopo (levantamento sozinho ou quadro), migration e rota em lote; documentação da migration no mesmo PR.
 - [ ] Testes de tela com clique de verdade (regra do `CLAUDE.md`): mover e recarregar, zoom no ponteiro, Reorganizar.
+- [ ] Fase C do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md): Tab na ordem do fluxo mesmo depois de clicar num balão (o Foblex reordena os nós), setas pelas ligações, "100%" e atalhos de zoom, balão escolhido trazido para a área visível ao abrir o painel, foco sem `setTimeout`.
 
 ## Fase 59: texto de negócio `[ ]` (depende da Fase 57; pode andar junto com a 58)
 

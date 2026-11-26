@@ -72,4 +72,26 @@ describe('DesktopBridge', () => {
 
     expect(await picked).toBeNull();
   });
+
+  // UI-JAN-005
+  it('openExternal_naJanela_mandaMensagemTipadaSemAbrirAba', () => {
+    const external = new FakeDesktopExternal();
+    const bridge = bridgeWith(external);
+    const open = spyOn(window, 'open');
+
+    bridge.openExternal('https://github.com/org/repo');
+
+    expect(JSON.parse(external.sent[0])).toEqual({ type: DesktopMessageType.OpenLink, url: 'https://github.com/org/repo' });
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  // UI-JAN-006
+  it('openExternal_noNavegador_abreAbaNovaComNoopener', () => {
+    const bridge = bridgeWith(null);
+    const open = spyOn(window, 'open');
+
+    bridge.openExternal('https://github.com/org/repo');
+
+    expect(open).toHaveBeenCalledOnceWith('https://github.com/org/repo', '_blank', 'noopener');
+  });
 });

@@ -482,6 +482,7 @@
       "tree": "em árvore",
       "consolidated": "consolidado, num desenho só",
       "map": "em mapa, por sistema",
+      "business": "em visão de negócio",
       "directionAria": "Desenho {current}. Trocar para {next}",
       "directionTitle": "Desenhar {next}"
     },
@@ -580,6 +581,73 @@
       "tooLarge": "A imagem ficou grande demais.",
       "drawFailed": "Não deu para desenhar a imagem."
     }
+  },
+  "business": {
+    "barLabel": "Desenho da visão de negócio",
+    "zoomLabel": "Zoom da visão de negócio",
+    "zoomValueAria": "Zoom em {percent}%",
+    "collapsed": "Fluxo resumido em {steps} passos. {count, plural, =1 {Uma decisão foi agrupada} other {# decisões foram agrupadas}}.",
+    "loading": "Montando a visão de negócio…",
+    "empty": "Nenhuma decisão ou notificação encontrada neste fluxo.",
+    "seeGraph": "Ver o grafo completo",
+    "canvasLabel": "Visão de negócio do fluxo: balões e ligações",
+    "stepAria": "{kind}: {label}",
+    "stepAriaStates": "{text} ({states})",
+    "linksUnavailable": "Links do repositório indisponíveis",
+    "proposed": "proposto",
+    "proposedTitle": "Texto proposto, ainda não confirmado por você",
+    "inferred": "inferido",
+    "inferredTitle": "Este passo veio de uma ligação inferida, a conferir",
+    "panelLabel": "Painel do passo-chave",
+    "hint": "Escolha um balão para ver o texto de negócio, o código e o caminho da entrada até ele. Arraste uma área vazia para mover a tela.",
+    "kind": {
+      "start": "Início",
+      "decision": "Decisão",
+      "notification": "Notificação",
+      "rejection": "Recusa",
+      "cross-system": "Chamada entre sistemas",
+      "step": "Passo",
+      "end": "Fim"
+    },
+    "origin": {
+      "rule": "pela regra",
+      "ai": "pela IA",
+      "agent": "pelo agente",
+      "user": "por você"
+    },
+    "text": {
+      "proposed": "Proposto {origin}",
+      "confirmed": "Confirmado {origin}"
+    },
+    "host": {
+      "unknown": "host",
+      "azure": "Azure DevOps",
+      "github": "GitHub",
+      "gitlab": "GitLab",
+      "bitbucket": "Bitbucket"
+    },
+    "code": {
+      "title": "Código",
+      "repository": "Repositório",
+      "file": "Arquivo",
+      "line": "Linha",
+      "commit": "Commit",
+      "branch": "Branch",
+      "none": "Este passo não tem referência ao código."
+    },
+    "openHost": "Abrir no {host}",
+    "openHostTitle": "Abre este arquivo e esta linha no {host}, no commit do levantamento",
+    "openEditor": "Abrir no editor",
+    "openEditorTitle": "Abre este arquivo e esta linha no seu editor",
+    "path": {
+      "title": "Da entrada até aqui"
+    },
+    "grouped": "{count, plural, =1 {# passo de código neste bloco} other {# passos de código neste bloco}}",
+    "note": {
+      "title": "Nota do passo"
+    },
+    "seeInGraph": "Ver no grafo",
+    "seeInGraphTitle": "Volta ao grafo com este passo escolhido"
   },
   "nodePanel": {
     "closeAria": "Fechar o passo e voltar à visão geral",
@@ -960,6 +1028,10 @@
       "consolidated": {
         "label": "Visão consolidada",
         "title": "O fluxo todo num desenho só, com as suas cores"
+      },
+      "business": {
+        "label": "Visão de negócio",
+        "title": "Só as decisões, as notificações e as chamadas entre sistemas, em texto de negócio"
       }
     },
     "databaseMap": "Mapa do banco",
@@ -982,6 +1054,7 @@
       "copyMermaid": "Copiar como Mermaid",
       "downloadMermaid": "Baixar como Mermaid (.mmd)",
       "drawio": "Baixar para o draw.io (.drawio)",
+      "businessOnly": "Esta visão exporta para o draw.io: use a opção draw.io",
       "c4": "Diagramas C4 (Structurizr DSL)",
       "notDrawn": "O grafo ainda não está desenhado. Espere ele aparecer e tente de novo.",
       "started": "Download iniciado: {file}",

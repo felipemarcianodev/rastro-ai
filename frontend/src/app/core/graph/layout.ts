@@ -13,6 +13,7 @@ export enum LayoutDirection {
   Tree = 2,
   Consolidated = 3,
   Map = 4,
+  Business = 5,
 }
 
 export const LAYOUT_DIRECTION_SLUG: Record<LayoutDirection, string> = {
@@ -21,20 +22,22 @@ export const LAYOUT_DIRECTION_SLUG: Record<LayoutDirection, string> = {
   [LayoutDirection.Tree]: 'arvore',
   [LayoutDirection.Consolidated]: 'consolidado',
   [LayoutDirection.Map]: 'mapa',
+  [LayoutDirection.Business]: 'negocio',
 };
 
-// Ordem do botão que troca o desenho: horizontal, linha do tempo, árvore, consolidado, mapa e de volta.
+// Ordem do botão que troca o desenho: horizontal, linha do tempo, árvore, consolidado, mapa, negócio e de volta.
 export const NEXT_LAYOUT_DIRECTION: Record<LayoutDirection, LayoutDirection> = {
   [LayoutDirection.Horizontal]: LayoutDirection.Timeline,
   [LayoutDirection.Timeline]: LayoutDirection.Tree,
   [LayoutDirection.Tree]: LayoutDirection.Consolidated,
   [LayoutDirection.Consolidated]: LayoutDirection.Map,
-  [LayoutDirection.Map]: LayoutDirection.Horizontal,
+  [LayoutDirection.Map]: LayoutDirection.Business,
+  [LayoutDirection.Business]: LayoutDirection.Horizontal,
 };
 
 // Desenhos que não passam pelo canvas: a página os desenha no lugar dele.
 export function isOutsideCanvas(direction: LayoutDirection): boolean {
-  return direction === LayoutDirection.Consolidated || direction === LayoutDirection.Map;
+  return direction === LayoutDirection.Consolidated || direction === LayoutDirection.Map || direction === LayoutDirection.Business;
 }
 
 // Próximo desenho do botão. Na edição e na comparação só o canvas mostra o rascunho e as
@@ -52,6 +55,7 @@ export const LAYOUT_DIRECTION_LABEL_KEY: Record<LayoutDirection, string> = {
   [LayoutDirection.Tree]: 'graph.layout.tree',
   [LayoutDirection.Consolidated]: 'graph.layout.consolidated',
   [LayoutDirection.Map]: 'graph.layout.map',
+  [LayoutDirection.Business]: 'graph.layout.business',
 };
 
 // O texto já traduzido, para quem lê o rótulo direto (traduz na hora da leitura).
@@ -63,6 +67,7 @@ export const LAYOUT_DIRECTION_GLYPH: Record<LayoutDirection, string> = {
   [LayoutDirection.Tree]: '┣',
   [LayoutDirection.Consolidated]: '◇',
   [LayoutDirection.Map]: '▦',
+  [LayoutDirection.Business]: '◆',
 };
 
 const DIRECTION_KEY = 'rastro.layoutDirection';
