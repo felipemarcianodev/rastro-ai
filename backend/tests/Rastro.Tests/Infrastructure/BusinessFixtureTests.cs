@@ -195,7 +195,10 @@ public class BusinessFixtureTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Equal("Recusa: Fora do prazo de cancelamento.", steps[5].Label);
         Assert.Equal("POST api/estornos", steps[7].Label);
         Assert.Equal("Envia e-mail", steps[9].Label);
-        Assert.Equal("DetalhePedidoComponent.recarregar", steps[11].Label);
+        // Fim único no nó de entrada (o fluxo termina ao sair do método de entrada), com Id diferente do Início.
+        Assert.Equal("Fim", steps[11].Label);
+        Assert.Equal(analysis.Graph.EntryNodeId, steps[11].NodeId);
+        Assert.NotEqual(steps[0].Id, steps[11].Id);
 
         // Referência: o repositório e o commit do trecho certo.
         Assert.Equal((_loja.Name, "commit-loja"), (steps[0].Ref!.Repository, steps[0].Ref!.CommitHash));

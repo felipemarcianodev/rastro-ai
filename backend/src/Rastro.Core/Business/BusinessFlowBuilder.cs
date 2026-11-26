@@ -45,12 +45,14 @@ public static class BusinessFlowBuilder
     private const string KeyRejection = "business.label.rejection";
     private const string KeyEmail = "business.label.email";
     private const string KeyInApp = "business.label.inApp";
+    private const string KeyEnd = "business.label.end";
+    private const string EndKeyPrefix = "\0end|";
 
     private static readonly string[] EmailMarkers = ["Email", "Mail", "Smtp"];
     private static readonly string[] InAppMarkers = ["Notification", "Hub"];
     private static readonly string[] WritePrefixes = ["Post", "Put", "Patch", "Delete"];
-    private static readonly string[] FrameworkPrefixes = ["Microsoft.", "System."];
     private static readonly Regex StatusFamily = new(@"(^|[^\d])4\d\d([^\d]|$)|Status4\d\d", RegexOptions.CultureInvariant);
+    private static readonly Regex StatusConstant = new(@"Status4\d\d\w*", RegexOptions.CultureInvariant);
     private static readonly Regex LeadingIf = new(@"^(if|se|si)\s+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     // Pura e determinística. Grafo sem o nó de entrada devolve a visão vazia.
@@ -69,16 +71,9 @@ public static class BusinessFlowBuilder
 
     private sealed record StepRef(SourceLocation? Location, string? System);
 
-    private sealed class VisitItem(FlowNode node, FlowNode? owner, int depth = 0, bool eligible = true) : Item
+    private sealed class VisitItem(FlowNode node) : Item
     {
         public FlowNode Node { get; } = node;
-        public FlowNode? Owner { get; } = owner;
-
-        // Quantos métodos aninhados há até aqui (a entrada é 0). Base do Fim.
-        public int Depth { get; } = depth;
-
-        // Nó de dentro de uma notificação não serve de Fim.
-        public bool Eligible { get; } = eligible;
     }
 
     private sealed class KeyItem(FlowNode node, BusinessKind kind, string label, StepRef reference) : Item
@@ -197,7 +192,7 @@ public static class BusinessFlowBuilder
             }
         }
 
-        private sealed record Ctx(int CatchDepth, bool Quiet, int Depth = 0);
+        private sealed record Ctx(int CatchDepth, bool Quiet);
 
         // ---------- expansão ----------
 
@@ -220,13 +215,13 @@ public static class BusinessFlowBuilder
             // Corte de ciclo (recursão, laço de chamadas): o nó aparece, mas não se abre de novo.
             if (!_onPath.Add(child.Id))
             {
-                items.Add(Visit(child, from, ctx, inferred));
+                items.Add(new VisitItem(child) { Inferred = inferred });
                 return;
             }
 
             if (ctx.Quiet)
             {
-                items.Add(Visit(child, from, ctx, inferred));
+                items.Add(new VisitItem(child) { Inferred = inferred });
                 items.AddRange(Children(child.Id, ctx));
             }
             else
@@ -247,8 +242,8 @@ public static class BusinessFlowBuilder
                     : new StepRef(from.Location, from.System);
                 var label = Clip($"{edge.Http.Method} {edge.Http.Route ?? "?"}");
                 items.Add(new KeyItem(from, BusinessKind.CrossSystem, label, reference) { Inferred = inferred });
-                items.Add(Visit(child, from, ctx, inferred, 1));
-                items.Add(new ScopeItem(Children(child.Id, ctx with { Depth = ctx.Depth + 1 })));
+                items.Add(new VisitItem(child) { Inferred = inferred });
+                items.Add(new ScopeItem(Children(child.Id, ctx)));
                 return;
             }
 
@@ -283,7 +278,7 @@ public static class BusinessFlowBuilder
                     }
                     else
                     {
-                        items.Add(Visit(child, from, ctx, inferred));
+                        items.Add(new VisitItem(child) { Inferred = inferred });
                         items.Add(new ExitItem(ExitKind.Method));
                     }
                     return;
@@ -292,7 +287,7 @@ public static class BusinessFlowBuilder
                     if (ctx.CatchDepth > 0)
                     {
                         // Capturado por um catch do próprio fluxo: o caminho segue pelo catch, sem recusa e sem Fim.
-                        items.Add(Visit(child, from, ctx, inferred));
+                        items.Add(new VisitItem(child) { Inferred = inferred });
                         items.Add(new ExitItem(ExitKind.Flow));
                     }
                     else
@@ -309,7 +304,7 @@ public static class BusinessFlowBuilder
                     return;
 
                 default:
-                    items.Add(Visit(child, from, ctx, inferred));
+                    items.Add(new VisitItem(child) { Inferred = inferred });
                     items.AddRange(Children(child.Id, ctx));
                     return;
             }
@@ -322,7 +317,7 @@ public static class BusinessFlowBuilder
                 // R3: o que a notificação faz por dentro fica agrupado nela.
                 items.Add(new KeyItem(child, BusinessKind.Notification, NotificationLabel(child),
                     new StepRef(edge.Location ?? child.Location, edge.Location is not null ? from.System : child.System)) { Inferred = inferred });
-                items.Add(new ScopeItem(Children(child.Id, ctx with { Quiet = true, Depth = ctx.Depth + 1 })));
+                items.Add(new ScopeItem(Children(child.Id, ctx with { Quiet = true })));
                 return;
             }
 
@@ -333,13 +328,10 @@ public static class BusinessFlowBuilder
             }
             else
             {
-                items.Add(Visit(child, from, ctx, inferred));
+                items.Add(new VisitItem(child) { Inferred = inferred });
             }
-            items.Add(new ScopeItem(Children(child.Id, ctx with { Depth = ctx.Depth + 1 })));
+            items.Add(new ScopeItem(Children(child.Id, ctx)));
         }
-
-        private static VisitItem Visit(FlowNode node, FlowNode from, Ctx ctx, bool inferred, int extraDepth = 0) =>
-            new(node, from, ctx.Depth + extraDepth, !ctx.Quiet) { Inferred = inferred };
 
         private Item ExternalItem(FlowEdge edge, FlowNode from, FlowNode child, bool inferred)
         {
@@ -358,7 +350,7 @@ public static class BusinessFlowBuilder
             if (IsDbWrite(child))
                 return new KeyItem(child, BusinessKind.Step, Clip(child.Label), reference) { Inferred = inferred };
 
-            return new VisitItem(child, from, 0, false) { Inferred = inferred };
+            return new VisitItem(child) { Inferred = inferred };
         }
 
         private KeyItem RejectionFor(FlowNode node, bool screen, bool inferred)
@@ -476,12 +468,15 @@ public static class BusinessFlowBuilder
             var expression = ReturnExpression(node);
             if (expression is null) return node.Label;
 
-            var open = expression.IndexOf('(');
-            if (open >= 0)
+            // O literal de texto em qualquer argumento (o primeiro que houver).
+            var quote = expression.IndexOf('"');
+            if (quote >= 0)
             {
-                var literal = FirstStringLiteral(expression[(open + 1)..]);
+                var literal = FirstStringLiteral(expression[quote..]);
                 if (!string.IsNullOrWhiteSpace(literal)) return literal;
             }
+            var constant = StatusConstant.Match(expression);
+            if (constant.Success) return constant.Value;
             var name = TypeName(expression);
             return name.Length == 0 ? node.Label : name;
         }
@@ -530,6 +525,9 @@ public static class BusinessFlowBuilder
         {
             var expression = ReturnExpression(node);
             if (expression is null) return false;
+
+            // Constante de status 4xx em qualquer argumento (Error(StatusCodes.Status400BadRequest, ...)).
+            if (StatusConstant.IsMatch(expression)) return true;
 
             var name = TypeName(expression);
             if (name.Length == 0) return false;
@@ -728,8 +726,7 @@ public static class BusinessFlowBuilder
 
         // ---------- ligação ----------
 
-        // Cand: o candidato a Fim desde o último passo-chave (ver Run).
-        private sealed record Entry(string From, string? Label, bool Inferred, string Last, string LastEnd, string? Cand = null, int CandDepth = 0);
+        private sealed record Entry(string From, string? Label, bool Inferred);
 
         private sealed class StepDraft(FlowNode node, BusinessKind kind, string label, StepRef reference, bool inferred)
         {
@@ -767,18 +764,13 @@ public static class BusinessFlowBuilder
                 var rest = Walk(body, frontier);
                 var finals = Dedup(rest.Concat(_exits.Pop()));
 
-                foreach (var entry in finals)
-                {
-                    // R7: o caminho que termina sem erro, em nó que ainda não é passo-chave, ganha o Fim.
-                    // O Fim fica no primeiro método do próprio código chamado, no nível mais de fora, depois do
-                    // último passo-chave. O porquê: os callbacks next e error de um subscribe chegam achatados em
-                    // sequência no grafo, e o primeiro é o de sucesso (o último nó seria o tratamento de erro).
-                    // Sem esse método, vale o último nó de código (o método de framework, como ControllerBase.Ok,
-                    // cede lugar ao método do próprio código que o chamou).
-                    var end = owner._nodes[entry.Cand ?? entry.LastEnd];
-                    if (_steps.TryGetValue(end.Id, out var existing) && existing.Kind != BusinessKind.End) continue;
-                    Emit(new KeyItem(end, BusinessKind.End, Clip(end.Label), new StepRef(end.Location, end.System)), [entry]);
-                }
+                // R7: no máximo um Fim no fluxo, no nó de entrada (o fluxo termina ao sair do método de entrada).
+                // Todo caminho que termina sem erro liga a ele. Sem nenhum passo além do início, não há o que fechar.
+                if (finals.Count == 0 || _order.Count <= 1) return;
+                var entryNode = owner._nodes[owner._graph.EntryNodeId];
+                var end = new FlowNode(EndKeyPrefix + entryNode.Id, NodeKind.Entry, LocalizedText.Get(KeyEnd, owner._language),
+                    Location: entryNode.Location, System: entryNode.System);
+                Emit(new KeyItem(end, BusinessKind.End, end.Label, new StepRef(entryNode.Location, entryNode.System)), finals);
             }
 
             private List<Entry> Walk(List<Item> items, List<Entry> frontier)
@@ -792,7 +784,7 @@ public static class BusinessFlowBuilder
                             frontier = Emit(key, frontier);
                             break;
                         case VisitItem visit:
-                            frontier = Touch(visit.Node, visit.Owner, visit.Inferred, frontier, depth: visit.Depth, eligible: visit.Eligible);
+                            frontier = Touch(visit.Node, visit.Inferred, frontier);
                             break;
                         case ScopeItem scope:
                         {
@@ -824,7 +816,7 @@ public static class BusinessFlowBuilder
                 }
                 else
                 {
-                    bases = fork.VisitSelf ? Touch(fork.Node, null, fork.Inferred, frontier, structural: true) : frontier;
+                    bases = fork.VisitSelf ? Touch(fork.Node, fork.Inferred, frontier) : frontier;
                 }
 
                 var outs = new List<Entry>();
@@ -854,35 +846,18 @@ public static class BusinessFlowBuilder
                 foreach (var entry in frontier)
                     AddEdge(entry.From, step.Node.Id, entry.Label, entry.Inferred || key.Inferred);
 
-                return [new Entry(step.Node.Id, null, false, key.Node.Id, key.Node.Id)];
+                return [new Entry(step.Node.Id, null, false)];
             }
 
             // Nó que não vira passo: entra na lista de código agrupada no passo-chave anterior.
-            private List<Entry> Touch(FlowNode node, FlowNode? ownerNode, bool inferred, List<Entry> frontier, bool structural = false,
-                int depth = 0, bool eligible = false)
+            private List<Entry> Touch(FlowNode node, bool inferred, List<Entry> frontier)
             {
                 foreach (var from in frontier.Select(e => e.From).Distinct(StringComparer.Ordinal))
                     if (_steps.TryGetValue(from, out var step) && step.SourceSet.Add(node.Id))
                         step.Sources.Add(node.Id);
 
-                // Método de framework (ControllerBase.Ok) não serve de texto de negócio: o Fim usa o método
-                // do próprio código que o chamou.
-                // Decisão, laço e try não servem de Fim: o caminho continua com o último nó de código.
-                if (structural)
-                    return frontier.Select(e => e with { Inferred = e.Inferred || inferred }).ToList();
-
-                var lastEnd = IsFramework(node) && ownerNode is not null ? ownerNode.Id : node.Id;
-                var candidate = eligible && node.Kind == NodeKind.Method && !IsFramework(node);
-                return frontier.Select(e =>
-                {
-                    var next = e with { Last = node.Id, LastEnd = lastEnd, Inferred = e.Inferred || inferred };
-                    return candidate && (e.Cand is null || depth < e.CandDepth) ? next with { Cand = node.Id, CandDepth = depth } : next;
-                }).ToList();
+                return frontier.Select(e => e with { Inferred = e.Inferred || inferred }).ToList();
             }
-
-            private static bool IsFramework(FlowNode node) =>
-                node.Symbol is not null
-                && FrameworkPrefixes.Any(p => node.Symbol.StartsWith(p, StringComparison.Ordinal));
 
             private void AddEdge(string from, string to, string? label, bool inferred)
             {
@@ -899,12 +874,15 @@ public static class BusinessFlowBuilder
 
             private static List<Entry> Dedup(IEnumerable<Entry> entries) => entries.Distinct().ToList();
 
+            private static string RealNodeId(string key) =>
+                key.StartsWith(EndKeyPrefix, StringComparison.Ordinal) ? key[EndKeyPrefix.Length..] : key;
+
             public BusinessFlow ToFlow(int collapsed)
             {
                 var steps = _order.Select(s => new BusinessStep(
-                    owner.StepId(s.Node.Id), s.Node.Id, s.Kind, s.Label,
+                    owner.StepId(s.Node.Id), RealNodeId(s.Node.Id), s.Kind, s.Label,
                     LabelOrigin.Rule, LabelState.Proposed,
-                    owner.RefOf(s.Reference), s.Sources, s.Inferred)).ToList();
+                    owner.RefOf(s.Reference), s.Kind == BusinessKind.End ? [RealNodeId(s.Node.Id)] : s.Sources, s.Inferred)).ToList();
                 var edges = _edges.Select(e => new BusinessEdge(owner.StepId(e.From), owner.StepId(e.To), e.Label, e.Inferred)).ToList();
                 return new BusinessFlow(owner._source.SurveyId, owner._graph.SchemaVersion, steps, edges, collapsed);
             }
@@ -914,7 +892,11 @@ public static class BusinessFlowBuilder
 
         public string StepId(string nodeId)
         {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{_source.SurveyId:N}|{nodeId}"));
+            // O Fim leva "end|" na frente do nó de entrada: o Id não pode colidir com o do Início.
+            var seed = nodeId.StartsWith(EndKeyPrefix, StringComparison.Ordinal)
+                ? $"end|{nodeId[EndKeyPrefix.Length..]}"
+                : nodeId;
+            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{_source.SurveyId:N}|{seed}"));
             return Convert.ToHexString(bytes).ToLowerInvariant()[..HashLength];
         }
 
