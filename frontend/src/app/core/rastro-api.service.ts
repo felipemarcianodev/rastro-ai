@@ -7,6 +7,7 @@ import {
   AiSettingsView,
   AiStatus,
   BusinessFlow,
+  BusinessLayout,
   DescribeResponse,
   FillHoleResponse,
   ChangePrompt,
@@ -228,6 +229,19 @@ export class RastroApi {
   // Visão de negócio (Fase 55): os passos-chave do fluxo.
   business(id: string): Observable<BusinessFlow> {
     return this.http.get<BusinessFlow>(`/api/surveys/${id}/business`);
+  }
+
+  // Posição dos balões da visão de negócio (Fase 58): ler, salvar em lote e reorganizar (apagar).
+  businessLayout(id: string): Observable<BusinessLayout> {
+    return this.http.get<BusinessLayout>(`/api/surveys/${id}/business/layout`);
+  }
+
+  saveBusinessLayout(id: string, layout: BusinessLayout): Observable<void> {
+    return this.http.put<void>(`/api/surveys/${id}/business/layout`, layout);
+  }
+
+  resetBusinessLayout(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/surveys/${id}/business/layout`);
   }
 
   // Modelos de link de cada repositório do levantamento (Fase 56).

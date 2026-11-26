@@ -105,6 +105,7 @@ The MCP instructions and the tool descriptions are in English, because the agent
 - For questions about the flow ("when is the order rejected?", "what happens if the payments API goes down?"), `get_flow_map` and `get_flow_rules` give the agent the map and the rules, and it answers citing the steps.
 - For a business-level reading, `get_business_view` gives only the key steps (start, decisions that change the outcome, notifications, rejections, calls between systems and end), each with the text proposed by rule and its `repository · file:line`; the same view comes from `GET api/surveys/{id}/business`. What counts as a notification or a rejection is set in `config.json`, under `Rastro:BusinessView` (`NotificationPatterns`, `RejectionReturnTypes` and `MaxStepsPerFlow`).
 - Each step of the business view, and each box of the `.drawio` export, links to the code on the repository's host (Azure DevOps, GitHub, GitLab or Bitbucket, read from `git remote get-url origin`) at the trace's commit; `GET api/surveys/{id}/links` gives the link templates. The editor link opens VS Code by default; for Visual Studio, Rider or another editor, set `Rastro:Editor:UrlTemplate` in `config.json` with `{path}` and `{line}`.
+- The position of the boxes you move in the business view and the bend points of the links are saved in the local database (`~/.rastro`), per trace, and deleted with it; nothing leaves your machine. "Rearrange" erases them and goes back to the automatic layout (`GET`, `PUT` and `DELETE api/surveys/{id}/business/layout`).
 
 ### Questions in provider mode
 

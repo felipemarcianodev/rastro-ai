@@ -585,7 +585,6 @@
   "business": {
     "barLabel": "Dibujo de la vista de negocio",
     "zoomLabel": "Zoom de la vista de negocio",
-    "zoomValueAria": "Zoom al {percent}%",
     "collapsed": "Flujo resumido en {steps} pasos. {count, plural, one {Se agrupó una decisión} other {Se agruparon # decisiones}}.",
     "loading": "Armando la vista de negocio…",
     "empty": "No se encontró ninguna decisión ni notificación en este flujo.",
@@ -599,7 +598,20 @@
     "inferred": "inferido",
     "inferredTitle": "Este paso vino de un enlace inferido, por revisar",
     "panelLabel": "Panel del paso clave",
-    "hint": "Elige un globo para ver el texto de negocio, el código y el camino desde la entrada hasta él. Arrastra un área vacía para mover la vista.",
+    "reset": "Reorganizar",
+    "resetTitle": "Devuelve los globos y los enlaces que ajustaste a la organización automática",
+    "resetConfirm": {
+      "title": "¿Reorganizar la vista de negocio?",
+      "text": "Las posiciones de los globos y los puntos de quiebre de los enlaces que ajustaste vuelven a la organización automática. No se puede deshacer.",
+      "action": "Reorganizar"
+    },
+    "layout": {
+      "saveFailed": "No se pudo guardar la posición.",
+      "resetFailed": "No se pudo reorganizar. Inténtalo de nuevo.",
+      "loadFailed": "No se pudieron cargar las posiciones guardadas. Se usó la organización automática."
+    },
+    "keysHelp": "Tab: siguiente globo. Enter: abrir el panel. Flechas: mover el globo de 10 en 10 píxeles. Esc: limpiar la elección. Más, menos y cero: zoom.",
+    "hint": "Elige un globo para ver el texto de negocio, el código y el camino desde la entrada hasta él. Arrastra un globo para cambiarlo de lugar y un área vacía (o Espacio y arrastrar) para mover la vista. Ctrl y la rueda acercan.",
     "kind": {
       "start": "Inicio",
       "decision": "Decisión",

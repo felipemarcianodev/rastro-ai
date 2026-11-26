@@ -31,4 +31,5 @@
   <data name="Cli.Window.Failed" xml:space="preserve"><value>A janela própria não abriu: {0}.</value></data>
   <data name="Cli.Window.StillUp" xml:space="preserve"><value>O Rastro continua no ar: abra {0} no navegador. Ctrl+C para sair.</value></data>
   <data name="Cli.Window.FailedReason" xml:space="preserve"><value>a janela falhou ao abrir (detalhe no log)</value></data>
+  <data name="BusinessLayout.Invalid" xml:space="preserve"><value>Layout inválido: até 500 passos e 500 ligações, até 20 pontos de dobra por ligação, números finitos entre -100000 e 100000 e ids de passo de até 64 caracteres.</value></data>
 </root>

@@ -1239,6 +1239,8 @@ Decisões do dono (2026-11-25): o `.drawio` vale também para o grafo e o Mapa p
 
 Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CLAUDE.md`).
 
+Decisão do dono (2026-11-26), depois do merge das Fases 54 a 57: as Fases 58 a 61 saem num branch só (`feat/visao-negocio-fases-58-61`), com um commit por fase e um único PR no fim, em vez da pilha. Os quatro itens de risco alto do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md) seguem esperando a aprovação do dono e não entram sem ela. No fim, depois que o dono aprovar o PR das Fases 58 a 61, o levantamento de UX completo (skill `levantamento-ux`) roda num branch e PR próprios, e todos os pontos que ele achar são corrigidos ali (pedido do dono em 2026-11-26).
+
 ## Fase 54: exportar o grafo e o mapa para draw.io `[x]`
 
 - [x] `frontend/src/app/core/graph/drawio.ts`: gerador de `mxfile` (uma página, `mxGraphModel`, `mxCell` com `vertex` e `edge`), com escape do atributo XML e do HTML do rótulo (escape duplo), ligação `edgeStyle=orthogonalEdgeStyle` com `labelBackgroundColor` e estilo por tipo de nó.
@@ -1308,13 +1310,20 @@ Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CL
   - **Prints:** `docs/telas/fase-57/` (claro, escuro, painel da decisão, estado vazio e o `.drawio` no draw.io), com um levantamento do próprio Rastro, numa pasta de dados temporária. As larguras de 1280 e 360 não foram vistas: a janela do navegador não redimensionou.
   - **Testes:** backend 1019/1019; frontend 652/652.
 
-## Fase 58: tela livre e posição salva `[ ]` (depende da Fase 57)
+## Fase 58: tela livre e posição salva `[x]` (depende da Fase 57)
 
-- [ ] Pan na área vazia e com a barra de espaço, zoom com Ctrl ou Cmd e a roda em volta do ponteiro (25% a 140%), roda sem tecla rola, botões de zoom e "Ajustar", pinça.
-- [ ] Mover balão com grade de 10 px, clique sem arrastar abre o painel, teclado (Tab, Enter, setas, Esc), pontos de dobra editáveis, "Reorganizar".
-- [ ] Posição salva com debounce de 500 ms: tabela de layout por escopo (levantamento sozinho ou quadro), migration e rota em lote; documentação da migration no mesmo PR.
-- [ ] Testes de tela com clique de verdade (regra do `CLAUDE.md`): mover e recarregar, zoom no ponteiro, Reorganizar.
-- [ ] Fase C do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md): Tab na ordem do fluxo mesmo depois de clicar num balão (o Foblex reordena os nós), setas pelas ligações, "100%" e atalhos de zoom, balão escolhido trazido para a área visível ao abrir o painel, foco sem `setTimeout`.
+- [x] Pan na área vazia e com a barra de espaço, zoom com Ctrl ou Cmd e a roda em volta do ponteiro (25% a 140%), roda sem tecla rola, botões de zoom e "Ajustar", pinça.
+- [x] Mover balão com grade de 10 px, clique sem arrastar abre o painel, teclado (Tab, Enter, setas, Esc), pontos de dobra editáveis, "Reorganizar".
+- [x] Posição salva com debounce de 500 ms: tabela de layout por escopo (levantamento sozinho ou quadro), migration e rota em lote; documentação da migration no mesmo PR.
+- [x] Testes de tela com clique de verdade (regra do `CLAUDE.md`): mover e recarregar, zoom no ponteiro, Reorganizar.
+- [x] Fase C do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md): Tab na ordem do fluxo mesmo depois de clicar num balão (o Foblex reordena os nós), setas pelas ligações, "100%" e atalhos de zoom, balão escolhido trazido para a área visível ao abrir o painel, foco sem `setTimeout`.
+- **Registro (2026-11-26):**
+  - **Banco:** migration `VisaoDeNegocioLayout`, com `business_layouts` (posição de cada passo) e `business_edge_layouts` (pontos de dobra), as duas por escopo (`LayoutScope`: levantamento ou quadro, para a Fase 60 reaproveitar). Sem FK, porque o escopo pode ser um quadro; o levantamento excluído leva junto as posições dele. O tamanho do balão não se guarda (sai do layout da tela).
+  - **Rotas:** `GET`, `PUT` (em lote: troca só o que veio) e `DELETE` ("Reorganizar") em `api/surveys/{id}/business/layout`, com limites (500 passos, 500 ligações, 20 pontos por ligação, números finitos de -100000 a 100000, ids até 64 caracteres) e o código `BUSINESS_LAYOUT_INVALID`.
+  - **Tela:** arrastar o balão com encaixe na grade de 10 px; clique sem arrastar (menos de 4 px) abre o painel; salvar com debounce de 500 ms, num `PUT` só, e aviso sem desfazer o movimento quando falha; pontos de dobra do Foblex salvos no mesmo lote; "Reorganizar" com o diálogo do tema; zoom com Ctrl ou Cmd e a roda em volta do ponteiro (25% a 140%), roda sem tecla rola, botão "100%" e atalhos `+`, `-` e `0`; Espaço e arrastar movem a tela mesmo sobre balão (por isso o Espaço deixou de escolher o balão: só o Enter escolhe); Tab na ordem do fluxo com tabindex itinerante, que não depende da ordem dos nós no DOM; setas movem o balão 10 px; Esc limpa a escolha; o balão escolhido vem para a área visível ao abrir o painel, sem `setTimeout`.
+  - **Verificado no navegador, com clique de verdade:** arrastar o "Fim" moveu o balão e saiu uma única gravação; depois de recarregar, o balão continuou no lugar e o "Reorganizar" apareceu; o "Reorganizar" pediu confirmação no diálogo do tema (botão alcançável pelo mouse, conferido com `elementFromPoint`) e apagou posições e pontos de dobra; Ctrl e a roda aproximaram de 100% para 105% em volta do ponteiro, e a roda sem tecla só rolou. A captura de tela falhava enquanto a janela do Chrome ficava em segundo plano (o navegador desenha 2 quadros por segundo assim); não é defeito da tela, porque antes de arrastar já era igual.
+  - **Para o levantamento de UX final:** os pontos de dobra candidatos (os círculos no meio das ligações) ficam sempre à vista e poluem o desenho.
+  - **Testes:** backend 1037/1037; frontend 679/679.
 
 ## Fase 59: texto de negócio `[ ]` (depende da Fase 57; pode andar junto com a 58)
 

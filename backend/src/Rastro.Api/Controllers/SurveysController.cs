@@ -123,6 +123,9 @@ public class SurveysController(
         if (validating) return Error(ErrorCodes.ValidationRunning, "Há uma validação rodando com este levantamento. Espere terminar para excluir.");
 
         db.Surveys.Remove(survey);
+        // Sem FK (o escopo também pode ser um quadro): as posições da visão de negócio saem junto, aqui.
+        db.BusinessStepLayouts.RemoveRange(db.BusinessStepLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Survey && l.ScopeId == id));
+        db.BusinessEdgeLayouts.RemoveRange(db.BusinessEdgeLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Survey && l.ScopeId == id));
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Levantamento {SurveyId} excluído.", id);
         return NoContent();
@@ -442,6 +445,42 @@ public class SurveysController(
     {
         var flow = await business.GetAsync(id, RequestLanguage.Current, ct);
         return flow is null ? NotFound() : flow;
+    }
+
+    // Tela livre da visão de negócio (Fase 58): a posição dos balões e os pontos de dobra das ligações, por levantamento.
+    // O tamanho do balão não se guarda. O serviço recebe escopo e id para a Fase 60 reaproveitar com o quadro.
+    [HttpGet("{id:guid}/business/layout")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessLayoutDto>> BusinessLayout(Guid id,
+        [FromServices] Rastro.Infrastructure.Business.BusinessLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        return await layouts.GetAsync(Rastro.Core.Business.LayoutScope.Survey, id, ct);
+    }
+
+    [HttpPut("{id:guid}/business/layout")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessLayoutDto>> SaveBusinessLayout(Guid id,
+        Rastro.Core.Business.BusinessLayoutDto layout,
+        [FromServices] Rastro.Infrastructure.Business.BusinessLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        if (!Rastro.Core.Business.BusinessLayoutLimits.IsValid(layout))
+        {
+            var language = UiLanguages.FromCulture(System.Globalization.CultureInfo.CurrentUICulture);
+            return Error(ErrorCodes.BusinessLayoutInvalid, Rastro.Api.Cli.ApiText.Get("BusinessLayout.Invalid", language));
+        }
+
+        await layouts.SaveAsync(Rastro.Core.Business.LayoutScope.Survey, id, layout, ct);
+        return await layouts.GetAsync(Rastro.Core.Business.LayoutScope.Survey, id, ct);
+    }
+
+    [HttpDelete("{id:guid}/business/layout")]
+    public async Task<IActionResult> ResetBusinessLayout(Guid id,
+        [FromServices] Rastro.Infrastructure.Business.BusinessLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        await layouts.ResetAsync(Rastro.Core.Business.LayoutScope.Survey, id, ct);
+        logger.LogInformation("Posições da visão de negócio do levantamento {SurveyId} apagadas.", id);
+        return NoContent();
     }
 
     // Links do código (Fase 56): por repositório do levantamento, os modelos de link para o host (pelo commit e pela

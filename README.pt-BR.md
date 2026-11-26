@@ -105,6 +105,7 @@ As instruções do MCP e as descrições das ferramentas são em inglês, porque
 - Para perguntas sobre o fluxo ("quando o pedido é recusado?", "o que acontece se a API de pagamentos cair?"), `get_flow_map` e `get_flow_rules` dão ao agente o mapa e as regras, e ele responde citando os passos.
 - Para uma leitura de negócio, `get_business_view` dá só os passos-chave (início, decisões que mudam o resultado, notificações, recusas, chamadas entre sistemas e fim), cada um com o texto proposto por regra e o `repositório · arquivo:linha`; a mesma visão sai de `GET api/surveys/{id}/business`. O que conta como notificação ou recusa se configura no `config.json`, em `Rastro:BusinessView` (`NotificationPatterns`, `RejectionReturnTypes` e `MaxStepsPerFlow`).
 - Cada passo da visão de negócio, e cada balão do `.drawio` exportado, leva o link para o código no host do repositório (Azure DevOps, GitHub, GitLab ou Bitbucket, lido do `git remote get-url origin`) no commit do levantamento; `GET api/surveys/{id}/links` dá os modelos de link. O link do editor abre o VS Code por padrão; para o Visual Studio, o Rider ou outro editor, configure `Rastro:Editor:UrlTemplate` no `config.json`, com `{path}` e `{line}`.
+- A posição dos balões que você move na visão de negócio e os pontos de dobra das ligações ficam no banco local (`~/.rastro`), por levantamento, e são apagados junto com ele; nada sai da sua máquina. "Reorganizar" apaga tudo isso e volta ao layout automático (`GET`, `PUT` e `DELETE api/surveys/{id}/business/layout`).
 
 ### Perguntas no modo provedor
 

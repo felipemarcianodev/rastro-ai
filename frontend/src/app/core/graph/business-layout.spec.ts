@@ -1,5 +1,5 @@
 import { BusinessEdge, BusinessFlow, BusinessKind, BusinessStep, LabelOrigin, LabelState } from '../models';
-import { BUSINESS_BOX, businessLayout } from './business-layout';
+import { BUSINESS_BOX, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from './business-layout';
 
 function step(id: string, kind: BusinessKind = BusinessKind.Step, label = id): BusinessStep {
   return { id, nodeId: `n-${id}`, kind, label, labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: [`n-${id}`], inferred: false };
@@ -104,5 +104,47 @@ describe('businessLayout', () => {
     expect(vazio.boxes.size).toBe(0);
     expect(vazio.width).toBe(0);
     expect(vazio.height).toBe(0);
+  });
+});
+
+// Fase 58: posição salva, grade e ordem do fluxo.
+describe('posição salva da visão de negócio', () => {
+  // WEB-BIZ-020
+  it('posicaoSalva_venceAAutomaticaEOPassoSemPosicaoFicaOndeEstava', () => {
+    const automatic = businessLayout(flow());
+
+    const moved = withSavedPositions(automatic, new Map([['c', { x: 500, y: 300 }]]));
+
+    expect(moved.boxes.get('c')).toEqual({ ...automatic.boxes.get('c')!, x: 500, y: 300 });
+    expect(moved.boxes.get('a')).toEqual(automatic.boxes.get('a')!);
+    expect(moved.width).toBeGreaterThanOrEqual(500 + automatic.boxes.get('c')!.width);
+    expect(moved.height).toBeGreaterThanOrEqual(300 + automatic.boxes.get('c')!.height);
+    expect(withSavedPositions(automatic, new Map())).toBe(automatic);
+  });
+
+  // WEB-BIZ-021
+  it('grade_encaixaNoMultiploDeDezMaisProximo', () => {
+    expect(snapToGrid(123)).toBe(120);
+    expect(snapToGrid(125)).toBe(130);
+    expect(snapToGrid(-14)).toBe(-10);
+    expect(snapToGrid(0)).toBe(0);
+  });
+
+  // WEB-BIZ-022
+  it('vizinhoNoFluxo_andaPelaListaEParaNasPontas', () => {
+    const order = ['a', 'b', 'c'];
+
+    expect(flowNeighbour(order, 'a', 1)).toBe('b');
+    expect(flowNeighbour(order, 'c', -1)).toBe('b');
+    expect(flowNeighbour(order, 'c', 1)).toBeNull();
+    expect(flowNeighbour(order, 'a', -1)).toBeNull();
+    expect(flowNeighbour(order, null, 1)).toBe('a');
+    expect(flowNeighbour([], 'a', 1)).toBeNull();
+  });
+
+  // WEB-BIZ-023
+  it('chaveDaLigacao_distingueSaidaEChegada', () => {
+    expect(edgeKey('a', 'b')).not.toBe(edgeKey('b', 'a'));
+    expect(edgeKey('a', 'b')).toBe(edgeKey('a', 'b'));
   });
 });

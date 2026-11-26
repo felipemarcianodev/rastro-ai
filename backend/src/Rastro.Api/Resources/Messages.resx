@@ -31,4 +31,5 @@
   <data name="Cli.Window.Failed" xml:space="preserve"><value>The own window did not open: {0}.</value></data>
   <data name="Cli.Window.StillUp" xml:space="preserve"><value>Rastro is still running: open {0} in the browser. Ctrl+C to quit.</value></data>
   <data name="Cli.Window.FailedReason" xml:space="preserve"><value>the window failed to open (details in the log)</value></data>
+  <data name="BusinessLayout.Invalid" xml:space="preserve"><value>Invalid layout: up to 500 steps and 500 links, up to 20 bend points per link, finite numbers between -100000 and 100000, and step ids up to 64 characters.</value></data>
 </root>

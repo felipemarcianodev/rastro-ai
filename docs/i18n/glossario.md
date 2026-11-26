@@ -46,6 +46,8 @@ Nunca se traduz: Rastro AI, nomes de produto (.NET, Angular, Roslyn, MCP, Claude
 | chamada entre sistemas | cross-system call | llamada entre sistemas |
 | proposto (texto ainda não confirmado) | proposed | propuesto |
 | balão (passo-chave desenhado) | bubble | globo |
+| ponto de dobra (da ligação) | bend point | punto de quiebre |
+| reorganizar (volta à organização automática) | rearrange | reorganizar |
 
 ## Tipos de passo
 

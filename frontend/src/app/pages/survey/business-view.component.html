@@ -5,10 +5,13 @@
   @if (geometry() && !empty()) {
   <span class="biz-zoom" role="group" [attr.aria-label]="'business.zoomLabel' | translate">
     <button type="button" class="btn btn-icon" (click)="zoomOut()" [attr.aria-label]="'flowCanvas.zoomOut' | translate" [title]="'flowCanvas.zoomOut' | translate">−</button>
-    <span class="biz-zoom-value" role="status" [attr.aria-label]="'business.zoomValueAria' | translate: { percent: percent() }">{{ percent() }}%</span>
+    <button type="button" class="btn btn-icon biz-zoom-value" (click)="actualSize()" [attr.aria-label]="'flowMap.zoomActualAria' | translate: { percent: percent() }" [title]="'flowMap.zoomActualTitle' | translate">{{ percent() }}%</button>
     <button type="button" class="btn btn-icon" (click)="zoomIn()" [attr.aria-label]="'flowCanvas.zoomIn' | translate" [title]="'flowCanvas.zoomIn' | translate">+</button>
     <button type="button" class="btn btn-icon" (click)="fit()" [attr.aria-label]="'flowCanvas.fit' | translate" [title]="'flowCanvas.fit' | translate">⤢</button>
   </span>
+  @if (hasLayout()) {
+    <button type="button" class="btn btn-g btn-small" (click)="askReset()" [title]="'business.resetTitle' | translate">{{ 'business.reset' | translate }}</button>
+  }
   }
   @if (flow(); as f) {
     @if (f.collapsedDecisions > 0) {
@@ -35,9 +38,10 @@
     <button type="button" class="btn btn-g btn-small" (click)="seeGraph()">{{ 'business.seeGraph' | translate }}</button>
   </div>
 } @else if (geometry()) {
-  <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate">
-    <f-flow fDraggable class="flow-host biz-host" (fFullRendered)="onFullRendered()">
-      <f-canvas fZoom [fZoomMinimum]="0.25" [fZoomMaximum]="2" (fCanvasChange)="scale.set($event.scale)">
+  <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate" (keydown)="onStageKey($event)">
+    <f-flow fDraggable class="flow-host biz-host" [class.is-panning]="panning()" [hCellSize]="grid" [vCellSize]="grid" [fCellSizeWhileDragging]="true"
+      [fNodeMoveTrigger]="nodeMoveTrigger" [fCanvasMoveTrigger]="canvasMoveTrigger" (fConnectionWaypointsChanged)="bent($event)" (fFullRendered)="onFullRendered()">
+      <f-canvas fZoom [fZoomMinimum]="zoomMin" [fZoomMaximum]="zoomMax" (fCanvasChange)="scale.set($event.scale)">
         <ng-container ngProjectAs="[fConnections]">
           @for (edge of edges(); track edge.index) {
             <f-connection
@@ -51,6 +55,7 @@
               [fReassignDisabled]="true"
               [class.edge-inferred]="edge.inferred">
               <f-connection-marker-arrow [type]="markerEnd" />
+              <f-connection-waypoints [waypoints]="edge.bends" [radius]="6" />
               @if (edge.label) {
                 <div fConnectionContent [position]="labelPosition">
                   <span class="edge-label">{{ edge.label }}</span>
@@ -64,21 +69,29 @@
           @for (p of placed(); track p.step.id) {
             <div
               fNode
+              fDragHandle
               [fNodeId]="p.step.id"
               [fNodePosition]="{ x: p.x, y: p.y }"
+              (fNodePositionChange)="moved(p.step, $event)"
               [fNodeSize]="{ width: p.width, height: p.height }"
               class="biz-node biz-kind-{{ slug[p.step.kind] }}"
               [class.is-selected]="stepId() === p.step.id"
               [class.is-proposed]="isProposed(p.step)"
               [attr.data-step-id]="p.step.id"
               [attr.title]="p.whereFull"
-              tabindex="0"
+              [attr.tabindex]="p.step.id === tabStop() ? 0 : -1"
               role="button"
               [attr.aria-pressed]="stepId() === p.step.id"
               [attr.aria-label]="stepAria(p.step)"
-              (click)="pick(p.step)"
+              aria-describedby="biz-keys-help"
+              (pointerdown)="pointerDown($event)"
+              (click)="click($event, p.step)"
+              (focus)="focusedId.set(p.step.id)"
               (keydown.enter)="pick(p.step)"
-              (keydown.space)="$event.preventDefault(); pick(p.step)">
+              (keydown.tab)="walk($event, p.step.id, 1)"
+              (keydown.shift.tab)="walk($event, p.step.id, -1)"
+              (keydown.arrowleft)="nudge($event, p.step, -1, 0)" (keydown.arrowright)="nudge($event, p.step, 1, 0)"
+              (keydown.arrowup)="nudge($event, p.step, 0, -1)" (keydown.arrowdown)="nudge($event, p.step, 0, 1)">
               <div fConnector fConnectorType="target" fConnectorConnectableSide="top" [fConnectorDisabled]="true" [fConnectorId]="'in:' + p.step.id" class="biz-port is-in"></div>
               @if (p.step.kind === BusinessKind.Decision) {
                 <svg class="biz-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="50,1 99,50 50,99 1,50" /></svg>
@@ -107,6 +120,19 @@
       </f-canvas>
     </f-flow>
   </div>
+}
+
+<span id="biz-keys-help" class="visually-hidden">{{ 'business.keysHelp' | translate }}</span>
+
+@if (notice() !== null) {
+  <div class="toast" role="status">
+    <span>{{ noticeKey[notice()!] | translate }}</span>
+    <button type="button" class="btn btn-g btn-small" (click)="dismissNotice()">{{ 'common.close' | translate }}</button>
+  </div>
+}
+
+@if (confirmingReset()) {
+  <app-confirm-dialog [title]="'business.resetConfirm.title' | translate" [text]="'business.resetConfirm.text' | translate" [confirmLabel]="'business.resetConfirm.action' | translate" (confirm)="confirmReset()" (cancel)="cancelReset()" />
 }
 
 <section class="biz-panel" [attr.aria-label]="'business.panelLabel' | translate">

@@ -585,7 +585,6 @@
   "business": {
     "barLabel": "Business view drawing",
     "zoomLabel": "Business view zoom",
-    "zoomValueAria": "Zoom at {percent}%",
     "collapsed": "Flow summarized in {steps} steps. {count, plural, one {One decision was grouped} other {# decisions were grouped}}.",
     "loading": "Building the business view…",
     "empty": "No decision or notification found in this flow.",
@@ -599,7 +598,20 @@
     "inferred": "inferred",
     "inferredTitle": "This step came from an inferred link, to be reviewed",
     "panelLabel": "Key step panel",
-    "hint": "Choose a bubble to see the business text, the code and the path from the entry to it. Drag an empty area to move the view.",
+    "reset": "Rearrange",
+    "resetTitle": "Puts the bubbles and links you adjusted back into the automatic layout",
+    "resetConfirm": {
+      "title": "Rearrange the business view?",
+      "text": "The bubble positions and the link bend points you adjusted go back to the automatic layout. This cannot be undone.",
+      "action": "Rearrange"
+    },
+    "layout": {
+      "saveFailed": "Could not save the position.",
+      "resetFailed": "Could not rearrange. Try again.",
+      "loadFailed": "Could not load the saved positions. The automatic layout was used."
+    },
+    "keysHelp": "Tab: next bubble. Enter: open the panel. Arrows: move the bubble 10 pixels at a time. Esc: clear the choice. Plus, minus and zero: zoom.",
+    "hint": "Choose a bubble to see the business text, the code and the path from the entry to it. Drag a bubble to move it and an empty area (or Space and drag) to move the view. Ctrl and the wheel zoom.",
     "kind": {
       "start": "Start",
       "decision": "Decision",

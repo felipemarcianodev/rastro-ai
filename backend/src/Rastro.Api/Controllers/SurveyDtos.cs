@@ -122,4 +122,5 @@ public static class ErrorCodes
     public const string PlanNotAllowed = "PLAN_NOT_ALLOWED";
     public const string LiveDatabaseError = "LIVE_DATABASE_ERROR";
     public const string LanguageInvalid = "LANGUAGE_INVALID";
+    public const string BusinessLayoutInvalid = "BUSINESS_LAYOUT_INVALID";
 }

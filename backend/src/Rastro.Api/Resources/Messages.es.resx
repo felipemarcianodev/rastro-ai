@@ -31,4 +31,5 @@
   <data name="Cli.Window.Failed" xml:space="preserve"><value>La ventana propia no se abrió: {0}.</value></data>
   <data name="Cli.Window.StillUp" xml:space="preserve"><value>Rastro sigue en marcha: abre {0} en el navegador. Ctrl+C para salir.</value></data>
   <data name="Cli.Window.FailedReason" xml:space="preserve"><value>la ventana no se pudo abrir (detalle en el registro)</value></data>
+  <data name="BusinessLayout.Invalid" xml:space="preserve"><value>Layout no válido: hasta 500 pasos y 500 enlaces, hasta 20 puntos de quiebre por enlace, números finitos entre -100000 y 100000 e ids de paso de hasta 64 caracteres.</value></data>
 </root>

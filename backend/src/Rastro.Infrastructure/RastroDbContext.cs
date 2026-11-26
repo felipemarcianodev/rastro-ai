@@ -17,6 +17,8 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
     public DbSet<SurveyDiagram> SurveyDiagrams => Set<SurveyDiagram>();
     public DbSet<SurveySegment> SurveySegments => Set<SurveySegment>();
     public DbSet<RouteIndex> RouteIndexes => Set<RouteIndex>();
+    public DbSet<Core.Business.BusinessStepLayout> BusinessStepLayouts => Set<Core.Business.BusinessStepLayout>();
+    public DbSet<Core.Business.BusinessEdgeLayout> BusinessEdgeLayouts => Set<Core.Business.BusinessEdgeLayout>();
     public DbSet<Database.Live.LiveConnection> LiveConnections => Set<Database.Live.LiveConnection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -45,6 +47,23 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             survey.Property(s => s.CrossRepositoriesJson).HasMaxLength(2000);
             survey.HasIndex(s => s.CreatedAt);
             survey.HasIndex(s => new { s.Repository, s.EntryPoint });
+        });
+
+        // Posição dos balões da visão de negócio (Fase 58): por escopo e id, sem FK porque o escopo pode ser um quadro.
+        modelBuilder.Entity<Core.Business.BusinessStepLayout>(layout =>
+        {
+            layout.ToTable("business_layouts");
+            layout.HasKey(l => new { l.Scope, l.ScopeId, l.StepId });
+            layout.Property(l => l.StepId).HasMaxLength(64);
+        });
+
+        modelBuilder.Entity<Core.Business.BusinessEdgeLayout>(layout =>
+        {
+            layout.ToTable("business_edge_layouts");
+            layout.HasKey(l => new { l.Scope, l.ScopeId, l.FromStep, l.ToStep });
+            layout.Property(l => l.FromStep).HasMaxLength(64);
+            layout.Property(l => l.ToStep).HasMaxLength(64);
+            layout.Property(l => l.PointsJson).IsRequired();
         });
 
         modelBuilder.Entity<SurveyProposal>(proposal =>

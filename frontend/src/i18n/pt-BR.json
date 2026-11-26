@@ -585,7 +585,6 @@
   "business": {
     "barLabel": "Desenho da visão de negócio",
     "zoomLabel": "Zoom da visão de negócio",
-    "zoomValueAria": "Zoom em {percent}%",
     "collapsed": "Fluxo resumido em {steps} passos. {count, plural, =1 {Uma decisão foi agrupada} other {# decisões foram agrupadas}}.",
     "loading": "Montando a visão de negócio…",
     "empty": "Nenhuma decisão ou notificação encontrada neste fluxo.",
@@ -599,7 +598,20 @@
     "inferred": "inferido",
     "inferredTitle": "Este passo veio de uma ligação inferida, a conferir",
     "panelLabel": "Painel do passo-chave",
-    "hint": "Escolha um balão para ver o texto de negócio, o código e o caminho da entrada até ele. Arraste uma área vazia para mover a tela.",
+    "reset": "Reorganizar",
+    "resetTitle": "Volta os balões e as ligações que você ajustou para a organização automática",
+    "resetConfirm": {
+      "title": "Reorganizar a visão de negócio?",
+      "text": "As posições dos balões e os pontos de dobra das ligações que você ajustou voltam para a organização automática. Não dá para desfazer.",
+      "action": "Reorganizar"
+    },
+    "layout": {
+      "saveFailed": "Não deu para salvar a posição.",
+      "resetFailed": "Não deu para reorganizar. Tente de novo.",
+      "loadFailed": "Não deu para carregar as posições salvas. A organização automática foi usada."
+    },
+    "keysHelp": "Tab: próximo balão. Enter: abrir o painel. Setas: mover o balão de 10 em 10 pixels. Esc: limpar a escolha. Mais, menos e zero: zoom.",
+    "hint": "Escolha um balão para ver o texto de negócio, o código e o caminho da entrada até ele. Arraste um balão para mudar de lugar e uma área vazia (ou Espaço e arrastar) para mover a tela. Ctrl e a roda aproximam.",
     "kind": {
       "start": "Início",
       "decision": "Decisão",

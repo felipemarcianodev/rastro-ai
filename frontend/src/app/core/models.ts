@@ -1009,6 +1009,25 @@ export interface BusinessFlow {
   collapsedDecisions: number;
 }
 
+// Posição salva dos balões da visão de negócio (Fase 58): a posição de cada passo-chave e os pontos de dobra
+// de cada ligação. Passo ou ligação que não está aqui fica na organização automática.
+export interface StepPosition {
+  stepId: string;
+  x: number;
+  y: number;
+}
+
+export interface EdgePoints {
+  from: string;
+  to: string;
+  points: { x: number; y: number }[];
+}
+
+export interface BusinessLayout {
+  steps: StepPosition[];
+  edges: EdgePoints[];
+}
+
 // Mapa do fluxo (Fase 30): faixas por sistema, blocos de leitura, ligações e caminhos de ponta a ponta.
 export enum MapLaneKind {
   Code = 0,

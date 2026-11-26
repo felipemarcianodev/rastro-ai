@@ -77,7 +77,6 @@ $kinds: start, decision, notification, rejection, cross-system, step, end;
   background: var(--biz-fill);
   color: var(--biz-ink);
   text-align: left;
-  cursor: pointer;
 
   &.biz-kind-start,
   &.biz-kind-end {

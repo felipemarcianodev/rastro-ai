@@ -15,7 +15,75 @@ namespace Rastro.Infrastructure.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
+
+            modelBuilder.Entity("Rastro.Core.Business.BusinessEdgeLayout", b =>
+                {
+                    b.Property<int>("Scope")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("scope");
+
+                    b.Property<Guid>("ScopeId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scope_id");
+
+                    b.Property<string>("FromStep")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("from_step");
+
+                    b.Property<string>("ToStep")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("to_step");
+
+                    b.Property<string>("PointsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("points_json");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Scope", "ScopeId", "FromStep", "ToStep")
+                        .HasName("pk_business_edge_layouts");
+
+                    b.ToTable("business_edge_layouts", (string)null);
+                });
+
+            modelBuilder.Entity("Rastro.Core.Business.BusinessStepLayout", b =>
+                {
+                    b.Property<int>("Scope")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("scope");
+
+                    b.Property<Guid>("ScopeId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("scope_id");
+
+                    b.Property<string>("StepId")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("step_id");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.Property<double>("X")
+                        .HasColumnType("REAL")
+                        .HasColumnName("x");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("REAL")
+                        .HasColumnName("y");
+
+                    b.HasKey("Scope", "ScopeId", "StepId")
+                        .HasName("pk_business_layouts");
+
+                    b.ToTable("business_layouts", (string)null);
+                });
 
             modelBuilder.Entity("Rastro.Core.Surveys.NodeNote", b =>
                 {

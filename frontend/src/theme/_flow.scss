@@ -16,6 +16,11 @@
   --ff-connector-border-width: 0;
   --ff-node-border-color-selected: var(--trail);
   --ff-node-shadow-selected: none;
+  // Pontos de dobra das ligações (visão de negócio): nas cores do tema, sem o verde e o azul do Foblex.
+  --ff-waypoint-fill: var(--surface);
+  --ff-waypoint-stroke: var(--trail);
+  --ff-waypoint-candidate-fill: var(--surface);
+  --ff-waypoint-candidate-stroke: var(--line-strong);
 
   display: block;
   width: 100%;
@@ -96,9 +101,18 @@
   }
 }
 
+// Qualquer alça de arrastar (passo do grafo, balão da visão de negócio): o Foblex põe "move", e a mão vence.
+.flow-host .f-drag-handle {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
 // Espaço segurado: a "mão" para mover a visão.
 .flow-host.is-panning,
-.flow-host.is-panning .flow-node.f-drag-handle {
+.flow-host.is-panning .f-drag-handle {
   cursor: grab;
 }
 

@@ -107,6 +107,7 @@ async function showBusiness(el: HTMLElement): Promise<void> {
   const http = TestBed.inject(HttpTestingController);
   http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(BUSINESS_FLOW));
   http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+  http.match((r) => r.url.endsWith('/business/layout')).forEach((r) => r.flush({ steps: [], edges: [] }));
   lastFixture!.detectChanges();
   await lastFixture!.whenStable();
   lastFixture!.detectChanges();

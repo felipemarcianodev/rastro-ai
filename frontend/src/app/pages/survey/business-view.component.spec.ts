@@ -1,4 +1,4 @@
-import { Component, signal } from '@angular/core';
+import { Component, DebugElement, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
@@ -6,10 +6,11 @@ import { DesktopBridge } from '../../core/desktop-bridge.service';
 import { MAP_FIXTURE_GRAPH } from '../../core/graph/flow-map-fixture.spec';
 import { LayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
-import { BusinessFlow, BusinessKind, BusinessStep, LabelOrigin, LabelState, RepositoryHostKind, RepositoryLinks, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
+import { BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, LabelOrigin, LabelState, RepositoryHostKind, RepositoryLinks, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
+import { businessLayout } from '../../core/graph/business-layout';
 import { By } from '@angular/platform-browser';
-import { FConnectionContent } from '@foblex/flow';
-import { BRANCH_LABEL_POSITION, BusinessViewComponent } from './business-view.component';
+import { FCanvasComponent, FConnectionContent, FConnectionWaypoints, FControlSchemeController, FDraggableDirective, FNodeDirective, FZoomDirective } from '@foblex/flow';
+import { BRANCH_LABEL_POSITION, BusinessViewComponent, CLICK_TOLERANCE_PX, SAVE_DEBOUNCE_MS, ZOOM_MAX, ZOOM_MIN } from './business-view.component';
 
 const detail: SurveyDetail = {
   survey: {
@@ -91,7 +92,13 @@ class HostComponent {
   readonly inGraph: string[] = [];
 }
 
-async function setup(flow: BusinessFlow | { status: number } = FLOW, links: RepositoryLinks[] = LINKS) {
+const NO_LAYOUT: BusinessLayout = { steps: [], edges: [] };
+const LAYOUT_URL = '/api/surveys/s1/business/layout';
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// Espera o debounce de gravação passar.
+const afterDebounce = () => wait(SAVE_DEBOUNCE_MS + 60);
+
+async function setup(flow: BusinessFlow | { status: number } = FLOW, links: RepositoryLinks[] = LINKS, layout: BusinessLayout | { status: number } = NO_LAYOUT) {
   const opened: string[] = [];
   TestBed.configureTestingModule({
     imports: [HostComponent],
@@ -102,7 +109,10 @@ async function setup(flow: BusinessFlow | { status: number } = FLOW, links: Repo
   const http = TestBed.inject(HttpTestingController);
   const business = http.expectOne('/api/surveys/s1/business');
   const linksRequest = http.expectOne('/api/surveys/s1/links');
+  const layoutRequest = http.expectOne(LAYOUT_URL);
   linksRequest.flush(links);
+  if ('status' in layout) layoutRequest.flush({ code: 'ERRO' }, { status: layout.status, statusText: 'Erro' });
+  else layoutRequest.flush(layout);
   if ('status' in flow) business.flush({ code: 'NOT_FOUND' }, { status: flow.status, statusText: 'Not Found' });
   else business.flush(flow);
   fixture.detectChanges();
@@ -123,6 +133,7 @@ async function setupLinksError() {
   fixture.detectChanges();
   const http = TestBed.inject(HttpTestingController);
   http.expectOne('/api/surveys/s1/links').flush({ code: 'ERRO' }, { status: 500, statusText: 'Erro' });
+  http.expectOne(LAYOUT_URL).flush(NO_LAYOUT);
   http.expectOne('/api/surveys/s1/business').flush(FLOW);
   fixture.detectChanges();
   await fixture.whenStable();
@@ -431,6 +442,7 @@ describe('BusinessViewComponent (Fase 57)', () => {
 
     http.expectOne('/api/surveys/s1/business').flush(FLOW);
     http.expectOne('/api/surveys/s1/links').flush(LINKS);
+    http.expectOne(LAYOUT_URL).flush(NO_LAYOUT);
     fixture.detectChanges();
     expect(el.querySelectorAll('.biz-node').length).toBe(4);
   });
@@ -442,7 +454,7 @@ describe('BusinessViewComponent (Fase 57)', () => {
     fixture.detectChanges();
 
     expect((fixture.nativeElement as HTMLElement).textContent).toContain('Montando a visão de negócio');
-    TestBed.inject(HttpTestingController).match(() => true).forEach((r) => r.flush(r.request.url.endsWith('/links') ? [] : FLOW));
+    TestBed.inject(HttpTestingController).match(() => true).forEach((r) => r.flush(r.request.url.endsWith('/links') ? [] : r.request.url.endsWith('/layout') ? NO_LAYOUT : FLOW));
   });
 
   // WEB-BIZV-021
@@ -493,5 +505,350 @@ describe('BusinessViewComponent (Fase 57)', () => {
 
     expect(aumentado).toMatch(/^\d+%$/);
     expect(el.querySelector('.biz-zoom-value')!.textContent).toMatch(/^\d+%$/);
+  });
+
+  // ---- Fase 58: tela livre e posição salva ----
+
+  const positionOf = (fixture: { debugElement: DebugElement }, id: string) =>
+    fixture.debugElement
+      .queryAll(By.directive(FNodeDirective))
+      .find((d) => (d.nativeElement as HTMLElement).dataset['stepId'] === id)!
+      .injector.get(FNodeDirective)
+      .position();
+  const nodeDebug = (fixture: { debugElement: DebugElement }, id: string) => fixture.debugElement.queryAll(By.directive(FNodeDirective)).find((d) => (d.nativeElement as HTMLElement).dataset['stepId'] === id)!;
+  const move = (fixture: { debugElement: DebugElement }, id: string, point: { x: number; y: number }) => nodeDebug(fixture, id).triggerEventHandler('fNodePositionChange', point);
+
+  // WEB-BIZV-034
+  it('posicaoSalva_venceAAutomaticaEPassoSemPosicaoFicaNaAutomatica', async () => {
+    const automatic = businessLayout(FLOW).boxes;
+    const { fixture } = await setup(FLOW, LINKS, { steps: [{ stepId: 's3', x: 500, y: 300 }], edges: [] });
+
+    expect(positionOf(fixture, 's3')).toEqual({ x: 500, y: 300 });
+    expect(positionOf(fixture, 's1')).toEqual({ x: automatic.get('s1')!.x, y: automatic.get('s1')!.y });
+  });
+
+  // WEB-BIZV-035
+  it('arrastarOBalao_encaixaNaGradeEGravaDepoisDoDebounceEmLote', async () => {
+    const { fixture, http } = await setup();
+
+    move(fixture, 's2', { x: 123, y: 57 });
+    move(fixture, 's3', { x: 201, y: 98 });
+    fixture.detectChanges();
+    http.expectNone(LAYOUT_URL);
+    await afterDebounce();
+
+    const put = http.expectOne((r) => r.method === 'PUT' && r.url === LAYOUT_URL);
+    expect(put.request.body.steps).toEqual([
+      { stepId: 's2', x: 120, y: 60 },
+      { stepId: 's3', x: 200, y: 100 },
+    ]);
+    expect(positionOf(fixture, 's2')).toEqual({ x: 120, y: 60 });
+    put.flush(null);
+  });
+
+  // WEB-BIZV-036
+  it('movimentoNaMesmaPosicao_naoGrava', async () => {
+    const automatic = businessLayout(FLOW).boxes.get('s1')!;
+    const { fixture, http } = await setup();
+
+    move(fixture, 's1', { x: automatic.x + 2, y: automatic.y - 3 });
+    await afterDebounce();
+
+    http.expectNone((r) => r.method === 'PUT');
+  });
+
+  // WEB-BIZV-037
+  it('falhaAoSalvar_avisaSemDesfazerOMovimentoEATentativaSeguinteLevaOQueFicou', async () => {
+    const { fixture, el, http } = await setup();
+
+    move(fixture, 's2', { x: 300, y: 200 });
+    await afterDebounce();
+    http.expectOne((r) => r.method === 'PUT').flush({ code: 'ERRO' }, { status: 500, statusText: 'Erro' });
+    fixture.detectChanges();
+
+    expect(el.querySelector('.toast')!.textContent).toContain('Não deu para salvar a posição');
+    expect(positionOf(fixture, 's2')).toEqual({ x: 300, y: 200 });
+    move(fixture, 's3', { x: 400, y: 200 });
+    await afterDebounce();
+    const retry = http.expectOne((r) => r.method === 'PUT');
+    expect(retry.request.body.steps.map((x: { stepId: string }) => x.stepId)).toEqual(['s2', 's3']);
+    retry.flush(null);
+    fixture.detectChanges();
+    expect(el.querySelector('.toast')).toBeNull();
+  });
+
+  // WEB-BIZV-038
+  it('pontosDeDobra_viramPontosDaLigacaoESaemNoMesmoLote', async () => {
+    const { fixture, http } = await setup();
+
+    fixture.debugElement.query(By.css('f-flow')).triggerEventHandler('fConnectionWaypointsChanged', { connectionId: 'e1', waypoints: [{ x: 203, y: 98 }] });
+    fixture.detectChanges();
+    await afterDebounce();
+
+    const put = http.expectOne((r) => r.method === 'PUT');
+    expect(put.request.body.edges).toEqual([{ from: 's2', to: 's3', points: [{ x: 200, y: 100 }] }]);
+    const waypoints = fixture.debugElement.queryAll(By.directive(FConnectionWaypoints)).map((d) => d.injector.get(FConnectionWaypoints).waypoints());
+    expect(waypoints[1]).toEqual([{ x: 200, y: 100 }]);
+    expect(waypoints[0]).toEqual([]);
+    put.flush(null);
+  });
+
+  // WEB-BIZV-039
+  it('pontosDeDobraSalvos_voltamNaLigacaoCerta', async () => {
+    const { fixture } = await setup(FLOW, LINKS, { steps: [], edges: [{ from: 's2', to: 's4', points: [{ x: 30, y: 40 }, { x: 50, y: 60 }] }] });
+
+    const waypoints = fixture.debugElement.queryAll(By.directive(FConnectionWaypoints)).map((d) => d.injector.get(FConnectionWaypoints).waypoints());
+
+    expect(waypoints[2]).toEqual([{ x: 30, y: 40 }, { x: 50, y: 60 }]);
+  });
+
+  // WEB-BIZV-040
+  it('falhaAoCarregarAPosicao_desenhaNoAutomaticoEAvisa', async () => {
+    const automatic = businessLayout(FLOW).boxes.get('s2')!;
+    const { fixture, el } = await setup(FLOW, LINKS, { status: 500 });
+
+    expect(el.querySelectorAll('.biz-node').length).toBe(4);
+    expect(positionOf(fixture, 's2')).toEqual({ x: automatic.x, y: automatic.y });
+    expect(el.querySelector('.toast')!.textContent).toContain('Não deu para carregar as posições salvas');
+  });
+
+  // WEB-BIZV-041
+  it('reorganizar_soApareceComPosicaoSalvaPedeConfirmacaoEVoltaAoAutomatico', async () => {
+    const automatic = businessLayout(FLOW).boxes.get('s3')!;
+    const { fixture, el, button, http } = await setup(FLOW, LINKS, { steps: [{ stepId: 's3', x: 500, y: 300 }], edges: [] });
+
+    expect(button('Reorganizar')).toBeDefined();
+    button('Reorganizar').click();
+    fixture.detectChanges();
+    expect(el.querySelector('app-confirm-dialog')).not.toBeNull();
+    http.expectNone((r) => r.method === 'DELETE');
+    (Array.from(el.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find((b) => b.textContent!.includes('Reorganizar')))!.click();
+    http.expectOne((r) => r.method === 'DELETE' && r.url === LAYOUT_URL).flush(null);
+    fixture.detectChanges();
+
+    expect(positionOf(fixture, 's3')).toEqual({ x: automatic.x, y: automatic.y });
+    expect(Array.from(el.querySelectorAll('button')).some((b) => b.textContent!.trim() === 'Reorganizar')).toBeFalse();
+  });
+
+  // WEB-BIZV-042
+  it('reorganizarCancelado_naoApagaNada', async () => {
+    const { fixture, el, button, http } = await setup(FLOW, LINKS, { steps: [{ stepId: 's3', x: 500, y: 300 }], edges: [] });
+
+    button('Reorganizar').click();
+    fixture.detectChanges();
+    (Array.from(el.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find((b) => b.textContent!.includes('Cancelar')))!.click();
+    fixture.detectChanges();
+
+    http.expectNone((r) => r.method === 'DELETE');
+    expect(el.querySelector('app-confirm-dialog')).toBeNull();
+    expect(positionOf(fixture, 's3')).toEqual({ x: 500, y: 300 });
+  });
+
+  // WEB-BIZV-056
+  it('semPosicaoSalva_naoHaBotaoReorganizar', async () => {
+    const { el } = await setup();
+
+    expect(Array.from(el.querySelectorAll('button')).some((b) => b.textContent!.trim() === 'Reorganizar')).toBeFalse();
+  });
+
+  // WEB-BIZV-043
+  it('cliqueSemArrastar_abreOPainel_eArrastarNaoAbre', async () => {
+    const { fixture, host, node } = await setup();
+    const press = (x: number) => node('s2').dispatchEvent(new PointerEvent('pointerdown', { clientX: x, clientY: 10, bubbles: true }));
+    const release = (x: number) => node('s2').dispatchEvent(new MouseEvent('click', { clientX: x, clientY: 10, bubbles: true }));
+
+    press(10);
+    release(10 + CLICK_TOLERANCE_PX + 20);
+    fixture.detectChanges();
+    expect(host.picked).toEqual([]);
+
+    press(10);
+    release(10 + CLICK_TOLERANCE_PX - 1);
+    fixture.detectChanges();
+    expect(host.picked).toEqual(['n3']);
+  });
+
+  // WEB-BIZV-044
+  it('tab_andaNaOrdemDoFluxoEIgnoraOndeOFoblexPosOsNosNoDom', async () => {
+    const { fixture, el, node } = await setup();
+    // O Foblex leva o balão clicado para o fim do DOM: a ordem dos nós deixa de ser a do fluxo.
+    const canvasNodes = node('s1').parentElement!;
+    canvasNodes.appendChild(node('s1'));
+    node('s2').focus();
+    fixture.detectChanges();
+    const tab = (id: string, shift = false) => {
+      const event = new KeyboardEvent('keydown', { key: 'Tab', shiftKey: shift, bubbles: true, cancelable: true });
+      node(id).dispatchEvent(event);
+      fixture.detectChanges();
+      return event.defaultPrevented;
+    };
+
+    expect(tab('s2')).toBeTrue();
+    expect(document.activeElement).toBe(node('s3'));
+    expect(node('s3').getAttribute('tabindex')).toBe('0');
+    expect(node('s1').getAttribute('tabindex')).toBe('-1');
+    expect(tab('s3', true)).toBeTrue();
+    expect(document.activeElement).toBe(node('s2'));
+    expect(tab('s2', true)).toBeTrue();
+    expect(document.activeElement).toBe(node('s1'));
+    // Nas pontas o Tab segue o caminho normal e sai do desenho.
+    expect(tab('s1', true)).toBeFalse();
+    node('s4').focus();
+    expect(tab('s4')).toBeFalse();
+    expect(el.querySelectorAll('[tabindex="0"].biz-node').length).toBe(1);
+  });
+
+  // WEB-BIZV-045
+  it('balaoEscolhido_viraAParadaDeTab', async () => {
+    const { fixture, node } = await setup();
+
+    node('s3').click();
+    fixture.detectChanges();
+
+    expect(node('s3').getAttribute('tabindex')).toBe('0');
+    expect(node('s1').getAttribute('tabindex')).toBe('-1');
+  });
+
+  // WEB-BIZV-046
+  it('setas_movemOBalaoDezPixelsEGravam', async () => {
+    const automatic = businessLayout(FLOW).boxes.get('s2')!;
+    const { fixture, node, http } = await setup();
+
+    node('s2').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    node('s2').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(positionOf(fixture, 's2')).toEqual({ x: automatic.x + 10, y: automatic.y + 10 });
+    await afterDebounce();
+    const put = http.expectOne((r) => r.method === 'PUT');
+    expect(put.request.body.steps).toEqual([{ stepId: 's2', x: automatic.x + 10, y: automatic.y + 10 }]);
+    put.flush(null);
+  });
+
+  // WEB-BIZV-047
+  it('esc_limpaAEscolhaEOPainelFecha', async () => {
+    const { fixture, el, host, node } = await setup();
+
+    node('s1').click();
+    fixture.detectChanges();
+    node('s1').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(host.picked).toEqual(['n1', null]);
+    expect(el.querySelector('.biz-panel-title')).toBeNull();
+  });
+
+  // WEB-BIZV-048
+  it('teclaZero_voltaOZoomA100PorCento_eMaisEMenosNaoQuebram', async () => {
+    const { fixture, el, node } = await setup();
+    const key = (k: string) => node('s1').dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+
+    key('+');
+    key('-');
+    key('0');
+    await wait(80);
+    fixture.detectChanges();
+
+    expect(el.querySelector('.biz-zoom-value')!.textContent).toBe('100%');
+  });
+
+  // WEB-BIZV-049
+  it('botaoDe100PorCento_voltaAEscalaNormal', async () => {
+    const { fixture, el } = await setup();
+
+    el.querySelector<HTMLButtonElement>('.biz-zoom-value')!.click();
+    await wait(80);
+    fixture.detectChanges();
+
+    expect(el.querySelector('.biz-zoom-value')!.textContent).toBe('100%');
+    expect(el.querySelector('.biz-zoom-value')!.getAttribute('aria-label')).toContain('Voltar para 100%');
+  });
+
+  // WEB-BIZV-050
+  it('zoomEntre25e140PorCento_comRodaSemTeclaRolandoEComCtrlAproximando', async () => {
+    const { fixture } = await setup();
+
+    const zoom = fixture.debugElement.query(By.directive(FZoomDirective)).injector.get(FZoomDirective);
+    const scheme = fixture.debugElement.query(By.css('f-flow')).injector.get(FControlSchemeController).getScheme();
+
+    expect(zoom.minimum).toBe(ZOOM_MIN);
+    expect(zoom.maximum).toBe(ZOOM_MAX);
+    expect(ZOOM_MIN).toBe(0.25);
+    expect(ZOOM_MAX).toBe(1.4);
+    expect(scheme.scrollPan).toBeTrue();
+  });
+
+  // WEB-BIZV-051
+  it('grade_deDezPixelsEOBalaoTemAAlcaDeArrastar', async () => {
+    const { fixture, node } = await setup();
+
+    const draggable = fixture.debugElement.query(By.directive(FDraggableDirective)).injector.get(FDraggableDirective);
+
+    expect(draggable.hCellSize()).toBe(10);
+    expect(draggable.vCellSize()).toBe(10);
+    expect(draggable.fCellSizeWhileDragging()).toBeTrue();
+    expect(node('s1').classList).toContain('f-drag-handle');
+  });
+
+  // WEB-BIZV-052
+  it('espacoSegurado_viraAMaoParaMoverATelaMesmoSobreOBalao', async () => {
+    const { fixture, el, node } = await setup();
+    const flow = el.querySelector('f-flow')!;
+    const draggable = fixture.debugElement.query(By.directive(FDraggableDirective)).injector.get(FDraggableDirective);
+    const primary = { buttons: 1 } as unknown as MouseEvent;
+
+    expect(draggable.fNodeMoveTrigger(primary)).toBeTrue();
+    node('s2').focus();
+    node('s2').dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(flow.classList).toContain('is-panning');
+    expect(draggable.fNodeMoveTrigger(primary)).toBeFalse();
+    expect(draggable.fCanvasMoveTrigger(primary)).toBeTrue();
+    document.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', code: 'Space', bubbles: true }));
+    fixture.detectChanges();
+    expect(flow.classList).not.toContain('is-panning');
+  });
+
+  // WEB-BIZV-053
+  it('espacoNoBotaoDoPainel_naoViraAMao', async () => {
+    const { fixture, el, node, button } = await setup();
+
+    node('s1').click();
+    fixture.detectChanges();
+    button('Fechar').dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true, cancelable: true }));
+    fixture.detectChanges();
+
+    expect(el.querySelector('f-flow')!.classList).not.toContain('is-panning');
+  });
+
+  // WEB-BIZV-054
+  it('abrirOPainel_trazOBalaoParaAAreaVisivelSoQuandoEstaFora', async () => {
+    const { fixture, el, node } = await setup();
+    const canvas = fixture.debugElement.query(By.directive(FCanvasComponent)).componentInstance as FCanvasComponent;
+    const center = spyOn(canvas, 'centerGroupOrNode');
+    const rect = (left: number, top: number, width: number, height: number) => ({ left, top, right: left + width, bottom: top + height, width, height, x: left, y: top, toJSON: () => ({}) }) as DOMRect;
+    spyOn(el.querySelector('.biz-stage')!, 'getBoundingClientRect').and.returnValue(rect(0, 0, 900, 300));
+    const rects = spyOn(node('s2'), 'getBoundingClientRect');
+
+    rects.and.returnValue(rect(100, 100, 200, 80));
+    node('s2').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(center).not.toHaveBeenCalled();
+
+    rects.and.returnValue(rect(100, 260, 200, 80));
+    node('s2').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    expect(center).toHaveBeenCalledWith('s2', true);
+  });
+
+  // WEB-BIZV-055
+  it('balao_apontaParaAsTeclasEOTextoDeAjudaExiste', async () => {
+    const { el, node } = await setup();
+
+    expect(node('s1').getAttribute('aria-describedby')).toBe('biz-keys-help');
+    expect(el.querySelector('#biz-keys-help')!.textContent).toContain('Tab');
   });
 });
