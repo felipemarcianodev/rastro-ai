@@ -17,6 +17,16 @@ public class RastroOptions
 
     // Visão de negócio (Fase 55, ADR-010): o que conta como notificação e como recusa, e o limite de passos.
     public BusinessViewSettings BusinessView { get; set; } = new();
+
+    // Editor do "Abrir no editor" (Fase 56): sem modelo, o VS Code (vscode://file/...).
+    public EditorSettings Editor { get; set; } = new();
+}
+
+// UrlTemplate com {path} (caminho absoluto do arquivo, com "/") e {line}, para o Visual Studio, o Rider ou outro
+// editor que abre por URL. Só da configuração, nunca da requisição.
+public class EditorSettings
+{
+    public string? UrlTemplate { get; set; }
 }
 
 // As listas começam nulas: o binder do .NET acrescenta à lista que já existe, então um padrão preenchido aqui

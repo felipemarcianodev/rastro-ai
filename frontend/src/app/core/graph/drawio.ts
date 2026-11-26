@@ -4,6 +4,7 @@ import { MAP_BOX, MapGeometry, linkText } from './flow-map';
 import { LayoutDirection, NodeBox } from './layout';
 import { plainBranch } from './plain';
 import { TimelineRepeat } from './timeline-layout';
+import { HostLinkOf } from './link-template';
 
 // Exportar para o draw.io (Fase 54, ADR-010): o desenho que está na tela vira um arquivo .drawio
 // (mxfile), com as posições da tela, inclusive as arrastadas. As ligações levam o estilo ortogonal
@@ -121,6 +122,8 @@ function tooltipOf(symbol: string | null | undefined, location: SourceLocation |
 export interface DrawioGraphExtras {
   repeats?: ReadonlyMap<string, TimelineRepeat>;
   direction?: LayoutDirection;
+  // Link de cada balão para o código no host (Fase 56).
+  linkOf?: HostLinkOf;
 }
 
 // O grafo como está na tela: uma caixa por passo desenhado (o passo repetido, ↻, tem a sua), as
@@ -147,6 +150,7 @@ export function graphToDrawio(
       text: repeat ? `↻ ${node.label}` : node.label,
       reference: codeReference(node.system ?? repository, node.location),
       tooltip: tooltipOf(node.symbol, node.location),
+      link: extras.linkOf?.(node.system ?? repository, node.location) ?? null,
       style: repeat ? DRAWIO_STYLE.exit : NODE_STYLE[node.kind],
       x: box.x,
       y: box.y,
@@ -196,16 +200,20 @@ export function mapToDrawio(
   laneTitleOf: (lane: MapLane) => string,
   repository: string,
   name: string,
+  linkOf?: HostLinkOf,
 ): string {
   const { width, height } = MAP_BOX;
   const index = new Map(geometry.blocks.map((placed, i) => [placed.block.id, i]));
   // A faixa de fora do código não tem repositório.
   const systemOf = new Map(geometry.lanes.map((placed) => [placed.lane.id, placed.lane.kind === MapLaneKind.Outside ? null : (placed.lane.system ?? repository)]));
+  // Repositório da faixa: o da faixa, o do levantamento quando a faixa não está na lista, e nenhum na de fora.
+  const laneRepository = (lane: string): string | null => (systemOf.has(lane) ? (systemOf.get(lane) ?? null) : repository);
   const vertices = geometry.blocks.map(
     (placed): DrawioVertex => ({
       text: titleOf(placed.block),
-      reference: codeReference(systemOf.has(placed.block.lane) ? systemOf.get(placed.block.lane) : repository, placed.block.location),
+      reference: codeReference(laneRepository(placed.block.lane), placed.block.location),
       tooltip: tooltipOf(placed.block.symbol, placed.block.location),
+      link: laneRepository(placed.block.lane) ? (linkOf?.(laneRepository(placed.block.lane)!, placed.block.location) ?? null) : null,
       style: BLOCK_STYLE[placed.block.kind],
       x: placed.x,
       y: placed.y,

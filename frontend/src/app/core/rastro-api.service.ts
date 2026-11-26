@@ -17,6 +17,7 @@ import {
   QuestionAnswer,
   EdgeDecision,
   RepositoryItem,
+  RepositoryLinks,
   RastroHealth,
   SourceSnippet,
   SurveyDetail,
@@ -221,6 +222,11 @@ export class RastroApi {
   // Mapa do fluxo (Fase 30): faixas por sistema, blocos, ligações e caminhos.
   map(id: string): Observable<FlowMap> {
     return this.http.get<FlowMap>(`/api/surveys/${id}/map`);
+  }
+
+  // Modelos de link de cada repositório do levantamento (Fase 56).
+  links(id: string): Observable<RepositoryLinks[]> {
+    return this.http.get<RepositoryLinks[]>(`/api/surveys/${id}/links`);
   }
 
   // Regras do fluxo (Fase 32) e perguntas prontas por papel (Fase 33).

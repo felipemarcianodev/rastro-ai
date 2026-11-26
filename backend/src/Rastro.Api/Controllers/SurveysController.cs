@@ -444,6 +444,16 @@ public class SurveysController(
         return flow is null ? NotFound() : flow;
     }
 
+    // Links do código (Fase 56): por repositório do levantamento, os modelos de link para o host (pelo commit e pela
+    // branch) e para o editor, com {path} e {line} a preencher pela tela. O remote sai sem credencial.
+    [HttpGet("{id:guid}/links")]
+    public async Task<ActionResult<IReadOnlyList<Rastro.Core.Links.RepositoryLinks>>> Links(Guid id,
+        [FromServices] Rastro.Infrastructure.Links.CodeLinkService links, CancellationToken ct)
+    {
+        var found = await links.ForSurveyAsync(id, ct);
+        return found is null ? NotFound() : Ok(found);
+    }
+
     // Regras do fluxo (Fase 32): cada decisão do mapa em frase, com o efeito e a fonte, sem IA.
     [HttpGet("{id:guid}/rules")]
     public async Task<ActionResult<IReadOnlyList<FlowRule>>> Rules(Guid id, CancellationToken ct)

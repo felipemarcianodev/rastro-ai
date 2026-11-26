@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Rastro.Core.Business;
+using Rastro.Core.Links;
+using Rastro.Infrastructure.Processes;
 using Rastro.Mcp;
 using Rastro.Tests.Infrastructure;
 
@@ -99,5 +101,41 @@ public class BusinessEndpointTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Contains($"[{_pagamentos.Name} · ", text);
         Assert.Contains("Ligações:", text);
         Assert.Equal("Levantamento não encontrado ou ainda sem grafo. Use list_surveys.", await tools.GetBusinessView(Guid.NewGuid()));
+    }
+
+    [Fact] // API-LNK-001
+    public async Task Links_RepositorioComRemoteComTokenEOutroSemRemote_ModeloPeloCommitSemCredencial()
+    {
+        var added = await ProcessRunner.RunAsync("git",
+            ["-C", _pedidos.Root, "remote", "add", "origin", "https://usuario:token-secreto@github.com/loja/api-pedidos.git"],
+            null, TimeSpan.FromSeconds(30), CancellationToken.None);
+        Assert.Equal(0, added.ExitCode);
+        await using var provider = CrossKit.Services(fixture, new FixtureSolutionSource(), _pedidos, _pagamentos);
+        await using var scope = provider.CreateAsyncScope();
+        var id = await SurveyAsync(scope);
+
+        // A API de teste não tem estes repositórios temporários no cadastro (só o provedor do CrossKit tem): o
+        // conteúdo se confere pelo serviço que a rota chama, e a rota, pelo 404 logo abaixo.
+        var links = (await scope.ServiceProvider.GetRequiredService<Rastro.Infrastructure.Links.CodeLinkService>()
+            .ForSurveyAsync(id, CancellationToken.None))!.ToList();
+        var raw = JsonSerializer.Serialize(links, Json);
+
+        Assert.DoesNotContain("token-secreto", raw);
+        Assert.DoesNotContain("usuario", raw);
+        var pedidos = Assert.Single(links, l => l.Repository == _pedidos.Name);
+        Assert.Equal(RepositoryHostKind.GitHub, pedidos.Host);
+        Assert.Equal($"https://github.com/loja/api-pedidos/blob/{await _pedidos.HeadAsync()}/{{path}}#L{{line}}", pedidos.CommitTemplate);
+        Assert.StartsWith("https://github.com/loja/api-pedidos/blob/", pedidos.BranchTemplate);
+        Assert.StartsWith("vscode://file/", pedidos.EditorTemplate);
+        var pagamentos = Assert.Single(links, l => l.Repository == _pagamentos.Name);
+        Assert.Equal(RepositoryHostKind.Unknown, pagamentos.Host);
+        Assert.Null(pagamentos.CommitTemplate);
+        Assert.NotNull(pagamentos.EditorTemplate);
+
+        // O agente recebe o link pronto em cada passo do repositório com remote.
+        var text = await scope.ServiceProvider.GetRequiredService<RastroTools>().GetBusinessView(id);
+        Assert.Contains($"https://github.com/loja/api-pedidos/blob/{await _pedidos.HeadAsync()}/", text);
+        Assert.DoesNotContain("token-secreto", text);
+        Assert.Equal(HttpStatusCode.NotFound, (await Client.GetAsync($"/api/surveys/{Guid.NewGuid()}/links")).StatusCode);
     }
 }

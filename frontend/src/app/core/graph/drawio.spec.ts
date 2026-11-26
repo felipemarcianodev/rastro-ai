@@ -145,6 +145,36 @@ describe('drawio', () => {
     expect(call.getAttribute('style')).toContain('dashed=1');
   });
 
+  it('grafo e mapa: o balão leva o link do repositório dele, e a faixa de fora do código fica sem link (Fase 56)', () => {
+    const linkOf = (repository: string, location: { file: string; line: number } | null | undefined) =>
+      location ? `https://host/${repository}/${location.file}#L${location.line}` : null;
+    const doc = parse(graphToDrawio(graph, boxes, 'api-pedidos', 'x', { linkOf }));
+    const objects = [...doc.querySelectorAll('UserObject')];
+
+    expect(objects[0].getAttribute('link')).toBe('https://host/api-pedidos/src/Api/PedidosController.cs#L12');
+    expect(objects[2].getAttribute('link')).toBe('https://host/api-pagamentos/src/EstornosController.cs#L8');
+    expect(objects[3].hasAttribute('link')).toBeFalse();
+
+    const map: FlowMap = {
+      lanes: [
+        { id: 'l0', kind: MapLaneKind.Code, system: null },
+        { id: 'out', kind: MapLaneKind.Outside, system: null },
+      ],
+      blocks: [
+        { id: 'b0', kind: MapBlockKind.Entry, lane: 'l0', order: 0, title: 'A', nodeId: 'a', nodeIds: ['a'], location: { file: 'a.cs', line: 1 } },
+        { id: 'b1', kind: MapBlockKind.Outside, lane: 'out', order: 1, title: 'Gateway', nodeId: 'g', nodeIds: ['g'], location: { file: 'g.cs', line: 2 } },
+      ],
+      links: [{ from: 'b0', to: 'b1', kind: MapLinkKind.Call }],
+      paths: [],
+      pathsTruncated: false,
+    };
+    const mapDoc = parse(mapToDrawio(mapGeometry(map, false), (b) => b.title, (l) => l.id, 'api-pedidos', 'm', linkOf));
+    const blocks = [...mapDoc.querySelectorAll('UserObject')];
+
+    expect(blocks[0].getAttribute('link')).toBe('https://host/api-pedidos/a.cs#L1');
+    expect(blocks[1].hasAttribute('link')).toBeFalse();
+  });
+
   it('pontos de dobra e link do balão vão para o arquivo', () => {
     const xml = toDrawio({
       name: 'p',

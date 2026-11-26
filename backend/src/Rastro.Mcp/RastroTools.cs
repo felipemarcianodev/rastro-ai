@@ -46,6 +46,7 @@ public class RastroTools(
     Rastro.Infrastructure.Database.Live.LiveConnectionStore liveConnections,
     Rastro.Infrastructure.Database.Live.LiveDatabaseService liveDatabase,
     Rastro.Infrastructure.Business.BusinessViewService business,
+    Rastro.Infrastructure.Links.CodeLinkService codeLinks,
     ILogger<RastroTools> logger)
 {
     private const int MaxOutlineLines = 400;
@@ -204,11 +205,17 @@ public class RastroTools(
         // Apelido curto de cada passo (b1, b2...), na ordem da visão, para as ligações ficarem legíveis.
         var steps = flow.Steps.Select((step, index) => (step, handle: $"b{index + 1}")).ToList();
         var stepHandle = steps.ToDictionary(s => s.step.Id, s => s.handle);
+        // Link para o host pelo commit do levantamento (Fase 56), quando o remote do repositório é reconhecido.
+        var templates = (await codeLinks.ForSurveyAsync(surveyId, ct) ?? [])
+            .Where(l => l.CommitTemplate is not null)
+            .ToDictionary(l => l.Repository, l => l.CommitTemplate!, StringComparer.OrdinalIgnoreCase);
         var text = new StringBuilder();
         text.AppendLine(T("Business.Header", graph.EntryPoint, flow.Steps.Count));
         foreach (var (step, handle) in steps)
         {
             var where = step.Ref is { } r ? $" [{r.Repository} · {r.File}:{r.Line}]" : string.Empty;
+            if (step.Ref is { } at && templates.TryGetValue(at.Repository, out var template))
+                where += " " + Rastro.Core.Links.CodeLinks.Fill(template, at.File, at.Line);
             var proposed = step.LabelState == Rastro.Core.Business.LabelState.Proposed ? " " + T("Business.Proposed") : string.Empty;
             text.AppendLine(T("Business.Step", handle, step.Kind, step.Label, handles.GetValueOrDefault(step.NodeId, step.NodeId), where, proposed));
         }

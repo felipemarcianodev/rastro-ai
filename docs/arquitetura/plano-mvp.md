@@ -1273,13 +1273,21 @@ Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CL
   - [ ] Cache da visão por levantamento, se a tela da Fase 57 sentir o tempo dos fluxos grandes.
   - **Testes:** backend 936/936 (CORE-BIZ-001 a 033, INF-BIZ-001 a 006 e 101 a 103, API-BIZ-001 e 002, MCP-BIZ-001); extrator TypeScript 72/72; frontend sem mudança.
 
-## Fase 56: referência de código e links para o host e o editor `[ ]` (depende da Fase 55)
+## Fase 56: referência de código e links para o host e o editor `[x]` (depende da Fase 55)
 
-- [ ] `Rastro.Core`: normalizador do remote (HTTPS com usuário, `git@host:`, `.git` no fim, SSH v3 do Azure DevOps) e montador do link por host (Azure DevOps, GitHub, GitLab, Bitbucket), pelo commit do levantamento e, como alternativa, pela branch; remote desconhecido não tem link.
-- [ ] O remote se lê pelo `ProcessRunner` (`git remote get-url origin`), sem shell, a partir do repositório cadastrado.
-- [ ] Link do editor: `vscode://file/...:L` e o modelo `Rastro:Editor:UrlTemplate` do `config.json`; na janela Photino, o link externo abre no navegador padrão.
-- [ ] O `.drawio` da Fase 54 passa a levar `UserObject` com `link`.
-- [ ] Testes de URL por host, com caminho com espaço e acento; `SECURITY.md` e README (o que o Rastro lê do git e o que abre fora).
+- [x] `Rastro.Core`: normalizador do remote (HTTPS com usuário, `git@host:`, `.git` no fim, SSH v3 do Azure DevOps) e montador do link por host (Azure DevOps, GitHub, GitLab, Bitbucket), pelo commit do levantamento e, como alternativa, pela branch; remote desconhecido não tem link.
+- [x] O remote se lê pelo `ProcessRunner` (`git remote get-url origin`), sem shell, a partir do repositório cadastrado.
+- [x] Link do editor: `vscode://file/...:L` e o modelo `Rastro:Editor:UrlTemplate` do `config.json`. A abertura pela janela Photino foi para a Fase 57 (ver o registro).
+- [x] O `.drawio` da Fase 54 passa a levar `UserObject` com `link`.
+- [x] Testes de URL por host, com caminho com espaço e acento; `SECURITY.md` e README (o que o Rastro lê do git e o que abre fora).
+- **Registro (2026-11-26):**
+  - **Modelo de link:** a regra de cada host fica só no backend (`CodeLinks`). A rota `GET api/surveys/{id}/links` devolve, por repositório do levantamento (o principal e os trechos, cada um com o commit em que foi lido), o host reconhecido e os modelos com `{path}` e `{line}` pelo commit, pela branch e para o editor; a tela só preenche (`link-template.ts`), do mesmo jeito que o `CodeLinks.Fill` do servidor. Assim o `.drawio` e a tela da Fase 57 usam o mesmo link, sem repetir a regra em TypeScript.
+  - **Credencial:** usuário, senha e token da URL do remote saem na leitura (o `Uri` separa a parte de usuário, e o formato SCP não a carrega para o link); o remote nunca vai para o log. Os testes conferem com um remote que tem token, na rota e na saída do MCP.
+  - **Formatos aceitos:** GitHub, GitLab (com subgrupos), Bitbucket e Azure DevOps (HTTPS com usuário, SSH v3 e o endereço antigo `*.visualstudio.com`), em HTTPS, SSH e SCP. Host próprio (GitLab ou Azure DevOps Server instalados na empresa) fica sem link para o host: só o do editor.
+  - **Editor:** sem modelo, o do VS Code; a raiz da pasta entra com "/", cada segmento codificado (menos a letra da unidade), e o modelo configurado recebe o `{path}` já absoluto.
+  - **MCP:** o `get_business_view` traz, em cada passo, o link pronto para o host, quando o remote é reconhecido.
+  - **Ficou para a Fase 57:** abrir o link externo a partir da janela Photino. A página pediria ao Rastro que abrisse uma URL no sistema, o que é sensível (uma URL qualquer pode chamar outro programa) e precisa de lista fechada de hosts e esquemas; faz sentido junto com os botões "Abrir no host" e "Abrir no editor", que nascem na tela da 57.
+  - **Testes:** backend 955/955 (CORE-LNK-001 a 010 e API-LNK-001); frontend 605/605 (link do host no `.drawio` do grafo e do mapa, e o preenchimento do modelo).
 
 ## Fase 57: tela da visão de negócio `[ ]` (depende da Fase 56)
 
@@ -1287,6 +1295,7 @@ Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CL
 - [ ] Balões por tipo (pílula, losango, retângulo, tracejado), com as cores como tokens de cada paleta, em par claro e escuro; texto de negócio, referência e selos "proposto" e "inferido"; ligação com rótulo sobre o fundo da tela.
 - [ ] Painel do passo: tipo, texto, código (repositório, arquivo, linha, commit, branch, "Abrir no host", "Abrir no editor", trecho), caminho da entrada, passos agrupados, nota e "Ver no grafo".
 - [ ] Estados de carregamento, de levantamento rodando e de fluxo sem passo-chave; aviso de fluxo resumido.
+- [ ] "Abrir no host" e "Abrir no editor" na janela Photino: o Rastro abre no navegador ou no editor padrão só URL que veio de um modelo de link do próprio levantamento (hosts reconhecidos e o esquema do editor), nunca uma URL qualquer pedida pela página (vindo da Fase 56).
 - [ ] `.drawio` da visão de negócio, com os estilos da seção 14.1 da proposta.
 - [ ] `design-system.md`: os tokens por tipo e o verde liberado (o `CLAUDE.md` já mudou no PR do plano), e a linha da visão de negócio na `visao.md`.
 - [ ] Prints e `levantamento-ux` das telas tocadas.

@@ -932,6 +932,24 @@ export interface PeopleSuggestion {
   provider: AiProvider;
 }
 
+// Links do código (Fase 56): onde o repositório mora, lido do remote do git.
+export enum RepositoryHostKind {
+  Unknown = 0,
+  AzureDevOps = 1,
+  GitHub = 2,
+  GitLab = 3,
+  Bitbucket = 4,
+}
+
+// Modelos de link de um repositório do levantamento, com {path} e {line} a preencher (link-template.ts).
+export interface RepositoryLinks {
+  repository: string;
+  host: RepositoryHostKind;
+  commitTemplate: string | null;
+  branchTemplate: string | null;
+  editorTemplate: string | null;
+}
+
 // Mapa do fluxo (Fase 30): faixas por sistema, blocos de leitura, ligações e caminhos de ponta a ponta.
 export enum MapLaneKind {
   Code = 0,
