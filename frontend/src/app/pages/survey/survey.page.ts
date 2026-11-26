@@ -52,6 +52,7 @@ import { SurveyPageTitle } from '../../core/page-title.strategy';
 import { FlowCanvasComponent } from './flow-canvas.component';
 import { ConsolidatedViewComponent } from './consolidated-view.component';
 import { DRAWIO_MIME } from '../../core/graph/drawio';
+import { HostLinkOf, hostLinkResolver } from '../../core/graph/link-template';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
@@ -636,11 +637,26 @@ export class SurveyPage {
     }
   }
 
-  // draw.io (Fase 54): o grafo ou o mapa por sistemas, o que estiver na tela.
+  // draw.io (Fase 54): o grafo ou o mapa por sistemas, o que estiver na tela. Cada balão leva o link para o código
+  // no host (Fase 56), quando o remote do repositório é reconhecido.
   protected exportDrawio(): void {
     this.closePopovers();
+    const id = this.detail()?.survey.id;
+    if (!id) {
+      this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
+      return;
+    }
+    this.api.links(id).subscribe({
+      next: (links) => this.downloadDrawio(hostLinkResolver(links)),
+      // Sem os links (rota fora do ar), o arquivo sai do mesmo jeito, só sem o link de cada balão: o link é um
+      // acréscimo e não deve impedir a exportação.
+      error: () => this.downloadDrawio(undefined),
+    });
+  }
+
+  private downloadDrawio(linkOf: HostLinkOf | undefined): void {
     const name = this.exportName();
-    const xml = this.showMap() ? this.mapView()?.exportDrawio(name) : this.canvas()?.exportDrawio(name);
+    const xml = this.showMap() ? this.mapView()?.exportDrawio(name, linkOf) : this.canvas()?.exportDrawio(name, linkOf);
     if (!xml) {
       this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
