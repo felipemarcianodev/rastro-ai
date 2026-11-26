@@ -95,13 +95,14 @@
 // Aviso curto fixo no canto de baixo da janela: não empurra o layout. O erro fica até fechar.
 .toast.is-fixed {
   position: fixed;
-  z-index: 60;
+  z-index: var(--z-menu);
   bottom: var(--space-4);
+}
 
-  &.is-error {
-    border-color: color-mix(in srgb, var(--danger) 40%, transparent);
-    background: var(--danger-wash);
-  }
+// Erro em qualquer aviso (fixo, do menu, da visão de negócio): borda e fundo de perigo.
+.toast.is-error {
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+  background: var(--danger-wash);
 }
 
 // Barra em grupos (Ver, Compartilhar, Alterar): um divisor entre eles.

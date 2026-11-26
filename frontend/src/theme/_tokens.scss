@@ -90,6 +90,22 @@
   // Altura mínima da barra do alto; largura máxima de leitura de uma coluna de texto (motivos, consulta).
   --topbar-h: 52px;
   --reading-w: 960px;
+  // Barra de página (voltar, título, ações) numa linha, e as duas barras juntas: o aviso fixo fica abaixo delas.
+  --page-bar-h: calc(var(--control-h-sm) + 2 * var(--space-3) + 1px);
+  --header-h: calc(var(--topbar-h) + var(--page-bar-h));
+  // Largura do painel lateral do levantamento (grade e aba de recolher).
+  --panel-width: clamp(420px, 28vw, 600px);
+
+  // Camadas: cada nível acima do outro tem nome. O fundo do menu (59) fica abaixo do menu (60 e 61), que
+  // recebe o clique; o aviso passa por cima de tudo, menos do pular-para-o-conteúdo (1000, em _base).
+  --z-raised: 2;
+  --z-local-toast: 5;
+  --z-dropdown: 40;
+  --z-overlay: 50;
+  --z-menu-backdrop: 59;
+  --z-menu: 60;
+  --z-popover: 61;
+  --z-toast: 70;
 
   --shadow-lift: 0 1px 2px rgba(29, 42, 46, 0.06), 0 6px 18px rgba(29, 42, 46, 0.08);
   // Foco do teclado em tinta: o âmbar é só da trilha (seleção), para os dois não se confundirem.

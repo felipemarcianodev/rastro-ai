@@ -621,7 +621,8 @@
     "layout": {
       "saveFailed": "Não deu para salvar a posição.",
       "resetFailed": "Não deu para reorganizar. Tente de novo.",
-      "loadFailed": "Não deu para carregar as posições salvas. A organização automática foi usada."
+      "loadFailed": "Não deu para carregar as posições salvas. A organização automática foi usada.",
+      "saved": "Posição salva"
     },
     "keysHelp": "Tab: próximo balão. Enter: abrir o painel. Setas: mover o balão de 10 em 10 pixels. Esc: limpar a escolha. Mais, menos e zero: zoom. F2: editar o texto.",
     "hint": "Escolha um balão para ver o texto de negócio, o código e o caminho da entrada até ele. Arraste um balão para mudar de lugar e uma área vazia (ou Espaço e arrastar) para mover a tela. Ctrl e a roda aproximam.",
@@ -711,8 +712,18 @@
       "kindConfirmed": "Tipo confirmado.",
       "kindDismissed": "Proposta de tipo descartada.",
       "suggested": "{count, plural, =1 {# texto proposto} other {# textos propostos}}. Confirme os que servirem.",
-      "suggestedNone": "Nenhum texto novo para propor."
-    }
+      "suggestedNone": "Nenhum texto novo para propor.",
+      "labelRestored": "Texto restaurado."
+    },
+    "opening": "Abrindo…",
+    "openFailed": "Não foi possível abrir o link.",
+    "undo": "Desfazer",
+    "originBadge": {
+      "ai": "IA",
+      "agent": "agente",
+      "user": "editado"
+    },
+    "stepAriaOrigin": "texto {origin}"
   },
   "nodePanel": {
     "closeAria": "Fechar o passo e voltar à visão geral",
@@ -1107,7 +1118,8 @@
       "business": {
         "label": "Visão de negócio",
         "title": "Só as decisões, as notificações e as chamadas entre sistemas, em texto de negócio"
-      }
+      },
+      "announce": "Desenho: {name}"
     },
     "databaseMap": "Mapa do banco",
     "databaseMapTitle": "O mapa do banco deste repositório, lido do código",
@@ -1132,7 +1144,9 @@
       "c4": "Diagramas C4 (Structurizr DSL)",
       "notDrawn": "O grafo ainda não está desenhado. Espere ele aparecer e tente de novo.",
       "started": "Download iniciado: {file}",
-      "imageFailed": "Não exportou a imagem: {message} Tente o SVG."
+      "imageFailed": "Não exportou a imagem: {message} Tente o SVG.",
+      "onlyGraph": "Disponível no grafo e na visão de negócio",
+      "startedNoLinks": "Download iniciado: {file}. Saiu sem os links para o código (o servidor não respondeu)."
     },
     "edit": {
       "button": "Editar fluxo",
@@ -1269,7 +1283,8 @@
       "collapse": "Recolher o que vem depois",
       "businessShow": "Mostrar na visão de negócio",
       "businessShowTitle": "Marca este passo como passo-chave na visão de negócio",
-      "businessShown": "Passo incluído na visão de negócio."
+      "businessShown": "Passo incluído na visão de negócio.",
+      "businessSee": "Ver"
     },
     "toast": {
       "copied": "Copiado."
@@ -1861,7 +1876,9 @@
       "errors": {
         "name": "Informe o nome do quadro.",
         "surveys": "Escolha de 1 a {max} levantamentos."
-      }
+      },
+      "openFailed": "O quadro \"{name}\" foi criado, mas a tela dele não abriu.",
+      "position": "Posição {position} no quadro"
     },
     "addTo": {
       "title": "Adicionar a um quadro",
@@ -1874,7 +1891,8 @@
       "done": "Adicionado ao quadro \"{name}\".",
       "open": "Abrir o quadro",
       "noBoards": "Você ainda não tem quadros. Crie o primeiro aqui."
-    }
+    },
+    "opening": "Abrindo…"
   },
   "board": {
     "heading": "Quadro",
@@ -1908,14 +1926,16 @@
       "help": "Texto simples, uma entrada por linha, no formato Termo: significado. A IA usa o glossário ao sugerir os textos.",
       "save": "Salvar glossário",
       "saved": "Glossário salvo.",
-      "placeholder": "Pedido: compra feita pelo cliente"
+      "placeholder": "Pedido: compra feita pelo cliente",
+      "unsaved": "Alterações não salvas"
     },
     "legend": {
       "label": "Legenda dos tipos de passo"
     },
     "export": {
       "title": "PNG, SVG, Mermaid e draw.io",
-      "notDrawn": "O quadro ainda não tem faixa desenhada. Espere as faixas aparecerem e tente de novo."
+      "notDrawn": "O quadro ainda não tem faixa desenhada. Espere as faixas aparecerem e tente de novo.",
+      "needsLane": "Espere as faixas aparecerem para exportar."
     },
     "lane": {
       "aria": "Faixa {title}",
@@ -1936,7 +1956,18 @@
       "running": "Levantando…",
       "runningHint": "O Rastro está lendo o código. O desenho aparece quando terminar.",
       "failed": "O levantamento desta faixa falhou.",
-      "loadFailed": "Não foi possível abrir o levantamento desta faixa."
-    }
+      "loadFailed": "Não foi possível abrir o levantamento desta faixa.",
+      "retitled": "Faixa renomeada para \"{title}\".",
+      "added": "Faixa adicionada ao quadro.",
+      "removed": "Faixa \"{title}\" tirada do quadro.",
+      "moved": "Faixa {title} na posição {position} de {total}.",
+      "resurveyStarted": "Levantando de novo a faixa {title}.",
+      "runningNamed": "Levantando a faixa {title}.",
+      "openLabel": "Abrir a faixa {title}",
+      "removeLabel": "Tirar do quadro a faixa {title}",
+      "resurveyLabel": "Levantar de novo a faixa {title}",
+      "retryLabel": "Tentar de novo a faixa {title}"
+    },
+    "renamed": "Quadro renomeado."
   }
 }

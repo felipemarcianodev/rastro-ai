@@ -329,7 +329,7 @@ select.input {
 .overlay {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: var(--z-overlay);
   display: grid;
   // minmax(0, 1fr) nas duas direções: com trilha auto a coluna cresce até o max-content (pre ou
   // linha longa) e a linha até a altura do conteúdo, e o diálogo passa da tela.
@@ -379,7 +379,7 @@ select.input {
 // Menu de contexto (botão direito num passo do grafo).
 .context-menu {
   position: fixed;
-  z-index: 60;
+  z-index: var(--z-menu);
   min-width: 220px;
   margin: 0;
   padding: var(--space-1);
@@ -448,7 +448,7 @@ select.input {
 .menu-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 59;
+  z-index: var(--z-menu-backdrop);
 }
 
 // Aviso curto com ação (posições redefinidas, desfazer).
@@ -456,7 +456,7 @@ select.input {
   position: absolute;
   left: 50%;
   bottom: var(--space-4);
-  z-index: 5;
+  z-index: var(--z-local-toast);
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -521,7 +521,7 @@ select.input {
   top: calc(100% + 4px);
   right: 0;
   // Acima do .menu-backdrop (59), que fecha o menu ao clicar fora: senão o fundo engole o clique.
-  z-index: 61;
+  z-index: var(--z-popover);
   min-width: 220px;
   width: max-content;
   max-width: min(360px, calc(100vw - 32px));
@@ -553,6 +553,17 @@ select.input {
 
     &.is-danger {
       color: var(--danger);
+    }
+
+    // Item que não vale para o desenho de agora: continua no menu (com a dica do motivo), sem ação.
+    &[aria-disabled='true'] {
+      color: var(--ink-soft);
+      cursor: not-allowed;
+      opacity: 0.6;
+
+      &:hover {
+        background: none;
+      }
     }
   }
 }

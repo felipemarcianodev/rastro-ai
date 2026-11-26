@@ -1,6 +1,6 @@
 import { EdgeConfidence, FlowGraph, NodeKind } from '../models';
 import { LayoutDirection } from './layout';
-import { SvgColors, toMermaid, toSvg } from './export';
+import { MERMAID_MIME, SVG_MIME, SvgColors, mermaidFenced, toMermaid, toSvg } from './export';
 
 const graph: FlowGraph = {
   schemaVersion: 1,
@@ -100,5 +100,12 @@ describe('export entre sistemas (Fase 25)', () => {
     expect(svg).toContain('stroke="#1f5c99"');
     expect(svg).toContain('POST api/estornos');
     expect(new DOMParser().parseFromString(svg, 'image/svg+xml').querySelector('parsererror')).toBeNull();
+  });
+
+  // UX-FIM-155
+  it('mermaidFenced_comOTexto_cercaDeCodigoMermaid', () => {
+    expect(mermaidFenced('flowchart TD\n  a --> b\n')).toBe('```mermaid\nflowchart TD\n  a --> b\n```\n');
+    expect(SVG_MIME).toBe('image/svg+xml');
+    expect(MERMAID_MIME).toBe('text/plain');
   });
 });

@@ -460,4 +460,171 @@ describe('SurveyPage', () => {
     expect(el.querySelector('.page-bar-meta')!.textContent).toContain('3 passos');
   });
 
+  // Abre o menu Exportar e devolve os itens.
+  function openExport(el: HTMLElement): HTMLButtonElement[] {
+    [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!.click();
+    lastFixture!.detectChanges();
+    return [...el.querySelectorAll<HTMLButtonElement>('#export-menu button')];
+  }
+
+  // WEB-UXC-208 (UX-FIM-208)
+  it('menuExportar_noMapaPorSistemas_desabilitaImagemEMermaidEMantemODrawio', () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    [...el.querySelectorAll<HTMLButtonElement>('.segmented button')][1].click();
+    lastFixture!.detectChanges();
+
+    const items = openExport(el);
+
+    expect(items.slice(0, 4).map((i) => i.getAttribute('aria-disabled'))).toEqual(['true', 'true', 'true', 'true']);
+    expect(items[4].hasAttribute('aria-disabled')).toBeFalse();
+    const hint = items[0].getAttribute('aria-describedby')!;
+    expect(el.querySelector(`#${hint}`)).not.toBeNull();
+    items[0].click();
+    lastFixture!.detectChanges();
+    expect(el.querySelector('.menu-toast')).toBeNull();
+    expect(el.querySelector('#export-menu')).not.toBeNull();
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-UXC-208 (UX-FIM-208)
+  it('menuExportar_noConsolidado_desabilitaTambemODrawio', () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    [...el.querySelectorAll<HTMLButtonElement>('.segmented button')][2].click();
+    lastFixture!.detectChanges();
+
+    const items = openExport(el);
+
+    expect(items.slice(0, 5).every((i) => i.getAttribute('aria-disabled') === 'true')).toBeTrue();
+    expect(items[5].hasAttribute('aria-disabled')).toBeFalse();
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-UXC-012, 152, 216 (UX-FIM-012, 152, 216)
+  it('seletorEBotoesDaBarra_temDescricaoPopupEAnuncioDaTroca', () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+
+    const buttons = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
+    for (const button of buttons) {
+      const id = button.getAttribute('aria-describedby')!;
+      expect(el.querySelector(`#${id}`)!.textContent!.trim()).toBe(button.title);
+    }
+    const share = [...el.querySelectorAll<HTMLButtonElement>('.bar-group[aria-label="Compartilhar"] button')];
+    expect(share.map((b) => b.getAttribute('aria-haspopup'))).toEqual(['menu', 'menu', 'dialog']);
+
+    const live = el.querySelector('.segmented [aria-live="polite"]')!;
+    expect(live.textContent!.trim()).toBe('');
+    buttons[1].click();
+    lastFixture!.detectChanges();
+    expect(live.textContent!.trim()).not.toBe('');
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-UXC-203 (UX-FIM-203)
+  it('menuExportar_comTab_fechaEDevolveOFocoAoBotao', () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    const opener = [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!;
+    opener.focus();
+    openExport(el);
+
+    el.querySelector('#export-menu')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+    lastFixture!.detectChanges();
+
+    expect(el.querySelector('#export-menu')).toBeNull();
+    expect(document.activeElement).toBe(opener);
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-UXC-151 (UX-FIM-151)
+  it('baixarParaODrawio_semAsRotaDeLinks_avisaQueSaiuSemOsLinks', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:teste');
+    spyOn(HTMLAnchorElement.prototype, 'click');
+
+    openExport(el).find((b) => b.textContent!.includes('draw.io'))!.click();
+    TestBed.inject(HttpTestingController).match((r) => r.url.endsWith('/links')).forEach((r) => r.flush('erro', { status: 500, statusText: 'erro' }));
+    lastFixture!.detectChanges();
+
+    const toast = el.querySelector('.menu-toast')!;
+    expect(toast.textContent).toContain('sem os links para o código');
+    expect(toast.classList).not.toContain('is-error');
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-UXC-102 (UX-FIM-102)
+  it('avisoDeErroDaExportacao_naoSomeSozinho_eFechaPeloBotao', () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    const el = open(SurveyStatus.Completed);
+    jasmine.clock().install();
+    try {
+      const page = lastFixture!.componentInstance as unknown as { showExport(m: { ok: boolean; text: string }): void };
+      page.showExport({ ok: false, text: 'Falhou de teste' });
+      lastFixture!.detectChanges();
+      jasmine.clock().tick(10000);
+      lastFixture!.detectChanges();
+
+      const toast = el.querySelector('.menu-toast')!;
+      expect(toast.textContent).toContain('Falhou de teste');
+      [...toast.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent!.includes('Fechar'))!.click();
+      lastFixture!.detectChanges();
+      expect(el.querySelector('.menu-toast')).toBeNull();
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  // WEB-UXC-215 (UX-FIM-215)
+  it('menuDoNo_guardaAVisaoPorLevantamentoEOAvisoDeSucessoTemAcaoVer', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(3, 0);
+    const el = open(SurveyStatus.Completed);
+    const http = TestBed.inject(HttpTestingController);
+    const page = lastFixture!.componentInstance as unknown as { openMenu(menu: { nodeId: string; x: number; y: number }): void };
+    const businessRequests = () => http.match((r) => r.url.endsWith('/business'));
+
+    page.openMenu({ nodeId: 'm1', x: 10, y: 10 });
+    lastFixture!.detectChanges();
+    const first = businessRequests();
+    expect(first.length).toBe(1);
+    first[0].flush(BUSINESS_FLOW);
+    lastFixture!.detectChanges();
+
+    // Segunda abertura (outro nó): usa o que já sabe, sem nova chamada.
+    page.openMenu({ nodeId: 'm2', x: 10, y: 10 });
+    lastFixture!.detectChanges();
+    expect(businessRequests().length).toBe(0);
+    const item = [...el.querySelectorAll<HTMLButtonElement>('.context-menu button')].find((b) => b.textContent!.includes('Mostrar na visão de negócio'));
+    expect(item).toBeDefined();
+
+    item!.click();
+    http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/business/steps/m2/kind')).flush(BUSINESS_FLOW);
+    lastFixture!.detectChanges();
+    const see = [...el.querySelectorAll<HTMLButtonElement>('.menu-toast button')];
+    expect(see.length).toBe(1);
+    see[0].click();
+    http.match(() => true).forEach((r) => r.flush(r.request.url.endsWith('/business') ? BUSINESS_FLOW : []));
+    lastFixture!.detectChanges();
+
+    expect(el.querySelector('app-business-view')).not.toBeNull();
+    expect(el.querySelector('.menu-toast')).toBeNull();
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
 });
