@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
-import { CheckStatus, EdgeConfidence, FlowGraph, NodeKind, SourceLanguage, SurveyDetail, SurveyStatus, ValidationStatus, ValidationVerdict, ValidationView } from '../../core/models';
+import { BusinessFlow, BusinessKind, CheckStatus, EdgeConfidence, FlowGraph, LabelOrigin, LabelState, NodeKind, SourceLanguage, SurveyDetail, SurveyStatus, ValidationStatus, ValidationVerdict, ValidationView } from '../../core/models';
 import { EDIT_HINT_SEEN_KEY, SurveyPage } from './survey.page';
 
 const SURVEY_ID = 's1';
@@ -87,7 +87,36 @@ function open(status: SurveyStatus, validations: ValidationView[] = []): HTMLEle
   return fixture.nativeElement as HTMLElement;
 }
 
+// Visão de negócio: o clique no seletor, a resposta da rota e a espera até o desenho existir.
+// O grafo do teste tem a entrada e `m0`: dois passos-chave, com a decisão no segundo.
+const BUSINESS_FLOW: BusinessFlow = {
+  surveyId: SURVEY_ID,
+  schemaVersion: 1,
+  collapsedDecisions: 0,
+  steps: [
+    { id: 'b1', nodeId: 'entry', kind: BusinessKind.Start, label: 'Pedido recebido', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['entry'], inferred: false },
+    { id: 'b2', nodeId: 'm0', kind: BusinessKind.Decision, label: 'O pedido é válido?', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['m0'], inferred: false },
+  ],
+  edges: [{ from: 'b1', to: 'b2', label: null, inferred: false }],
+};
+
+async function showBusiness(el: HTMLElement): Promise<void> {
+  const items = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
+  items[3].click();
+  lastFixture!.detectChanges();
+  const http = TestBed.inject(HttpTestingController);
+  http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(BUSINESS_FLOW));
+  http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+  lastFixture!.detectChanges();
+  await lastFixture!.whenStable();
+  lastFixture!.detectChanges();
+}
+
 describe('SurveyPage', () => {
+  afterEach(() => {
+    graphOverride = undefined;
+  });
+
   it('mostra o botão Mapa do banco com a rota do repositório, em qualquer status', () => {
     // UX-F01
     for (const status of [SurveyStatus.Pending, SurveyStatus.Completed]) {
@@ -239,20 +268,106 @@ describe('SurveyPage', () => {
   });
 
   // WEB-UXC-010 (F09)
-  it('o seletor tem as três visões, com a atual marcada e a troca pelo clique', () => {
+  it('o seletor tem as quatro visões, com a atual marcada e a troca pelo clique', () => {
     TestBed.resetTestingModule();
     const el = open(SurveyStatus.Completed);
 
     const group = el.querySelector('.segmented')!;
     expect(group.getAttribute('role')).toBe('group');
     const items = [...group.querySelectorAll<HTMLButtonElement>('button')];
-    expect(items.map((b) => b.textContent!.trim())).toEqual(['Grafo', 'Mapa por sistemas', 'Visão consolidada']);
-    expect(items.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false']);
+    expect(items.map((b) => b.textContent!.trim())).toEqual(['Grafo', 'Mapa por sistemas', 'Visão consolidada', 'Visão de negócio']);
+    expect(items.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false']);
 
     items[2].click();
     lastFixture!.detectChanges();
     const after = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
-    expect(after.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true']);
+    expect(after.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true', 'false']);
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-BIZV-030 (Fase 57)
+  it('visaoDeNegocio_selecionadaNoSeletor_mostraOComponenteEMarcaOBotao', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+
+    await showBusiness(el);
+
+    const items = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
+    expect(items.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false', 'true']);
+    expect(el.querySelector('app-business-view')).not.toBeNull();
+    expect(el.querySelector('app-flow-canvas')).toBeNull();
+    expect(el.querySelectorAll('.biz-node').length).toBe(2);
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-BIZV-031 (Fase 57)
+  it('verNoGrafo_voltaAoCanvasComOPassoEscolhido', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+
+    el.querySelector<HTMLElement>('[data-step-id="b2"]')!.click();
+    lastFixture!.detectChanges();
+    const button = [...el.querySelectorAll<HTMLButtonElement>('.biz-panel button')].find((b) => b.textContent!.includes('Ver no grafo'))!;
+    button.click();
+    lastFixture!.detectChanges();
+
+    expect(el.querySelector('app-business-view')).toBeNull();
+    expect(el.querySelector('app-flow-canvas')).not.toBeNull();
+    expect(el.querySelector('app-node-panel')!.textContent).toContain('PedidoRepo0.Salvar');
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-BIZV-034 (Fase 57)
+  it('menuExportar_comAVisaoDeNegocio_desabilitaImagemEMermaidEMantemODrawioEOC4', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+
+    [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!.click();
+    lastFixture!.detectChanges();
+    const items = [...el.querySelectorAll<HTMLButtonElement>('#export-menu button')];
+    const by = (text: string) => items.find((b) => b.textContent!.includes(text))!;
+
+    for (const text of ['PNG', 'SVG', 'Copiar como Mermaid', 'Baixar como Mermaid']) {
+      expect(by(text).disabled).withContext(text).toBeTrue();
+      expect(by(text).getAttribute('aria-disabled')).toBe('true');
+      expect(by(text).title).toContain('draw.io');
+    }
+    expect(by('draw.io').disabled).toBeFalse();
+    expect(items.some((b) => b.textContent!.includes('C4') && !b.disabled)).toBeTrue();
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-BIZV-032 (Fase 57)
+  it('baixarParaODrawio_comAVisaoDeNegocioNaTela_exportaOLosangoDaDecisao', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+    let exported: Blob | null = null;
+    spyOn(URL, 'createObjectURL').and.callFake((blob) => {
+      exported = blob as Blob;
+      return 'blob:teste';
+    });
+    spyOn(HTMLAnchorElement.prototype, 'click');
+
+    [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!.click();
+    lastFixture!.detectChanges();
+    [...el.querySelectorAll<HTMLButtonElement>('#export-menu button')].find((b) => b.textContent!.includes('draw.io'))!.click();
+    TestBed.inject(HttpTestingController).match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+    lastFixture!.detectChanges();
+
+    const text = await (exported as unknown as Blob).text();
+    expect(text).toContain('rhombus');
+    expect(text).toContain('O pedido é válido?');
     localStorage.removeItem('rastro.layoutDirection');
   });
 

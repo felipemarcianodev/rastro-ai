@@ -3,3 +3,4 @@ avaliacao
 repositorio
 sugerencia
 sugerencias
+negocio

@@ -126,3 +126,8 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 54 | O item "Baixar para o draw.io" no menu Exportar do levantamento (fluxo do próprio Rastro) | [fase-54/01-menu-exportar-drawio.jpg](fase-54/01-menu-exportar-drawio.jpg) |
 | Fase 54 | O grafo exportado aberto no draw.io, com as posições, as portas e os passos repetidos da tela | [fase-54/02-grafo-no-drawio.jpg](fase-54/02-grafo-no-drawio.jpg) |
 | Fase 54 | O mapa por sistemas exportado aberto no draw.io, com a faixa em moldura e o ramo no rótulo | [fase-54/03-mapa-no-drawio.jpg](fase-54/03-mapa-no-drawio.jpg) |
+| Fase 57 | Visão de negócio no tema claro (fluxo do próprio Rastro): início, decisão em losango, duas recusas e o fim | [fase-57/01-visao-de-negocio-claro.jpg](fase-57/01-visao-de-negocio-claro.jpg) |
+| Fase 57 | A mesma visão de negócio no tema escuro | [fase-57/02-visao-de-negocio-escuro.jpg](fase-57/02-visao-de-negocio-escuro.jpg) |
+| Fase 57 | Painel do passo de uma decisão: tipo, código, links para o host e o editor, caminho da entrada e passos agrupados | [fase-57/03-painel-da-decisao.jpg](fase-57/03-painel-da-decisao.jpg) |
+| Fase 57 | Fluxo sem passo-chave além da entrada: a mensagem e o atalho para o grafo completo | [fase-57/04-sem-passo-chave.jpg](fase-57/04-sem-passo-chave.jpg) |
+| Fase 57 | A visão de negócio exportada aberta no draw.io, com as cores e os links | [fase-57/05-visao-de-negocio-no-drawio.jpg](fase-57/05-visao-de-negocio-no-drawio.jpg) |

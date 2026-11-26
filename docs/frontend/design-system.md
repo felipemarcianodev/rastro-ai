@@ -35,6 +35,22 @@ Pedido do dono: escolher entre três paletas na própria tela, para decidir depo
 
 Cada paleta tem variante escura. Regra que vale para todas: a cor forte é só da trilha, e não resolvido e inferida nunca colidem com ela.
 
+### Visão de negócio (Fase 57): cor por tipo de balão
+
+Cada tipo tem três tokens (`--biz-<tipo>-fill`, `--biz-<tipo>-stroke`, `--biz-<tipo>-ink`), definidos em `:root` e na variante escura, e valem nas paletas todas (as paletas não os redefinem). São as cores do draw.io (proposta 10.4), para o arquivo exportado sair igual à tela. **O verde é permitido** (decisão do dono em 2026-11-25; aqui, no início), desde que a cor exista no tema claro e no escuro. O tipo nunca depende só da cor: o balão leva glifo, forma (pílula, losango, tracejado) e o rótulo no painel.
+
+| Tipo | Forma | Fundo e borda (claro) | Fundo e borda (escuro) |
+|---|---|---|---|
+| `start` | pílula | `#d5e8d4` / `#82b366` | `#243a2a` / `#6fa35c` |
+| `decision` | losango | `#fff2cc` / `#d6b656` | `#3b3420` / `#c9a642` |
+| `notification` | retângulo, texto em negrito | `#ffe6cc` / `#d79b00` | `#40301c` / `#e0a13a` |
+| `rejection` | retângulo | `#f8cecc` / `#b85450` | `#42262a` / `#d0706a` |
+| `cross-system` | retângulo tracejado | `#eeeeee` / `#9a9a9a` | `#2a2f2e` / `#6f7874` |
+| `step` | retângulo | `#ffffff` / `#666666` | `#262c2b` / `#6f7874` |
+| `end` | pílula | `#dae8fc` / `#6c8ebf` | `#1f2d42` / `#7ea2d6` |
+
+Tinta (`--biz-<tipo>-ink`): `#1d2a2e` no claro e `#e8efe9` no escuro, em todos os tipos.
+
 ## Tipo
 
 - **Instrument Sans** (400, 500, 600) para a interface.

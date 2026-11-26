@@ -264,4 +264,5 @@
   <data name="business.label.rejection" xml:space="preserve"><value>Rejected: {0}</value></data>
   <data name="business.label.email" xml:space="preserve"><value>Sends email</value></data>
   <data name="business.label.inApp" xml:space="preserve"><value>In-app notice</value></data>
+  <data name="business.label.end" xml:space="preserve"><value>End</value></data>
 </root>

@@ -1,7 +1,9 @@
 using System.Runtime.ExceptionServices;
+using Microsoft.Extensions.Options;
 using Photino.NET;
 using Rastro.Api.Cli;
 using Rastro.Core.Localization;
+using Rastro.Infrastructure.Configuration;
 using Rastro.Infrastructure.Storage;
 
 namespace Rastro.Api.Desktop;
@@ -90,6 +92,8 @@ public static class DesktopWindow
     private static void Show(WebApplication app, string url, ILogger logger)
     {
         var state = new WindowState();
+        // Só a configuração decide o esquema do editor aceito; nunca a página.
+        var editorTemplate = app.Services.GetRequiredService<IOptions<RastroOptions>>().Value.Editor.UrlTemplate;
         // Sem o log do Photino no console: cada chamada da configuração vira uma linha.
         var window = new PhotinoWindow()
             .SetLogVerbosity(0)
@@ -106,7 +110,7 @@ public static class DesktopWindow
             window.SetIconFile(icon);
 
         window.RegisterWindowCreatedHandler((_, _) => state.Created())
-            .RegisterWebMessageReceivedHandler((_, message) => OnMessage(window, message, logger))
+            .RegisterWebMessageReceivedHandler((_, message) => OnMessage(window, message, logger, editorTemplate))
             .Load(new Uri(url));
 
         // Ctrl+C no console: a API para e a janela fecha junto.
@@ -122,13 +126,14 @@ public static class DesktopWindow
 
     // A caixa de escolher pasta sai do evento do WebView2 (que não aceita laço modal dentro dele) e volta para a
     // thread da janela pelo Invoke; a resposta vai para a página pelo mesmo caminho.
-    private static void OnMessage(PhotinoWindow window, string message, ILogger logger)
+    private static void OnMessage(PhotinoWindow window, string message, ILogger logger, string? editorTemplate)
     {
         _ = Task.Run(() =>
         {
             try
             {
-                var response = DesktopBridge.Handle(message, () => PickFolder(window), logger);
+                var response = DesktopBridge.Handle(message, () => PickFolder(window), logger,
+                    url => ExternalLinkOpener.Open(url, logger), editorTemplate);
                 if (response is not null)
                     window.Invoke(() => window.SendWebMessage(response));
             }

@@ -45,7 +45,13 @@ public class BusinessFlowBuilderTests
     private static string Id(string nodeId) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{SurveyId:N}|{nodeId}"))).ToLowerInvariant()[..16];
 
-    private static BusinessStep Step(BusinessFlow flow, string nodeId) => flow.Steps.Single(s => s.NodeId == nodeId);
+    // Início e Fim têm o mesmo NodeId (a entrada); Step devolve o primeiro, o Início.
+    private static BusinessStep Step(BusinessFlow flow, string nodeId) => flow.Steps.First(s => s.NodeId == nodeId);
+
+    private static BusinessStep EndStep(BusinessFlow flow) => flow.Steps.Single(s => s.Kind == BusinessKind.End);
+
+    private static string EndId(string nodeId) =>
+        Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes($"{SurveyId:N}|end|{nodeId}"))).ToLowerInvariant()[..16];
 
     private static BusinessEdge Link(BusinessFlow flow, string fromNode, string toNode) =>
         flow.Edges.Single(e => e.From == Id(fromNode) && e.To == Id(toNode));
@@ -98,7 +104,7 @@ public class BusinessFlowBuilderTests
         Assert.Equal(
             [BusinessKind.Start, BusinessKind.Decision, BusinessKind.Rejection, BusinessKind.Step, BusinessKind.Notification, BusinessKind.End],
             flow.Steps.Select(s => s.Kind));
-        Assert.Equal(["m:e", "if:1", "ret:1", "m:db", "m:mail", "m:fim"], flow.Steps.Select(s => s.NodeId));
+        Assert.Equal(["m:e", "if:1", "ret:1", "m:db", "m:mail", "m:e"], flow.Steps.Select(s => s.NodeId));
 
         Assert.Null(Link(flow, "m:e", "if:1").Label);
         Assert.Equal("then", Link(flow, "if:1", "ret:1").Label);
@@ -118,7 +124,7 @@ public class BusinessFlowBuilderTests
         Assert.Equal("Rejected: enviado", Step(flow, "ret:1").Label);
         Assert.Equal("Repo.Gravar", Step(flow, "m:db").Label);
         Assert.Equal("Sends email", Step(flow, "m:mail").Label);
-        Assert.Equal("Svc.Concluir", Step(flow, "m:fim").Label);
+        Assert.Equal("End", EndStep(flow).Label);
     }
 
     [Fact]
@@ -175,7 +181,7 @@ public class BusinessFlowBuilderTests
 
         var flow = Derive(graph);
 
-        Assert.Equal(2, flow.Steps.Count);
+        Assert.Equal(3, flow.Steps.Count);
         Assert.Equal(["m:mail", "x:smtp"], Step(flow, "m:mail").SourceNodeIds);
     }
 
@@ -291,33 +297,37 @@ public class BusinessFlowBuilderTests
     }
 
     [Fact]
-    public void Derive_CaminhoQueTerminaSemErro_GanhaFimNoUltimoNo()
+    public void Derive_CaminhoQueTerminaSemErro_LigaAoFimUnicoDaEntrada()
     {
         // CORE-BIZ-012 (R7)
         var flow = Derive(Cancelamento());
 
-        var end = Step(flow, "m:fim");
-        Assert.Equal(BusinessKind.End, end.Kind);
+        var end = EndStep(flow);
+        Assert.Equal("m:e", end.NodeId);
+        Assert.Equal(EndId("m:e"), end.Id);
         Assert.Equal(Id("m:mail"), Assert.Single(flow.Edges, e => e.To == end.Id).From);
-        Assert.DoesNotContain(flow.Steps, s => s.Kind == BusinessKind.End && s.NodeId == "ret:1");
+        Assert.Equal(new CodeRef(Repo, "Ctrl.cs", 1, "aaa111", "main"), end.Ref);
     }
 
     [Fact]
-    public void Derive_FimEmMetodoDeFramework_UsaOMetodoDoProprioCodigo()
+    public void Derive_DoisCaminhosQueTerminam_LigamAoMesmoFim()
     {
-        // CORE-BIZ-013 (R7)
+        // CORE-BIZ-013 (R7: fim único)
         var graph = G("m:e",
             [
                 M("m:e", "Ctrl.A", kind: NodeKind.Entry),
-                M("m:svc", "Svc.Fazer"),
-                M("m:ok", "ControllerBase.Ok", "Microsoft.AspNetCore.Mvc.ControllerBase.Ok()"),
-                M("m:w", "Repo.Gravar", db: Insert)
+                Dec("if:1", "x"),
+                M("m:mail", "Mail.Enviar", "Fix.EmailService.SendAsync(string)"),
+                M("m:w", "Repo.Gravar", db: Insert),
+                M("m:ok", "ControllerBase.Ok", "Microsoft.AspNetCore.Mvc.ControllerBase.Ok()")
             ],
-            [E("m:e", "m:w", 1), E("m:e", "m:svc", 2), E("m:svc", "m:ok", 1)]);
+            [E("m:e", "if:1", 1), E("if:1", "m:mail", 1, "then"), E("if:1", "m:w", 2, "else"), E("m:e", "m:ok", 2)]);
 
         var flow = Derive(graph);
 
-        Assert.Equal(BusinessKind.End, Step(flow, "m:svc").Kind);
+        var end = EndStep(flow);
+        Assert.Equal(1, flow.Steps.Count(s => s.Kind == BusinessKind.End));
+        Assert.Equal([Id("m:mail"), Id("m:w")], flow.Edges.Where(e => e.To == end.Id).Select(e => e.From));
         Assert.DoesNotContain(flow.Steps, s => s.NodeId == "m:ok");
     }
 
@@ -337,7 +347,7 @@ public class BusinessFlowBuilderTests
         var flow = Derive(graph);
 
         Assert.DoesNotContain(flow.Steps, s => s.Kind == BusinessKind.Decision);
-        Assert.Equal([BusinessKind.Start, BusinessKind.Notification], flow.Steps.Select(s => s.Kind));
+        Assert.Equal([BusinessKind.Start, BusinessKind.Notification, BusinessKind.End], flow.Steps.Select(s => s.Kind));
         Assert.Null(Link(flow, "m:e", "m:mail").Label);
         Assert.Equal(["m:e", "if:1", "m:log"], Step(flow, "m:e").SourceNodeIds);
     }
@@ -357,7 +367,7 @@ public class BusinessFlowBuilderTests
 
         var flow = Derive(graph);
 
-        Assert.Equal([BusinessKind.Start, BusinessKind.Decision, BusinessKind.Step, BusinessKind.Notification], flow.Steps.Select(s => s.Kind));
+        Assert.Equal([BusinessKind.Start, BusinessKind.Decision, BusinessKind.Step, BusinessKind.Notification, BusinessKind.End], flow.Steps.Select(s => s.Kind));
         Assert.Equal("then", Link(flow, "if:1", "m:w").Label);
         Assert.Equal("else", Link(flow, "if:1", "m:mail").Label);
     }
@@ -428,7 +438,7 @@ public class BusinessFlowBuilderTests
         var flow = Derive(graph);
 
         Assert.True(Step(flow, "m:mail").Inferred);
-        Assert.True(Assert.Single(flow.Edges).Inferred);
+        Assert.True(Link(flow, "m:e", "m:mail").Inferred);
     }
 
     [Fact]
@@ -483,10 +493,10 @@ public class BusinessFlowBuilderTests
 
         var graph = G("m:e", [.. nodes], [.. edges]);
         var inteiro = Derive(graph);
-        var limitado = Derive(graph, BusinessViewOptions.Default with { MaxStepsPerFlow = 9 });
+        var limitado = Derive(graph, BusinessViewOptions.Default with { MaxStepsPerFlow = 10 });
 
         Assert.Equal(0, inteiro.CollapsedDecisions);
-        Assert.True(limitado.Steps.Count <= 9);
+        Assert.True(limitado.Steps.Count <= 10);
         Assert.True(limitado.CollapsedDecisions > 0);
         var decisoes = limitado.Steps.Where(s => s.Kind == BusinessKind.Decision).Select(s => s.NodeId).ToList();
         Assert.Contains("if:z", decisoes);
@@ -661,41 +671,99 @@ public class BusinessFlowBuilderTests
 
         var flow = Derive(graph);
 
+        var end = EndStep(flow);
         Assert.Equal(BusinessKind.Decision, Step(flow, "if:1").Kind);
         Assert.Equal("then", Link(flow, "if:1", "m:mail").Label);
-        Assert.Equal("else", Link(flow, "if:1", "m:fim").Label);
-        Assert.Null(Link(flow, "m:mail", "m:fim").Label);
-        Assert.Equal(BusinessKind.End, Step(flow, "m:fim").Kind);
+        Assert.Equal("else", flow.Edges.Single(e => e.From == Id("if:1") && e.To == end.Id).Label);
+        Assert.Null(flow.Edges.Single(e => e.From == Id("m:mail") && e.To == end.Id).Label);
     }
 
     [Fact]
-    public void Derive_FimDoCaminho_PrimeiroMetodoDoCodigoNoNivelMaisDeFora()
+    public void Derive_DecisaoCujosRamosSoTerminam_SeFunde()
     {
-        // CORE-BIZ-032 (R7: callbacks achatados do subscribe)
+        // CORE-BIZ-032 (R2: chegar ao fim vale como o mesmo próximo passo)
         var graph = G("m:e",
             [
-                M("m:e", "Comp.cancelar", kind: NodeKind.Entry),
-                M("m:a", "Svc.Fazer"),
-                M("m:w", "Repo.Gravar", db: Insert),
-                M("m:x", "Svc.Depois"),
-                M("m:rec", "Comp.recarregar"),
-                M("m:err", "Comp.mostrarErro"),
-                M("m:ok", "ControllerBase.Ok", "Microsoft.AspNetCore.Mvc.ControllerBase.Ok()")
+                M("m:e", "Ctrl.A", kind: NodeKind.Entry),
+                Dec("if:1", "x"),
+                M("m:a", "Svc.A"),
+                M("m:b", "Svc.B"),
+                M("m:w", "Repo.Gravar", db: Insert)
             ],
+            [E("m:e", "if:1", 1), E("if:1", "m:a", 1, "then"), E("if:1", "m:b", 2, "else"), E("m:e", "m:w", 2)]);
+        var comAviso = G("m:e",
             [
-                E("m:e", "m:a", 1),
-                E("m:a", "m:w", 1),
-                E("m:a", "m:x", 2),
-                E("m:x", "m:ok", 1),
-                E("m:e", "m:rec", 2),
-                E("m:e", "m:err", 3)
-            ]);
+                M("m:e", "Ctrl.A", kind: NodeKind.Entry),
+                Dec("if:1", "x"),
+                M("m:mail", "Mail.Enviar", "Fix.EmailService.SendAsync(string)")
+            ],
+            [E("m:e", "if:1", 1), E("if:1", "m:mail", 1, "then")]);
+
+        var fundida = Derive(graph);
+        var mantida = Derive(comAviso);
+
+        Assert.Equal([BusinessKind.Start, BusinessKind.Step, BusinessKind.End], fundida.Steps.Select(s => s.Kind));
+        Assert.Equal([BusinessKind.Start, BusinessKind.Decision, BusinessKind.Notification, BusinessKind.End], mantida.Steps.Select(s => s.Kind));
+    }
+
+    [Fact]
+    public void Derive_IdDoFim_NaoColideComOInicio()
+    {
+        // CORE-BIZ-034
+        var flow = Derive(Cancelamento());
+
+        Assert.NotEqual(flow.Steps[0].Id, EndStep(flow).Id);
+        Assert.Equal(flow.Steps.Count, flow.Steps.Select(s => s.Id).Distinct().Count());
+    }
+
+    [Theory]
+    [InlineData(UiLanguage.English, "End")]
+    [InlineData(UiLanguage.Portuguese, "Fim")]
+    [InlineData(UiLanguage.Spanish, "Fin")]
+    public void Derive_TextoDoFim_PorIdioma(UiLanguage language, string esperado)
+    {
+        // CORE-BIZ-035
+        Assert.Equal(esperado, EndStep(Derive(Cancelamento(), language: language)).Label);
+    }
+
+    [Fact]
+    public void Derive_NenhumCaminhoTerminaSemErro_NaoCriaFim()
+    {
+        // CORE-BIZ-036
+        var graph = G("m:e",
+            [M("m:e", "Ctrl.A", kind: NodeKind.Entry), Thr("thr:1")],
+            [E("m:e", "thr:1", 1)]);
 
         var flow = Derive(graph);
 
-        Assert.Equal(BusinessKind.End, Step(flow, "m:rec").Kind);
-        Assert.DoesNotContain(flow.Steps, s => s.NodeId is "m:err" or "m:x" or "m:ok");
-        Link(flow, "m:w", "m:rec");
+        Assert.DoesNotContain(flow.Steps, s => s.Kind == BusinessKind.End);
+        Assert.Equal([BusinessKind.Start, BusinessKind.Rejection], flow.Steps.Select(s => s.Kind));
+    }
+
+    [Fact]
+    public void Derive_ConstanteDeStatus4xx_VirarRecusaComOTextoDoLiteral()
+    {
+        // CORE-BIZ-037 (R4)
+        var graph = G("m:e",
+            [
+                M("m:e", "Ctrl.A", kind: NodeKind.Entry),
+                Dec("if:1", "a"), Ret("ret:1", "return Error(StatusCodes.Status400BadRequest, ErrorCodes.LanguageInvalid, \"Idioma inválido.\")"),
+                Dec("if:2", "b"), Ret("ret:2", "return Error(StatusCodes.Status404NotFound, ErrorCodes.X)"),
+                Dec("if:3", "c"), Ret("ret:3", "return Error(ErrorCodes.X, \"texto\")"),
+                M("m:fim", "Ctrl.Fim")
+            ],
+            [
+                E("m:e", "if:1", 1), E("if:1", "ret:1", 1, "then"),
+                E("m:e", "if:2", 2), E("if:2", "ret:2", 1, "then"),
+                E("m:e", "if:3", 3), E("if:3", "ret:3", 1, "then"),
+                E("m:e", "m:fim", 4)
+            ]);
+
+        var flow = Derive(graph, language: UiLanguage.Portuguese);
+
+        Assert.Equal("Recusa: Idioma inválido.", Step(flow, "ret:1").Label);
+        Assert.Equal("Recusa: Status404NotFound", Step(flow, "ret:2").Label);
+        Assert.DoesNotContain(flow.Steps, s => s.NodeId == "ret:3");
     }
 
     [Theory]

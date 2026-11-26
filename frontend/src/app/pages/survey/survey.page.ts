@@ -54,6 +54,7 @@ import { ConsolidatedViewComponent } from './consolidated-view.component';
 import { DRAWIO_MIME } from '../../core/graph/drawio';
 import { HostLinkOf, hostLinkResolver } from '../../core/graph/link-template';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
+import { BusinessViewComponent } from './business-view.component';
 import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
 import { NodePanelComponent } from './node-panel.component';
@@ -64,11 +65,12 @@ import { DialogDirective } from '../../core/dialog.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 
 const POLL_MS = 2000;
-// As três visões do seletor da barra (F09). Rótulo e dica são chaves de tradução, nunca comparação com texto.
+// As quatro visões do seletor da barra (F09, Fase 57). Rótulo e dica são chaves de tradução, nunca comparação com texto.
 const DRAWING_VIEWS: readonly { direction: LayoutDirection; label: string; title: string }[] = [
   { direction: LayoutDirection.Horizontal, label: 'survey.view.graph.label', title: 'survey.view.graph.title' },
   { direction: LayoutDirection.Map, label: 'survey.view.map.label', title: 'survey.view.map.title' },
   { direction: LayoutDirection.Consolidated, label: 'survey.view.consolidated.label', title: 'survey.view.consolidated.title' },
+  { direction: LayoutDirection.Business, label: 'survey.view.business.label', title: 'survey.view.business.title' },
 ];
 const SEARCH_FOCUS_DELAY_MS = 120;
 // Lista de ocorrências da busca (UX-G-F22) e espera até o canvas voltar (UX-G-F03).
@@ -87,7 +89,7 @@ const POLL_TOLERATED_FAILURES = 2;
 
 @Component({
   selector: 'app-survey-page',
-  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective, AiDisclosureComponent],
+  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, BusinessViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective, AiDisclosureComponent],
   templateUrl: './survey.page.html',
   styleUrl: './survey.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
@@ -104,6 +106,7 @@ export class SurveyPage {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly canvas = viewChild(FlowCanvasComponent);
   private readonly mapView = viewChild(FlowMapViewComponent);
+  private readonly businessView = viewChild(BusinessViewComponent);
   private pollTimer?: ReturnType<typeof setTimeout>;
   private failures = 0;
 
@@ -154,8 +157,11 @@ export class SurveyPage {
   private readonly drawing = signal(readLayoutDirection());
   protected readonly consolidated = computed(() => this.drawing() === LayoutDirection.Consolidated);
   protected readonly mapped = computed(() => this.drawing() === LayoutDirection.Map);
+  // Visão de negócio (Fase 57): o sexto desenho, também no lugar do canvas.
+  protected readonly business = computed(() => this.drawing() === LayoutDirection.Business);
   protected readonly showConsolidated = computed(() => this.consolidated() && !this.editing() && !this.comparison());
   protected readonly showMap = computed(() => this.mapped() && !this.editing() && !this.comparison());
+  protected readonly showBusiness = computed(() => this.business() && !this.editing() && !this.comparison());
   // Resumo do fluxo (Fase 23): vem do canvas, que o monta junto com o desenho.
   protected readonly summary = signal<FlowSummary | null>(null);
   protected readonly resurveying = signal(false);
@@ -310,8 +316,8 @@ export class SurveyPage {
     const graph = source && !this.showFramework() ? withoutFrameworkCalls(source) : source;
     const focus = this.focusId();
     const focused = graph && focus ? focusOn(graph, focus) : graph;
-    // O consolidado e o mapa não recolhem passos: o painel precisa achar qualquer passo deles.
-    if (this.showConsolidated() || this.showMap()) return focused;
+    // O consolidado, o mapa e a visão de negócio não recolhem passos: o painel precisa achar qualquer passo deles.
+    if (this.showConsolidated() || this.showMap() || this.showBusiness()) return focused;
     return focused ? collapseAfter(focused, this.collapsed()) : focused;
   });
 
@@ -428,7 +434,8 @@ export class SurveyPage {
   protected drawingPressed(direction: LayoutDirection): boolean {
     if (direction === LayoutDirection.Map) return this.mapped();
     if (direction === LayoutDirection.Consolidated) return this.consolidated();
-    return !this.mapped() && !this.consolidated();
+    if (direction === LayoutDirection.Business) return this.business();
+    return !this.mapped() && !this.consolidated() && !this.business();
   }
 
   protected showDrawing(direction: LayoutDirection): void {
@@ -656,7 +663,7 @@ export class SurveyPage {
 
   private downloadDrawio(linkOf: HostLinkOf | undefined): void {
     const name = this.exportName();
-    const xml = this.showMap() ? this.mapView()?.exportDrawio(name, linkOf) : this.canvas()?.exportDrawio(name, linkOf);
+    const xml = this.showMap() ? this.mapView()?.exportDrawio(name, linkOf) : this.showBusiness() ? this.businessView()?.exportDrawio(name, linkOf) : this.canvas()?.exportDrawio(name, linkOf);
     if (!xml) {
       this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
@@ -1060,9 +1067,16 @@ export class SurveyPage {
     items[next]?.focus();
   }
 
+  // "Ver no grafo" da visão de negócio: volta ao canvas com o nó escolhido (sem mudar o desenho guardado).
+  protected showNodeInGraph(nodeId: string): void {
+    this.drawing.set(LayoutDirection.Horizontal);
+    this.select(nodeId, false);
+    this.focusNodeElement(nodeId);
+  }
+
   protected focusOnNode(nodeId: string): void {
-    // O recorte é do canvas: o mapa não o desenha, então ele cede o lugar (sem mudar o desenho guardado).
-    if (this.showMap()) this.drawing.set(LayoutDirection.Horizontal);
+    // O recorte é do canvas: o mapa e a visão de negócio não o desenham, então cedem o lugar (sem mudar o desenho guardado).
+    if (this.showMap() || this.showBusiness()) this.drawing.set(LayoutDirection.Horizontal);
     this.closeMenu();
     this.focusId.set(nodeId);
     this.select(nodeId);

@@ -1,5 +1,6 @@
-import { EdgeConfidence, FlowGraph, FlowMap, MapBlockKind, MapLaneKind, MapLinkKind, NodeKind } from '../models';
-import { DRAWIO_STYLE, codeReference, graphToDrawio, mapToDrawio, toDrawio } from './drawio';
+import { BusinessFlow, BusinessKind, EdgeConfidence, FlowGraph, FlowMap, LabelOrigin, LabelState, MapBlockKind, MapLaneKind, MapLinkKind, NodeKind } from '../models';
+import { businessLayout } from './business-layout';
+import { DRAWIO_STYLE, businessToDrawio, codeReference, graphToDrawio, mapToDrawio, toDrawio } from './drawio';
 import { mapGeometry } from './flow-map';
 import { LayoutDirection } from './layout';
 
@@ -189,6 +190,40 @@ describe('drawio', () => {
 
     expect(doc.querySelector('UserObject')?.getAttribute('link')).toBe('https://github.com/o/r/blob/abc/a.cs#L1');
     expect(doc.querySelectorAll('Array[as="points"] > mxPoint').length).toBe(2);
+  });
+
+  it('negócio: losango na decisão, link pelo repositório, ramo no rótulo e inferida tracejada (Fase 57)', () => {
+    const flow: BusinessFlow = {
+      surveyId: 's',
+      schemaVersion: 1,
+      collapsedDecisions: 0,
+      steps: [
+        { id: 'p0', nodeId: 'a', kind: BusinessKind.Start, label: 'Cliente cancela o pedido', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: { repository: 'api-pedidos', file: 'src/Api/PedidosController.cs', line: 12, commitHash: null, branch: null }, sourceNodeIds: ['a'], inferred: false },
+        { id: 'p1', nodeId: 'b', kind: BusinessKind.Decision, label: 'Está dentro do prazo?', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Proposed, ref: null, sourceNodeIds: ['b'], inferred: false },
+        { id: 'p2', nodeId: 'c', kind: BusinessKind.CrossSystem, label: 'Pede o estorno', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: { repository: 'api-pagamentos', file: 'src/Estornos.cs', line: 8, commitHash: null, branch: null }, sourceNodeIds: ['c'], inferred: true },
+      ],
+      edges: [
+        { from: 'p0', to: 'p1', label: null, inferred: false },
+        { from: 'p1', to: 'p2', label: 'then', inferred: true },
+      ],
+    };
+    const linkOf = (repository: string, location: { file: string; line: number } | null | undefined) =>
+      location ? `https://host/${repository}/${location.file}#L${location.line}` : null;
+    const doc = parse(businessToDrawio(flow, businessLayout(flow), 'negocio', linkOf));
+    const objects = [...doc.querySelectorAll('UserObject')];
+
+    expect(objects.length).toBe(3);
+    expect(objects[1].querySelector('mxCell')!.getAttribute('style')).toContain('rhombus');
+    expect(objects[2].querySelector('mxCell')!.getAttribute('style')).toContain('dashed=1');
+    expect(objects[0].getAttribute('label')).toContain('api-pedidos · PedidosController.cs:12');
+    expect(objects[0].getAttribute('link')).toBe('https://host/api-pedidos/src/Api/PedidosController.cs#L12');
+    expect(objects[1].hasAttribute('link')).toBeFalse();
+    const [plain, branch] = [...doc.querySelectorAll('mxCell[edge="1"]')];
+    expect(plain.getAttribute('style')).toContain('edgeStyle=orthogonalEdgeStyle');
+    expect(plain.getAttribute('style')).not.toContain('dashed=1');
+    // O rótulo da API vem em código (then, else) e sai em texto simples, como no grafo.
+    expect(branch.getAttribute('value')).toBe('Se sim');
+    expect(branch.getAttribute('style')).toContain('dashed=1');
   });
 
   it('referência: só o nome do arquivo, com ou sem repositório', () => {

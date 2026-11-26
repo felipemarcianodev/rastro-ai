@@ -482,6 +482,7 @@
       "tree": "as a tree",
       "consolidated": "consolidated, in a single drawing",
       "map": "as a map, by system",
+      "business": "as a business view",
       "directionAria": "Drawing {current}. Switch to drawing {next}",
       "directionTitle": "Draw {next}"
     },
@@ -580,6 +581,73 @@
       "tooLarge": "The image is too large.",
       "drawFailed": "Could not draw the image."
     }
+  },
+  "business": {
+    "barLabel": "Business view drawing",
+    "zoomLabel": "Business view zoom",
+    "zoomValueAria": "Zoom at {percent}%",
+    "collapsed": "Flow summarized in {steps} steps. {count, plural, one {One decision was grouped} other {# decisions were grouped}}.",
+    "loading": "Building the business view…",
+    "empty": "No decision or notification found in this flow.",
+    "seeGraph": "See the full graph",
+    "canvasLabel": "Business view of the flow: bubbles and links",
+    "stepAria": "{kind}: {label}",
+    "stepAriaStates": "{text} ({states})",
+    "linksUnavailable": "Repository links unavailable",
+    "proposed": "proposed",
+    "proposedTitle": "Proposed text, not yet confirmed by you",
+    "inferred": "inferred",
+    "inferredTitle": "This step came from an inferred link, to be reviewed",
+    "panelLabel": "Key step panel",
+    "hint": "Choose a bubble to see the business text, the code and the path from the entry to it. Drag an empty area to move the view.",
+    "kind": {
+      "start": "Start",
+      "decision": "Decision",
+      "notification": "Notification",
+      "rejection": "Rejection",
+      "cross-system": "Cross-system call",
+      "step": "Step",
+      "end": "End"
+    },
+    "origin": {
+      "rule": "by the rule",
+      "ai": "by the AI",
+      "agent": "by the agent",
+      "user": "by you"
+    },
+    "text": {
+      "proposed": "Proposed {origin}",
+      "confirmed": "Confirmed {origin}"
+    },
+    "host": {
+      "unknown": "host",
+      "azure": "Azure DevOps",
+      "github": "GitHub",
+      "gitlab": "GitLab",
+      "bitbucket": "Bitbucket"
+    },
+    "code": {
+      "title": "Code",
+      "repository": "Repository",
+      "file": "File",
+      "line": "Line",
+      "commit": "Commit",
+      "branch": "Branch",
+      "none": "This step has no code reference."
+    },
+    "openHost": "Open on {host}",
+    "openHostTitle": "Opens this file and line on {host}, at the trace commit",
+    "openEditor": "Open in editor",
+    "openEditorTitle": "Opens this file and line in your editor",
+    "path": {
+      "title": "From the entry to here"
+    },
+    "grouped": "{count, plural, one {# code step in this block} other {# code steps in this block}}",
+    "note": {
+      "title": "Step note"
+    },
+    "seeInGraph": "See in graph",
+    "seeInGraphTitle": "Goes back to the graph with this step selected"
   },
   "nodePanel": {
     "closeAria": "Close the step and go back to the overview",
@@ -960,6 +1028,10 @@
       "consolidated": {
         "label": "Consolidated view",
         "title": "The whole flow in a single drawing, with its colors"
+      },
+      "business": {
+        "label": "Business view",
+        "title": "Only the decisions, notifications and cross-system calls, in business language"
       }
     },
     "databaseMap": "Database map",
@@ -982,6 +1054,7 @@
       "copyMermaid": "Copy as Mermaid",
       "downloadMermaid": "Download as Mermaid (.mmd)",
       "drawio": "Download for draw.io (.drawio)",
+      "businessOnly": "This view exports to draw.io: use the draw.io option",
       "c4": "C4 diagrams (Structurizr DSL)",
       "notDrawn": "The graph is not drawn yet. Wait for it to appear and try again.",
       "started": "Download started: {file}",

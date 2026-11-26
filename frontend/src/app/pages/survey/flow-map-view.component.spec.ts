@@ -222,11 +222,11 @@ describe('FlowMapViewComponent (Fase 31)', () => {
   });
 
   // WEB-MAPV-012
-  it('botaoDoDesenho_voltaAoHorizontalEOResumoVaiParaOPainel', async () => {
+  it('botaoDoDesenho_vaiParaAVisaoDeNegocioEOResumoVaiParaOPainel', async () => {
     const { el, host } = await setup();
 
     (el.querySelector('[aria-label^="Desenho em mapa"]') as HTMLButtonElement).click();
-    expect(host.directions).toEqual([LayoutDirection.Horizontal]);
+    expect(host.directions).toEqual([LayoutDirection.Business]);
     expect(host.summaries.length).toBeGreaterThan(0);
   });
 

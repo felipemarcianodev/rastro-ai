@@ -1,0 +1,376 @@
+:host {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Cada tipo de balão define as três variáveis; o resto do estilo lê só elas (tokens --biz-* do tema).
+$kinds: start, decision, notification, rejection, cross-system, step, end;
+
+@each $kind in $kinds {
+  .biz-kind-#{$kind} {
+    --biz-fill: var(--biz-#{$kind}-fill);
+    --biz-stroke: var(--biz-#{$kind}-stroke);
+    --biz-ink: var(--biz-#{$kind}-ink);
+  }
+}
+
+.biz-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-4) var(--space-2);
+
+  .btn {
+    background: var(--surface);
+  }
+}
+
+.biz-zoom {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.biz-zoom-value {
+  min-width: 3.5em;
+  text-align: center;
+}
+
+.biz-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: center;
+  margin: var(--space-4);
+  font-size: var(--text-sm);
+}
+
+// Sem passo-chave, a mensagem ocupa a área do desenho, centralizada, em vez de uma faixa no alto.
+.biz-status.is-empty {
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.biz-stage {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// Balões: o seletor com .biz-host vence o padding e o texto centralizado do tema do Foblex.
+.biz-host .biz-node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 6px 12px;
+  border: 1.5px solid var(--biz-stroke);
+  border-radius: var(--radius-md);
+  background: var(--biz-fill);
+  color: var(--biz-ink);
+  text-align: left;
+  cursor: pointer;
+
+  &.biz-kind-start,
+  &.biz-kind-end {
+    border-radius: var(--radius-pill);
+    padding: 6px 18px;
+  }
+
+  &.biz-kind-notification .biz-text {
+    font-weight: 700;
+  }
+
+  &.biz-kind-cross-system {
+    border-style: dashed;
+  }
+
+  // O losango é um SVG por trás do texto: a borda de um clip-path não aparece.
+  // Espaço lateral fixo: em porcentagem, o padding se mede pela largura da tela inteira (o contêiner), e o
+  // losango crescia para 470 px com o texto espremido em largura zero.
+  &.biz-kind-decision {
+    justify-content: center;
+    --biz-lines: 3;
+    padding: 12px 56px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  &.is-selected {
+    box-shadow: 0 0 0 3px var(--trail);
+  }
+
+  &.biz-kind-decision.is-selected {
+    box-shadow: none;
+
+    .biz-shape polygon {
+      stroke: var(--trail);
+      stroke-width: 3;
+    }
+  }
+
+  // Foco do teclado como no mapa; no losango, o anel segue a forma (traço do polygon) e não um retângulo.
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  &.is-selected:focus-visible {
+    box-shadow: 0 0 0 3px var(--trail), var(--focus);
+  }
+
+  &.biz-kind-decision:focus-visible {
+    box-shadow: none;
+
+    .biz-shape polygon {
+      stroke: var(--ink);
+      stroke-width: 4;
+    }
+  }
+}
+
+.biz-stage .biz-host {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.biz-shape {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+
+  polygon {
+    fill: var(--biz-fill);
+    stroke: var(--biz-stroke);
+    stroke-width: 1.5;
+    vector-effect: non-scaling-stroke;
+  }
+}
+
+.biz-glyph,
+.biz-body {
+  position: relative;
+}
+
+.biz-glyph {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--biz-stroke);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+}
+
+.biz-body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.biz-text {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--biz-lines, 2);
+}
+
+// A referência fica com a linha inteira e os selos descem para a linha de baixo: lado a lado, o nome do arquivo
+// cortava em "Setti…".
+.biz-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-1);
+  min-width: 0;
+}
+
+// Até duas linhas: o repositório e o arquivo raramente cabem numa linha só em 220 px.
+.biz-ref {
+  display: -webkit-box;
+  flex: 1 1 100%;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ink-soft);
+  font-family: var(--font-code);
+  font-size: var(--text-2xs);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.biz-badge {
+  flex: none;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--biz-stroke);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-style: italic;
+}
+
+// Portas: invisíveis, só ancoram as ligações (entra por cima, sai por baixo).
+.biz-host .biz-port.f-connector {
+  position: absolute;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+
+  &::before,
+  &::after {
+    display: none;
+  }
+
+  &.is-in {
+    top: -4px;
+  }
+
+  &.is-out {
+    bottom: -4px;
+  }
+}
+
+.biz-panel {
+  flex: none;
+  max-height: 45%;
+  padding: var(--space-3) var(--space-4);
+  overflow: auto;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  font-size: var(--text-sm);
+
+  p {
+    margin: 0;
+  }
+}
+
+.biz-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+
+  .kind,
+  .kind-glyph {
+    border: 1px solid var(--biz-stroke);
+    background: var(--biz-fill);
+    color: var(--biz-ink);
+  }
+
+  .kind {
+    padding: 2px var(--space-2) 2px var(--space-1);
+    border-radius: var(--radius-pill);
+  }
+}
+
+.biz-panel-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.biz-panel-close {
+  margin-left: auto;
+}
+
+.biz-panel-h {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.biz-code {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px var(--space-3);
+  margin: 0;
+
+  dt {
+    color: var(--ink-soft);
+  }
+
+  dd {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.biz-open,
+.biz-panel-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.biz-path,
+.biz-grouped-list {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+
+.biz-grouped-list {
+  list-style: none;
+}
+
+.biz-via {
+  margin-right: var(--space-1);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  font-family: var(--font-code);
+  font-size: var(--text-xs);
+}
+
+.biz-link {
+  padding: 2px var(--space-1);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: var(--focus);
+  }
+
+  &:hover,
+  &.is-current {
+    background: var(--trail-wash);
+  }
+}
+
+.biz-grouped {
+  margin-top: var(--space-3);
+}
+
+.biz-note {
+  white-space: pre-wrap;
+}

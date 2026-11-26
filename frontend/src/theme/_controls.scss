@@ -415,6 +415,14 @@ select.input {
   box-shadow: inset 0 0 0 2px var(--ink);
 }
 
+// Item desabilitado (por exemplo, PNG e Mermaid na visão de negócio): esmaecido e sem fundo ao passar o mouse.
+.context-menu button:disabled,
+.popover-menu button:disabled {
+  color: var(--ink-soft);
+  background: none;
+  cursor: not-allowed;
+}
+
 .context-menu-title {
   padding: var(--space-1) var(--space-3);
   color: var(--ink-soft);

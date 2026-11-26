@@ -98,10 +98,10 @@
                   <div class="menu-backdrop" (click)="closePopovers()"></div>
                   <ul id="export-menu" class="popover-menu" role="menu" [attr.aria-label]="'survey.export.button' | translate" (keydown)="onMenuKey($event)">
                     <li class="popover-group" role="presentation">{{ 'survey.export.group' | translate }}</li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
                     <li role="none"><button type="button" role="menuitem" (click)="exportDrawio()">{{ 'survey.export.drawio' | translate }}</button></li>
                     <li role="none"><button type="button" role="menuitem" (click)="openC4()">{{ 'survey.export.c4' | translate }}</button></li>
                   </ul>
@@ -287,6 +287,8 @@
           <app-consolidated-view [detail]="d" [focus]="focusId() ? g : null" [selectedId]="selectedId()" (selectNode)="pickInDrawing($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
         } @else if (showMap()) {
           <app-flow-map-view [detail]="d" [selectedId]="selectedId()" [tabRequest]="mapTabRequest()" (selectNode)="pickInDrawing($event)" (focusFlow)="focusOnNode($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
+        } @else if (showBusiness()) {
+          <app-business-view [detail]="d" [selectedId]="selectedId()" [notes]="notes()" (selectNode)="pickInDrawing($event)" (focusFlow)="focusOnNode($event)" (showInGraph)="showNodeInGraph($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
         } @else {
         <app-flow-canvas [graph]="g" [repository]="d.survey.repository" [surveyId]="d.survey.id" [systems]="systems()"[selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
           [showFramework]="showFramework()" [editing]="editing()" [focusId]="focusId()" [layoutKey]="layoutKey()" [comparing]="!!comparison()" [matchIds]="matchIds()" [noteIds]="notes()" [currentMatch]="currentMatch()" (openSearch)="openSearch()" (selectNode)="select($event)" (toggleFramework)="toggleFramework()"
