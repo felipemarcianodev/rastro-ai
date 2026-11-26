@@ -31,6 +31,12 @@ Use list_unresolved para ver os buracos e get_flow para o fluxo inteiro.</value>
   <data name="Rules.Duplicated" xml:space="preserve"><value>[duplicada]</value></data>
   <data name="Rules.FromUser" xml:space="preserve"><value>[escrita pelo usuário]</value></data>
   <data name="Rules.Source" xml:space="preserve"><value>  fonte: {0} em {1}{2}</value></data>
+  <data name="Business.Header" xml:space="preserve"><value>Visão de negócio de {0}: {1} passos-chave</value></data>
+  <data name="Business.Step" xml:space="preserve"><value>  {0} {1} "{2}" (nó {3}){4}{5}</value></data>
+  <data name="Business.Proposed" xml:space="preserve"><value>(proposto)</value></data>
+  <data name="Business.Links" xml:space="preserve"><value>Ligações:</value></data>
+  <data name="Business.Inferred" xml:space="preserve"><value>[inferida]</value></data>
+  <data name="Business.Collapsed" xml:space="preserve"><value>Fluxo resumido em {0} passos; {1} decisões foram agrupadas.</value></data>
   <data name="Unresolved.None" xml:space="preserve"><value>Nenhum buraco: o compilador resolveu todas as chamadas deste fluxo.</value></data>
   <data name="Unresolved.Call" xml:space="preserve"><value>- {0} chamada `{1}` em {2}</value></data>
   <data name="Unresolved.Reason" xml:space="preserve"><value>  motivo: {0}{1}</value></data>

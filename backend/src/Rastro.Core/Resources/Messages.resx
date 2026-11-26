@@ -259,4 +259,9 @@
   <data name="QueryContext.View" xml:space="preserve"><value>View {0}: columns {1}.</value></data>
   <data name="QueryContext.View.ColumnsUnread" xml:space="preserve"><value>not read</value></data>
   <data name="QueryContext.OutsideSchema" xml:space="preserve"><value>{0}: outside the schema read from the code (columns and indexes unknown).</value></data>
+  <data name="business.label.decision" xml:space="preserve"><value>{0}?</value></data>
+  <data name="business.label.screenBlocked" xml:space="preserve"><value>Blocked on screen</value></data>
+  <data name="business.label.rejection" xml:space="preserve"><value>Rejected: {0}</value></data>
+  <data name="business.label.email" xml:space="preserve"><value>Sends email</value></data>
+  <data name="business.label.inApp" xml:space="preserve"><value>In-app notice</value></data>
 </root>

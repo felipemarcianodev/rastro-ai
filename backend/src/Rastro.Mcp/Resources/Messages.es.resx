@@ -31,6 +31,12 @@ Usa list_unresolved para ver los huecos y get_flow para el flujo completo.</valu
   <data name="Rules.Duplicated" xml:space="preserve"><value>[duplicada]</value></data>
   <data name="Rules.FromUser" xml:space="preserve"><value>[escrita por el usuario]</value></data>
   <data name="Rules.Source" xml:space="preserve"><value>  fuente: {0} en {1}{2}</value></data>
+  <data name="Business.Header" xml:space="preserve"><value>Vista de negocio de {0}: {1} pasos clave</value></data>
+  <data name="Business.Step" xml:space="preserve"><value>  {0} {1} "{2}" (nodo {3}){4}{5}</value></data>
+  <data name="Business.Proposed" xml:space="preserve"><value>(propuesto)</value></data>
+  <data name="Business.Links" xml:space="preserve"><value>Enlaces:</value></data>
+  <data name="Business.Inferred" xml:space="preserve"><value>[inferido]</value></data>
+  <data name="Business.Collapsed" xml:space="preserve"><value>Flujo resumido en {0} pasos; se agruparon {1} decisiones.</value></data>
   <data name="Unresolved.None" xml:space="preserve"><value>Ningún hueco: el compilador resolvió todas las llamadas de este flujo.</value></data>
   <data name="Unresolved.Call" xml:space="preserve"><value>- {0} llamada `{1}` en {2}</value></data>
   <data name="Unresolved.Reason" xml:space="preserve"><value>  motivo: {0}{1}</value></data>

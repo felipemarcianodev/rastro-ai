@@ -45,6 +45,7 @@ public class RastroTools(
     Rastro.Infrastructure.Database.QueryProposalService queryProposals,
     Rastro.Infrastructure.Database.Live.LiveConnectionStore liveConnections,
     Rastro.Infrastructure.Database.Live.LiveDatabaseService liveDatabase,
+    Rastro.Infrastructure.Business.BusinessViewService business,
     ILogger<RastroTools> logger)
 {
     private const int MaxOutlineLines = 400;
@@ -190,6 +191,35 @@ public class RastroTools(
             foreach (var source in rule.Sources)
                 text.AppendLine(T("Rules.Source", handles.GetValueOrDefault(source.NodeId, source.NodeId), source.Lane, source.Location is null ? string.Empty : $", {source.Location.File}:{source.Location.Line}"));
         }
+        return text.ToString();
+    }
+
+    [McpServerTool(Name = "get_business_view"), Description("Shows the business view of a trace, without AI: only the key steps (Start, Decision, Notification, Rejection, CrossSystem, Step, End) with the business text proposed by rule, the node handle and the code reference (repository · file:line), and the links between them with the branch label. Read-only. Use it to explain the business rules of a flow; the texts are proposals until the user confirms them on screen.")]
+    public async Task<string> GetBusinessView([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
+    {
+        if (await GraphAsync(surveyId, ct) is not { } graph || await business.GetAsync(surveyId, Language, ct) is not { } flow)
+            return T("Surveys.NotFound");
+
+        var handles = Handles(graph);
+        // Apelido curto de cada passo (b1, b2...), na ordem da visão, para as ligações ficarem legíveis.
+        var steps = flow.Steps.Select((step, index) => (step, handle: $"b{index + 1}")).ToList();
+        var stepHandle = steps.ToDictionary(s => s.step.Id, s => s.handle);
+        var text = new StringBuilder();
+        text.AppendLine(T("Business.Header", graph.EntryPoint, flow.Steps.Count));
+        foreach (var (step, handle) in steps)
+        {
+            var where = step.Ref is { } r ? $" [{r.Repository} · {r.File}:{r.Line}]" : string.Empty;
+            var proposed = step.LabelState == Rastro.Core.Business.LabelState.Proposed ? " " + T("Business.Proposed") : string.Empty;
+            text.AppendLine(T("Business.Step", handle, step.Kind, step.Label, handles.GetValueOrDefault(step.NodeId, step.NodeId), where, proposed));
+        }
+        text.AppendLine(T("Business.Links"));
+        foreach (var edge in flow.Edges)
+        {
+            var label = edge.Label is null ? string.Empty : $" ({edge.Label})";
+            var inferred = edge.Inferred ? " " + T("Business.Inferred") : string.Empty;
+            text.AppendLine($"  {stepHandle.GetValueOrDefault(edge.From, edge.From)} -> {stepHandle.GetValueOrDefault(edge.To, edge.To)}{label}{inferred}");
+        }
+        if (flow.CollapsedDecisions > 0) text.AppendLine(T("Business.Collapsed", flow.Steps.Count, flow.CollapsedDecisions));
         return text.ToString();
     }
 
