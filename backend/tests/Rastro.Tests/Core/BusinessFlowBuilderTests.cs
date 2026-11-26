@@ -637,6 +637,35 @@ public class BusinessFlowBuilderTests
     }
 
     [Fact]
+    public void Derive_ReturnVazioNumServicoAngular_NaoViraBloqueadoNaTela()
+    {
+        // CORE-BIZ-039 (achado num sistema real: guardas de log e de autenticação viravam "Bloqueado na tela")
+        var graph = G("m:e",
+            [
+                M("m:e", "ConfigComponent.salvar", kind: NodeKind.Entry, file: "config.component.ts"),
+                M("m:log", "LoggerService.registrar", file: "logger.service.ts", line: 5),
+                new FlowNode("if:log", NodeKind.Decision, "if (!this.logger)", Location: new SourceLocation("logger.service.ts", 6),
+                    Condition: "!this.logger"),
+                new FlowNode("ret:log", NodeKind.Return, "return", Location: new SourceLocation("logger.service.ts", 7)),
+                M("m:svc", "ConfigService.salvar", file: "config.service.ts", line: 9),
+                M(SystemIds.Prefix("api", "m:ctrl"), "ConfigController.Salvar", system: "api")
+            ],
+            [
+                E("m:e", "m:log", 1),
+                E("m:log", "if:log", 1),
+                E("if:log", "ret:log", 1, "then"),
+                E("m:e", "m:svc", 2),
+                E("m:svc", SystemIds.Prefix("api", "m:ctrl"), 1, http: new HttpCall("POST", "api/config"))
+            ]);
+
+        var flow = Derive(graph, language: UiLanguage.Portuguese);
+
+        Assert.DoesNotContain(flow.Steps, s => s.Kind == BusinessKind.Rejection);
+        Assert.DoesNotContain(flow.Steps, s => s.NodeId == "if:log");
+        Assert.Contains(flow.Steps, s => s.Kind == BusinessKind.CrossSystem);
+    }
+
+    [Fact]
     public void Derive_DuasDerivacoes_ProduzemOMesmoResultado()
     {
         // CORE-BIZ-028 (determinismo)

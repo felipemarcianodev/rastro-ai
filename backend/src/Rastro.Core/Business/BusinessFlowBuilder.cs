@@ -320,9 +320,9 @@ public static class BusinessFlowBuilder
                     return;
 
                 case NodeKind.Return:
-                    if (IsErrorReturn(child) || IsAngularGuardReturn(child))
+                    if (IsErrorReturn(child) || IsScreenGuardReturn(child))
                     {
-                        items.Add(RejectionFor(child, IsAngularGuardReturn(child) && !IsErrorReturn(child), inferred));
+                        items.Add(RejectionFor(child, IsScreenGuardReturn(child) && !IsErrorReturn(child), inferred));
                         items.Add(new ExitItem(ExitKind.Flow));
                     }
                     else
@@ -597,10 +597,17 @@ public static class BusinessFlowBuilder
                 && name.StartsWith(t, StringComparison.OrdinalIgnoreCase));
         }
 
-        // Angular: o `if (...) return;` antes da chamada HTTP bloqueia na tela.
-        private static bool IsAngularGuardReturn(FlowNode node) =>
-            string.Equals(node.Label, BareReturn, StringComparison.Ordinal)
-            && node.Location?.File.EndsWith(TypeScriptExtension, StringComparison.OrdinalIgnoreCase) == true;
+        // Angular: o `if (...) return;` do método clicado (o componente da entrada) bloqueia na tela. O mesmo `return;`
+        // num serviço, num interceptador ou num logger só sai daquele método e o fluxo segue em quem chamou: num
+        // sistema real, tratar todos como bloqueio enchia a visão de "Bloqueado na tela" e de decisões de log.
+        private bool IsScreenGuardReturn(FlowNode node)
+        {
+            if (!string.Equals(node.Label, BareReturn, StringComparison.Ordinal)) return false;
+            var file = node.Location?.File;
+            if (file is null || !file.EndsWith(TypeScriptExtension, StringComparison.OrdinalIgnoreCase)) return false;
+            var entryFile = _nodes.TryGetValue(_graph.EntryNodeId, out var entry) ? entry.Location?.File : null;
+            return string.Equals(file, entryFile, StringComparison.OrdinalIgnoreCase) && node.System == entry?.System;
+        }
 
         private static string TrimPrefix(string text, string prefix) =>
             text.StartsWith(prefix, StringComparison.Ordinal) ? text[prefix.Length..].TrimStart() : text;
