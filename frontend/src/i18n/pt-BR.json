@@ -1966,7 +1966,7 @@
       "openLabel": "Abrir a faixa {title}",
       "removeLabel": "Tirar do quadro a faixa {title}",
       "resurveyLabel": "Levantar de novo a faixa {title}",
-      "retryLabel": "Tentar de novo a faixa {title}"
+      "retryLabel": "Tentar carregar de novo a faixa {title}"
     },
     "renamed": "Quadro renomeado."
   }
