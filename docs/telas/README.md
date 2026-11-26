@@ -133,3 +133,11 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 57 | A visão de negócio exportada aberta no draw.io, com as cores e os links | [fase-57/05-visao-de-negocio-no-drawio.jpg](fase-57/05-visao-de-negocio-no-drawio.jpg) |
 | Fase 60 | Quadro com dois fluxos do próprio Rastro lado a lado: título e ordem das faixas, "O código mudou", glossário e legenda | [fase-60/01-quadro-duas-faixas.jpg](fase-60/01-quadro-duas-faixas.jpg) |
 | Fase 61 | O quadro exportado aberto no draw.io: uma moldura por faixa, cores por tipo, links e a nota com o glossário e a legenda | [fase-61/01-quadro-no-drawio.jpg](fase-61/01-quadro-no-drawio.jpg) |
+| UX do fim da visão de negócio | Antes: faixas de 560 px sobrando metade da tela em 1920, círculos de dobra em toda ligação e rótulos de caso sobrepostos | [ux-fim-negocio/01-antes-quadro-1920.png](ux-fim-negocio/01-antes-quadro-1920.png) |
+| UX do fim da visão de negócio | Antes: o PNG no mapa por sistemas falha com "O grafo ainda não está desenhado", e o aviso cobre o seletor | [ux-fim-negocio/02-antes-mapa-png-falha.png](ux-fim-negocio/02-antes-mapa-png-falha.png) |
+| UX do fim da visão de negócio | Antes: o quadro em 360 px, com o "Renomear" que o Esc não fechava | [ux-fim-negocio/03-antes-quadro-360.png](ux-fim-negocio/03-antes-quadro-360.png) |
+| UX do fim da visão de negócio | Lista de quadros com um quadro | [ux-fim-negocio/04-lista-de-quadros.png](ux-fim-negocio/04-lista-de-quadros.png) |
+| UX do fim da visão de negócio | Depois: faixas que crescem até 880 px, sem os círculos de dobra, e rótulos de caso que não se cobrem | [ux-fim-negocio/05-depois-quadro-1920.png](ux-fim-negocio/05-depois-quadro-1920.png) |
+| UX do fim da visão de negócio | Depois: painel do passo com largura limitada e a referência do balão com contraste acima de 4,5:1 | [ux-fim-negocio/06-depois-visao-negocio-painel.png](ux-fim-negocio/06-depois-visao-negocio-painel.png) |
+| UX do fim da visão de negócio | Depois: no mapa por sistemas, PNG, SVG e Mermaid desabilitados com a dica; o draw.io e o C4 seguem | [ux-fim-negocio/07-depois-mapa-exportar.png](ux-fim-negocio/07-depois-mapa-exportar.png) |
+| UX do fim da visão de negócio | A visão de negócio em 360 px: o seletor de desenho transborda (pendência) | [ux-fim-negocio/08-visao-negocio-360.png](ux-fim-negocio/08-visao-negocio-360.png) |

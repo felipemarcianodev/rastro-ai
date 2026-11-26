@@ -1,6 +1,6 @@
 # Plano de UX: fim do plano da visão de negócio (Fases 54 a 61)
 
-**Status:** EM EXECUÇÃO (as Fases A, B e C entram no branch `feat/ux-visao-de-negocio`; a Fase D espera a aprovação do dono, item a item).
+**Status:** Fases A, B e C EXECUTADAS no branch `feat/ux-visao-de-negocio` (registro no fim); a Fase D espera a aprovação do dono, item a item.
 **Data:** 2026-11-26.
 **Escopo:** tudo o que as Fases 54 a 61 criaram ou mudaram na tela: a visão de negócio (`business-view.component.*`, `_business.scss`), os quadros (`boards.page`, `board.page`, `board-create-dialog`, `add-to-board-dialog`, a criação pela lista de levantamentos) e o que mudou na página do levantamento (seletor de desenho, menu Exportar com draw.io, PNG, SVG e Mermaid, "Adicionar a um quadro", "Mostrar na visão de negócio" no menu do nó). Substitui as Fases B e C que sobraram do [plano de UX da Fase 57](plano-ux-2026-11-26-visao-de-negocio.md); a Fase D de lá continua valendo e foi repetida aqui.
 
@@ -125,7 +125,7 @@ Origem: NB (agente da visão de negócio), QD (agente dos quadros), LV (agente d
 | UX-FIM-210 | `business-view.component.ts` (editar texto) | o texto grava no blur, sem desfazer (NB-007) | "Desfazer" no aviso de texto salvo | médio | M | médio |
 | UX-FIM-211 | `business-view.component.html` (balão) | a origem do texto (agente, IA, editado) só aparece no painel (NB-003) | selo curto no balão quando a origem não é a regra | médio | P | médio |
 | UX-FIM-212 | `business-view.component.scss` (losango) | losango escolhido e com foco perde o traço da escolha (NB-016) | anel da escolha atrás do traço do foco | médio | M | baixo |
-| UX-FIM-213 | `business-layout.ts` (rótulo do ramo) | rótulos de caso do `switch` se sobrepõem (visto no quadro) | afastar os rótulos de ligações irmãs | médio | M | médio |
+| UX-FIM-213 | `business-layout.ts` e `_business.scss` (rótulo do ramo) | rótulos de caso do `switch` se sobrepõem (visto no quadro) | rótulo até a largura do balão, com reticências e o texto inteiro na dica | médio | M | médio |
 | UX-FIM-214 | `board-create-dialog` | a ordem escolhida vira a ordem das faixas, mas nenhuma tela a mostra (QD-008) | número da posição ao lado de cada caixa marcada | médio | P | médio |
 | UX-FIM-215 | `survey.page.ts` (menu do nó) | "Mostrar na visão de negócio" aparece tarde (consulta a cada abertura) e o aviso não leva à visão (LV-006) | resultado guardado por levantamento; ação "Ver" no aviso | médio | M | médio |
 | UX-FIM-216 | `survey.page.ts` (`showDrawing`) | trocar de desenho não é anunciado ao leitor de tela (LV-020) | região `aria-live` com o nome do desenho | médio | P | baixo |
@@ -166,3 +166,31 @@ Nada daqui entra sem o dono aprovar o item.
 - A visão de negócio de `SurveysController.Create` sai vazia, embora o método recuse com `Error(ErrorCodes..., "...")`: o atalho `Error(código, mensagem)` do controller não leva a constante 4xx que a regra de recusa procura. É da derivação (núcleo), não da tela, e foi para as pendências do `plano-mvp.md`.
 - O 404 de `draft` e `diagram` no console de todo levantamento sem rascunho é anterior a estas fases.
 - Riscos: a navegação de menu compartilhada mexe no menu Exportar e no Comparar do levantamento; o foco depois de mover a faixa depende do `track` do `@for`.
+
+## Registro da execução (2026-11-26)
+
+- [x] **Fase A** (visão de negócio e tema): UX-FIM-001 a 012, 153, 154 e 155.
+- [x] **Fase B** (quadros e levantamento): UX-FIM-101 a 114, 151 e 152.
+- [x] **Fase C** (risco médio): UX-FIM-201 a 216.
+- [ ] **Fase D**: os dez itens esperam o dono.
+
+O que mudou em relação ao plano, e por quê:
+- **Círculos de dobra (001):** aparecem só com o mouse na ligação. A primeira versão também os mostrava com o foco no desenho, mas o clique num balão deixa o foco lá, e os círculos voltavam a poluir tudo (visto no navegador). Pelo teclado não se arrasta dobra.
+- **Rótulos de caso (213):** escalonar a posição ao longo da ligação foi tentado e não resolveu. Nas ligações dos lados, quase todo o caminho é o trecho horizontal comum, e os rótulos caíam na mesma altura. Ficou: cada rótulo perto do próprio destino e no máximo da largura do balão (200 px), com reticências e o texto inteiro na dica.
+- **Desfazer o texto (210):** não aparece quando o texto anterior era uma proposta da IA ou do agente ainda não confirmada. A rota grava o texto como do usuário, e desfazer confirmaria uma proposta que ninguém confirmou (ADR-001).
+- **Aviso de erro (102):** no levantamento e no quadro, fica até fechar, com o botão "Fechar"; o de sucesso continua sumindo em 4 s.
+- **Navegação depois de criar o quadro (206):** se a navegação falhar, o diálogo fecha e a seleção fica, com o aviso e o link "Abrir o quadro". Manter o diálogo aberto esconderia o aviso atrás do fundo escuro e deixaria criar o quadro duas vezes.
+- **Abrir no host ou no editor (006):** o aviso "Abrindo…" sai sempre; a recusa da janela (host não reconhecido) não volta para a tela, porque a ponte não devolve resposta. Ficou como pendência.
+- **Menu Exportar (208):** no consolidado, o draw.io também fica desabilitado (a exportação dele depende do grafo na tela).
+- **Orçamento de 6 kB (153):** `survey.page.scss` foi de 7560 B para 5230 B e `node-panel.component.scss`, de 7544 B para 4834 B; o que se repetia foi para `theme/_survey-bar.scss` e `theme/_node-panel.scss`.
+- **Contraste (003):** a referência do balão usa a tinta do tipo a 80%: de 6,12 a 7,69 no tema claro e de 7,35 a 8,34 no escuro (antes, de 3,93 a 5,61 no claro).
+
+Verificado no navegador, com clique de verdade (Chrome pelo Playwright, `elementFromPoint` conferido antes de cada clique, levantamentos do próprio Rastro numa pasta temporária): a seta da faixa deixa o foco na seta da faixa que andou e avisa a posição; "Renomear" foca o campo, o Esc fecha e o foco volta ao botão; o Esc no menu Exportar do quadro devolve o foco ao botão; as faixas medem 880 px em 1920; os círculos de dobra ficam com opacidade 0; no mapa por sistemas, PNG, SVG e os dois Mermaid estão desabilitados, e o clique no PNG não gera aviso; os rótulos de caso não se cobrem; console sem erro (fora os 404 conhecidos). Prints em [`docs/telas/ux-fim-negocio/`](../telas/ux-fim-negocio/).
+
+Não verificado no navegador: arrastar a faixa (destino destacado), "Desfazer" do texto, selo de origem no balão (sem IA nesta máquina), a criação do quadro com a navegação cancelada (coberta por teste) e o leitor de tela.
+
+Pendências descobertas:
+- [ ] A visão de negócio em 360 px: o seletor de desenho transborda, e o painel de baixo e o painel lateral se empilham (print 08).
+- [ ] A recusa da janela ao abrir um link (host fora da lista) não volta para a tela: a ponte (`DesktopBridge.openExternal`) não devolve resposta.
+
+Testes: frontend 812/812, build sem aviso. O backend não mudou.
