@@ -14,6 +14,27 @@ public class RastroOptions
 
     // Idioma gravado no config.json ("pt-BR", "en-US" ou "es"). Ausente = segue o sistema operacional (ADR-009).
     public string? Language { get; set; }
+
+    // Visão de negócio (Fase 55, ADR-010): o que conta como notificação e como recusa, e o limite de passos.
+    public BusinessViewSettings BusinessView { get; set; } = new();
+}
+
+// As listas começam nulas: o binder do .NET acrescenta à lista que já existe, então um padrão preenchido aqui
+// somaria com o do config.json em vez de ser trocado por ele. Nula ou vazia, vale o padrão do núcleo.
+public class BusinessViewSettings
+{
+    public List<string>? NotificationPatterns { get; set; }
+    public List<string>? RejectionReturnTypes { get; set; }
+    public int? MaxStepsPerFlow { get; set; }
+
+    public Rastro.Core.Business.BusinessViewOptions ToOptions()
+    {
+        var defaults = Rastro.Core.Business.BusinessViewOptions.Default;
+        return new(
+            NotificationPatterns is { Count: > 0 } patterns ? patterns : defaults.NotificationPatterns,
+            RejectionReturnTypes is { Count: > 0 } types ? types : defaults.RejectionReturnTypes,
+            MaxStepsPerFlow is > 0 and var max ? max : defaults.MaxStepsPerFlow);
+    }
 }
 
 public class RepositoryOptions

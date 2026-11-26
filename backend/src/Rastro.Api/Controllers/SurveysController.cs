@@ -434,6 +434,16 @@ public class SurveysController(
         return FlowMapBuilder.Build(graph);
     }
 
+    // Visão de negócio (Fase 55, ADR-010): só os passos-chave do fluxo, com o tipo de negócio, o texto proposto
+    // por regra e a referência ao código, derivados do grafo sem IA. Nada é gravado.
+    [HttpGet("{id:guid}/business")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessFlow>> Business(Guid id,
+        [FromServices] Rastro.Infrastructure.Business.BusinessViewService business, CancellationToken ct)
+    {
+        var flow = await business.GetAsync(id, RequestLanguage.Current, ct);
+        return flow is null ? NotFound() : flow;
+    }
+
     // Regras do fluxo (Fase 32): cada decisão do mapa em frase, com o efeito e a fonte, sem IA.
     [HttpGet("{id:guid}/rules")]
     public async Task<ActionResult<IReadOnlyList<FlowRule>>> Rules(Guid id, CancellationToken ct)

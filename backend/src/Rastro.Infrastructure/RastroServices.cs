@@ -36,6 +36,7 @@ public static class RastroServices
         services.AddScoped<CrossSystemAnalyzer>();
         services.AddScoped<ProposalService>();
         services.AddScoped<ChangeValidationService>();
+        services.AddScoped<Business.BusinessViewService>();
         services.AddSingleton<Architecture.DeploymentReader>();
         services.AddSingleton<IValidationCommandRunner, LocalCommandRunner>();
         return services;

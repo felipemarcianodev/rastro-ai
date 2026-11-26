@@ -259,4 +259,9 @@
   <data name="QueryContext.View" xml:space="preserve"><value>View {0}: columnas {1}.</value></data>
   <data name="QueryContext.View.ColumnsUnread" xml:space="preserve"><value>no leídas</value></data>
   <data name="QueryContext.OutsideSchema" xml:space="preserve"><value>{0}: fuera del esquema leído del código (columnas e índices desconocidos).</value></data>
+  <data name="business.label.decision" xml:space="preserve"><value>¿{0}?</value></data>
+  <data name="business.label.screenBlocked" xml:space="preserve"><value>Bloqueado en la pantalla</value></data>
+  <data name="business.label.rejection" xml:space="preserve"><value>Rechazo: {0}</value></data>
+  <data name="business.label.email" xml:space="preserve"><value>Envía correo</value></data>
+  <data name="business.label.inApp" xml:space="preserve"><value>Aviso en la app</value></data>
 </root>

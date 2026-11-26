@@ -47,11 +47,15 @@ internal sealed class AngularRepo : IAsyncDisposable
             "Falta o TypeScript do extrator: rode `npm ci` em extractor-ts.");
     }
 
-    public static async Task<AngularRepo> CreateAsync(string prefix = "loja", bool git = true)
+    // A fixture da visão de negócio (Fase 55): a mesma entrada, com a guarda "pedido já enviado?" e o [disabled].
+    public const string BusinessFixture = "loja-web-negocio";
+
+    // `fixture` é o nome da pasta em extractor-ts/test/fixtures (a loja-web por padrão).
+    public static async Task<AngularRepo> CreateAsync(string prefix = "loja", bool git = true, string fixture = "loja-web")
     {
         var name = $"{prefix}-{Guid.NewGuid():N}"[..(prefix.Length + 7)];
         var root = Path.Combine(Path.GetTempPath(), "rastro-tests", "angular-" + Guid.NewGuid().ToString("N"), name);
-        CopyFolder(Path.Combine(ExtractorFolder, "test", "fixtures", "loja-web"), root);
+        CopyFolder(Path.Combine(ExtractorFolder, "test", "fixtures", fixture), root);
 
         var repo = new AngularRepo(name, root);
         if (git)
