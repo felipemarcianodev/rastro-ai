@@ -1,0 +1,170 @@
+// Quadros de fluxos (Fase 60): a lista, os diálogos de criar e adicionar, a legenda e a escolha de levantamentos.
+// O desenho de cada faixa é o da visão de negócio; o que é só da tela do quadro fica no componente.
+
+.board-host {
+  display: block;
+  height: 100%;
+  overflow: auto;
+}
+
+.board-page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5);
+}
+
+.board-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+
+  h1 {
+    font-size: var(--text-xl);
+  }
+}
+
+.board-empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-6) 0;
+}
+
+.board-rows {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--line);
+  list-style: none;
+}
+
+.board-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--line);
+
+  &:hover {
+    background: var(--surface);
+  }
+}
+
+.board-row-main {
+  display: flex;
+  flex: 1 1 320px;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.board-row-name {
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.board-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.board-skeleton-row {
+  height: 56px;
+  border-radius: var(--radius-md);
+  background: var(--surface-sunk);
+}
+
+.form-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+
+  .btn-p[type='submit'] {
+    align-self: flex-start;
+  }
+}
+
+// Escolha de levantamentos (diálogo de criar quadro e lista de levantamentos).
+.pick-group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  gap: var(--space-2);
+}
+
+.pick {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  input {
+    margin-top: 3px;
+    accent-color: var(--ink);
+  }
+}
+
+.pick-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+// Barra da lista de levantamentos com a escolha para o quadro.
+.pick-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  font-size: var(--text-sm);
+}
+
+.row-pick {
+  display: inline-flex;
+  align-items: center;
+
+  input {
+    accent-color: var(--ink);
+  }
+}
+
+// Legenda do quadro: as cores e as formas dos tipos de passo que aparecem nele.
+.board-legend {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+
+  .kind {
+    padding: 2px var(--space-2) 2px var(--space-1);
+    border: 1px solid var(--biz-stroke);
+    border-radius: var(--radius-pill);
+    background: var(--biz-fill);
+    color: var(--biz-ink);
+  }
+
+  .kind-glyph {
+    border: 1px solid var(--biz-stroke);
+    background: var(--biz-fill);
+    color: var(--biz-ink);
+  }
+}

@@ -19,7 +19,8 @@
       "surveys": "Traces",
       "database": "Database",
       "databaseFailed": "Database (could not read the repositories)",
-      "settings": "Settings"
+      "settings": "Settings",
+      "boards": "Boards"
     },
     "aiState": {
       "title": "AI and agent mode settings",
@@ -315,7 +316,15 @@
     "noResponse": "Rastro did not respond. Check that the rastro command is still open in the terminal and try again.",
     "notFound": "Not found.",
     "generic": "Something went wrong in Rastro. Try again.",
-    "LANGUAGE_INVALID": "Invalid language. Choose English, Portuguese or Spanish."
+    "LANGUAGE_INVALID": "Invalid language. Choose English, Portuguese or Spanish.",
+    "BOARD_NOT_FOUND": "This board no longer exists. Go back to the list of boards.",
+    "BOARD_NAME_INVALID": "The board name is empty or longer than 120 characters.",
+    "BOARD_GLOSSARY_INVALID": "The glossary is longer than 8000 characters.",
+    "BOARD_LANES_INVALID": "The board lanes are invalid: a board has 1 to 12 lanes, with no repeated survey.",
+    "BOARD_SURVEY_NOT_FOUND": "That survey no longer exists.",
+    "BOARD_SURVEY_NOT_READY": "The survey is not ready yet. Wait for it to finish.",
+    "BOARD_LANE_EXISTS": "That survey is already on the board.",
+    "BOARD_LANE_NOT_FOUND": "That lane is no longer on the board. Reload the screen."
   },
   "flowCanvas": {
     "mark": {
@@ -942,7 +951,9 @@
     "survey": "Flow",
     "consolidated": "Consolidated view",
     "database": "Database of {nome}",
-    "settings": "Settings"
+    "settings": "Settings",
+    "boards": "Boards",
+    "board": "Board"
   },
   "surveys": {
     "title": "Traces",
@@ -1039,6 +1050,14 @@
       "solution": "Choose a solution.",
       "entry": "Enter the entry method, for example PedidosController.Criar.",
       "depth": "Use a whole number from {min} to {max}."
+    },
+    "pick": {
+      "group": "Pick for the board",
+      "selected": "{count, plural, =1 {# survey picked} other {# surveys picked}}",
+      "hint": "Pick at least {min} to create a board.",
+      "create": "Create board",
+      "clear": "Clear picks",
+      "label": "Pick {entryPoint} for the board"
     }
   },
   "survey": {
@@ -1271,7 +1290,9 @@
     "note": {
       "saved": "Note saved.",
       "deleted": "Note deleted."
-    }
+    },
+    "addToBoard": "Add to a board",
+    "addToBoardTitle": "Puts this flow in a lane of a board, next to other surveys."
   },
   "aiDisclosure": {
     "goes": "Goes to {provider}: {goes}.",
@@ -1807,5 +1828,112 @@
     "edgeMarkedNew": "The link {a0} → {a1} already exists in the code; it cannot be marked as new.",
     "edgeDangling": "A new link points to a step that is not in the draft.",
     "foreignSystem": "Editing is allowed only in the first system of the flow."
+  },
+  "boards": {
+    "title": "Boards",
+    "subtitle": "A board puts the flows of several surveys side by side, each in its own lane, so you can see the process from end to end.",
+    "new": "New board",
+    "loading": "Loading the boards…",
+    "empty": {
+      "none": "No boards yet.",
+      "hint": "Create a board by picking two or more ready surveys."
+    },
+    "laneCount": "{count, plural, =1 {# lane} other {# lanes}}",
+    "updated": "updated {date}",
+    "openLabel": "Open the board {name}",
+    "delete": "Delete",
+    "deleteLabel": "Delete the board {name}",
+    "deleting": "Deleting…",
+    "deleted": "Board \"{name}\" deleted.",
+    "deleteConfirm": {
+      "title": "Delete the board \"{name}\"?",
+      "text": "The board and its bubble positions are deleted. The surveys stay as they are. This cannot be undone.",
+      "action": "Delete"
+    },
+    "create": {
+      "title": "Create board",
+      "intro": "Pick 1 to {max} ready surveys. The order you pick them in becomes the order of the lanes.",
+      "name": "Board name",
+      "surveys": "Ready surveys",
+      "selected": "({count} of {max})",
+      "none": "There is no ready survey. Trace a flow first.",
+      "submit": "Create board",
+      "creating": "Creating…",
+      "errors": {
+        "name": "Enter the board name.",
+        "surveys": "Pick 1 to {max} surveys."
+      }
+    },
+    "addTo": {
+      "title": "Add to a board",
+      "intro": "Pick the board that receives {entryPoint}. The lane goes at its end.",
+      "choose": "Board",
+      "newOption": "Create a new board",
+      "newName": "New board name",
+      "submit": "Add",
+      "adding": "Adding…",
+      "done": "Added to the board \"{name}\".",
+      "open": "Open the board",
+      "noBoards": "You have no boards yet. Create the first one here."
+    }
+  },
+  "board": {
+    "heading": "Board",
+    "backToList": "Back to the boards",
+    "nameLabel": "Board name",
+    "rename": "Rename",
+    "delete": "Delete board",
+    "lanes": "Board lanes",
+    "loading": "Loading the board…",
+    "resurveyFailed": "The new survey failed. The lane keeps the previous one.",
+    "suggest": {
+      "button": "Suggest board texts",
+      "title": "Asks the AI for a business text for the steps without a confirmed text in every lane, using the board glossary. You confirm each one."
+    },
+    "addLane": {
+      "button": "Add survey",
+      "title": "Add a survey to the board",
+      "full": "The board already has the maximum of {max} lanes.",
+      "none": "There is no other ready survey to add.",
+      "pick": "Survey",
+      "submit": "Add"
+    },
+    "replaced": {
+      "title": "Lane \"{title}\" updated with the new survey",
+      "removed": "{count, plural, =1 {# step from the previous version no longer exists in the code and left the drawing:} other {# steps from the previous version no longer exist in the code and left the drawing:}}",
+      "none": "All the steps from the previous version are still in the new survey."
+    },
+    "glossary": {
+      "summary": "Board glossary ({count})",
+      "label": "Glossary",
+      "help": "Plain text, one entry per line, in the format Term: meaning. The AI uses the glossary when it suggests the texts.",
+      "save": "Save glossary",
+      "saved": "Glossary saved.",
+      "placeholder": "Order: purchase made by the customer"
+    },
+    "legend": {
+      "label": "Legend of the step types"
+    },
+    "lane": {
+      "aria": "Lane {title}",
+      "drag": "Drag to change the lane order",
+      "titleLabel": "Lane title",
+      "moveLeft": "Move lane {title} to the left",
+      "moveRight": "Move lane {title} to the right",
+      "open": "Open",
+      "openTitle": "Opens the survey of this lane",
+      "remove": "Remove from board",
+      "removeTitle": "Removes the lane from the board. The survey stays saved.",
+      "removeLast": "A board needs at least one lane.",
+      "removeConfirm": {
+        "title": "Remove the lane \"{title}\" from the board?",
+        "text": "The lane and its bubble positions on this board are removed. The survey stays saved.",
+        "action": "Remove"
+      },
+      "running": "Tracing…",
+      "runningHint": "Rastro is reading the code. The drawing shows up when it finishes.",
+      "failed": "The survey of this lane failed.",
+      "loadFailed": "Could not open the survey of this lane."
+    }
   }
 }

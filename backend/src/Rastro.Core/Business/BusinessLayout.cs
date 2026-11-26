@@ -14,14 +14,18 @@ public class BusinessStepLayout
     public LayoutScope Scope { get; private set; }
     public Guid ScopeId { get; private set; }
     public string StepId { get; private set; } = string.Empty;
+
+    // Faixa do quadro (levantamento) a que o passo pertence: o id do passo é por levantamento. No escopo Survey vale
+    // Guid.Empty (uma chave primária não aceita nulo).
+    public Guid LaneSurveyId { get; private set; }
     public double X { get; private set; }
     public double Y { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
     private BusinessStepLayout() { }
 
-    public static BusinessStepLayout Create(LayoutScope scope, Guid scopeId, string stepId, double x, double y, DateTimeOffset now) =>
-        new() { Scope = scope, ScopeId = scopeId, StepId = stepId, X = x, Y = y, UpdatedAt = now };
+    public static BusinessStepLayout Create(LayoutScope scope, Guid scopeId, string stepId, double x, double y, DateTimeOffset now, Guid laneSurveyId = default) =>
+        new() { Scope = scope, ScopeId = scopeId, LaneSurveyId = laneSurveyId, StepId = stepId, X = x, Y = y, UpdatedAt = now };
 
     public void Move(double x, double y, DateTimeOffset now)
     {
@@ -36,6 +40,7 @@ public class BusinessEdgeLayout
 {
     public LayoutScope Scope { get; private set; }
     public Guid ScopeId { get; private set; }
+    public Guid LaneSurveyId { get; private set; }
     public string FromStep { get; private set; } = string.Empty;
     public string ToStep { get; private set; } = string.Empty;
     public string PointsJson { get; private set; } = "[]";
@@ -43,8 +48,8 @@ public class BusinessEdgeLayout
 
     private BusinessEdgeLayout() { }
 
-    public static BusinessEdgeLayout Create(LayoutScope scope, Guid scopeId, string fromStep, string toStep, string pointsJson, DateTimeOffset now) =>
-        new() { Scope = scope, ScopeId = scopeId, FromStep = fromStep, ToStep = toStep, PointsJson = pointsJson, UpdatedAt = now };
+    public static BusinessEdgeLayout Create(LayoutScope scope, Guid scopeId, string fromStep, string toStep, string pointsJson, DateTimeOffset now, Guid laneSurveyId = default) =>
+        new() { Scope = scope, ScopeId = scopeId, LaneSurveyId = laneSurveyId, FromStep = fromStep, ToStep = toStep, PointsJson = pointsJson, UpdatedAt = now };
 
     public void SetPoints(string pointsJson, DateTimeOffset now)
     {

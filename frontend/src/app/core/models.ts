@@ -575,6 +575,14 @@ export const API_ERROR_MESSAGE_KEY: Record<string, string> = {
   PLAN_NOT_ALLOWED: 'error.PLAN_NOT_ALLOWED',
   LIVE_DATABASE_ERROR: 'error.LIVE_DATABASE_ERROR',
   ORIGIN_NOT_ALLOWED: 'error.ORIGIN_NOT_ALLOWED',
+  BOARD_NOT_FOUND: 'error.BOARD_NOT_FOUND',
+  BOARD_NAME_INVALID: 'error.BOARD_NAME_INVALID',
+  BOARD_GLOSSARY_INVALID: 'error.BOARD_GLOSSARY_INVALID',
+  BOARD_LANES_INVALID: 'error.BOARD_LANES_INVALID',
+  BOARD_SURVEY_NOT_FOUND: 'error.BOARD_SURVEY_NOT_FOUND',
+  BOARD_SURVEY_NOT_READY: 'error.BOARD_SURVEY_NOT_READY',
+  BOARD_LANE_EXISTS: 'error.BOARD_LANE_EXISTS',
+  BOARD_LANE_NOT_FOUND: 'error.BOARD_LANE_NOT_FOUND',
 };
 
 export function isFinished(status: SurveyStatus): boolean {
@@ -1044,6 +1052,81 @@ export interface EdgePoints {
 export interface BusinessLayout {
   steps: StepPosition[];
   edges: EdgePoints[];
+}
+
+// Quadro de fluxos (Fase 60): vários levantamentos lado a lado, cada um numa faixa. A posição é por quadro, e o
+// id do passo é por levantamento: cada item leva o levantamento da faixa.
+export const BOARD_MAX_LANES = 12;
+export const BOARD_NAME_MAX = 120;
+export const BOARD_TITLE_MAX = 120;
+export const BOARD_GLOSSARY_MAX = 8000;
+
+export interface BoardSummary {
+  id: string;
+  name: string;
+  laneCount: number;
+  updatedAt: string;
+}
+
+export interface BoardLane {
+  surveyId: string;
+  order: number;
+  title: string;
+  entryPoint: string;
+  repositories: string[];
+  status: SurveyStatus;
+  stale: boolean;
+  flow: BusinessFlow | null;
+}
+
+export interface BoardStepPosition extends StepPosition {
+  laneSurveyId: string;
+}
+
+export interface BoardEdgePoints extends EdgePoints {
+  laneSurveyId: string;
+}
+
+export interface BoardLayout {
+  steps: BoardStepPosition[];
+  edges: BoardEdgePoints[];
+}
+
+export interface BoardDetail {
+  id: string;
+  name: string;
+  glossary: string | null;
+  lanes: BoardLane[];
+  layout: BoardLayout;
+}
+
+export interface BoardCreateRequest {
+  name: string;
+  surveyIds: string[];
+  titles?: string[];
+}
+
+export interface BoardLaneUpdate {
+  surveyId: string;
+  order: number;
+  title: string;
+}
+
+export interface BoardUpdateRequest {
+  name: string;
+  glossary: string | null;
+  lanes: BoardLaneUpdate[];
+}
+
+export interface RemovedStep {
+  stepId: string;
+  nodeId: string;
+  label: string;
+}
+
+export interface ReplaceLaneResult {
+  board: BoardDetail;
+  removedSteps: RemovedStep[];
 }
 
 // Mapa do fluxo (Fase 30): faixas por sistema, blocos de leitura, ligações e caminhos de ponta a ponta.

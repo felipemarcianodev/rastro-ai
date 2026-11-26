@@ -829,3 +829,65 @@ describe('SurveysPage: Fase C do levantamento completo', () => {
     http.match(() => true).forEach((request) => request.flush([]));
   });
 });
+
+describe('SurveysPage, escolha para o quadro (Fase 60)', () => {
+  function open() {
+    TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+    const fixture = TestBed.createComponent(SurveysPage);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne('/api/surveys').flush([
+      survey('1', 'A.Pronto', SurveyStatus.Completed),
+      survey('2', 'B.Pronto', SurveyStatus.Completed),
+      survey('3', 'C.Rodando', SurveyStatus.Running),
+    ]);
+    http.expectOne('/api/repositories').flush([]);
+    http.match(() => true);
+    fixture.detectChanges();
+    return { fixture, el: fixture.nativeElement as HTMLElement, http };
+  }
+
+  // WEB-BOARD-070
+  it('soLevantamentoProntoTemCaixaDeEscolha', () => {
+    const { el } = open();
+
+    expect(el.querySelectorAll('.row-pick input').length).toBe(2);
+    expect(el.querySelector('.pick-bar')).toBeNull();
+  });
+
+  // WEB-BOARD-071
+  it('escolhaDeUm_mostraABarraComOCriarQuadroDesabilitado_eDeDoisHabilita', () => {
+    const { fixture, el } = open();
+    const boxes = el.querySelectorAll<HTMLInputElement>('.row-pick input');
+
+    boxes[0].click();
+    fixture.detectChanges();
+    const create = () => Array.from(el.querySelectorAll<HTMLButtonElement>('.pick-bar button')).find((b) => b.textContent!.includes('Criar quadro'))!;
+    expect(el.querySelector('.pick-bar')!.textContent).toContain('1 levantamento escolhido');
+    expect(create().disabled).toBeTrue();
+
+    boxes[1].click();
+    fixture.detectChanges();
+    expect(create().disabled).toBeFalse();
+    expect(el.querySelector('.pick-bar')!.textContent).toContain('2 levantamentos escolhidos');
+  });
+
+  // WEB-BOARD-072
+  it('criarQuadro_abreODialogoComAEscolhaFeita_eLimparEscolhaEsvaziaABarra', () => {
+    const { fixture, el } = open();
+    const boxes = el.querySelectorAll<HTMLInputElement>('.row-pick input');
+    boxes[0].click();
+    boxes[1].click();
+    fixture.detectChanges();
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.pick-bar button')).find((b) => b.textContent!.includes('Criar quadro'))!.click();
+    fixture.detectChanges();
+    expect(Array.from(el.querySelectorAll<HTMLInputElement>('.dialog .pick input')).map((b) => b.checked)).toEqual([true, true]);
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.dialog button')).find((b) => b.textContent!.includes('Fechar'))!.click();
+    fixture.detectChanges();
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.pick-bar button')).find((b) => b.textContent!.includes('Limpar escolha'))!.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.pick-bar')).toBeNull();
+  });
+});

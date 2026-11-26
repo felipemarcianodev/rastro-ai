@@ -36,4 +36,12 @@
   <data name="BusinessKind.Invalid" xml:space="preserve"><value>Tipo de paso no válido.</value></data>
   <data name="BusinessStep.NotFound" xml:space="preserve"><value>Paso no encontrado en la vista de negocio de este rastreo.</value></data>
   <data name="BusinessProposal.NotFound" xml:space="preserve"><value>No hay propuesta de tipo pendiente para este paso.</value></data>
+  <data name="Board.NotFound" xml:space="preserve"><value>Tablero no encontrado.</value></data>
+  <data name="Board.NameInvalid" xml:space="preserve"><value>Nombre del tablero no válido: use una sola línea de 1 a 120 caracteres.</value></data>
+  <data name="Board.GlossaryInvalid" xml:space="preserve"><value>Glosario no válido: use texto simple de hasta 8000 caracteres.</value></data>
+  <data name="Board.LanesInvalid" xml:space="preserve"><value>Carriles no válidos: un tablero tiene de 1 a 12 rastreos diferentes, y el título de cada carril tiene hasta 120 caracteres en una línea.</value></data>
+  <data name="Board.SurveyNotFound" xml:space="preserve"><value>Rastreo no encontrado.</value></data>
+  <data name="Board.SurveyNotReady" xml:space="preserve"><value>El rastreo aún no está listo: espere a que termine el análisis (un rastreo con fallo no entra en un tablero).</value></data>
+  <data name="Board.LaneExists" xml:space="preserve"><value>Este rastreo ya es un carril del tablero.</value></data>
+  <data name="Board.LaneNotFound" xml:space="preserve"><value>Este rastreo no es un carril del tablero.</value></data>
 </root>

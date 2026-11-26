@@ -46,6 +46,15 @@ Use list_unresolved to see the gaps and get_flow for the whole flow.</value></da
   <data name="Business.KindInvalid" xml:space="preserve"><value>Invalid type. Use Start, Decision, Notification, Rejection, CrossSystem, Step or End.</value></data>
   <data name="Business.ReasonInvalid" xml:space="preserve"><value>Invalid reason: use a single line of 1 to 300 characters that says what in the code shows the type.</value></data>
   <data name="Business.AlreadyConfirmed" xml:space="preserve"><value>The user already confirmed this on the screen; nothing was changed.</value></data>
+  <data name="Boards.None" xml:space="preserve"><value>No flow boards yet. The user creates them on the Boards screen.</value></data>
+  <data name="Boards.Row" xml:space="preserve"><value>- {0} "{1}": {2} lanes</value></data>
+  <data name="Boards.Lane" xml:space="preserve"><value>    {0}. "{1}" trace {2}: {3} ({4})</value></data>
+  <data name="Boards.NotFound" xml:space="preserve"><value>Board not found. Use list_boards.</value></data>
+  <data name="Boards.NeedOne" xml:space="preserve"><value>Give surveyId (one trace) or boardId (a flow board), not both and not neither.</value></data>
+  <data name="Boards.Header" xml:space="preserve"><value>Board "{0}": {1} lanes</value></data>
+  <data name="Boards.Glossary" xml:space="preserve"><value>Glossary (the user's terms; prefer them in the texts):</value></data>
+  <data name="Boards.LaneHeader" xml:space="preserve"><value>Lane {0} "{1}" (trace {2}, entry {3}):</value></data>
+  <data name="Boards.LaneNoView" xml:space="preserve"><value>  No business view yet: the trace has no graph (still running or failed).</value></data>
   <data name="Unresolved.None" xml:space="preserve"><value>No gaps: the compiler resolved every call in this flow.</value></data>
   <data name="Unresolved.Call" xml:space="preserve"><value>- {0} call `{1}` at {2}</value></data>
   <data name="Unresolved.Reason" xml:space="preserve"><value>  reason: {0}{1}</value></data>

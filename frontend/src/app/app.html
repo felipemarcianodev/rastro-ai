@@ -12,6 +12,7 @@
 
   <nav class="nav" [attr.aria-label]="'shell.nav.label' | translate">
     <a class="nav-link" routerLink="/" [class.is-current]="area() === Area.Surveys" [attr.aria-current]="area() === Area.Surveys ? 'page' : null">{{ 'shell.nav.surveys' | translate }}</a>
+    <a class="nav-link" routerLink="/boards" [class.is-current]="area() === Area.Boards" [attr.aria-current]="area() === Area.Boards ? 'page' : null">{{ 'shell.nav.boards' | translate }}</a>
     <a class="nav-link" [routerLink]="bancoTarget().commands" [fragment]="bancoTarget().fragment" [attr.aria-label]="bancoLabel()" [class.is-current]="area() === Area.Database" [attr.aria-current]="area() === Area.Database ? 'page' : null">{{ 'shell.nav.database' | translate }}</a>
     <a class="nav-link" routerLink="/configuracoes" [class.is-current]="area() === Area.Settings" [attr.aria-current]="area() === Area.Settings ? 'page' : null">{{ 'shell.nav.settings' | translate }}</a>
   </nav>

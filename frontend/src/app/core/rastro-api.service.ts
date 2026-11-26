@@ -6,8 +6,14 @@ import {
   AiSettingsUpdate,
   AiSettingsView,
   AiStatus,
+  BoardCreateRequest,
+  BoardDetail,
+  BoardLayout,
+  BoardSummary,
+  BoardUpdateRequest,
   BusinessFlow,
   BusinessKind,
+  ReplaceLaneResult,
   BusinessLabelSuggestion,
   BusinessLayout,
   BusinessStep,
@@ -274,6 +280,50 @@ export class RastroApi {
 
   resetBusinessLayout(id: string): Observable<void> {
     return this.http.delete<void>(`/api/surveys/${id}/business/layout`);
+  }
+
+  // Quadros de fluxos (Fase 60).
+  boards(): Observable<BoardSummary[]> {
+    return this.http.get<BoardSummary[]>('/api/boards');
+  }
+
+  board(id: string): Observable<BoardDetail> {
+    return this.http.get<BoardDetail>(`/api/boards/${id}`);
+  }
+
+  createBoard(request: BoardCreateRequest): Observable<BoardDetail> {
+    return this.http.post<BoardDetail>('/api/boards', request);
+  }
+
+  updateBoard(id: string, request: BoardUpdateRequest): Observable<BoardDetail> {
+    return this.http.put<BoardDetail>(`/api/boards/${id}`, request);
+  }
+
+  deleteBoard(id: string): Observable<void> {
+    return this.http.delete<void>(`/api/boards/${id}`);
+  }
+
+  addBoardLane(id: string, surveyId: string, title?: string): Observable<BoardDetail> {
+    return this.http.post<BoardDetail>(`/api/boards/${id}/lanes`, { surveyId, ...(title ? { title } : {}) });
+  }
+
+  // "Levantar de novo": a faixa passa a apontar para o levantamento novo e leva as posições dos passos que continuam.
+  replaceBoardLane(id: string, surveyId: string, newSurveyId: string): Observable<ReplaceLaneResult> {
+    return this.http.put<ReplaceLaneResult>(`/api/boards/${id}/lanes/${surveyId}/replace`, { newSurveyId });
+  }
+
+  saveBoardLayout(id: string, layout: BoardLayout): Observable<void> {
+    return this.http.put<void>(`/api/boards/${id}/layout`, layout);
+  }
+
+  // Sem a faixa, apaga a posição do quadro inteiro.
+  resetBoardLayout(id: string, laneSurveyId?: string): Observable<void> {
+    const params = laneSurveyId ? new HttpParams().set('lane', laneSurveyId) : undefined;
+    return this.http.delete<void>(`/api/boards/${id}/layout`, { params });
+  }
+
+  suggestBoardLabels(id: string): Observable<BusinessLabelSuggestion> {
+    return this.http.post<BusinessLabelSuggestion>(`/api/boards/${id}/labels/suggest`, {});
   }
 
   // Modelos de link de cada repositório do levantamento (Fase 56).

@@ -196,12 +196,79 @@ public class RastroTools(
         return text.ToString();
     }
 
-    [McpServerTool(Name = "get_business_view"), Description("Shows the business view of a trace, without AI: only the key steps (Start, Decision, Notification, Rejection, CrossSystem, Step, End) with the business text proposed by rule, the node handle and the code reference (repository · file:line), and the links between them with the branch label. Read-only. Use it to explain the business rules of a flow; the texts are proposals until the user confirms them on screen.")]
-    public async Task<string> GetBusinessView([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)
+    [McpServerTool(Name = "list_boards"), Description("Lists the flow boards (several traces side by side, one lane per trace) with the lanes of each one: order, title, trace id, entry point and repositories. Read-only. Use get_business_view with boardId to read the business view of every lane.")]
+    public async Task<string> ListBoards(CancellationToken ct = default)
     {
-        if (await GraphAsync(surveyId, ct) is not { } graph || await business.GetAsync(surveyId, Language, ct) is not { } flow)
+        var all = await db.Boards.AsNoTracking().OrderByDescending(b => b.UpdatedAt).ToListAsync(ct);
+        if (all.Count == 0) return T("Boards.None");
+
+        var lanes = await db.BoardLanes.AsNoTracking().OrderBy(l => l.Order).ToListAsync(ct);
+        var surveyIds = lanes.Select(l => l.SurveyId).Distinct().ToList();
+        var surveys = await db.Surveys.AsNoTracking().Where(s => surveyIds.Contains(s.Id)).ToDictionaryAsync(s => s.Id, ct);
+        var segments = (await db.SurveySegments.AsNoTracking().Where(g => surveyIds.Contains(g.SurveyId)).OrderBy(g => g.Order).ToListAsync(ct))
+            .ToLookup(g => g.SurveyId);
+
+        var text = new StringBuilder();
+        foreach (var board in all)
+        {
+            var own = lanes.Where(l => l.BoardId == board.Id).ToList();
+            text.AppendLine(T("Boards.Row", board.Id, board.Name, own.Count));
+            foreach (var lane in own.Where(l => surveys.ContainsKey(l.SurveyId)))
+            {
+                var survey = surveys[lane.SurveyId];
+                var repositories = new[] { survey.Repository }.Concat(segments[survey.Id].Select(g => g.Repository))
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+                text.AppendLine(T("Boards.Lane", lane.Order + 1, lane.Title, lane.SurveyId, survey.EntryPoint, string.Join(", ", repositories)));
+            }
+        }
+        return text.ToString();
+    }
+
+    [McpServerTool(Name = "get_business_view"), Description("Shows the business view of a trace, without AI: only the key steps (Start, Decision, Notification, Rejection, CrossSystem, Step, End) with the business text proposed by rule, the node handle and the code reference (repository · file:line), and the links between them with the branch label. Read-only. Use it to explain the business rules of a flow; the texts are proposals until the user confirms them on screen. Give surveyId for one trace, or boardId (list_boards) for every lane of a flow board, with the board glossary: each lane is the business view of its trace and its steps are cited by the trace id of the lane.")]
+    public async Task<string> GetBusinessView(
+        [Description("Trace id. Use this or boardId.")] Guid? surveyId = null,
+        [Description("Board id (list_boards). Use this or surveyId.")] Guid? boardId = null,
+        CancellationToken ct = default)
+    {
+        if ((surveyId is null) == (boardId is null)) return T("Boards.NeedOne");
+
+        if (boardId is { } board) return await BoardBusinessViewAsync(board, ct);
+
+        if (await GraphAsync(surveyId!.Value, ct) is not { } graph || await business.GetAsync(surveyId.Value, Language, ct) is not { } flow)
             return T("Surveys.NotFound");
 
+        return await RenderBusinessViewAsync(surveyId.Value, graph, flow, ct);
+    }
+
+    // Cada faixa é a visão de negócio do levantamento dela; as faixas que ainda não têm grafo dizem isso.
+    private async Task<string> BoardBusinessViewAsync(Guid boardId, CancellationToken ct)
+    {
+        if (await db.Boards.AsNoTracking().FirstOrDefaultAsync(b => b.Id == boardId, ct) is not { } board) return T("Boards.NotFound");
+
+        var lanes = await db.BoardLanes.AsNoTracking().Where(l => l.BoardId == boardId).OrderBy(l => l.Order).ToListAsync(ct);
+        var text = new StringBuilder();
+        text.AppendLine(T("Boards.Header", board.Name, lanes.Count));
+        if (!string.IsNullOrWhiteSpace(board.Glossary))
+        {
+            text.AppendLine(T("Boards.Glossary"));
+            foreach (var line in board.Glossary.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                text.AppendLine($"  {line}");
+        }
+
+        foreach (var lane in lanes)
+        {
+            var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == lane.SurveyId, ct);
+            text.AppendLine(T("Boards.LaneHeader", lane.Order + 1, lane.Title, lane.SurveyId, survey?.EntryPoint ?? string.Empty));
+            if (await GraphAsync(lane.SurveyId, ct) is { } graph && await business.GetAsync(lane.SurveyId, Language, ct) is { } flow)
+                text.Append(await RenderBusinessViewAsync(lane.SurveyId, graph, flow, ct));
+            else
+                text.AppendLine(T("Boards.LaneNoView"));
+        }
+        return text.ToString();
+    }
+
+    private async Task<string> RenderBusinessViewAsync(Guid surveyId, FlowGraph graph, Rastro.Core.Business.BusinessFlow flow, CancellationToken ct)
+    {
         var handles = Handles(graph);
         // Apelido curto de cada passo (b1, b2...), na ordem da visão, para as ligações ficarem legíveis.
         var steps = flow.Steps.Select((step, index) => (step, handle: $"b{index + 1}")).ToList();

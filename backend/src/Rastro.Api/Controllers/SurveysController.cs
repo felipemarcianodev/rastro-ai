@@ -126,6 +126,9 @@ public class SurveysController(
         // Sem FK (o escopo também pode ser um quadro): as posições da visão de negócio saem junto, aqui.
         db.BusinessStepLayouts.RemoveRange(db.BusinessStepLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Survey && l.ScopeId == id));
         db.BusinessEdgeLayouts.RemoveRange(db.BusinessEdgeLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Survey && l.ScopeId == id));
+        // Quadros (Fase 60): a faixa do levantamento sai por cascata (FK); as posições dela, que não têm FK, saem aqui.
+        db.BusinessStepLayouts.RemoveRange(db.BusinessStepLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Board && l.LaneSurveyId == id));
+        db.BusinessEdgeLayouts.RemoveRange(db.BusinessEdgeLayouts.Where(l => l.Scope == Rastro.Core.Business.LayoutScope.Board && l.LaneSurveyId == id));
         await db.SaveChangesAsync(ct);
         logger.LogInformation("Levantamento {SurveyId} excluído.", id);
         return NoContent();
@@ -133,30 +136,14 @@ public class SurveysController(
 
     // O código mudou desde o levantamento? Compara o commit salvo com o HEAD atual.
     [HttpGet("{id:guid}/stale")]
-    public async Task<ActionResult<SurveyStaleness>> Stale(Guid id, CancellationToken ct)
+    public async Task<ActionResult<SurveyStaleness>> Stale(Guid id,
+        [FromServices] Rastro.Infrastructure.Surveys.SurveyStalenessService staleness, CancellationToken ct)
     {
-        var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id, ct);
-        if (survey is null) return NotFound();
+        var freshness = await staleness.CheckAsync(id, ct);
+        if (freshness is null) return NotFound();
 
-        var root = catalog.RootOf(survey.Repository);
-        var head = root is null ? null : await git.HeadAsync(root, ct);
-        var stale = survey.CommitHash is not null && head is not null && head.Commit != survey.CommitHash;
-
-        // Um item por trecho além do primeiro (Fase 25): diz qual sistema mudou.
-        var segments = new List<SegmentStaleness>();
-        var segmentHeads = new Dictionary<string, GitHead?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var segment in await db.SurveySegments.AsNoTracking().Where(g => g.SurveyId == id).OrderBy(g => g.Order).ToListAsync(ct))
-        {
-            if (!segmentHeads.TryGetValue(segment.Repository, out var segmentHead))
-            {
-                var segmentRoot = catalog.RootOf(segment.Repository);
-                segmentHeads[segment.Repository] = segmentHead = segmentRoot is null ? null : await git.HeadAsync(segmentRoot, ct);
-            }
-            var segmentStale = segment.CommitHash is not null && segmentHead is not null && segmentHead.Commit != segment.CommitHash;
-            segments.Add(new SegmentStaleness(segment.Repository, segmentStale, segment.CommitHash, segmentHead?.Commit));
-        }
-
-        return new SurveyStaleness(stale || segments.Any(g => g.Stale), survey.CommitHash, head?.Commit, segments);
+        return new SurveyStaleness(freshness.Stale, freshness.SurveyCommit, freshness.CurrentCommit,
+            freshness.Segments.Select(g => new SegmentStaleness(g.Repository, g.Stale, g.SurveyCommit, g.CurrentCommit)).ToList());
     }
 
     // Trecho do código em volta de uma linha (o arquivo atual do disco, que pode ter mudado

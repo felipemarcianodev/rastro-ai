@@ -56,6 +56,7 @@ import { DRAWIO_MIME } from '../../core/graph/drawio';
 import { HostLinkOf, hostLinkResolver } from '../../core/graph/link-template';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { BusinessViewComponent } from './business-view.component';
+import { AddToBoardDialogComponent } from '../boards/add-to-board-dialog.component';
 import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
 import { NodePanelComponent } from './node-panel.component';
@@ -90,7 +91,7 @@ const POLL_TOLERATED_FAILURES = 2;
 
 @Component({
   selector: 'app-survey-page',
-  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, BusinessViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, DialogDirective, AiDisclosureComponent],
+  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, BusinessViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, AddToBoardDialogComponent, DialogDirective, AiDisclosureComponent],
   templateUrl: './survey.page.html',
   styleUrl: './survey.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
@@ -128,6 +129,7 @@ export class SurveyPage {
   protected readonly softError = signal<string | null>(null);
   protected readonly confirmDiscard = signal(false);
   protected readonly confirmDelete = signal(false);
+  protected readonly addBoardOpen = signal(false);
   protected readonly deleting = signal(false);
   // Menus da barra: "Comparar" e "Exportar".
   protected readonly exportOpen = signal(false);
@@ -479,6 +481,7 @@ export class SurveyPage {
   protected onEscape(): void {
     if (this.confirmDiscard()) this.confirmDiscard.set(false);
     else if (this.confirmDelete()) this.confirmDelete.set(false);
+    else if (this.addBoardOpen()) this.addBoardOpen.set(false);
     else if (this.c4Open()) this.c4Open.set(false);
     else if (this.validationOpen()) this.validationOpen.set(false);
     else if (this.prompt()) this.closePrompt();

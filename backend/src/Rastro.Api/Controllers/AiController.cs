@@ -140,6 +140,35 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
         }
     }
 
+    // Sugerir textos de negócio de um quadro (Fase 60, uso "Sugestões"): os textos das faixas, uma por vez, com o
+    // glossário do quadro (como dado). Só propõe; confirma quem usa, na tela. Faixa ainda sem grafo é pulada.
+    // A contagem soma as faixas. Quadro inexistente: 404 com o código do quadro.
+    [HttpPost("api/boards/{id:guid}/labels/suggest")]
+    public async Task<ActionResult<BusinessLabelSuggestion>> SuggestBoardLabels(Guid id, [FromServices] BusinessLabelAdvisor advisor,
+        [FromServices] Rastro.Infrastructure.Business.BoardService boards, CancellationToken ct)
+    {
+        var language = UiLanguages.FromCulture(CultureInfo.CurrentUICulture);
+        var target = await boards.SuggestTargetAsync(id, ct);
+        if (target is null)
+            return Problem(StatusCodes.Status404NotFound, ErrorCodes.BoardNotFound, Rastro.Api.Cli.ApiText.Get("Board.NotFound", language));
+
+        var glossary = BusinessGlossaryEntry.Parse(target.Glossary);
+        return await RunAsync(async () =>
+        {
+            // Quadro sem faixa não chega ao advisor: o bloqueio de IA desligada vale igual.
+            await gateway.EnsureAllowedAsync(AiUse.Suggestions, ct);
+            var proposed = 0;
+            var skipped = 0;
+            foreach (var surveyId in target.SurveyIds)
+            {
+                if (await advisor.SuggestAsync(surveyId, language, glossary, ct) is not { } outcome) continue;
+                proposed += outcome.Proposed;
+                skipped += outcome.Skipped;
+            }
+            return new BusinessLabelSuggestion(proposed, skipped);
+        });
+    }
+
     // A IA sugere a melhora de uma consulta (Fase 41, uso "Sugestões"): a reescrita e os índices passam pela
     // conferência do núcleo antes de voltar e, com banco vivo, o custo estimado antes e depois (sem executar).
     // Nada é aplicado: quem copia é o usuário. O texto da consulta não vai para o log.

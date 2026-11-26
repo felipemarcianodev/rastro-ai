@@ -1023,7 +1023,7 @@ describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
     const { fixture, el, node, http } = await setup();
     node('s4').click();
     fixture.detectChanges();
-    const select = () => el.querySelector<HTMLSelectElement>('#biz-kind-pick')!;
+    const select = () => el.querySelector<HTMLSelectElement>('select[id^="biz-kind-pick"]')!;
     const options = Array.from(select().options).map((o) => o.textContent!.trim());
     expect(options[0]).toBe('Detectado');
     expect(options.length).toBe(8);
@@ -1149,5 +1149,120 @@ describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
 
     expect(el.querySelector('.toast')!.textContent).toContain('O texto do passo está vazio demais');
     expect(node('s1').querySelector('.biz-text')!.textContent).toContain('Pedido recebido');
+  });
+});
+
+@Component({
+  imports: [BusinessViewComponent],
+  styles: ['app-business-view { display: block; width: 900px; height: 600px; }'],
+  template: `<app-business-view [detail]="detail" [boardId]="boardId" [boardFlow]="flow()" [boardLayout]="layout()" />`,
+})
+class BoardHostComponent {
+  readonly detail = detail;
+  readonly boardId = 'b1';
+  readonly flow = signal<BusinessFlow | null>(FLOW);
+  readonly layout = signal<BusinessLayout | null>({ steps: [{ stepId: 's3', x: 500, y: 300 }], edges: [] });
+}
+
+describe('BusinessViewComponent (Fase 60, faixa de um quadro)', () => {
+  const BOARD_LAYOUT_URL = '/api/boards/b1/layout';
+  const positionOf = (fixture: { debugElement: DebugElement }, id: string) =>
+    nodeDebug(fixture, id).injector.get(FNodeDirective).position();
+  const nodeDebug = (fixture: { debugElement: DebugElement }, id: string) =>
+    fixture.debugElement.queryAll(By.directive(FNodeDirective)).find((d) => (d.nativeElement as HTMLElement).dataset['stepId'] === id)!;
+
+  async function boardSetup() {
+    TestBed.configureTestingModule({
+      imports: [BoardHostComponent],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: () => undefined } }],
+    });
+    const fixture = TestBed.createComponent(BoardHostComponent);
+    fixture.detectChanges();
+    const http = TestBed.inject(HttpTestingController);
+    // Na faixa do quadro o fluxo e a posição vêm do quadro: só os links se buscam.
+    http.expectNone('/api/surveys/s1/business');
+    http.expectNone('/api/surveys/s1/business/layout');
+    http.expectOne('/api/surveys/s1/links').flush(LINKS);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+    return { fixture, el, host: fixture.componentInstance, http, node: (id: string) => el.querySelector<HTMLElement>(`[data-step-id="${id}"]`)! };
+  }
+
+  // WEB-BOARD-010
+  it('faixa_desenhaOFluxoEAPosicaoQueVieramDoQuadro', async () => {
+    const automatic = businessLayout(FLOW).boxes.get('s1')!;
+    const { fixture, node } = await boardSetup();
+
+    expect(node('s1')).not.toBeNull();
+    expect(node('s4')).not.toBeNull();
+    expect(positionOf(fixture, 's3')).toEqual({ x: 500, y: 300 });
+    expect(positionOf(fixture, 's1')).toEqual({ x: automatic.x, y: automatic.y });
+  });
+
+  // WEB-BOARD-011
+  it('faixa_naoMostraDirecaoSugerirTextosNemAcoesDoGrafo', async () => {
+    const { fixture, el, node } = await boardSetup();
+    TestBed.inject(AiStatusService).status.set({ enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses: [AiUse.Suggestions], tokensToday: 0, dailyTokenBudget: 0 });
+    fixture.detectChanges();
+
+    const labels = Array.from(el.querySelectorAll('.biz-bar button')).map((b) => b.textContent!.trim());
+    expect(labels.some((t) => t.includes('Sugerir textos'))).toBeFalse();
+    expect(el.querySelector('.biz-bar [aria-label^="Desenho"]')).toBeNull();
+    node('s2').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-panel')).not.toBeNull();
+    expect(el.querySelector('.biz-panel-foot')).toBeNull();
+  });
+
+  // WEB-BOARD-012
+  it('faixa_semPassoEscolhido_naoMostraOPainelNemADica', async () => {
+    const { el } = await boardSetup();
+
+    expect(el.querySelector('.biz-panel')).toBeNull();
+  });
+
+  // WEB-BOARD-013
+  it('faixa_arrastarOBalaoGravaNoEscopoDoQuadroComOLevantamentoDaFaixa', async () => {
+    const { fixture, http } = await boardSetup();
+
+    nodeDebug(fixture, 's2').triggerEventHandler('fNodePositionChange', { x: 123, y: 57 });
+    await afterDebounce();
+
+    const put = http.expectOne((r) => r.method === 'PUT' && r.url === BOARD_LAYOUT_URL);
+    expect(put.request.body.steps).toEqual([{ laneSurveyId: 's1', stepId: 's2', x: 120, y: 60 }]);
+    http.expectNone(LAYOUT_URL);
+    put.flush(null);
+  });
+
+  // WEB-BOARD-014
+  it('faixa_reorganizarApagaSoAPosicaoDaFaixaNoQuadro', async () => {
+    const { fixture, el, http } = await boardSetup();
+    const automatic = businessLayout(FLOW).boxes.get('s3')!;
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.biz-bar button')).find((b) => b.textContent!.includes('Reorganizar'))!.click();
+    fixture.detectChanges();
+    Array.from(el.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find((b) => b.textContent!.includes('Reorganizar'))!.click();
+    http.expectOne((r) => r.method === 'DELETE' && r.url === BOARD_LAYOUT_URL && r.params.get('lane') === 's1').flush(null);
+    fixture.detectChanges();
+
+    expect(positionOf(fixture, 's3')).toEqual({ x: automatic.x, y: automatic.y });
+  });
+
+  // WEB-BOARD-015
+  it('faixa_fluxoIgualReenviadoPeloQuadro_naoRefazOQueAPessoaMexeu_eFluxoNovoEntra', async () => {
+    const { fixture, host, node } = await boardSetup();
+
+    nodeDebug(fixture, 's2').triggerEventHandler('fNodePositionChange', { x: 300, y: 200 });
+    host.flow.set(JSON.parse(JSON.stringify(FLOW)));
+    fixture.detectChanges();
+    expect(positionOf(fixture, 's2')).toEqual({ x: 300, y: 200 });
+
+    host.flow.set({ ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's4' ? { ...s, label: 'Pedido finalizado' } : s)) });
+    fixture.detectChanges();
+    expect(node('s4').querySelector('.biz-text')!.textContent).toContain('Pedido finalizado');
+    await afterDebounce();
+    TestBed.inject(HttpTestingController).match((r) => r.method === 'PUT').forEach((r) => r.flush(null));
   });
 });

@@ -1,6 +1,18 @@
 // Visão de negócio (Fases 57 a 59): o painel do passo e os campos de texto. Fica no tema para o
 // componente caber no orçamento de 6 kB; os balões e o desenho ficam no componente.
 
+// Cada tipo de balão define as três variáveis; o resto do estilo lê só elas (tokens --biz-* do tema). Fica aqui
+// porque a legenda do quadro também usa as cores dos tipos.
+$kinds: start, decision, notification, rejection, cross-system, step, end;
+
+@each $kind in $kinds {
+  .biz-kind-#{$kind} {
+    --biz-fill: var(--biz-#{$kind}-fill);
+    --biz-stroke: var(--biz-#{$kind}-stroke);
+    --biz-ink: var(--biz-#{$kind}-ink);
+  }
+}
+
 .biz-panel {
   flex: none;
   max-height: 45%;

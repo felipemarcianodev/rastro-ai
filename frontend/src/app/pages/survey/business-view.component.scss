@@ -7,17 +7,6 @@
   overflow: hidden;
 }
 
-// Cada tipo de balão define as três variáveis; o resto do estilo lê só elas (tokens --biz-* do tema).
-$kinds: start, decision, notification, rejection, cross-system, step, end;
-
-@each $kind in $kinds {
-  .biz-kind-#{$kind} {
-    --biz-fill: var(--biz-#{$kind}-fill);
-    --biz-stroke: var(--biz-#{$kind}-stroke);
-    --biz-ink: var(--biz-#{$kind}-ink);
-  }
-}
-
 .biz-bar {
   display: flex;
   flex-wrap: wrap;

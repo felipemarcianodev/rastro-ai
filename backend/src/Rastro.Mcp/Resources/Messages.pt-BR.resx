@@ -46,6 +46,15 @@ Use list_unresolved para ver os buracos e get_flow para o fluxo inteiro.</value>
   <data name="Business.KindInvalid" xml:space="preserve"><value>Tipo inválido. Use Start, Decision, Notification, Rejection, CrossSystem, Step ou End.</value></data>
   <data name="Business.ReasonInvalid" xml:space="preserve"><value>Motivo inválido: use uma linha de 1 a 300 caracteres que diga o que no código mostra o tipo.</value></data>
   <data name="Business.AlreadyConfirmed" xml:space="preserve"><value>O usuário já confirmou isto na tela; nada foi alterado.</value></data>
+  <data name="Boards.None" xml:space="preserve"><value>Nenhum quadro de fluxos ainda. O usuário os cria na tela Quadros.</value></data>
+  <data name="Boards.Row" xml:space="preserve"><value>- {0} "{1}": {2} faixas</value></data>
+  <data name="Boards.Lane" xml:space="preserve"><value>    {0}. "{1}" levantamento {2}: {3} ({4})</value></data>
+  <data name="Boards.NotFound" xml:space="preserve"><value>Quadro não encontrado. Use list_boards.</value></data>
+  <data name="Boards.NeedOne" xml:space="preserve"><value>Informe surveyId (um levantamento) ou boardId (um quadro de fluxos), nem os dois nem nenhum.</value></data>
+  <data name="Boards.Header" xml:space="preserve"><value>Quadro "{0}": {1} faixas</value></data>
+  <data name="Boards.Glossary" xml:space="preserve"><value>Glossário (os termos do usuário; prefira-os nos textos):</value></data>
+  <data name="Boards.LaneHeader" xml:space="preserve"><value>Faixa {0} "{1}" (levantamento {2}, entrada {3}):</value></data>
+  <data name="Boards.LaneNoView" xml:space="preserve"><value>  Ainda sem visão de negócio: o levantamento não tem grafo (em análise ou com falha).</value></data>
   <data name="Unresolved.None" xml:space="preserve"><value>Nenhum buraco: o compilador resolveu todas as chamadas deste fluxo.</value></data>
   <data name="Unresolved.Call" xml:space="preserve"><value>- {0} chamada `{1}` em {2}</value></data>
   <data name="Unresolved.Reason" xml:space="preserve"><value>  motivo: {0}{1}</value></data>

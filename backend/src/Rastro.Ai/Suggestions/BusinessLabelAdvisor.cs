@@ -10,7 +10,25 @@ using Rastro.Infrastructure.Business;
 namespace Rastro.Ai.Suggestions;
 
 // Termo do glossário do quadro (Fase 60): quando existir, vai ao provedor para o texto usar a palavra do negócio.
-public sealed record BusinessGlossaryEntry(string Term, string Meaning);
+public sealed record BusinessGlossaryEntry(string Term, string Meaning)
+{
+    // O glossário do quadro é texto simples: uma entrada por linha, "Termo: significado" (sem os dois-pontos, a linha
+    // é só o termo). Linha vazia é ignorada.
+    public static IReadOnlyList<BusinessGlossaryEntry> Parse(string? text) =>
+        (text ?? string.Empty)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Select(line => line.Trim())
+            .Where(line => line.Length > 0)
+            .Select(line =>
+            {
+                var colon = line.IndexOf(':');
+                return colon < 0
+                    ? new BusinessGlossaryEntry(line, string.Empty)
+                    : new BusinessGlossaryEntry(line[..colon].Trim(), line[(colon + 1)..].Trim());
+            })
+            .Where(entry => entry.Term.Length > 0)
+            .ToList();
+}
 
 // Quantos textos o provedor propôs e quantos foram recusados por não caberem na regra (vazio, mais de 120
 // caracteres, mais de uma linha) ou por apontarem para um passo que não foi pedido.

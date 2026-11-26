@@ -21,6 +21,8 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
     public DbSet<Core.Business.BusinessEdgeLayout> BusinessEdgeLayouts => Set<Core.Business.BusinessEdgeLayout>();
     public DbSet<Core.Business.BusinessLabel> BusinessLabels => Set<Core.Business.BusinessLabel>();
     public DbSet<Core.Business.BusinessKindOverride> BusinessKindOverrides => Set<Core.Business.BusinessKindOverride>();
+    public DbSet<Core.Business.Board> Boards => Set<Core.Business.Board>();
+    public DbSet<Core.Business.BoardLane> BoardLanes => Set<Core.Business.BoardLane>();
     public DbSet<Database.Live.LiveConnection> LiveConnections => Set<Database.Live.LiveConnection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -55,17 +57,36 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
         modelBuilder.Entity<Core.Business.BusinessStepLayout>(layout =>
         {
             layout.ToTable("business_layouts");
-            layout.HasKey(l => new { l.Scope, l.ScopeId, l.StepId });
+            layout.HasKey(l => new { l.Scope, l.ScopeId, l.LaneSurveyId, l.StepId });
             layout.Property(l => l.StepId).HasMaxLength(64);
         });
 
         modelBuilder.Entity<Core.Business.BusinessEdgeLayout>(layout =>
         {
             layout.ToTable("business_edge_layouts");
-            layout.HasKey(l => new { l.Scope, l.ScopeId, l.FromStep, l.ToStep });
+            layout.HasKey(l => new { l.Scope, l.ScopeId, l.LaneSurveyId, l.FromStep, l.ToStep });
             layout.Property(l => l.FromStep).HasMaxLength(64);
             layout.Property(l => l.ToStep).HasMaxLength(64);
             layout.Property(l => l.PointsJson).IsRequired();
+        });
+
+        // Quadro de fluxos (Fase 60): as faixas somem com o quadro e com o levantamento (cascata).
+        modelBuilder.Entity<Core.Business.Board>(board =>
+        {
+            board.ToTable("boards");
+            board.HasKey(b => b.Id);
+            board.Property(b => b.Name).HasMaxLength(Core.Business.BoardLimits.MaxNameLength).IsRequired();
+            board.Property(b => b.Glossary).HasMaxLength(Core.Business.BoardLimits.MaxGlossaryLength);
+        });
+
+        modelBuilder.Entity<Core.Business.BoardLane>(lane =>
+        {
+            lane.ToTable("board_lanes");
+            lane.HasKey(l => new { l.BoardId, l.SurveyId });
+            lane.HasOne<Core.Business.Board>().WithMany().HasForeignKey(l => l.BoardId).OnDelete(DeleteBehavior.Cascade);
+            lane.HasOne<Survey>().WithMany().HasForeignKey(l => l.SurveyId).OnDelete(DeleteBehavior.Cascade);
+            lane.Property(l => l.Title).HasMaxLength(Core.Business.BoardLimits.MaxTitleLength).IsRequired();
+            lane.HasIndex(l => l.SurveyId);
         });
 
         // Texto e tipo gravados dos passos da visão de negócio (Fase 59): somem junto com o levantamento (cascata).

@@ -1342,13 +1342,22 @@ Decisão do dono (2026-11-26), depois do merge das Fases 54 a 57: as Fases 58 a 
   - **Para o levantamento de UX final:** o texto do passo comum e do início ainda é o nome do método (`UiLanguages.IsDefined`); a regra humaniza só a decisão.
   - **Testes:** backend 1080/1080; frontend 693/693.
 
-## Fase 60: quadro de fluxos `[ ]` (depende das Fases 58 e 59)
+## Fase 60: quadro de fluxos `[x]` (depende das Fases 58 e 59)
 
-- [ ] `boards` e `board_lanes`, rotas de quadro, rota `/boards/{id}` e item "Quadros" na barra de cima; criar pela lista de levantamentos (dois ou mais) e "Adicionar a um quadro" dentro do levantamento.
-- [ ] Faixas lado a lado, com título, entrada e repositórios; ordem arrastável; glossário e legenda.
-- [ ] Desatualização: faixa com "O código mudou" e "Levantar de novo"; ao refazer, o layout casa os passos por símbolo e local e avisa os que saíram.
-- [ ] MCP `list_boards` e `get_business_view` com `board_id`.
-- [ ] Prints e `levantamento-ux` das telas tocadas.
+- [x] `boards` e `board_lanes`, rotas de quadro, rota `/boards/{id}` e item "Quadros" na barra de cima; criar pela lista de levantamentos (dois ou mais) e "Adicionar a um quadro" dentro do levantamento.
+- [x] Faixas lado a lado, com título, entrada e repositórios; ordem arrastável; glossário e legenda.
+- [x] Desatualização: faixa com "O código mudou" e "Levantar de novo"; ao refazer, o layout casa os passos por símbolo e local e avisa os que saíram.
+- [x] MCP `list_boards` e `get_business_view` com `board_id`.
+- [x] Prints e `levantamento-ux` das telas tocadas.
+- **Registro (2026-11-26):**
+  - **Banco:** migration `QuadroDeFluxos`, com `boards` e `board_lanes` (FK com cascata para o quadro e para o levantamento) e a coluna `lane_survey_id` nas duas tabelas de layout (vazia no escopo do levantamento), com as chaves refeitas. Um teste migra um banco com posições da Fase 58 gravadas e confere que nada se perde. Excluir o levantamento tira a faixa; excluir o quadro apaga as faixas e as posições dele.
+  - **Rotas e serviço:** `api/boards` (listar, criar com 1 a 12 levantamentos prontos, ler, editar nome, glossário, ordem e títulos, adicionar faixa, trocar o levantamento da faixa, excluir), a posição por faixa (`api/boards/{id}/layout`, com "Reorganizar" por faixa) e a sugestão de textos do quadro, que manda o glossário à IA como dado. O "O código mudou" saiu do controller para o `SurveyStalenessService`, que o levantamento e o quadro usam. Trocar o levantamento de uma faixa ("Levantar de novo") leva as posições dos passos que continuam, casando pelo nó, e devolve os que saíram. Oito códigos de erro novos (`BOARD_*`).
+  - **MCP:** `list_boards`, e o `get_business_view` aceita `boardId`.
+  - **Tela:** "Quadros" no cabeçalho, lista de quadros, criar pela lista de levantamentos (caixas de seleção e "Criar quadro") ou dentro do levantamento ("Adicionar a um quadro"), tela do quadro com as faixas lado a lado (título editável, ponto de entrada, repositórios, "Abrir", "Tirar do quadro", ordem por arrastar a alça ou pelos botões ← e →), "O código mudou" com "Levantar de novo", glossário em texto simples (`Termo: significado` por linha) e legenda só com os tipos presentes. A superfície de desenho é o próprio `business-view.component`, num modo de faixa, sem código duplicado.
+  - **Verificado no navegador, com clique de verdade:** marcar dois levantamentos na lista e criar o quadro; a tela do quadro com as duas faixas; "Excluir quadro" com o diálogo do tema (o quadro saiu e os levantamentos ficaram); a seta → trocou a ordem das faixas e a ordem ficou salva. Na primeira criação a página não foi para o quadro novo (o quadro foi criado e o diálogo fechou); na segunda, foi. Não reproduzi a falha e não achei a causa no código (a navegação está lá e nenhuma outra a cancela): fica registrado como não reproduzido.
+  - **Corrigido junto:** a recusa com texto longo saía com uma vírgula solta ("Recusa: O comando precisa caber numa linha,"), porque o extrator encurta o rótulo do retorno antes de fechar as aspas; agora sai "Recusa: O comando precisa caber numa linha…".
+  - **Para o levantamento de UX final:** depois de mover uma faixa pela seta, o foco sai do botão; as faixas têm largura fixa e sobra espaço à direita em 1920 px; a lista de quadros ficou sem print (a captura falhava com a janela em segundo plano).
+  - **Testes:** backend 1107/1107; frontend 740/740.
 
 ## Fase 61: exportar a visão de negócio e o quadro `[ ]` (depende da Fase 60)
 

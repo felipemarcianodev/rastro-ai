@@ -36,4 +36,12 @@
   <data name="BusinessKind.Invalid" xml:space="preserve"><value>Tipo de passo inválido.</value></data>
   <data name="BusinessStep.NotFound" xml:space="preserve"><value>Passo não encontrado na visão de negócio deste levantamento.</value></data>
   <data name="BusinessProposal.NotFound" xml:space="preserve"><value>Não há proposta de tipo pendente para este passo.</value></data>
+  <data name="Board.NotFound" xml:space="preserve"><value>Quadro não encontrado.</value></data>
+  <data name="Board.NameInvalid" xml:space="preserve"><value>Nome do quadro inválido: use uma linha de 1 a 120 caracteres.</value></data>
+  <data name="Board.GlossaryInvalid" xml:space="preserve"><value>Glossário inválido: use texto simples de até 8000 caracteres.</value></data>
+  <data name="Board.LanesInvalid" xml:space="preserve"><value>Faixas inválidas: um quadro tem de 1 a 12 levantamentos diferentes, e o título de cada faixa tem até 120 caracteres em uma linha.</value></data>
+  <data name="Board.SurveyNotFound" xml:space="preserve"><value>Levantamento não encontrado.</value></data>
+  <data name="Board.SurveyNotReady" xml:space="preserve"><value>O levantamento ainda não está pronto: espere a análise terminar (um levantamento com falha não entra num quadro).</value></data>
+  <data name="Board.LaneExists" xml:space="preserve"><value>Este levantamento já é uma faixa do quadro.</value></data>
+  <data name="Board.LaneNotFound" xml:space="preserve"><value>Este levantamento não é uma faixa do quadro.</value></data>
 </root>

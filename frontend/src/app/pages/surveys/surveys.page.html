@@ -94,6 +94,16 @@
           }
         </div>
       </div>
+      @if (picked().length > 0) {
+        <div class="pick-bar" role="group" [attr.aria-label]="'surveys.pick.group' | translate">
+          <span>{{ 'surveys.pick.selected' | translate: { count: picked().length } }}</span>
+          @if (picked().length < minBoardPick) {
+            <span class="muted">{{ 'surveys.pick.hint' | translate: { min: minBoardPick } }}</span>
+          }
+          <button type="button" class="btn btn-p btn-small" (click)="boardDialogOpen.set(true)" [disabled]="picked().length < minBoardPick">{{ 'surveys.pick.create' | translate }}</button>
+          <button type="button" class="btn btn-g btn-small" (click)="clearPick()">{{ 'surveys.pick.clear' | translate }}</button>
+        </div>
+      }
       <p class="visually-hidden" role="status">{{ announcement() }}</p>
       @if (visible().length === 0) {
         <div class="empty">
@@ -104,6 +114,11 @@
       <ul class="rows">
         @for (survey of visible(); track survey.id) {
           <li class="row">
+            @if (survey.status === Completed) {
+              <label class="row-pick">
+                <input type="checkbox" [checked]="isPicked(survey.id)" (change)="pick(survey.id, $any($event.target).checked)" [attr.aria-label]="'surveys.pick.label' | translate: { entryPoint: survey.entryPoint }" />
+              </label>
+            }
             <a class="row-link" [routerLink]="['/surveys', survey.id]" tabindex="-1" aria-hidden="true">
               <span class="row-main">
                 <span class="row-entry code">{{ survey.entryPoint }}</span>
@@ -306,6 +321,10 @@
       </div>
     </section>
   </div>
+}
+
+@if (boardDialogOpen()) {
+  <app-board-create-dialog [surveys]="surveys() ?? []" [preselected]="picked()" (created)="onBoardCreated($event)" (cancel)="boardDialogOpen.set(false)" />
 }
 
 @if (registerOpen()) {

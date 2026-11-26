@@ -127,6 +127,14 @@ public static class ErrorCodes
     public const string BusinessKindInvalid = "BUSINESS_KIND_INVALID";
     public const string BusinessStepNotFound = "BUSINESS_STEP_NOT_FOUND";
     public const string BusinessProposalNotFound = "BUSINESS_PROPOSAL_NOT_FOUND";
+    public const string BoardNotFound = "BOARD_NOT_FOUND";
+    public const string BoardNameInvalid = "BOARD_NAME_INVALID";
+    public const string BoardGlossaryInvalid = "BOARD_GLOSSARY_INVALID";
+    public const string BoardLanesInvalid = "BOARD_LANES_INVALID";
+    public const string BoardSurveyNotFound = "BOARD_SURVEY_NOT_FOUND";
+    public const string BoardSurveyNotReady = "BOARD_SURVEY_NOT_READY";
+    public const string BoardLaneExists = "BOARD_LANE_EXISTS";
+    public const string BoardLaneNotFound = "BOARD_LANE_NOT_FOUND";
 }
 
 // Corpo de PUT business/steps/{stepId}/label: texto vazio volta ao da regra.

@@ -258,4 +258,76 @@ public class BusinessLabelSuggestTests(ApiFixture fixture) : IAsyncLifetime
         Assert.Contains("<glossario>", user);
         Assert.Contains("- Alerta: Aviso enviado ao cliente.", user);
     }
+
+    private async Task<Guid> BoardAsync(string? glossary, params Guid[] surveyIds)
+    {
+        var created = await Client.PostAsJsonAsync("/api/boards", new { name = "Quadro de teste", surveyIds }, Json);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var id = JsonDocument.Parse(await created.Content.ReadAsStringAsync()).RootElement.GetProperty("id").GetGuid();
+        if (glossary is not null)
+        {
+            var lanes = surveyIds.Select((s, i) => new { surveyId = s, order = i });
+            Assert.Equal(HttpStatusCode.OK, (await Client.PutAsJsonAsync($"/api/boards/{id}", new { name = "Quadro de teste", glossary, lanes }, Json)).StatusCode);
+        }
+        return id;
+    }
+
+    [Fact] // AI-BTX-008
+    public async Task SugerirNoQuadro_ComGlossario_PropoeTextosDeTodasAsFaixasEMandaOGlossarioComoDado()
+    {
+        await EnableAiAsync();
+        var first = await SurveyAsync();
+        var second = await SurveyAsync();
+        var board = await BoardAsync("Alerta: Aviso enviado ao cliente.\n\nFila\nPedido: compra do cliente: com itens", first, second);
+        RespondWithTexts(i => $"Texto do quadro {i}");
+
+        var response = await Client.PostAsync($"/api/boards/{board}/labels/suggest", null);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var proposed = doc.RootElement.GetProperty("proposed").GetInt32();
+        var one = (await FlowAsync(first)).Steps.Count(s => s.LabelOrigin == LabelOrigin.Ai);
+        var two = (await FlowAsync(second)).Steps.Count(s => s.LabelOrigin == LabelOrigin.Ai);
+        Assert.True(one > 0 && two > 0);
+        Assert.Equal(one + two, proposed);
+        Assert.DoesNotContain((await FlowAsync(first)).Steps.Concat((await FlowAsync(second)).Steps), s => s.LabelState == LabelState.Confirmed);
+        var user = FakeAiTextService.LastRequest!.User;
+        Assert.Contains("<glossario>", user);
+        Assert.Contains("- Alerta: Aviso enviado ao cliente.", user);
+        Assert.Contains("- Fila: ", user);
+        Assert.Contains("- Pedido: compra do cliente: com itens", user);
+    }
+
+    [Fact] // AI-BTX-009
+    public async Task SugerirNoQuadro_IADesligadaUsoDesligadoOuQuadroAusente_CodigosDeErro()
+    {
+        var board = await BoardAsync(null, await SurveyAsync());
+
+        Assert.Equal(HttpStatusCode.OK, (await Client.PutAsJsonAsync("/api/settings/ai", Settings(enabled: false))).StatusCode);
+        var off = await Client.PostAsync($"/api/boards/{board}/labels/suggest", null);
+        Assert.Equal(HttpStatusCode.Conflict, off.StatusCode);
+        Assert.Contains("AI_DISABLED", await off.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, (await Client.PutAsJsonAsync("/api/settings/ai", Settings(suggestions: false))).StatusCode);
+        var useOff = await Client.PostAsync($"/api/boards/{board}/labels/suggest", null);
+        Assert.Equal(HttpStatusCode.Conflict, useOff.StatusCode);
+        Assert.Contains("AI_USE_DISABLED", await useOff.Content.ReadAsStringAsync());
+
+        await EnableAiAsync();
+        var missing = await Client.PostAsync($"/api/boards/{Guid.NewGuid()}/labels/suggest", null);
+        Assert.Equal(HttpStatusCode.NotFound, missing.StatusCode);
+        Assert.Contains("BOARD_NOT_FOUND", await missing.Content.ReadAsStringAsync());
+    }
+
+    [Fact] // AI-BTX-010
+    public void Glossario_TextoSimples_VirraEntradasPorLinha()
+    {
+        var entries = BusinessGlossaryEntry.Parse("Alerta: aviso ao cliente\r\n  \r\nFila\n: sem termo\nPedido:  compra: itens ");
+
+        Assert.Equal(
+            [new BusinessGlossaryEntry("Alerta", "aviso ao cliente"), new BusinessGlossaryEntry("Fila", ""), new BusinessGlossaryEntry("Pedido", "compra: itens")],
+            entries);
+        Assert.Empty(BusinessGlossaryEntry.Parse(null));
+        Assert.Empty(BusinessGlossaryEntry.Parse("   \n "));
+    }
 }

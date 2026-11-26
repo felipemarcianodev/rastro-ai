@@ -1,0 +1,197 @@
+@if (error(); as message) {
+  <div class="page-state">
+    <h1 class="visually-hidden">{{ 'board.heading' | translate }}</h1>
+    <p class="notice is-error" role="alert">{{ message }}</p>
+    <div class="page-state-actions">
+      <button type="button" class="btn btn-g" (click)="load(true)">{{ 'common.retry' | translate }}</button>
+      <a class="btn btn-g" routerLink="/boards">{{ 'board.backToList' | translate }}</a>
+    </div>
+  </div>
+} @else if (board(); as b) {
+  <div class="board-layout">
+    <header class="board-bar">
+      <a class="page-back" routerLink="/boards" [attr.aria-label]="'board.backToList' | translate">←</a>
+      <div class="board-bar-title">
+        @if (renaming()) {
+          <form class="board-rename" (submit)="$event.preventDefault(); commitRename()">
+            <label class="visually-hidden" for="board-name">{{ 'board.nameLabel' | translate }}</label>
+            <input id="board-name" class="input is-small" name="name" [(ngModel)]="nameDraft" [maxLength]="nameMax" autocomplete="off" (keydown.escape)="cancelRename(); $event.stopPropagation()" />
+            <button type="submit" class="btn btn-small">{{ 'common.save' | translate }}</button>
+            <button type="button" class="btn btn-g btn-small" (click)="cancelRename()">{{ 'common.cancel' | translate }}</button>
+          </form>
+        } @else {
+          <h1 id="board-title" tabindex="-1">{{ b.name }}</h1>
+          <button type="button" class="btn btn-g btn-small" (click)="startRename()" [disabled]="saving()">{{ 'board.rename' | translate }}</button>
+        }
+        <span class="muted">{{ 'boards.laneCount' | translate: { count: lanes().length } }}</span>
+      </div>
+      <div class="board-bar-side">
+        @if (canSuggest()) {
+          <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()" [attr.aria-busy]="suggesting()" [title]="'board.suggest.title' | translate">{{ (suggesting() ? 'business.suggest.running' : 'board.suggest.button') | translate }}</button>
+        }
+        <button type="button" class="btn btn-g btn-small" (click)="openAdd()" [disabled]="!canAdd() || saving()" [title]="(canAdd() ? 'board.addLane.title' : 'board.addLane.full') | translate: { max: maxLanes }">{{ 'board.addLane.button' | translate }}</button>
+        <button type="button" class="btn btn-g btn-small" (click)="confirmingDelete.set(true)">{{ 'board.delete' | translate }}</button>
+      </div>
+    </header>
+
+    @if (replaced(); as r) {
+      <div class="notice board-replaced" role="status">
+        <div>
+          <strong>{{ 'board.replaced.title' | translate: { title: r.title } }}</strong>
+          @if (r.steps.length > 0) {
+            <p>{{ 'board.replaced.removed' | translate: { count: r.steps.length } }}</p>
+            <ul class="board-removed">
+              @for (step of r.steps; track step.stepId) {
+                <li>{{ step.label }}</li>
+              }
+            </ul>
+          } @else {
+            <p>{{ 'board.replaced.none' | translate }}</p>
+          }
+        </div>
+        <button type="button" class="btn btn-g btn-small" (click)="dismissReplaced()">{{ 'common.close' | translate }}</button>
+      </div>
+    }
+
+    <div class="board-tools">
+      <details class="board-glossary">
+        <summary>{{ 'board.glossary.summary' | translate: { count: glossaryCount() } }}</summary>
+        <div class="board-glossary-body">
+          <label class="field-label" for="board-glossary">{{ 'board.glossary.label' | translate }}</label>
+          <textarea id="board-glossary" class="input" rows="5" [maxLength]="glossaryMax" [value]="glossaryDraft" (input)="onGlossary($event)" [placeholder]="'board.glossary.placeholder' | translate" aria-describedby="board-glossary-help"></textarea>
+          <span id="board-glossary-help" class="field-help">{{ 'board.glossary.help' | translate }}</span>
+          <div class="board-glossary-actions">
+            <button type="button" class="btn btn-small" (click)="saveGlossary()" [disabled]="!glossaryDirty() || saving()">{{ 'board.glossary.save' | translate }}</button>
+          </div>
+        </div>
+      </details>
+      @if (legend().length > 0) {
+        <ul class="board-legend" [attr.aria-label]="'board.legend.label' | translate">
+          @for (kind of legend(); track kind) {
+            <li class="kind biz-kind-{{ kindSlug[kind] }}"><span class="kind-glyph" aria-hidden="true">{{ kindGlyph[kind] }}</span>{{ kindLabel[kind] | translate }}</li>
+          }
+        </ul>
+      }
+    </div>
+
+    <div class="lanes" role="group" [attr.aria-label]="'board.lanes' | translate" (dragend)="dragEnd()">
+      @for (lane of lanes(); track lane.surveyId; let i = $index; let last = $last) {
+        <section class="lane" role="group" [attr.aria-label]="'board.lane.aria' | translate: { title: lane.title }" [class.is-dragging]="dragFrom() === i"
+          (dragover)="dragOver($event)" (drop)="drop($event, i)">
+          <header class="lane-head">
+            <span class="lane-grip" draggable="true" (dragstart)="dragStart($event, i)" [title]="'board.lane.drag' | translate" aria-hidden="true">⠿</span>
+            <input class="input is-small lane-title" [value]="lane.title" [maxLength]="titleMax" [attr.aria-label]="'board.lane.titleLabel' | translate"
+              (blur)="renameLane(lane, $event)" (keydown.enter)="$any($event.target).blur()" />
+            <span class="lane-move">
+              <button type="button" class="btn btn-icon btn-small" (click)="move(i, -1)" [disabled]="i === 0 || saving()" [attr.aria-label]="'board.lane.moveLeft' | translate: { title: lane.title }" [title]="'board.lane.moveLeft' | translate: { title: lane.title }">←</button>
+              <button type="button" class="btn btn-icon btn-small" (click)="move(i, 1)" [disabled]="last || saving()" [attr.aria-label]="'board.lane.moveRight' | translate: { title: lane.title }" [title]="'board.lane.moveRight' | translate: { title: lane.title }">→</button>
+            </span>
+          </header>
+          <div class="lane-meta">
+            <span class="code lane-entry" [title]="lane.entryPoint">{{ lane.entryPoint }}</span>
+            @for (repo of lane.repositories; track repo) {
+              <span class="lane-repo">{{ repo }}</span>
+            }
+          </div>
+          <div class="lane-actions">
+            @if (lane.stale && !replacing().has(lane.surveyId)) {
+              <span class="pill is-stale" [title]="'survey.stale.title' | translate">{{ 'survey.stale.changed' | translate }}</span>
+              <button type="button" class="btn btn-g btn-small" (click)="resurvey(lane)">{{ 'survey.resurvey' | translate }}</button>
+            }
+            <a class="btn btn-g btn-small" [routerLink]="['/surveys', lane.surveyId]" [title]="'board.lane.openTitle' | translate">{{ 'board.lane.open' | translate }}</a>
+            <button type="button" class="btn btn-g btn-small" (click)="askRemove(lane)" [disabled]="lanes().length <= 1 || saving()" [title]="(lanes().length <= 1 ? 'board.lane.removeLast' : 'board.lane.removeTitle') | translate">{{ 'board.lane.remove' | translate }}</button>
+          </div>
+
+          @if (replacing().has(lane.surveyId) || laneRunning(lane)) {
+            <div class="canvas-status lane-status" role="status">
+              <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+                <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+              </svg>
+              <p class="muted">{{ 'board.lane.running' | translate }}</p>
+              <p class="muted">{{ 'board.lane.runningHint' | translate }}</p>
+            </div>
+          } @else if (lane.status === SurveyStatus.Failed) {
+            <div class="notice is-error lane-status" role="alert">
+              <p>{{ 'board.lane.failed' | translate }}</p>
+              <button type="button" class="btn btn-g btn-small" (click)="resurvey(lane)">{{ 'survey.resurvey' | translate }}</button>
+            </div>
+          } @else if (detailFailed().has(lane.surveyId)) {
+            <div class="notice is-error lane-status" role="alert">
+              <p>{{ 'board.lane.loadFailed' | translate }}</p>
+              <button type="button" class="btn btn-g btn-small" (click)="fetchDetail(lane.surveyId)">{{ 'common.retry' | translate }}</button>
+            </div>
+          } @else if (details().get(lane.surveyId); as detail) {
+            <app-business-view class="lane-view" [detail]="detail" [boardId]="b.id" [boardFlow]="lane.flow" [boardLayout]="layouts().get(lane.surveyId) ?? null" />
+          } @else {
+            <div class="canvas-status lane-status" role="status">
+              <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+                <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+              </svg>
+              <p class="muted">{{ 'business.loading' | translate }}</p>
+            </div>
+          }
+        </section>
+      }
+    </div>
+  </div>
+
+  @if (feedback(); as f) {
+    <div class="toast" [class.is-error]="f.error" [attr.role]="f.error ? 'alert' : 'status'">
+      <span>{{ f.text }}</span>
+      <button type="button" class="btn btn-g btn-small" (click)="dismissFeedback()">{{ 'common.close' | translate }}</button>
+    </div>
+  }
+
+  @if (removing(); as lane) {
+    <app-confirm-dialog [title]="'board.lane.removeConfirm.title' | translate: { title: lane.title }" [text]="'board.lane.removeConfirm.text' | translate" [confirmLabel]="'board.lane.removeConfirm.action' | translate" (confirm)="confirmRemove()" (cancel)="removing.set(null)" />
+  }
+
+  @if (confirmingDelete()) {
+    <app-confirm-dialog [title]="'boards.deleteConfirm.title' | translate: { name: b.name }" [text]="'boards.deleteConfirm.text' | translate" [confirmLabel]="(deleting() ? 'boards.deleting' : 'boards.deleteConfirm.action') | translate" [busy]="deleting()" (confirm)="deleteBoard()" (cancel)="confirmingDelete.set(false)" />
+  }
+
+  @if (addOpen()) {
+    <div class="overlay" appDialog (click)="closeAdd()" (dialogClose)="closeAdd()">
+      <section class="dialog is-narrow" role="dialog" aria-modal="true" aria-labelledby="board-add-title" (click)="$event.stopPropagation()">
+        <h2 id="board-add-title">{{ 'board.addLane.title' | translate: { max: maxLanes } }}</h2>
+        @if (addError(); as message) {
+          <p class="field-error" role="alert">{{ message }}</p>
+        }
+        @if (candidates(); as list) {
+          @if (list.length === 0) {
+            <p class="muted">{{ 'board.addLane.none' | translate }}</p>
+          } @else {
+            <form class="form-stack" (submit)="$event.preventDefault(); submitAdd()">
+              <div class="field">
+                <label class="field-label" for="board-add-lane">{{ 'board.addLane.pick' | translate }}</label>
+                <select id="board-add-lane" class="input" name="lane" [(ngModel)]="addChoice">
+                  @for (survey of list; track survey.id) {
+                    <option [value]="survey.id">{{ survey.entryPoint }} · {{ survey.repository }}</option>
+                  }
+                </select>
+              </div>
+              <footer class="dialog-foot">
+                <button type="button" class="btn btn-g" (click)="closeAdd()">{{ 'common.cancel' | translate }}</button>
+                <button type="submit" class="btn btn-p" [disabled]="saving()">{{ 'board.addLane.submit' | translate }}</button>
+              </footer>
+            </form>
+          }
+        } @else if (!addError()) {
+          <p class="muted" role="status">{{ 'boards.loading' | translate }}</p>
+        }
+        @if (candidates() !== null && candidates()!.length === 0) {
+          <footer class="dialog-foot">
+            <button type="button" class="btn btn-g" (click)="closeAdd()">{{ 'common.close' | translate }}</button>
+          </footer>
+        }
+      </section>
+    </div>
+  }
+} @else {
+  <div class="canvas-status board-loading" role="status">
+    <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
+      <path d="M4 18 C 30 18, 30 6, 60 6 S 90 18, 116 18" />
+    </svg>
+    <p class="muted">{{ 'board.loading' | translate }}</p>
+  </div>
+}

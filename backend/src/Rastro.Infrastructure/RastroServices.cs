@@ -40,6 +40,8 @@ public static class RastroServices
         services.AddScoped<Business.BusinessViewService>();
         services.AddScoped<Business.BusinessAnnotationService>();
         services.AddScoped<Business.BusinessLayoutService>();
+        services.AddScoped<Business.BoardService>();
+        services.AddScoped<Surveys.SurveyStalenessService>();
         services.AddScoped<Links.CodeLinkService>();
         services.AddSingleton<Architecture.DeploymentReader>();
         services.AddSingleton<IValidationCommandRunner, LocalCommandRunner>();

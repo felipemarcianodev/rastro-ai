@@ -19,7 +19,8 @@
       "surveys": "Levantamentos",
       "database": "Banco",
       "databaseFailed": "Banco (não foi possível ler os repositórios)",
-      "settings": "Configurações"
+      "settings": "Configurações",
+      "boards": "Quadros"
     },
     "aiState": {
       "title": "Configuração da IA e do modo agente",
@@ -315,7 +316,15 @@
     "noResponse": "O Rastro não respondeu. Confira se o comando rastro continua aberto no terminal e tente de novo.",
     "notFound": "Não encontrado.",
     "generic": "Algo deu errado no Rastro. Tente de novo.",
-    "LANGUAGE_INVALID": "Idioma inválido. Escolha português, inglês ou espanhol."
+    "LANGUAGE_INVALID": "Idioma inválido. Escolha português, inglês ou espanhol.",
+    "BOARD_NOT_FOUND": "Este quadro não existe mais. Volte à lista de quadros.",
+    "BOARD_NAME_INVALID": "O nome do quadro está vazio ou tem mais de 120 caracteres.",
+    "BOARD_GLOSSARY_INVALID": "O glossário passa de 8000 caracteres.",
+    "BOARD_LANES_INVALID": "As faixas do quadro são inválidas: um quadro tem de 1 a 12 faixas, sem repetir levantamento.",
+    "BOARD_SURVEY_NOT_FOUND": "Esse levantamento não existe mais.",
+    "BOARD_SURVEY_NOT_READY": "O levantamento ainda não está pronto. Espere ele terminar.",
+    "BOARD_LANE_EXISTS": "Esse levantamento já está no quadro.",
+    "BOARD_LANE_NOT_FOUND": "Essa faixa não está mais no quadro. Recarregue a tela."
   },
   "flowCanvas": {
     "mark": {
@@ -942,7 +951,9 @@
     "survey": "Fluxo",
     "consolidated": "Visão consolidada",
     "database": "Banco de {nome}",
-    "settings": "Configurações"
+    "settings": "Configurações",
+    "boards": "Quadros",
+    "board": "Quadro"
   },
   "surveys": {
     "title": "Levantamentos",
@@ -1039,6 +1050,14 @@
       "solution": "Escolha uma solution.",
       "entry": "Informe o método de entrada, por exemplo PedidosController.Criar.",
       "depth": "Use um número inteiro de {min} a {max}."
+    },
+    "pick": {
+      "group": "Escolha para o quadro",
+      "selected": "{count, plural, =1 {# levantamento escolhido} other {# levantamentos escolhidos}}",
+      "hint": "Escolha pelo menos {min} para criar um quadro.",
+      "create": "Criar quadro",
+      "clear": "Limpar escolha",
+      "label": "Escolher {entryPoint} para o quadro"
     }
   },
   "survey": {
@@ -1271,7 +1290,9 @@
     "note": {
       "saved": "Anotação salva.",
       "deleted": "Anotação apagada."
-    }
+    },
+    "addToBoard": "Adicionar a um quadro",
+    "addToBoardTitle": "Põe este fluxo numa faixa de um quadro, ao lado de outros levantamentos."
   },
   "aiDisclosure": {
     "goes": "Vai para {provider}: {goes}.",
@@ -1807,5 +1828,112 @@
     "edgeMarkedNew": "A ligação {a0} → {a1} já existe no código; não pode ser marcada como nova.",
     "edgeDangling": "Uma ligação nova aponta para um passo que não está no rascunho.",
     "foreignSystem": "Edição só no primeiro sistema do fluxo."
+  },
+  "boards": {
+    "title": "Quadros",
+    "subtitle": "Um quadro junta os fluxos de vários levantamentos lado a lado, cada um numa faixa, para ver o processo de ponta a ponta.",
+    "new": "Novo quadro",
+    "loading": "Carregando os quadros…",
+    "empty": {
+      "none": "Nenhum quadro ainda.",
+      "hint": "Crie um quadro escolhendo dois ou mais levantamentos prontos."
+    },
+    "laneCount": "{count, plural, =1 {# faixa} other {# faixas}}",
+    "updated": "atualizado em {date}",
+    "openLabel": "Abrir o quadro {name}",
+    "delete": "Excluir",
+    "deleteLabel": "Excluir o quadro {name}",
+    "deleting": "Excluindo…",
+    "deleted": "Quadro \"{name}\" excluído.",
+    "deleteConfirm": {
+      "title": "Excluir o quadro \"{name}\"?",
+      "text": "O quadro e as posições dos balões dele são apagados. Os levantamentos continuam como estão. Não dá para desfazer.",
+      "action": "Excluir"
+    },
+    "create": {
+      "title": "Criar quadro",
+      "intro": "Escolha de 1 a {max} levantamentos prontos. A ordem em que você escolhe vira a ordem das faixas.",
+      "name": "Nome do quadro",
+      "surveys": "Levantamentos prontos",
+      "selected": "({count} de {max})",
+      "none": "Não há levantamento pronto. Levante um fluxo primeiro.",
+      "submit": "Criar quadro",
+      "creating": "Criando…",
+      "errors": {
+        "name": "Informe o nome do quadro.",
+        "surveys": "Escolha de 1 a {max} levantamentos."
+      }
+    },
+    "addTo": {
+      "title": "Adicionar a um quadro",
+      "intro": "Escolha o quadro que recebe {entryPoint}. A faixa entra no fim dele.",
+      "choose": "Quadro",
+      "newOption": "Criar um quadro novo",
+      "newName": "Nome do quadro novo",
+      "submit": "Adicionar",
+      "adding": "Adicionando…",
+      "done": "Adicionado ao quadro \"{name}\".",
+      "open": "Abrir o quadro",
+      "noBoards": "Você ainda não tem quadros. Crie o primeiro aqui."
+    }
+  },
+  "board": {
+    "heading": "Quadro",
+    "backToList": "Voltar aos quadros",
+    "nameLabel": "Nome do quadro",
+    "rename": "Renomear",
+    "delete": "Excluir quadro",
+    "lanes": "Faixas do quadro",
+    "loading": "Carregando o quadro…",
+    "resurveyFailed": "O levantamento novo falhou. A faixa continua com o anterior.",
+    "suggest": {
+      "button": "Sugerir textos do quadro",
+      "title": "Pede à IA um texto de negócio para os passos sem texto confirmado em todas as faixas, com o glossário do quadro. Você confirma cada um."
+    },
+    "addLane": {
+      "button": "Adicionar levantamento",
+      "title": "Adicionar um levantamento ao quadro",
+      "full": "O quadro já tem o máximo de {max} faixas.",
+      "none": "Não há outro levantamento pronto para adicionar.",
+      "pick": "Levantamento",
+      "submit": "Adicionar"
+    },
+    "replaced": {
+      "title": "Faixa \"{title}\" atualizada com o levantamento novo",
+      "removed": "{count, plural, =1 {# passo da versão anterior não existe mais no código e saiu do desenho:} other {# passos da versão anterior não existem mais no código e saíram do desenho:}}",
+      "none": "Todos os passos da versão anterior continuam no levantamento novo."
+    },
+    "glossary": {
+      "summary": "Glossário do quadro ({count})",
+      "label": "Glossário",
+      "help": "Texto simples, uma entrada por linha, no formato Termo: significado. A IA usa o glossário ao sugerir os textos.",
+      "save": "Salvar glossário",
+      "saved": "Glossário salvo.",
+      "placeholder": "Pedido: compra feita pelo cliente"
+    },
+    "legend": {
+      "label": "Legenda dos tipos de passo"
+    },
+    "lane": {
+      "aria": "Faixa {title}",
+      "drag": "Arraste para mudar a ordem da faixa",
+      "titleLabel": "Título da faixa",
+      "moveLeft": "Mover a faixa {title} para a esquerda",
+      "moveRight": "Mover a faixa {title} para a direita",
+      "open": "Abrir",
+      "openTitle": "Abre o levantamento desta faixa",
+      "remove": "Tirar do quadro",
+      "removeTitle": "Tira a faixa do quadro. O levantamento continua guardado.",
+      "removeLast": "Um quadro precisa de pelo menos uma faixa.",
+      "removeConfirm": {
+        "title": "Tirar a faixa \"{title}\" do quadro?",
+        "text": "A faixa e as posições dos balões dela neste quadro saem. O levantamento continua guardado.",
+        "action": "Tirar"
+      },
+      "running": "Levantando…",
+      "runningHint": "O Rastro está lendo o código. O desenho aparece quando terminar.",
+      "failed": "O levantamento desta faixa falhou.",
+      "loadFailed": "Não foi possível abrir o levantamento desta faixa."
+    }
   }
 }

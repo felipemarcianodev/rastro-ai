@@ -46,6 +46,15 @@ Usa list_unresolved para ver los huecos y get_flow para el flujo completo.</valu
   <data name="Business.KindInvalid" xml:space="preserve"><value>Tipo no válido. Use Start, Decision, Notification, Rejection, CrossSystem, Step o End.</value></data>
   <data name="Business.ReasonInvalid" xml:space="preserve"><value>Motivo no válido: use una sola línea de 1 a 300 caracteres que diga qué en el código muestra el tipo.</value></data>
   <data name="Business.AlreadyConfirmed" xml:space="preserve"><value>El usuario ya lo confirmó en la pantalla; no se cambió nada.</value></data>
+  <data name="Boards.None" xml:space="preserve"><value>Aún no hay tableros de flujos. El usuario los crea en la pantalla Tableros.</value></data>
+  <data name="Boards.Row" xml:space="preserve"><value>- {0} "{1}": {2} carriles</value></data>
+  <data name="Boards.Lane" xml:space="preserve"><value>    {0}. "{1}" rastreo {2}: {3} ({4})</value></data>
+  <data name="Boards.NotFound" xml:space="preserve"><value>Tablero no encontrado. Usa list_boards.</value></data>
+  <data name="Boards.NeedOne" xml:space="preserve"><value>Indica surveyId (un rastreo) o boardId (un tablero de flujos), ni los dos ni ninguno.</value></data>
+  <data name="Boards.Header" xml:space="preserve"><value>Tablero "{0}": {1} carriles</value></data>
+  <data name="Boards.Glossary" xml:space="preserve"><value>Glosario (los términos del usuario; prefiérelos en los textos):</value></data>
+  <data name="Boards.LaneHeader" xml:space="preserve"><value>Carril {0} "{1}" (rastreo {2}, entrada {3}):</value></data>
+  <data name="Boards.LaneNoView" xml:space="preserve"><value>  Aún sin vista de negocio: el rastreo no tiene grafo (en análisis o con fallo).</value></data>
   <data name="Unresolved.None" xml:space="preserve"><value>Ningún hueco: el compilador resolvió todas las llamadas de este flujo.</value></data>
   <data name="Unresolved.Call" xml:space="preserve"><value>- {0} llamada `{1}` en {2}</value></data>
   <data name="Unresolved.Reason" xml:space="preserve"><value>  motivo: {0}{1}</value></data>

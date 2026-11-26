@@ -418,7 +418,7 @@ describe('SurveyPage', () => {
     const groups = [...el.querySelectorAll('.page-bar-side .bar-group')].map((g) => g.getAttribute('aria-label'));
     expect(groups).toEqual(['Ver', 'Compartilhar', 'Alterar']);
     const share = [...el.querySelectorAll<HTMLButtonElement>('.bar-group[aria-label="Compartilhar"] button')];
-    expect(share.map((b) => b.textContent!.trim())).toEqual(['Comparar', 'Exportar']);
+    expect(share.map((b) => b.textContent!.trim())).toEqual(['Comparar', 'Exportar', 'Adicionar a um quadro']);
     expect(share[1].title).toBe('PNG, SVG, Mermaid, draw.io e C4');
     expect(el.querySelector('.bar-group[aria-label="Alterar"] .btn-p')!.textContent!.trim()).toBe('Editar fluxo');
     const remove = [...el.querySelectorAll<HTMLButtonElement>('.page-bar-side button')].find((b) => b.textContent!.trim() === 'Excluir levantamento…');

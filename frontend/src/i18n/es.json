@@ -19,7 +19,8 @@
       "surveys": "Rastreos",
       "database": "Base de datos",
       "databaseFailed": "Base de datos (no se pudieron leer los repositorios)",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "boards": "Tableros"
     },
     "aiState": {
       "title": "Configuración de la IA y del modo agente",
@@ -315,7 +316,15 @@
     "noResponse": "Rastro no respondió. Comprueba que el comando rastro siga abierto en la terminal e inténtalo de nuevo.",
     "notFound": "No encontrado.",
     "generic": "Algo salió mal en Rastro. Inténtalo de nuevo.",
-    "LANGUAGE_INVALID": "Idioma no válido. Elige español, inglés o portugués."
+    "LANGUAGE_INVALID": "Idioma no válido. Elige español, inglés o portugués.",
+    "BOARD_NOT_FOUND": "Este tablero ya no existe. Vuelva a la lista de tableros.",
+    "BOARD_NAME_INVALID": "El nombre del tablero está vacío o tiene más de 120 caracteres.",
+    "BOARD_GLOSSARY_INVALID": "El glosario pasa de 8000 caracteres.",
+    "BOARD_LANES_INVALID": "Los carriles del tablero no son válidos: un tablero tiene de 1 a 12 carriles, sin repetir levantamiento.",
+    "BOARD_SURVEY_NOT_FOUND": "Ese levantamiento ya no existe.",
+    "BOARD_SURVEY_NOT_READY": "El levantamiento todavía no está listo. Espere a que termine.",
+    "BOARD_LANE_EXISTS": "Ese levantamiento ya está en el tablero.",
+    "BOARD_LANE_NOT_FOUND": "Ese carril ya no está en el tablero. Recargue la pantalla."
   },
   "flowCanvas": {
     "mark": {
@@ -942,7 +951,9 @@
     "survey": "Flujo",
     "consolidated": "Vista consolidada",
     "database": "Base de datos de {nome}",
-    "settings": "Configuración"
+    "settings": "Configuración",
+    "boards": "Tableros",
+    "board": "Tablero"
   },
   "surveys": {
     "title": "Rastreos",
@@ -1039,6 +1050,14 @@
       "solution": "Elige una solution.",
       "entry": "Indica el método de entrada, por ejemplo PedidosController.Criar.",
       "depth": "Usa un número entero de {min} a {max}."
+    },
+    "pick": {
+      "group": "Elegir para el tablero",
+      "selected": "{count, plural, =1 {# levantamiento elegido} other {# levantamientos elegidos}}",
+      "hint": "Elija al menos {min} para crear un tablero.",
+      "create": "Crear tablero",
+      "clear": "Limpiar elección",
+      "label": "Elegir {entryPoint} para el tablero"
     }
   },
   "survey": {
@@ -1271,7 +1290,9 @@
     "note": {
       "saved": "Nota guardada.",
       "deleted": "Nota eliminada."
-    }
+    },
+    "addToBoard": "Agregar a un tablero",
+    "addToBoardTitle": "Pone este flujo en un carril de un tablero, junto a otros levantamientos."
   },
   "aiDisclosure": {
     "goes": "Va a {provider}: {goes}.",
@@ -1807,5 +1828,112 @@
     "edgeMarkedNew": "El enlace {a0} → {a1} ya existe en el código; no se puede marcar como nuevo.",
     "edgeDangling": "Un enlace nuevo apunta a un paso que no está en el borrador.",
     "foreignSystem": "Solo se puede editar el primer sistema del flujo."
+  },
+  "boards": {
+    "title": "Tableros",
+    "subtitle": "Un tablero junta los flujos de varios levantamientos lado a lado, cada uno en un carril, para ver el proceso de punta a punta.",
+    "new": "Nuevo tablero",
+    "loading": "Cargando los tableros…",
+    "empty": {
+      "none": "Ningún tablero todavía.",
+      "hint": "Cree un tablero eligiendo dos o más levantamientos listos."
+    },
+    "laneCount": "{count, plural, =1 {# carril} other {# carriles}}",
+    "updated": "actualizado el {date}",
+    "openLabel": "Abrir el tablero {name}",
+    "delete": "Eliminar",
+    "deleteLabel": "Eliminar el tablero {name}",
+    "deleting": "Eliminando…",
+    "deleted": "Tablero \"{name}\" eliminado.",
+    "deleteConfirm": {
+      "title": "¿Eliminar el tablero \"{name}\"?",
+      "text": "Se borran el tablero y las posiciones de sus globos. Los levantamientos siguen como están. No se puede deshacer.",
+      "action": "Eliminar"
+    },
+    "create": {
+      "title": "Crear tablero",
+      "intro": "Elija de 1 a {max} levantamientos listos. El orden en que los elige se vuelve el orden de los carriles.",
+      "name": "Nombre del tablero",
+      "surveys": "Levantamientos listos",
+      "selected": "({count} de {max})",
+      "none": "No hay ningún levantamiento listo. Levante un flujo primero.",
+      "submit": "Crear tablero",
+      "creating": "Creando…",
+      "errors": {
+        "name": "Indique el nombre del tablero.",
+        "surveys": "Elija de 1 a {max} levantamientos."
+      }
+    },
+    "addTo": {
+      "title": "Agregar a un tablero",
+      "intro": "Elija el tablero que recibe {entryPoint}. El carril entra al final.",
+      "choose": "Tablero",
+      "newOption": "Crear un tablero nuevo",
+      "newName": "Nombre del tablero nuevo",
+      "submit": "Agregar",
+      "adding": "Agregando…",
+      "done": "Agregado al tablero \"{name}\".",
+      "open": "Abrir el tablero",
+      "noBoards": "Todavía no tiene tableros. Cree el primero aquí."
+    }
+  },
+  "board": {
+    "heading": "Tablero",
+    "backToList": "Volver a los tableros",
+    "nameLabel": "Nombre del tablero",
+    "rename": "Renombrar",
+    "delete": "Eliminar tablero",
+    "lanes": "Carriles del tablero",
+    "loading": "Cargando el tablero…",
+    "resurveyFailed": "El levantamiento nuevo falló. El carril sigue con el anterior.",
+    "suggest": {
+      "button": "Sugerir textos del tablero",
+      "title": "Pide a la IA un texto de negocio para los pasos sin texto confirmado en todos los carriles, con el glosario del tablero. Usted confirma cada uno."
+    },
+    "addLane": {
+      "button": "Agregar levantamiento",
+      "title": "Agregar un levantamiento al tablero",
+      "full": "El tablero ya tiene el máximo de {max} carriles.",
+      "none": "No hay otro levantamiento listo para agregar.",
+      "pick": "Levantamiento",
+      "submit": "Agregar"
+    },
+    "replaced": {
+      "title": "Carril \"{title}\" actualizado con el levantamiento nuevo",
+      "removed": "{count, plural, =1 {# paso de la versión anterior ya no existe en el código y salió del dibujo:} other {# pasos de la versión anterior ya no existen en el código y salieron del dibujo:}}",
+      "none": "Todos los pasos de la versión anterior siguen en el levantamiento nuevo."
+    },
+    "glossary": {
+      "summary": "Glosario del tablero ({count})",
+      "label": "Glosario",
+      "help": "Texto simple, una entrada por línea, con el formato Término: significado. La IA usa el glosario al sugerir los textos.",
+      "save": "Guardar glosario",
+      "saved": "Glosario guardado.",
+      "placeholder": "Pedido: compra hecha por el cliente"
+    },
+    "legend": {
+      "label": "Leyenda de los tipos de paso"
+    },
+    "lane": {
+      "aria": "Carril {title}",
+      "drag": "Arrastre para cambiar el orden del carril",
+      "titleLabel": "Título del carril",
+      "moveLeft": "Mover el carril {title} a la izquierda",
+      "moveRight": "Mover el carril {title} a la derecha",
+      "open": "Abrir",
+      "openTitle": "Abre el levantamiento de este carril",
+      "remove": "Quitar del tablero",
+      "removeTitle": "Quita el carril del tablero. El levantamiento sigue guardado.",
+      "removeLast": "Un tablero necesita al menos un carril.",
+      "removeConfirm": {
+        "title": "¿Quitar el carril \"{title}\" del tablero?",
+        "text": "Salen el carril y las posiciones de sus globos en este tablero. El levantamiento sigue guardado.",
+        "action": "Quitar"
+      },
+      "running": "Levantando…",
+      "runningHint": "Rastro está leyendo el código. El dibujo aparece cuando termine.",
+      "failed": "El levantamiento de este carril falló.",
+      "loadFailed": "No se pudo abrir el levantamiento de este carril."
+    }
   }
 }

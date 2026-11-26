@@ -141,6 +141,11 @@ export class BusinessViewComponent {
   private readonly ai = inject(AiStatusService);
 
   readonly detail = input.required<SurveyDetail>();
+  // Faixa de um quadro (Fase 60): o fluxo e a posição vêm do quadro, a posição é gravada no escopo do quadro, e a
+  // tela do levantamento (direção do desenho, "Sugerir textos", "Ver no grafo") não se aplica.
+  readonly boardId = input<string | null>(null);
+  readonly boardFlow = input<BusinessFlow | null>(null);
+  readonly boardLayout = input<BusinessLayout | null>(null);
   readonly selectedId = input<string | null>(null);
   // Notas dos passos do grafo (por id do nó), as mesmas que o painel do passo mostra.
   readonly notes = input<ReadonlyMap<string, string>>(new Map());
@@ -223,8 +228,14 @@ export class BusinessViewComponent {
   protected readonly suggesting = signal(false);
   protected readonly feedback = signal<{ text: string; error: boolean } | null>(null);
   private feedbackTimer: ReturnType<typeof setTimeout> | undefined;
-  // "Sugerir textos" só existe com a IA ligada e o uso "Sugestões" habilitado: nunca botão morto.
-  protected readonly canSuggest = computed(() => aiCan(this.ai.status(), AiUse.Suggestions));
+  // "Sugerir textos" só existe com a IA ligada e o uso "Sugestões" habilitado: nunca botão morto. Na faixa de um
+  // quadro o pedido é do quadro inteiro (com o glossário), e o botão fica na tela dele.
+  protected readonly inBoard = computed(() => this.boardId() !== null);
+  protected readonly canSuggest = computed(() => !this.inBoard() && aiCan(this.ai.status(), AiUse.Suggestions));
+  // Último fluxo e última posição que vieram do quadro (em texto): o quadro rele os dados de tempos em tempos, e só
+  // o que mudou de fato refaz o desenho.
+  private boardFlowKey = '';
+  private boardLayoutKey = '';
 
   private readonly nodes = computed(() => new Map((this.detail().graph?.nodes ?? []).map((node) => [node.id, node])));
 
@@ -321,34 +332,42 @@ export class BusinessViewComponent {
           this.layoutReady.set(false);
           this.focusedId.set(null);
           this.editing.set(null);
+          this.boardFlowKey = '';
+          this.boardLayoutKey = '';
         }
         // Tentar de novo depois de um erro busca tudo outra vez, inclusive a posição salva.
         if (this.error() !== null) this.layoutReady.set(false);
         this.linksFailed.set(false);
         this.error.set(null);
+        if (this.inBoard()) this.syncBoard();
       });
-      const sub = this.api.business(detail.survey.id).subscribe({
-        next: (flow) =>
-          untracked(() => {
-            this.flow.set(flow);
-            this.fitted = false;
-            if (!flow.steps.some((s) => s.id === this.stepId())) this.stepId.set(null);
-          }),
-        error: (error) => untracked(() => this.error.set(apiErrorMessage(error))),
-      });
+      // Na faixa do quadro o fluxo e a posição já vieram com o quadro (syncBoard): só os links se buscam aqui.
+      const sub = this.inBoard()
+        ? undefined
+        : this.api.business(detail.survey.id).subscribe({
+            next: (flow) =>
+              untracked(() => {
+                this.flow.set(flow);
+                this.fitted = false;
+                if (!flow.steps.some((s) => s.id === this.stepId())) this.stepId.set(null);
+              }),
+            error: (error) => untracked(() => this.error.set(apiErrorMessage(error))),
+          });
       // A posição salva é um enfeite do desenho: se não vier, vale a organização automática, com um aviso.
-      const layoutSub = this.api.businessLayout(detail.survey.id).subscribe({
-        next: (layout) =>
-          untracked(() => {
-            this.applyLayout(layout);
-            this.layoutReady.set(true);
-          }),
-        error: () =>
-          untracked(() => {
-            this.notice.set(Notice.LoadFailed);
-            this.layoutReady.set(true);
-          }),
-      });
+      const layoutSub = this.inBoard()
+        ? undefined
+        : this.api.businessLayout(detail.survey.id).subscribe({
+            next: (layout) =>
+              untracked(() => {
+                this.applyLayout(layout);
+                this.layoutReady.set(true);
+              }),
+            error: () =>
+              untracked(() => {
+                this.notice.set(Notice.LoadFailed);
+                this.layoutReady.set(true);
+              }),
+          });
       // Os modelos de link só enfeitam o painel: sem eles os botões de abrir não aparecem.
       const linksSub = this.api.links(detail.survey.id).subscribe({
         next: (links) => untracked(() => this.links.set(links)),
@@ -359,9 +378,18 @@ export class BusinessViewComponent {
           }),
       });
       onCleanup(() => {
-        sub.unsubscribe();
+        sub?.unsubscribe();
         linksSub.unsubscribe();
-        layoutSub.unsubscribe();
+        layoutSub?.unsubscribe();
+      });
+    });
+
+    // O quadro releu os dados: o fluxo e a posição novos entram sem mexer no que não mudou.
+    effect(() => {
+      this.boardFlow();
+      this.boardLayout();
+      untracked(() => {
+        if (this.inBoard()) this.syncBoard();
       });
     });
 
@@ -388,6 +416,25 @@ export class BusinessViewComponent {
         if (found && !this.pickedHere) afterNextRender(() => this.canvas()?.centerGroupOrNode(found.id, true), { injector: this.injector });
       });
     });
+  }
+
+  // Faixa de um quadro: pega o fluxo e a posição que o quadro entregou, só se mudaram desde a última vez.
+  private syncBoard(): void {
+    const flow = this.boardFlow();
+    const flowKey = JSON.stringify(flow);
+    if (flow && flowKey !== this.boardFlowKey) {
+      this.boardFlowKey = flowKey;
+      this.flow.set(flow);
+      this.fitted = false;
+      if (!flow.steps.some((s) => s.id === this.stepId())) this.stepId.set(null);
+    }
+    const layout = this.boardLayout();
+    const layoutKey = JSON.stringify(layout);
+    if (layout && layoutKey !== this.boardLayoutKey) {
+      this.boardLayoutKey = layoutKey;
+      this.applyLayout(layout);
+    }
+    if (layout) this.layoutReady.set(true);
   }
 
   private whereOf(ref: CodeRef, full = false): string {
@@ -641,7 +688,12 @@ export class BusinessViewComponent {
     const edges = this.pendingEdges;
     this.pendingSteps = new Map();
     this.pendingEdges = new Map();
-    this.api.saveBusinessLayout(surveyId, { steps: [...steps.values()], edges: [...edges.values()] }).subscribe({
+    const boardId = this.boardId();
+    const batch: BusinessLayout = { steps: [...steps.values()], edges: [...edges.values()] };
+    const request = boardId
+      ? this.api.saveBoardLayout(boardId, { steps: batch.steps.map((s) => ({ laneSurveyId: surveyId, ...s })), edges: batch.edges.map((e) => ({ laneSurveyId: surveyId, ...e })) })
+      : this.api.saveBusinessLayout(surveyId, batch);
+    request.subscribe({
       next: () =>
         untracked(() => {
           if (this.notice() === Notice.SaveFailed) this.notice.set(null);
@@ -670,7 +722,8 @@ export class BusinessViewComponent {
     clearTimeout(this.saveTimer);
     this.pendingSteps = new Map();
     this.pendingEdges = new Map();
-    this.api.resetBusinessLayout(this.surveyId).subscribe({
+    const boardId = this.boardId();
+    (boardId ? this.api.resetBoardLayout(boardId, this.surveyId) : this.api.resetBusinessLayout(this.surveyId)).subscribe({
       next: () =>
         untracked(() => {
           this.saved.set(new Map());

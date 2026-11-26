@@ -17,6 +17,67 @@ namespace Rastro.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.15");
 
+            modelBuilder.Entity("Rastro.Core.Business.Board", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("id");
+
+                    b.Property<long>("CreatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Glossary")
+                        .HasMaxLength(8000)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("glossary");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("name");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_boards");
+
+                    b.ToTable("boards", (string)null);
+                });
+
+            modelBuilder.Entity("Rastro.Core.Business.BoardLane", b =>
+                {
+                    b.Property<Guid>("BoardId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("board_id");
+
+                    b.Property<Guid>("SurveyId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("survey_id");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("order");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("title");
+
+                    b.HasKey("BoardId", "SurveyId")
+                        .HasName("pk_board_lanes");
+
+                    b.HasIndex("SurveyId")
+                        .HasDatabaseName("ix_board_lanes_survey_id");
+
+                    b.ToTable("board_lanes", (string)null);
+                });
+
             modelBuilder.Entity("Rastro.Core.Business.BusinessEdgeLayout", b =>
                 {
                     b.Property<int>("Scope")
@@ -26,6 +87,10 @@ namespace Rastro.Infrastructure.Migrations
                     b.Property<Guid>("ScopeId")
                         .HasColumnType("TEXT")
                         .HasColumnName("scope_id");
+
+                    b.Property<Guid>("LaneSurveyId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("lane_survey_id");
 
                     b.Property<string>("FromStep")
                         .HasMaxLength(64)
@@ -46,7 +111,7 @@ namespace Rastro.Infrastructure.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("updated_at");
 
-                    b.HasKey("Scope", "ScopeId", "FromStep", "ToStep")
+                    b.HasKey("Scope", "ScopeId", "LaneSurveyId", "FromStep", "ToStep")
                         .HasName("pk_business_edge_layouts");
 
                     b.ToTable("business_edge_layouts", (string)null);
@@ -142,6 +207,10 @@ namespace Rastro.Infrastructure.Migrations
                         .HasColumnType("TEXT")
                         .HasColumnName("scope_id");
 
+                    b.Property<Guid>("LaneSurveyId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("lane_survey_id");
+
                     b.Property<string>("StepId")
                         .HasMaxLength(64)
                         .HasColumnType("TEXT")
@@ -159,7 +228,7 @@ namespace Rastro.Infrastructure.Migrations
                         .HasColumnType("REAL")
                         .HasColumnName("y");
 
-                    b.HasKey("Scope", "ScopeId", "StepId")
+                    b.HasKey("Scope", "ScopeId", "LaneSurveyId", "StepId")
                         .HasName("pk_business_layouts");
 
                     b.ToTable("business_layouts", (string)null);
@@ -647,6 +716,23 @@ namespace Rastro.Infrastructure.Migrations
                         .HasName("pk_live_connections");
 
                     b.ToTable("live_connections", (string)null);
+                });
+
+            modelBuilder.Entity("Rastro.Core.Business.BoardLane", b =>
+                {
+                    b.HasOne("Rastro.Core.Business.Board", null)
+                        .WithMany()
+                        .HasForeignKey("BoardId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_board_lanes_boards_board_id");
+
+                    b.HasOne("Rastro.Core.Surveys.Survey", null)
+                        .WithMany()
+                        .HasForeignKey("SurveyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_board_lanes_surveys_survey_id");
                 });
 
             modelBuilder.Entity("Rastro.Core.Business.BusinessKindOverride", b =>

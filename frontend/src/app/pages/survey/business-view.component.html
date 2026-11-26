@@ -1,7 +1,9 @@
 <div class="biz-bar" role="group" [attr.aria-label]="'business.barLabel' | translate">
+  @if (!inBoard()) {
   <button type="button" class="btn btn-icon" (click)="toggleDirection()"
     [attr.aria-label]="'graph.layout.directionAria' | translate: { current: (directionLabel[LayoutDirection.Business] | translate), next: (directionLabel[next] | translate) }"
     [title]="'graph.layout.directionTitle' | translate: { next: (directionLabel[next] | translate) }">{{ directionGlyph[next] }}</button>
+  }
   @if (geometry() && !empty()) {
   <span class="biz-zoom" role="group" [attr.aria-label]="'business.zoomLabel' | translate">
     <button type="button" class="btn btn-icon" (click)="zoomOut()" [attr.aria-label]="'flowCanvas.zoomOut' | translate" [title]="'flowCanvas.zoomOut' | translate">−</button>
@@ -38,7 +40,9 @@
 } @else if (empty()) {
   <div class="biz-status is-empty" role="status">
     <p class="muted">{{ 'business.empty' | translate }}</p>
-    <button type="button" class="btn btn-g btn-small" (click)="seeGraph()">{{ 'business.seeGraph' | translate }}</button>
+    @if (!inBoard()) {
+      <button type="button" class="btn btn-g btn-small" (click)="seeGraph()">{{ 'business.seeGraph' | translate }}</button>
+    }
   </div>
 } @else if (geometry()) {
   <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate" (keydown)="onStageKey($event)">
@@ -153,6 +157,7 @@
   <app-confirm-dialog [title]="'business.resetConfirm.title' | translate" [text]="'business.resetConfirm.text' | translate" [confirmLabel]="'business.resetConfirm.action' | translate" (confirm)="confirmReset()" (cancel)="cancelReset()" />
 }
 
+@if (!inBoard() || panel()) {
 <section class="biz-panel" [attr.aria-label]="'business.panelLabel' | translate">
   @if (panel(); as p) {
     <header class="biz-panel-head">
@@ -185,8 +190,8 @@
     }
 
     <div class="biz-edit">
-      <label class="field-label" [for]="'biz-kind-pick'">{{ 'business.kind.pick' | translate }}</label>
-      <select id="biz-kind-pick" class="input is-small" [disabled]="busy()" (change)="onKindChange(p.step, $event)">
+      <label class="field-label" [for]="'biz-kind-pick-' + detail().survey.id">{{ 'business.kind.pick' | translate }}</label>
+      <select [id]="'biz-kind-pick-' + detail().survey.id" class="input is-small" [disabled]="busy()" (change)="onKindChange(p.step, $event)">
         <option [value]="kindDetected">{{ 'business.kind.detected' | translate }}</option>
         @for (kind of kindOrder; track kind) {
           <option [value]="kind" [selected]="kind === p.step.kind">{{ kindLabel[kind] | translate }}</option>
@@ -265,11 +270,14 @@
       <p class="biz-note">{{ p.note }}</p>
     }
 
+    @if (!inBoard()) {
     <footer class="biz-panel-foot">
       <button type="button" class="btn btn-g btn-small" (click)="viewInGraph()" [title]="'business.seeInGraphTitle' | translate">{{ 'business.seeInGraph' | translate }}</button>
       <button type="button" class="btn btn-g btn-small" (click)="focusSection()" [title]="'flowMap.focusSectionTitle' | translate">{{ 'flowMap.focusSection' | translate }}</button>
     </footer>
+    }
   } @else {
     <p class="muted biz-hint">{{ 'business.hint' | translate }}</p>
   }
 </section>
+}

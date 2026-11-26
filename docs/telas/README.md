@@ -131,3 +131,4 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 57 | Painel do passo de uma decisão: tipo, código, links para o host e o editor, caminho da entrada e passos agrupados | [fase-57/03-painel-da-decisao.jpg](fase-57/03-painel-da-decisao.jpg) |
 | Fase 57 | Fluxo sem passo-chave além da entrada: a mensagem e o atalho para o grafo completo | [fase-57/04-sem-passo-chave.jpg](fase-57/04-sem-passo-chave.jpg) |
 | Fase 57 | A visão de negócio exportada aberta no draw.io, com as cores e os links | [fase-57/05-visao-de-negocio-no-drawio.jpg](fase-57/05-visao-de-negocio-no-drawio.jpg) |
+| Fase 60 | Quadro com dois fluxos do próprio Rastro lado a lado: título e ordem das faixas, "O código mudou", glossário e legenda | [fase-60/01-quadro-duas-faixas.jpg](fase-60/01-quadro-duas-faixas.jpg) |
