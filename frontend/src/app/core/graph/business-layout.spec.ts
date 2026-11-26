@@ -1,5 +1,5 @@
 import { BusinessEdge, BusinessFlow, BusinessKind, BusinessStep, LabelOrigin, LabelState } from '../models';
-import { BUSINESS_BOX, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from './business-layout';
+import { BRANCH_LABEL_POSITION, BUSINESS_BOX, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from './business-layout';
 
 function step(id: string, kind: BusinessKind = BusinessKind.Step, label = id): BusinessStep {
   return { id, nodeId: `n-${id}`, kind, label, labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: [`n-${id}`], inferred: false, codeChanged: false };
@@ -146,5 +146,11 @@ describe('posição salva da visão de negócio', () => {
   it('chaveDaLigacao_distingueSaidaEChegada', () => {
     expect(edgeKey('a', 'b')).not.toBe(edgeKey('b', 'a'));
     expect(edgeKey('a', 'b')).toBe(edgeKey('a', 'b'));
+  });
+
+  // WEB-BIZ-024
+  it('rotuloDoRamo_ficaPertoDaChegada', () => {
+    expect(BRANCH_LABEL_POSITION).toBeGreaterThan(0.5);
+    expect(BRANCH_LABEL_POSITION).toBeLessThan(1);
   });
 });

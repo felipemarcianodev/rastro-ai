@@ -18,9 +18,10 @@
   @if (canSuggest() && geometry() && !empty()) {
     <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()" [attr.aria-busy]="suggesting()" [title]="'business.suggest.title' | translate">{{ (suggesting() ? 'business.suggest.running' : 'business.suggest.button') | translate }}</button>
   }
+  <span class="muted biz-saved" role="status">@if (positionSaved()) {{{ 'business.layout.saved' | translate }}}</span>
   @if (flow(); as f) {
     @if (f.collapsedDecisions > 0) {
-      <span class="muted biz-bar-note" role="note">{{ 'business.collapsed' | translate: { steps: f.steps.length, count: f.collapsedDecisions } }}</span>
+      <span class="muted biz-bar-note" role="status">{{ 'business.collapsed' | translate: { steps: f.steps.length, count: f.collapsedDecisions } }}</span>
     }
   }
 </div>
@@ -45,7 +46,7 @@
     }
   </div>
 } @else if (geometry()) {
-  <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate" (keydown)="onStageKey($event)">
+  <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate" [attr.aria-describedby]="keysHelpId" (keydown)="onStageKey($event)">
     <f-flow fDraggable class="flow-host biz-host" [class.is-panning]="panning()" [hCellSize]="grid" [vCellSize]="grid" [fCellSizeWhileDragging]="true"
       [fNodeMoveTrigger]="nodeMoveTrigger" [fCanvasMoveTrigger]="canvasMoveTrigger" (fConnectionWaypointsChanged)="bent($event)" (fFullRendered)="onFullRendered()">
       <f-canvas fZoom [fZoomMinimum]="zoomMin" [fZoomMaximum]="zoomMax" (fCanvasChange)="scale.set($event.scale)">
@@ -64,8 +65,8 @@
               <f-connection-marker-arrow [type]="markerEnd" />
               <f-connection-waypoints [waypoints]="edge.bends" [radius]="6" />
               @if (edge.label) {
-                <div fConnectionContent [position]="labelPosition">
-                  <span class="edge-label">{{ edge.label }}</span>
+                <div fConnectionContent [position]="edge.labelAt">
+                  <span class="edge-label" [title]="edge.label">{{ edge.label }}</span>
                 </div>
               }
             </f-connection>
@@ -90,7 +91,6 @@
               role="button"
               [attr.aria-pressed]="stepId() === p.step.id"
               [attr.aria-label]="stepAria(p.step)"
-              aria-describedby="biz-keys-help"
               (pointerdown)="pointerDown($event)"
               (click)="click($event, p.step)"
               (focus)="focusedId.set(p.step.id)"
@@ -101,9 +101,9 @@
               (keydown.shift.tab)="walk($event, p.step.id, -1)"
               (keydown.arrowleft)="nudge($event, p.step, -1, 0)" (keydown.arrowright)="nudge($event, p.step, 1, 0)"
               (keydown.arrowup)="nudge($event, p.step, 0, -1)" (keydown.arrowdown)="nudge($event, p.step, 0, 1)">
-              <div fConnector fConnectorType="target" fConnectorConnectableSide="top" [fConnectorDisabled]="true" [fConnectorId]="'in:' + p.step.id" class="biz-port is-in"></div>
+              <div fConnector fConnectorType="target" fConnectorConnectableSide="top" [fConnectorDisabled]="true" [fConnectorId]="'in:' + p.step.id" class="biz-port is-in" aria-hidden="true"></div>
               @if (p.step.kind === BusinessKind.Decision) {
-                <svg class="biz-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="50,1 99,50 50,99 1,50" /></svg>
+                <svg class="biz-shape" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon class="biz-ring" points="50,1 99,50 50,99 1,50" /><polygon points="50,1 99,50 50,99 1,50" /></svg>
               }
               <span class="biz-glyph" aria-hidden="true">{{ glyph[p.step.kind] }}</span>
               <span class="biz-body">
@@ -114,7 +114,7 @@
                 } @else {
                   <span class="biz-text" [title]="p.step.label">@for (part of parts(p.step.label); track $index) {{{ part }}<wbr>}</span>
                 }
-                @if (p.where || isProposed(p.step) || p.step.inferred) {
+                @if (p.where || isProposed(p.step) || p.step.inferred || originBadge[p.step.labelOrigin]) {
                   <span class="biz-meta">
                     @if (p.where) {
                       <span class="biz-ref" [title]="p.whereFull">{{ p.where }}</span>
@@ -122,13 +122,16 @@
                     @if (isProposed(p.step)) {
                       <span class="biz-badge is-proposed" [title]="'business.proposedTitle' | translate">{{ 'business.proposed' | translate }}</span>
                     }
+                    @if (originBadge[p.step.labelOrigin]; as badge) {
+                      <span class="biz-badge is-origin" [title]="stateLabel[p.step.labelState] | translate: { origin: (originLabel[p.step.labelOrigin] | translate) }">{{ badge | translate }}</span>
+                    }
                     @if (p.step.inferred) {
                       <span class="biz-badge is-inferred" [title]="'business.inferredTitle' | translate">{{ 'business.inferred' | translate }}</span>
                     }
                   </span>
                 }
               </span>
-              <div fConnector fConnectorType="source" fConnectorConnectableSide="bottom" fConnectorMultiple [fConnectorDisabled]="true" [fConnectorId]="'out:' + p.step.id" class="biz-port is-out"></div>
+              <div fConnector fConnectorType="source" fConnectorConnectableSide="bottom" fConnectorMultiple [fConnectorDisabled]="true" [fConnectorId]="'out:' + p.step.id" class="biz-port is-out" aria-hidden="true"></div>
             </div>
           }
         </ng-container>
@@ -137,19 +140,17 @@
   </div>
 }
 
-<span id="biz-keys-help" class="visually-hidden">{{ 'business.keysHelp' | translate }}</span>
+<span [id]="keysHelpId" class="visually-hidden">{{ 'business.keysHelp' | translate }}</span>
+<!-- Anúncio curto do passo escolhido: a região viva existe antes do texto mudar, e o título do painel não é mais viva. -->
+<span class="visually-hidden" aria-live="polite">@if (current(); as c) {{{ stepAria(c) }}}</span>
 
-@if (notice() !== null) {
-  <div class="toast" role="status">
-    <span>{{ noticeKey[notice()!] | translate }}</span>
-    <button type="button" class="btn btn-g btn-small" (click)="dismissNotice()">{{ 'common.close' | translate }}</button>
-  </div>
-}
-
-@if (feedback(); as f) {
-  <div class="toast" [class.is-error]="f.error" [attr.role]="f.error ? 'alert' : 'status'">
-    <span>{{ f.text }}</span>
-    <button type="button" class="btn btn-g btn-small" (click)="dismissFeedback()">{{ 'common.close' | translate }}</button>
+@if (toast(); as t) {
+  <div class="toast" [class.is-error]="t.error" [attr.role]="t.error ? 'alert' : 'status'">
+    <span>{{ t.text }}</span>
+    @if (t.undo) {
+      <button type="button" class="btn btn-g btn-small" (click)="undoToast()">{{ 'business.undo' | translate }}</button>
+    }
+    <button type="button" class="btn btn-g btn-small" (click)="dismissToast()">{{ 'common.close' | translate }}</button>
   </div>
 }
 
@@ -162,7 +163,7 @@
   @if (panel(); as p) {
     <header class="biz-panel-head">
       <span class="kind biz-kind-{{ slug[p.step.kind] }}"><span class="kind-glyph" aria-hidden="true">{{ glyph[p.step.kind] }}</span>{{ kindLabel[p.step.kind] | translate }}</span>
-      <strong class="biz-panel-title" [class.biz-proposed-text]="isProposed(p.step)" aria-live="polite">{{ p.step.label }}</strong>
+      <strong class="biz-panel-title" [class.biz-proposed-text]="isProposed(p.step)">{{ p.step.label }}</strong>
       <button type="button" class="btn btn-g btn-small biz-panel-close" (click)="close()" [title]="'flowMap.closeBlockTitle' | translate">{{ 'common.close' | translate }}</button>
     </header>
     <p class="muted biz-origin">{{ stateLabel[p.step.labelState] | translate: { origin: (originLabel[p.step.labelOrigin] | translate) } }}

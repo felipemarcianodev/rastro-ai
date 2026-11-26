@@ -8,7 +8,7 @@ import { LanguageService } from '../../core/i18n/i18n';
 import { flowSummaryOf } from '../../core/graph/consolidated';
 import { AiStatusService } from '../../core/ai-status.service';
 import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_LABEL_KEY, BUSINESS_KIND_ORDER, BUSINESS_KIND_SLUG, LABEL_ORIGIN_LABEL_KEY, pathTo } from '../../core/graph/business';
-import { BUSINESS_BOX, BusinessGeometry, LayoutPoint, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from '../../core/graph/business-layout';
+import { BRANCH_LABEL_POSITION, BUSINESS_BOX, BusinessGeometry, LayoutPoint, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from '../../core/graph/business-layout';
 import { BusinessExportData, businessToMermaid, businessToSvg, readBusinessColors } from '../../core/graph/business-export';
 import { businessToDrawio } from '../../core/graph/drawio';
 import { HostLinkOf, fillLinkTemplate } from '../../core/graph/link-template';
@@ -51,7 +51,7 @@ const STAGE_KEY: Record<string, StageKey> = {
   Escape: StageKey.Clear,
 };
 
-// Avisos do desenho: a chave da tradução, nunca texto fixo.
+// Avisos do desenho que ficam até a pessoa dispensar ou a situação passar: a chave da tradução, nunca texto fixo.
 enum Notice {
   SaveFailed = 0,
   ResetFailed = 1,
@@ -65,10 +65,12 @@ const NOTICE_KEY: Record<Notice, string> = {
 };
 // Texto de negócio (Fase 59): o mesmo limite da API, uma linha só.
 export const LABEL_MAX_LENGTH = 120;
-// Quanto tempo o retorno curto de uma ação fica na tela.
+// Quanto tempo o retorno curto de uma ação fica na tela (e a chance de desfazer).
 export const FEEDBACK_MS = 4000;
-// Valor da opção "Detectado" na lista de tipos (volta ao tipo que a regra achou).
-export const KIND_DETECTED = 'detected';
+// Quanto tempo o "Posição salva" discreto fica à vista.
+export const SAVED_MS = 2000;
+// Valor da opção "Detectado" na lista de tipos (volta ao tipo que a regra achou): fora dos valores de BusinessKind.
+export const KIND_DETECTED = -1;
 
 // Onde o texto está sendo editado: no painel do passo ou no próprio balão.
 export enum EditPlace {
@@ -76,9 +78,28 @@ export enum EditPlace {
   Node = 1,
 }
 
-// Rótulo do ramo perto da chegada (0 = origem, 1 = destino): quando duas ligações saem da mesma porta, o trecho do
-// meio é comum às duas, e só o final mostra de que ramo é o rótulo.
-export const BRANCH_LABEL_POSITION = 0.88;
+// Rótulo do ramo perto da chegada (0 = origem, 1 = destino); ver BRANCH_LABEL_POSITION em business-layout.ts.
+export { BRANCH_LABEL_POSITION };
+
+// Selo curto da origem do texto no balão: só quando não é a regra (agente, IA ou edição do usuário).
+export const BUSINESS_ORIGIN_BADGE_KEY: Record<LabelOrigin, string | null> = {
+  [LabelOrigin.Rule]: null,
+  [LabelOrigin.Ai]: 'business.originBadge.ai',
+  [LabelOrigin.Agent]: 'business.originBadge.agent',
+  [LabelOrigin.User]: 'business.originBadge.user',
+};
+
+// O aviso único do desenho (retorno de ação, falha de gravação, "Abrindo…"). Os que vêm de um Notice ficam até
+// serem dispensados ou resolvidos; os demais somem sozinhos. Pode levar uma ação de desfazer.
+interface Toast {
+  text: string;
+  error: boolean;
+  source: Notice | null;
+  undo: (() => void) | null;
+}
+
+// Cada desenho tem a própria ajuda das teclas (o quadro põe várias faixas na mesma tela).
+let keysHelpSequence = 0;
 
 // Nome do host no botão "Abrir no ...": rótulo por tipo, nunca comparação com texto.
 export const BUSINESS_HOST_LABEL_KEY: Record<RepositoryHostKind, string> = {
@@ -111,6 +132,8 @@ interface PlacedEdge {
   from: string;
   to: string;
   label: string | null;
+  // Posição do rótulo ao longo da ligação (ligações irmãs não se sobrepõem).
+  labelAt: number;
   inferred: boolean;
   // Pontos de dobra que a pessoa deixou na ligação (vazio: o traço automático).
   bends: LayoutPoint[];
@@ -180,8 +203,10 @@ export class BusinessViewComponent {
   private readonly bends = signal<ReadonlyMap<string, LayoutPoint[]>>(new Map());
   private readonly layoutReady = signal(false);
   protected readonly hasLayout = computed(() => this.saved().size > 0 || this.bends().size > 0);
-  protected readonly notice = signal<Notice | null>(null);
-  protected readonly noticeKey = NOTICE_KEY;
+  protected readonly toast = signal<Toast | null>(null);
+  // "Posição salva" discreto depois de gravar (região de status sempre presente, sem tirar o foco de ninguém).
+  protected readonly positionSaved = signal(false);
+  protected readonly keysHelpId = `biz-keys-help-${++keysHelpSequence}`;
   protected readonly confirmingReset = signal(false);
   // Espaço segurado: arrastar move a tela, mesmo sobre um balão.
   protected readonly panning = signal(false);
@@ -191,6 +216,9 @@ export class BusinessViewComponent {
   private pendingSteps = new Map<string, { stepId: string; x: number; y: number }>();
   private pendingEdges = new Map<string, { from: string; to: string; points: LayoutPoint[] }>();
   private saveTimer: ReturnType<typeof setTimeout> | undefined;
+  private savedTimer: ReturnType<typeof setTimeout> | undefined;
+  private scaleTimer: ReturnType<typeof setTimeout> | undefined;
+  private destroyed = false;
   private pointerStart: LayoutPoint | null = null;
 
   protected readonly zoomMin = ZOOM_MIN;
@@ -200,7 +228,6 @@ export class BusinessViewComponent {
   protected readonly nodeMoveTrigger = (event: FTriggerEvent): boolean => !this.panning() && primaryButtonEventTrigger(event);
   protected readonly canvasMoveTrigger = (event: FTriggerEvent): boolean => primaryButtonEventTrigger(event) || middleButtonEventTrigger(event);
 
-  protected readonly labelPosition = BRANCH_LABEL_POSITION;
   protected readonly markerEnd = EFMarkerType.END_ALL_STATES;
   protected readonly BusinessKind = BusinessKind;
   protected readonly LabelState = LabelState;
@@ -214,6 +241,7 @@ export class BusinessViewComponent {
   protected readonly glyph = BUSINESS_KIND_GLYPH;
   protected readonly kindLabel = BUSINESS_KIND_LABEL_KEY;
   protected readonly originLabel = LABEL_ORIGIN_LABEL_KEY;
+  protected readonly originBadge = BUSINESS_ORIGIN_BADGE_KEY;
   protected readonly stateLabel = BUSINESS_STATE_LABEL_KEY;
   protected readonly hostLabel = BUSINESS_HOST_LABEL_KEY;
   protected readonly kindOrder = BUSINESS_KIND_ORDER;
@@ -227,8 +255,7 @@ export class BusinessViewComponent {
   protected readonly draft = signal('');
   protected readonly busy = signal(false);
   protected readonly suggesting = signal(false);
-  protected readonly feedback = signal<{ text: string; error: boolean } | null>(null);
-  private feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+  private toastTimer: ReturnType<typeof setTimeout> | undefined;
   // "Sugerir textos" só existe com a IA ligada e o uso "Sugestões" habilitado: nunca botão morto. Na faixa de um
   // quadro o pedido é do quadro inteiro (com o glossário), e o botão fica na tela dele.
   protected readonly inBoard = computed(() => this.boardId() !== null);
@@ -274,11 +301,16 @@ export class BusinessViewComponent {
     const geometry = this.geometry();
     if (!geometry) return [];
     const bends = this.bends();
-    return (this.flow()?.edges ?? []).flatMap((edge, index) =>
-      geometry.boxes.has(edge.from) && geometry.boxes.has(edge.to) && edge.from !== edge.to
-        ? [{ index, from: edge.from, to: edge.to, label: edge.label ? plainBranch(edge.label) : null, inferred: edge.inferred, bends: bends.get(edgeKey(edge.from, edge.to)) ?? NO_BENDS }]
-        : [],
-    );
+    const drawn = (this.flow()?.edges ?? []).flatMap((edge, index) => (geometry.boxes.has(edge.from) && geometry.boxes.has(edge.to) && edge.from !== edge.to ? [{ edge, index }] : []));
+    return drawn.map(({ edge, index }) => ({
+      index,
+      from: edge.from,
+      to: edge.to,
+      label: edge.label ? plainBranch(edge.label) : null,
+      labelAt: BRANCH_LABEL_POSITION,
+      inferred: edge.inferred,
+      bends: bends.get(edgeKey(edge.from, edge.to)) ?? NO_BENDS,
+    }));
   });
 
   protected readonly current = computed(() => this.flow()?.steps.find((s) => s.id === this.stepId()) ?? null);
@@ -314,7 +346,10 @@ export class BusinessViewComponent {
     // Posição ainda não gravada vai embora junto com a tela (ou com a troca de levantamento).
     inject(DestroyRef).onDestroy(() => {
       this.flushSave();
-      clearTimeout(this.feedbackTimer);
+      this.destroyed = true;
+      clearTimeout(this.toastTimer);
+      clearTimeout(this.savedTimer);
+      clearTimeout(this.scaleTimer);
     });
     effect((onCleanup) => {
       const detail = this.detail();
@@ -365,7 +400,7 @@ export class BusinessViewComponent {
               }),
             error: () =>
               untracked(() => {
-                this.notice.set(Notice.LoadFailed);
+                this.showNotice(Notice.LoadFailed);
                 this.layoutReady.set(true);
               }),
           });
@@ -492,7 +527,8 @@ export class BusinessViewComponent {
   }
 
   private syncScale(): void {
-    setTimeout(() => {
+    clearTimeout(this.scaleTimer);
+    this.scaleTimer = setTimeout(() => {
       const canvas = this.canvas();
       if (canvas) this.scale.set(canvas.getScale());
     }, SYNC_SCALE_DELAY_MS);
@@ -562,8 +598,17 @@ export class BusinessViewComponent {
     if (step) this.showInGraph.emit(step.nodeId);
   }
 
+  // Abre o link e avisa que está abrindo; se a ponte da janela falhar, avisa que não deu (a janela, por sua vez,
+  // só abre host reconhecido e editor configurado: a recusa dela não volta para a tela).
   protected open(url: string | null): void {
-    if (url) this.bridge.openExternal(url);
+    if (!url) return;
+    try {
+      this.bridge.openExternal(url);
+      this.say('business.opening');
+    } catch {
+      // A ponte lançou: não há o que registrar além do aviso, que é o retorno que a pessoa precisa.
+      this.show({ text: this.i18n.t('business.openFailed'), error: true, source: null, undo: null });
+    }
   }
 
   private nodeElement(id: string): HTMLElement | null {
@@ -697,16 +742,25 @@ export class BusinessViewComponent {
     request.subscribe({
       next: () =>
         untracked(() => {
-          if (this.notice() === Notice.SaveFailed) this.notice.set(null);
+          if (this.destroyed) return;
+          if (this.toast()?.source === Notice.SaveFailed) this.toast.set(null);
+          this.announceSaved();
         }),
       error: () =>
         untracked(() => {
           if (surveyId !== this.surveyId) return;
           for (const [id, step] of steps) if (!this.pendingSteps.has(id)) this.pendingSteps.set(id, step);
           for (const [key, edge] of edges) if (!this.pendingEdges.has(key)) this.pendingEdges.set(key, edge);
-          this.notice.set(Notice.SaveFailed);
+          this.showNotice(Notice.SaveFailed);
         }),
     });
+  }
+
+  // Retorno discreto de que a posição foi gravada: some sozinho e não toma o lugar do aviso.
+  private announceSaved(): void {
+    this.positionSaved.set(true);
+    clearTimeout(this.savedTimer);
+    this.savedTimer = setTimeout(() => this.positionSaved.set(false), SAVED_MS);
   }
 
   protected askReset(): void {
@@ -729,15 +783,11 @@ export class BusinessViewComponent {
         untracked(() => {
           this.saved.set(new Map());
           this.bends.set(new Map());
-          this.notice.set(null);
+          this.toast.set(null);
           afterNextRender(() => this.fit(), { injector: this.injector });
         }),
-      error: () => untracked(() => this.notice.set(Notice.ResetFailed)),
+      error: () => untracked(() => this.showNotice(Notice.ResetFailed)),
     });
-  }
-
-  protected dismissNotice(): void {
-    this.notice.set(null);
   }
 
   // Rótulo do balão para o leitor de tela: tipo e texto (sem repetir o tipo quando o texto já começa por ele) e o
@@ -746,7 +796,8 @@ export class BusinessViewComponent {
     const kind = this.i18n.t(BUSINESS_KIND_LABEL_KEY[step.kind]);
     const repeats = step.label.toLowerCase().startsWith(kind.toLowerCase());
     const text = repeats ? step.label : this.i18n.t('business.stepAria', { kind, label: step.label });
-    const states = [this.isProposed(step) ? this.i18n.t('business.proposed') : null, step.inferred ? this.i18n.t('business.inferred') : null].filter((x) => x !== null);
+    const origin = this.originBadge[step.labelOrigin] ? this.i18n.t('business.stepAriaOrigin', { origin: this.i18n.t(LABEL_ORIGIN_LABEL_KEY[step.labelOrigin]) }) : null;
+    const states = [this.isProposed(step) ? this.i18n.t('business.proposed') : null, step.inferred ? this.i18n.t('business.inferred') : null, origin].filter((x) => x !== null);
     return states.length > 0 ? this.i18n.t('business.stepAriaStates', { text, states: states.join(', ') }) : text;
   }
 
@@ -814,10 +865,25 @@ export class BusinessViewComponent {
     this.saveLabel(step, null);
   }
 
+  // Grava o texto e oferece "Desfazer" por alguns segundos: o anterior volta pela mesma rota (texto da regra volta
+  // como nulo; qualquer outro, como o texto que estava). Texto proposto pela IA ou pelo agente e ainda não confirmado
+  // não ganha "Desfazer": a rota grava como texto do usuário, e isso confirmaria uma proposta que ninguém confirmou
+  // (ADR-001).
   private saveLabel(step: BusinessStep, text: string | null): void {
+    const before = step.labelOrigin === LabelOrigin.Rule ? null : step.label;
+    const proposedByAi = step.labelOrigin === LabelOrigin.Ai || step.labelOrigin === LabelOrigin.Agent;
+    const unconfirmedProposal = proposedByAi && step.labelState === LabelState.Proposed;
     this.act(this.api.saveBusinessLabel(this.surveyId, step.id, text), (updated) => {
       this.replaceStep(updated);
-      this.say(text === null ? 'business.feedback.labelRule' : 'business.feedback.labelSaved');
+      const undo = unconfirmedProposal ? undefined : () => this.restoreLabel(updated.id, before);
+      this.say(text === null ? 'business.feedback.labelRule' : 'business.feedback.labelSaved', undefined, undo);
+    });
+  }
+
+  private restoreLabel(stepId: string, text: string | null): void {
+    this.act(this.api.saveBusinessLabel(this.surveyId, stepId, text), (updated) => {
+      this.replaceStep(updated);
+      this.say('business.feedback.labelRestored');
     });
   }
 
@@ -830,8 +896,8 @@ export class BusinessViewComponent {
 
   // Lista de tipos: "Detectado" tira o tipo escolhido e volta ao que a regra achou.
   protected onKindChange(step: BusinessStep, event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    const kind = value === KIND_DETECTED ? null : (Number(value) as BusinessKind);
+    const value = Number((event.target as HTMLSelectElement).value);
+    const kind = value === KIND_DETECTED ? null : (value as BusinessKind);
     this.act(this.api.setBusinessKind(this.surveyId, step.id, kind), (flow) => {
       this.applyFlow(flow);
       this.say(kind === null ? 'business.feedback.kindDetected' : 'business.feedback.kindSaved');
@@ -862,9 +928,14 @@ export class BusinessViewComponent {
         untracked(() => {
           this.suggesting.set(false);
           if (surveyId !== this.surveyId) return;
-          this.say(result.proposed > 0 ? 'business.feedback.suggested' : 'business.feedback.suggestedNone', { count: result.proposed, skipped: result.skipped });
+          // O resultado só é anunciado depois de o fluxo recarregado entrar no desenho: o aviso fala do que já está na tela.
           this.api.business(surveyId).subscribe({
-            next: (flow) => untracked(() => surveyId === this.surveyId && this.applyFlow(flow)),
+            next: (flow) =>
+              untracked(() => {
+                if (surveyId !== this.surveyId) return;
+                this.applyFlow(flow);
+                this.say(result.proposed > 0 ? 'business.feedback.suggested' : 'business.feedback.suggestedNone', { count: result.proposed, skipped: result.skipped });
+              }),
             error: (error) => untracked(() => this.sayError(error)),
           });
         }),
@@ -904,23 +975,35 @@ export class BusinessViewComponent {
     if (!flow.steps.some((s) => s.id === this.stepId())) this.stepId.set(null);
   }
 
-  private say(key: string, params?: Record<string, unknown>): void {
-    this.showFeedback({ text: this.i18n.t(key, params), error: false });
+  private say(key: string, params?: Record<string, unknown>, undo?: () => void): void {
+    this.show({ text: this.i18n.t(key, params), error: false, source: null, undo: undo ?? null });
   }
 
   private sayError(error: unknown): void {
-    this.showFeedback({ text: apiErrorMessage(error), error: true });
+    this.show({ text: apiErrorMessage(error), error: true, source: null, undo: null });
   }
 
-  private showFeedback(feedback: { text: string; error: boolean }): void {
-    this.feedback.set(feedback);
-    clearTimeout(this.feedbackTimer);
-    this.feedbackTimer = setTimeout(() => this.feedback.set(null), FEEDBACK_MS);
+  // Aviso que fica até ser dispensado ou resolvido (falha de gravação, de reorganizar, de carregar a posição).
+  private showNotice(notice: Notice): void {
+    this.show({ text: this.i18n.t(NOTICE_KEY[notice]), error: true, source: notice, undo: null });
   }
 
-  protected dismissFeedback(): void {
-    clearTimeout(this.feedbackTimer);
-    this.feedback.set(null);
+  private show(toast: Toast): void {
+    this.toast.set(toast);
+    clearTimeout(this.toastTimer);
+    if (toast.source === null) this.toastTimer = setTimeout(() => this.toast.set(null), FEEDBACK_MS);
+  }
+
+  protected dismissToast(): void {
+    clearTimeout(this.toastTimer);
+    this.toast.set(null);
+  }
+
+  // "Desfazer" do aviso: roda a ação uma vez e tira o aviso (o retorno da própria ação o substitui).
+  protected undoToast(): void {
+    const undo = this.toast()?.undo;
+    this.dismissToast();
+    undo?.();
   }
 
   // O que a exportação lê (Fase 61): o fluxo, a geometria com as posições salvas (inclusive as arrastadas e ainda não

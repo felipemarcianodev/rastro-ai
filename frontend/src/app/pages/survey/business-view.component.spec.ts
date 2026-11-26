@@ -11,7 +11,7 @@ import { AiProvider, AiUse, BusinessFlow, BusinessKind, BusinessLayout, Business
 import { businessLayout } from '../../core/graph/business-layout';
 import { By } from '@angular/platform-browser';
 import { FCanvasComponent, FConnectionContent, FConnectionWaypoints, FControlSchemeController, FDraggableDirective, FNodeDirective, FZoomDirective } from '@foblex/flow';
-import { BRANCH_LABEL_POSITION, BusinessViewComponent, CLICK_TOLERANCE_PX, SAVE_DEBOUNCE_MS, ZOOM_MAX, ZOOM_MIN } from './business-view.component';
+import { BRANCH_LABEL_POSITION, BUSINESS_ORIGIN_BADGE_KEY, BusinessViewComponent, CLICK_TOLERANCE_PX, FEEDBACK_MS, KIND_DETECTED, SAVE_DEBOUNCE_MS, SAVED_MS, ZOOM_MAX, ZOOM_MIN } from './business-view.component';
 
 const detail: SurveyDetail = {
   survey: {
@@ -209,11 +209,20 @@ describe('BusinessViewComponent (Fase 57)', () => {
     const contents = fixture.debugElement.queryAll(By.directive(FConnectionContent));
 
     expect(contents.length).toBe(2);
-    for (const content of contents) {
-      const position = content.injector.get(FConnectionContent).position();
-      expect(position).toBe(BRANCH_LABEL_POSITION);
-      expect(position).toBeGreaterThan(0.5);
-    }
+    const positions = contents.map((content) => content.injector.get(FConnectionContent).position());
+    // As duas saem da mesma decisão e ficam perto da própria chegada, centradas sobre o destino.
+    expect(positions).toEqual([BRANCH_LABEL_POSITION, BRANCH_LABEL_POSITION]);
+  });
+
+  // WEB-BIZV-081 (UX-FIM-213)
+  it('rotuloDoRamo_naoPassaDaLarguraDoBalao_eLevaOTextoInteiroNaDica', async () => {
+    const { el } = await setup();
+
+    const label = el.querySelector<HTMLElement>('.biz-host .edge-label')!;
+    const style = getComputedStyle(label);
+    expect(style.maxWidth).toBe('200px');
+    expect(style.textOverflow).toBe('ellipsis');
+    expect(label.title).toBe(label.textContent!.trim());
   });
 
   // WEB-BIZV-027
@@ -222,19 +231,23 @@ describe('BusinessViewComponent (Fase 57)', () => {
     const { node } = await setup(flow);
 
     expect(node('s1').getAttribute('aria-label')).toBe('Início: Pedido recebido');
-    expect(node('s2').getAttribute('aria-label')).toBe('Decisão: O pagamento foi aprovado? (proposto)');
+    expect(node('s2').getAttribute('aria-label')).toBe('Decisão: O pagamento foi aprovado? (proposto, texto pela IA)');
     expect(node('s3').getAttribute('aria-label')).toBe('Notificação ao cliente (inferido)');
     expect(node('s4').getAttribute('aria-label')).toBe('Fim');
   });
 
   // WEB-BIZV-028
-  it('tituloDoPainel_eRegiaoViva', async () => {
+  it('anuncioDoPasso_eUmTextoOcultoCurtoEmRegiaoVivaEOTituloDoPainelNaoE', async () => {
     const { fixture, el, node } = await setup();
+    const live = () => el.querySelector('.visually-hidden[aria-live="polite"]')!;
 
+    expect(live().textContent).toBe('');
     node('s1').click();
     fixture.detectChanges();
 
-    expect(el.querySelector('.biz-panel-title')!.getAttribute('aria-live')).toBe('polite');
+    expect(live().textContent).toBe('Início: Pedido recebido');
+    expect(el.querySelector('.biz-panel-title')!.hasAttribute('aria-live')).toBeFalse();
+    expect(el.querySelectorAll('[aria-live]').length).toBe(1);
   });
 
   // WEB-BIZV-029
@@ -847,11 +860,89 @@ describe('BusinessViewComponent (Fase 57)', () => {
   });
 
   // WEB-BIZV-055
-  it('balao_apontaParaAsTeclasEOTextoDeAjudaExiste', async () => {
+  it('desenho_apontaParaAsTeclasEOTextoDeAjudaExiste_eOsBaloesNaoRepetemAReferencia', async () => {
     const { el, node } = await setup();
+    const stage = el.querySelector('.biz-stage')!;
+    const helpId = stage.getAttribute('aria-describedby')!;
 
-    expect(node('s1').getAttribute('aria-describedby')).toBe('biz-keys-help');
-    expect(el.querySelector('#biz-keys-help')!.textContent).toContain('Tab');
+    expect(helpId).toMatch(/^biz-keys-help-\d+$/);
+    expect(el.querySelector(`#${helpId}`)!.textContent).toContain('Tab');
+    expect(node('s1').hasAttribute('aria-describedby')).toBeFalse();
+  });
+
+  // WEB-BIZV-057
+  it('portasVaziasDoFoblex_ficamEscondidasDoLeitorDeTelaEANotaDoResumoEStatus', async () => {
+    const { el } = await setup({ ...FLOW, collapsedDecisions: 2 });
+
+    const ports = Array.from(el.querySelectorAll('.biz-port'));
+    expect(ports.length).toBe(8);
+    expect(ports.every((port) => port.getAttribute('aria-hidden') === 'true')).toBeTrue();
+    expect(el.querySelector('.biz-bar-note')!.getAttribute('role')).toBe('status');
+  });
+
+  // WEB-BIZV-058
+  // Só o hover da ligação os mostra (não dá para simular hover por CSS no teste); o foco num balão não os acende,
+  // porque o clique num balão deixa o foco no desenho e os círculos voltavam a poluir tudo (visto no navegador).
+  it('pontosDeDobraCandidatos_ficamInvisiveisMesmoComFocoNoBalao_osReaisFicam', async () => {
+    const { fixture, el, node } = await setup();
+    const host = el.querySelector('.biz-host')!;
+    const connection = document.createElement('div');
+    connection.className = 'f-connection';
+    connection.innerHTML = '<span class="f-candidate"></span><span class="f-waypoint"></span>';
+    host.appendChild(connection);
+    const opacity = (selector: string) => getComputedStyle(connection.querySelector(selector)!).opacity;
+
+    expect(opacity('.f-candidate')).toBe('0');
+    expect(opacity('.f-waypoint')).toBe('1');
+    node('s1').focus();
+    fixture.detectChanges();
+    await wait(250);
+    expect(opacity('.f-candidate')).toBe('0');
+    expect(opacity('.f-waypoint')).toBe('1');
+    connection.remove();
+  });
+
+  // WEB-BIZV-059
+  it('painel_limitaAAlturaEOConteudoTemMargemMinimaDeDezesseisPixels', async () => {
+    const { fixture, el, node } = await setup();
+    node('s1').click();
+    fixture.detectChanges();
+
+    const panel = el.querySelector('.biz-panel')!;
+    const style = getComputedStyle(panel);
+
+    expect(style.maxHeight).not.toBe('none');
+    expect(style.paddingLeft).toBe('16px');
+  });
+
+  // WEB-BIZV-073
+  it('balaoComTextoDeAgenteIaOuUsuario_mostraOSeloCurtoDaOrigemENoAriaLabel_regraNaoMostra', async () => {
+    const flow = {
+      ...FLOW,
+      steps: FLOW.steps.map((s) => (s.id === 's1' ? { ...s, labelOrigin: LabelOrigin.User } : s.id === 's4' ? { ...s, labelOrigin: LabelOrigin.Agent } : s)),
+    };
+    const { node } = await setup(flow);
+
+    expect(node('s1').querySelector('.biz-badge.is-origin')!.textContent).toBe('editado');
+    expect(node('s1').getAttribute('aria-label')).toContain('texto por você');
+    expect(node('s2').querySelector('.biz-badge.is-origin')!.textContent).toBe('IA');
+    expect(node('s4').querySelector('.biz-badge.is-origin')!.textContent).toBe('agente');
+    expect(node('s3').querySelector('.biz-badge.is-origin')).toBeNull();
+    expect(BUSINESS_ORIGIN_BADGE_KEY[LabelOrigin.Rule]).toBeNull();
+  });
+
+  // WEB-BIZV-074
+  it('losangoEscolhido_temOAnelDaEscolhaAtrasDoTracoPrincipal', async () => {
+    const { fixture, node } = await setup();
+    node('s2').click();
+    fixture.detectChanges();
+
+    const [ring, main] = Array.from(node('s2').querySelectorAll('.biz-shape polygon'));
+
+    expect(ring.classList).toContain('biz-ring');
+    expect(main.classList).not.toContain('biz-ring');
+    expect(getComputedStyle(ring).stroke).not.toBe('none');
+    expect(parseFloat(getComputedStyle(ring).strokeWidth)).toBeGreaterThan(parseFloat(getComputedStyle(main).strokeWidth));
   });
 });
 
@@ -867,6 +958,8 @@ describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
     fixture.detectChanges();
   };
   const panelInput = (el: HTMLElement) => el.querySelector<HTMLInputElement>('.biz-panel input[data-edit]')!;
+  const nodeMove = (fixture: { debugElement: DebugElement }, id: string, point: { x: number; y: number }) =>
+    fixture.debugElement.queryAll(By.directive(FNodeDirective)).find((d) => (d.nativeElement as HTMLElement).dataset['stepId'] === id)!.triggerEventHandler('fNodePositionChange', point);
 
   // WEB-BIZV-060
   it('editarNoPainel_enterSalvaOTextoEAtualizaOBalaoEAOrigem', async () => {
@@ -1026,6 +1119,7 @@ describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
     const select = () => el.querySelector<HTMLSelectElement>('select[id^="biz-kind-pick"]')!;
     const options = Array.from(select().options).map((o) => o.textContent!.trim());
     expect(options[0]).toBe('Detectado');
+    expect(select().options[0].value).toBe('-1');
     expect(options.length).toBe(8);
     expect(select().value).toBe(String(BusinessKind.End));
 
@@ -1038,7 +1132,7 @@ describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
     fixture.detectChanges();
     expect(node('s4').classList).toContain('biz-kind-rejection');
 
-    select().value = 'detected';
+    select().value = String(KIND_DETECTED);
     select().dispatchEvent(new Event('change'));
     const back = http.expectOne(STEP_URL('s4', 'kind'));
     expect(back.request.body).toEqual({ kind: null });
@@ -1112,12 +1206,14 @@ describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
     post.flush({ proposed: 2, skipped: 1 });
     fixture.detectChanges();
 
+    // O aviso só sai depois de o fluxo recarregado entrar no desenho.
     expect(bar().disabled).toBeFalse();
-    expect(el.querySelector('.toast')!.textContent).toContain('2 textos propostos');
+    expect(el.querySelector('.toast')).toBeNull();
     http.expectOne('/api/surveys/s1/business').flush({ ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's4' ? { ...s, label: 'Pedido finalizado', labelOrigin: LabelOrigin.Ai, labelState: LabelState.Proposed } : s)) });
     fixture.detectChanges();
     expect(node('s4').querySelector('.biz-text')!.textContent).toContain('Pedido finalizado');
     expect(node('s4').querySelector('.biz-badge.is-proposed')).not.toBeNull();
+    expect(el.querySelector('.toast')!.textContent).toContain('2 textos propostos');
   });
 
   // WEB-BIZV-071
@@ -1149,6 +1245,126 @@ describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
 
     expect(el.querySelector('.toast')!.textContent).toContain('O texto do passo está vazio demais');
     expect(node('s1').querySelector('.biz-text')!.textContent).toContain('Pedido recebido');
+  });
+
+  // WEB-BIZV-075
+  it('textoSalvo_oferecePorDesfazer_eDesfazerVoltaAoTextoDaRegraPelaMesmaRota', async () => {
+    const { fixture, el, node, button, http } = await setup();
+    node('s1').click();
+    fixture.detectChanges();
+    button('Editar texto').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    typeInto(panelInput(el), 'Pedido chegou');
+    key(panelInput(el), 'Enter');
+    http.expectOne(STEP_URL('s1', 'label')).flush(step('s1', 'n1', BusinessKind.Start, 'Pedido chegou', { labelOrigin: LabelOrigin.User, sourceNodeIds: ['n1', 'n2'] }));
+    fixture.detectChanges();
+
+    expect(el.querySelectorAll('.toast').length).toBe(1);
+    expect(el.querySelector('.toast')!.textContent).toContain('Texto salvo');
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.toast button')).find((b) => b.textContent!.includes('Desfazer'))!.click();
+    const put = http.expectOne(STEP_URL('s1', 'label'));
+    expect(put.request.body).toEqual({ text: null });
+    put.flush(step('s1', 'n1', BusinessKind.Start, 'Pedido recebido', { sourceNodeIds: ['n1', 'n2'] }));
+    fixture.detectChanges();
+
+    expect(node('s1').querySelector('.biz-text')!.textContent).toContain('Pedido recebido');
+    expect(el.querySelector('.toast')!.textContent).toContain('Texto restaurado');
+    expect(Array.from(el.querySelectorAll('.toast button')).some((b) => b.textContent!.includes('Desfazer'))).toBeFalse();
+  });
+
+  // WEB-BIZV-076
+  it('desfazerDeTextoDoUsuario_enviaOTextoAnterior_eOAvisoSomeSozinhoDepoisDoTempo', async () => {
+    const user = { ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's1' ? { ...s, label: 'Meu texto', labelOrigin: LabelOrigin.User } : s)) };
+    const { fixture, el, node, button, http } = await setup(user);
+    node('s1').click();
+    fixture.detectChanges();
+
+    button('Usar o texto da regra').click();
+    http.expectOne(STEP_URL('s1', 'label')).flush(step('s1', 'n1', BusinessKind.Start, 'Pedido recebido', { sourceNodeIds: ['n1', 'n2'] }));
+    fixture.detectChanges();
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.toast button')).find((b) => b.textContent!.includes('Desfazer'))!.click();
+
+    expect(http.expectOne(STEP_URL('s1', 'label')).request.body).toEqual({ text: 'Meu texto' });
+    await wait(FEEDBACK_MS + 100);
+    fixture.detectChanges();
+    expect(el.querySelector('.toast')).toBeNull();
+  });
+
+  // WEB-BIZV-080
+  it('textoPropostoPeloAgente_editado_naoOfereceDesfazer_paraNaoConfirmarAPropostaSemOUsuario', async () => {
+    const proposed = {
+      ...FLOW,
+      steps: FLOW.steps.map((s) => (s.id === 's1' ? { ...s, label: 'Proposta do agente', labelOrigin: LabelOrigin.Agent, labelState: LabelState.Proposed } : s)),
+    };
+    const { fixture, el, node, button, http } = await setup(proposed);
+    node('s1').click();
+    fixture.detectChanges();
+    button('Editar texto').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    typeInto(panelInput(el), 'Pedido chegou');
+    key(panelInput(el), 'Enter');
+    http.expectOne(STEP_URL('s1', 'label')).flush(step('s1', 'n1', BusinessKind.Start, 'Pedido chegou', { labelOrigin: LabelOrigin.User, sourceNodeIds: ['n1', 'n2'] }));
+    fixture.detectChanges();
+
+    expect(el.querySelector('.toast')!.textContent).toContain('Texto salvo');
+    expect(Array.from(el.querySelectorAll('.toast button')).some((b) => b.textContent!.includes('Desfazer'))).toBeFalse();
+  });
+
+  // WEB-BIZV-077
+  it('abrirNoHost_avisaQueEstaAbrindo_eAPonteQueFalhaViraAvisoDeErro', async () => {
+    const { fixture, el, node, button } = await setup();
+    node('s1').click();
+    fixture.detectChanges();
+
+    button('Abrir no GitHub').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.toast')!.textContent).toContain('Abrindo');
+
+    const bridge = TestBed.inject(DesktopBridge);
+    (bridge as unknown as { openExternal: () => void }).openExternal = () => {
+      throw new Error('ponte fora');
+    };
+    button('Abrir no editor').click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.toast')!.getAttribute('role')).toBe('alert');
+    expect(el.querySelector('.toast')!.textContent).toContain('Não foi possível abrir');
+    expect(el.querySelectorAll('.toast').length).toBe(1);
+  });
+
+  // WEB-BIZV-078
+  it('posicaoGravada_mostraPosicaoSalvaDiscretoEEleSome_semTomarOLugarDoAviso', async () => {
+    const { fixture, el, http } = await setup();
+    const saved = () => el.querySelector('.biz-saved')!;
+
+    expect(saved().getAttribute('role')).toBe('status');
+    expect(saved().textContent).toBe('');
+    nodeMove(fixture, 's2', { x: 300, y: 200 });
+    await afterDebounce();
+    http.expectOne((r) => r.method === 'PUT').flush(null);
+    fixture.detectChanges();
+
+    expect(saved().textContent).toBe('Posição salva');
+    expect(el.querySelector('.toast')).toBeNull();
+    await wait(SAVED_MS + 100);
+    fixture.detectChanges();
+    expect(saved().textContent).toBe('');
+  });
+
+  // WEB-BIZV-079
+  it('avisoDeFalhaESugestao_ocupamUmLugarSo', async () => {
+    const { fixture, el, http } = await setup(FLOW, LINKS, { status: 500 });
+    withAi(fixture, [AiUse.Suggestions]);
+
+    expect(el.querySelectorAll('.toast').length).toBe(1);
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.biz-bar button')).find((b) => b.textContent!.includes('Sugerir textos'))!.click();
+    http.expectOne('/api/surveys/s1/business/labels/suggest').flush({ code: 'AI_DISABLED' }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+
+    expect(el.querySelectorAll('.toast').length).toBe(1);
+    expect(el.querySelector('.toast')!.textContent).toContain('A IA está desligada');
   });
 });
 
