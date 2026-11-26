@@ -29,6 +29,20 @@
         @if (canSuggest()) {
           <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()" [attr.aria-busy]="suggesting()" [title]="'board.suggest.title' | translate">{{ (suggesting() ? 'business.suggest.running' : 'board.suggest.button') | translate }}</button>
         }
+        <span class="popover">
+          <button type="button" class="btn btn-g btn-small" (click)="toggleExport()" [attr.aria-expanded]="exportOpen()" [attr.aria-controls]="exportOpen() ? 'board-export-menu' : null" [title]="'board.export.title' | translate">{{ 'survey.export.button' | translate }}</button>
+          @if (exportOpen()) {
+            <div class="menu-backdrop" (click)="closeExport()"></div>
+            <ul id="board-export-menu" class="popover-menu" role="menu" [attr.aria-label]="'survey.export.button' | translate" (keydown)="onExportKey($event)">
+              <li class="popover-group" role="presentation">{{ 'survey.export.group' | translate }}</li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
+              <li role="none"><button type="button" role="menuitem" (click)="exportDrawio()">{{ 'survey.export.drawio' | translate }}</button></li>
+            </ul>
+          }
+        </span>
         <button type="button" class="btn btn-g btn-small" (click)="openAdd()" [disabled]="!canAdd() || saving()" [title]="(canAdd() ? 'board.addLane.title' : 'board.addLane.full') | translate: { max: maxLanes }">{{ 'board.addLane.button' | translate }}</button>
         <button type="button" class="btn btn-g btn-small" (click)="confirmingDelete.set(true)">{{ 'board.delete' | translate }}</button>
       </div>
@@ -121,7 +135,7 @@
               <button type="button" class="btn btn-g btn-small" (click)="fetchDetail(lane.surveyId)">{{ 'common.retry' | translate }}</button>
             </div>
           } @else if (details().get(lane.surveyId); as detail) {
-            <app-business-view class="lane-view" [detail]="detail" [boardId]="b.id" [boardFlow]="lane.flow" [boardLayout]="layouts().get(lane.surveyId) ?? null" />
+            <app-business-view #laneView class="lane-view" [detail]="detail" [boardId]="b.id" [boardFlow]="lane.flow" [boardLayout]="layouts().get(lane.surveyId) ?? null" />
           } @else {
             <div class="canvas-status lane-status" role="status">
               <svg class="walking" viewBox="0 0 120 24" aria-hidden="true">
@@ -140,6 +154,8 @@
       <span>{{ f.text }}</span>
       <button type="button" class="btn btn-g btn-small" (click)="dismissFeedback()">{{ 'common.close' | translate }}</button>
     </div>
+  } @else if (menuCopy.status() !== 'idle') {
+    <p class="toast" role="status">{{ menuCopy.status() === 'copied' ? ('survey.toast.copied' | translate) : menuCopy.label('') }}</p>
   }
 
   @if (removing(); as lane) {

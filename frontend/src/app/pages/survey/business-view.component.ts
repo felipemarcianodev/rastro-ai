@@ -9,6 +9,7 @@ import { flowSummaryOf } from '../../core/graph/consolidated';
 import { AiStatusService } from '../../core/ai-status.service';
 import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_LABEL_KEY, BUSINESS_KIND_ORDER, BUSINESS_KIND_SLUG, LABEL_ORIGIN_LABEL_KEY, pathTo } from '../../core/graph/business';
 import { BUSINESS_BOX, BusinessGeometry, LayoutPoint, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from '../../core/graph/business-layout';
+import { BusinessExportData, businessToMermaid, businessToSvg, readBusinessColors } from '../../core/graph/business-export';
 import { businessToDrawio } from '../../core/graph/drawio';
 import { HostLinkOf, fillLinkTemplate } from '../../core/graph/link-template';
 import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL_KEY, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
@@ -922,10 +923,30 @@ export class BusinessViewComponent {
     this.feedback.set(null);
   }
 
-  // draw.io (Fase 57): a visão de negócio como está na tela, com o link de cada balão para o código.
-  exportDrawio(name: string, linkOf?: HostLinkOf): string | null {
+  // O que a exportação lê (Fase 61): o fluxo, a geometria com as posições salvas (inclusive as arrastadas e ainda não
+  // gravadas) e os pontos de dobra. O quadro monta o arquivo dele com os dados de cada faixa.
+  exportData(): BusinessExportData | null {
     const flow = this.flow();
     const geometry = this.geometry();
-    return flow && geometry ? businessToDrawio(flow, geometry, name, linkOf) : null;
+    return flow && geometry ? { surveyId: this.detail().survey.id, flow, geometry, bends: this.bends() } : null;
+  }
+
+  // draw.io (Fases 57 e 61): a visão de negócio como está na tela, com o link de cada balão para o código e os pontos de dobra.
+  exportDrawio(name: string, linkOf?: HostLinkOf): string | null {
+    const data = this.exportData();
+    return data ? businessToDrawio(data.flow, data.geometry, name, linkOf, data.bends) : null;
+  }
+
+  // SVG (e, a partir dele, o PNG): as posições da tela e as cores por tipo da paleta que está em uso.
+  exportSvg(): { svg: string; width: number; height: number } | null {
+    const data = this.exportData();
+    if (!data) return null;
+    const style = getComputedStyle(this.host.nativeElement);
+    return businessToSvg([{ title: '', data }], readBusinessColors((name) => style.getPropertyValue(name)), false);
+  }
+
+  exportMermaid(): string | null {
+    const flow = this.flow();
+    return flow && flow.steps.length > 0 ? businessToMermaid([{ title: '', flow }], false) : null;
   }
 }

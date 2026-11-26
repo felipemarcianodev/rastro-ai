@@ -1359,12 +1359,30 @@ Decisão do dono (2026-11-26), depois do merge das Fases 54 a 57: as Fases 58 a 
   - **Para o levantamento de UX final:** depois de mover uma faixa pela seta, o foco sai do botão; as faixas têm largura fixa e sobra espaço à direita em 1920 px; a lista de quadros ficou sem print (a captura falhava com a janela em segundo plano).
   - **Testes:** backend 1107/1107; frontend 740/740.
 
-## Fase 61: exportar a visão de negócio e o quadro `[ ]` (depende da Fase 60)
+## Fase 61: exportar a visão de negócio e o quadro `[x]` (depende da Fase 60)
 
-- [ ] `.drawio` do quadro: faixas tracejadas com título, passos com `UserObject` e `link`, pontos de dobra salvos, glossário e legenda em `shape=note`, losango com espaço para o texto.
-- [ ] Mermaid (`flowchart TD`, `subgraph` por faixa, `classDef` por tipo), SVG e PNG da superfície da tela, com as fontes embutidas.
-- [ ] Prova manual: o `.drawio` da fixture abre no draw.io com links e cores.
-- [ ] Fim do plano: `levantamento-ux` completo e pendências consolidadas.
+- [x] `.drawio` do quadro: faixas tracejadas com título, passos com `UserObject` e `link`, pontos de dobra salvos, glossário e legenda em `shape=note`, losango com espaço para o texto.
+- [x] Mermaid (`flowchart TD`, `subgraph` por faixa, `classDef` por tipo), SVG e PNG da superfície da tela, com as fontes embutidas.
+- [x] Prova manual: o `.drawio` da fixture abre no draw.io com links e cores.
+- [x] Fim do plano: pendências consolidadas abaixo. O levantamento de UX completo ficou para um branch e PR próprios, depois da aprovação deste PR (decisão do dono, ver o começo desta seção).
+- **Registro (2026-11-26):**
+  - **Geradores:** `business-export.ts` monta o `.drawio` do quadro (uma moldura por faixa, as faixas lado a lado sem sobrepor, as ligações de cada faixa, a nota com o glossário e a legenda dos tipos presentes), o Mermaid (`subgraph` por faixa, `classDef` por tipo com as cores do draw.io, losango e pílula) e o SVG (cores dos tokens `--biz-*` do tema, referência e caminho completo na dica); o PNG sai do SVG. As posições vêm da geometria da tela (com as arrastadas, inclusive o que ainda não foi salvo) e os pontos de dobra também vão para o `.drawio` da visão de um levantamento. Os links vêm do modelo de link de cada faixa; sem a rota de links, o arquivo sai sem link em vez de falhar. As fontes vão pelo nome (`Instrument Sans` e `JetBrains Mono`): o arquivo da fonte não é embutido.
+  - **Menu:** na visão de negócio do levantamento, PNG, SVG e Mermaid voltaram a funcionar (antes ficavam desabilitados); a tela do quadro ganhou o menu Exportar, com teclado. Quadro sem faixa desenhada avisa em vez de baixar arquivo vazio.
+  - **Verificado no navegador, com clique de verdade:** o menu do quadro com os cinco itens alcançáveis pelo mouse (`elementFromPoint`); o `.drawio` do quadro com dois fluxos do próprio Rastro abriu no draw.io (modo embutido, que desenha no navegador): duas molduras com o título da faixa, 13 balões, 3 losangos, 10 ligações, 12 links e a nota com o glossário de teste e a legenda. O download foi interceptado na página, sem gravar arquivo na pasta do dono.
+  - **Teste com sistema real (pedido do dono):** um fluxo Angular de um dos repositórios privados que o dono liberou, levantado numa pasta de dados temporária (nada dele entra neste repositório). Ele achou dois problemas: o `return;` vazio de serviços de log e de autenticação virava "Bloqueado na tela" (corrigido: só a guarda do componente clicado bloqueia, de 16 para 12 passos) e a chamada HTTP não foi costurada, porque o serviço monta a URL num campo da classe (pendência do extrator, abaixo). O SVG e o PNG não foram vistos com a fonte real, e a quebra de texto do SVG usa largura estimada de caractere.
+  - **Testes:** backend 1108/1108; frontend 766/766.
+
+### Fim das Fases 54 a 61: pendências consolidadas
+
+As Fases 54 a 61 estão **EXECUTADAS**. Pendências:
+- [ ] Levantamento de UX completo e correção de todos os pontos, em branch e PR próprios, depois da aprovação do PR das Fases 58 a 61 (pedido do dono). Já anotados: os quatro itens de risco alto do [plano de UX da visão de negócio](../frontend/plano-ux-2026-11-26-visao-de-negocio.md) e as Fases B e C dele que sobraram; os pontos de dobra candidatos sempre à vista; o texto do passo comum e do início ainda é o nome do método; o foco sai do botão depois de mover uma faixa; as faixas com largura fixa sobrando espaço em 1920 px; a lista de quadros sem print.
+- [ ] Extrator Angular: resolver a URL montada num campo da classe (`` private readonly url = `${environment.apiUrl}/...` ``), para a costura achar a API; hoje a rota fica "?" e o fluxo para na tela. Achado num sistema real.
+- [ ] Visão de negócio em sistema real: decisões de autenticação e de log (interceptadores) ainda aparecem quando mudam o caminho até outra chamada HTTP; agrupar o código de infraestrutura fora do fluxo de negócio.
+- [ ] Texto por regra misturado quando o nome do código está em inglês ("Request language não é vazio e não (ui languages is defined)?"); a IA, o agente ou o usuário resolvem pelo texto proposto.
+- [ ] Cache da visão de negócio por levantamento, se a tela sentir o tempo dos fluxos grandes (483 nós levam de 500 a 800 ms).
+- [ ] Abrir o link de verdade pela janela própria nos três sistemas (só a decisão de abrir ou recusar tem teste).
+- [ ] Na criação do quadro pela lista, a página uma vez não foi para o quadro novo; não reproduzido.
+- [ ] Release com as Fases 54 a 61 pela skill `gerar-release`, quando o dono pedir.
 
 ## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
 

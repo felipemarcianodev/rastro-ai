@@ -98,10 +98,10 @@
                   <div class="menu-backdrop" (click)="closePopovers()"></div>
                   <ul id="export-menu" class="popover-menu" role="menu" [attr.aria-label]="'survey.export.button' | translate" (keydown)="onMenuKey($event)">
                     <li class="popover-group" role="presentation">{{ 'survey.export.group' | translate }}</li>
-                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
-                    <li role="none"><button type="button" role="menuitem" [disabled]="showBusiness()" [attr.aria-disabled]="showBusiness()" [title]="showBusiness() ? ('survey.export.businessOnly' | translate) : ''" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('png')">{{ 'survey.export.png' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportImage('svg')">{{ 'survey.export.svg' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(false)">{{ 'survey.export.copyMermaid' | translate }}</button></li>
+                    <li role="none"><button type="button" role="menuitem" (click)="exportMermaid(true)">{{ 'survey.export.downloadMermaid' | translate }}</button></li>
                     <li role="none"><button type="button" role="menuitem" (click)="exportDrawio()">{{ 'survey.export.drawio' | translate }}</button></li>
                     <li role="none"><button type="button" role="menuitem" (click)="openC4()">{{ 'survey.export.c4' | translate }}</button></li>
                   </ul>

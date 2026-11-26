@@ -1129,7 +1129,6 @@
       "copyMermaid": "Copy as Mermaid",
       "downloadMermaid": "Download as Mermaid (.mmd)",
       "drawio": "Download for draw.io (.drawio)",
-      "businessOnly": "This view exports to draw.io: use the draw.io option",
       "c4": "C4 diagrams (Structurizr DSL)",
       "notDrawn": "The graph is not drawn yet. Wait for it to appear and try again.",
       "started": "Download started: {file}",
@@ -1913,6 +1912,10 @@
     },
     "legend": {
       "label": "Legend of the step types"
+    },
+    "export": {
+      "title": "PNG, SVG, Mermaid and draw.io",
+      "notDrawn": "The board has no lane drawn yet. Wait for the lanes to appear and try again."
     },
     "lane": {
       "aria": "Lane {title}",

@@ -1129,7 +1129,6 @@
       "copyMermaid": "Copiar como Mermaid",
       "downloadMermaid": "Baixar como Mermaid (.mmd)",
       "drawio": "Baixar para o draw.io (.drawio)",
-      "businessOnly": "Esta visão exporta para o draw.io: use a opção draw.io",
       "c4": "Diagramas C4 (Structurizr DSL)",
       "notDrawn": "O grafo ainda não está desenhado. Espere ele aparecer e tente de novo.",
       "started": "Download iniciado: {file}",
@@ -1913,6 +1912,10 @@
     },
     "legend": {
       "label": "Legenda dos tipos de passo"
+    },
+    "export": {
+      "title": "PNG, SVG, Mermaid e draw.io",
+      "notDrawn": "O quadro ainda não tem faixa desenhada. Espere as faixas aparecerem e tente de novo."
     },
     "lane": {
       "aria": "Faixa {title}",

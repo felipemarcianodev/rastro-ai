@@ -1,14 +1,19 @@
-import { Component, DestroyRef, computed, effect, inject, input, signal, untracked } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, input, signal, untracked, viewChildren } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
-import { Observable, first, switchMap, throwError, timer } from 'rxjs';
+import { Observable, catchError, first, forkJoin, map, of, switchMap, throwError, timer } from 'rxjs';
 import { AiStatusService } from '../../core/ai-status.service';
+import { CopyFeedback } from '../../core/copy-feedback';
 import { DialogDirective } from '../../core/dialog.directive';
+import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
 import { LanguageService } from '../../core/i18n/i18n';
 import { laneLayout, laneRunning, laneUpdates, legendKinds, moveLane, orderedLanes, glossaryEntries } from '../../core/graph/board';
 import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_LABEL_KEY, BUSINESS_KIND_SLUG } from '../../core/graph/business';
+import { BusinessExportData, ExportLane, boardNoteLines, boardToDrawio, businessToMermaid, businessToSvg, readBusinessColors } from '../../core/graph/business-export';
+import { DRAWIO_MIME } from '../../core/graph/drawio';
+import { hostLinkResolver } from '../../core/graph/link-template';
 import {
   AiUse,
   BOARD_GLOSSARY_MAX,
@@ -34,6 +39,11 @@ export const BOARD_POLL_MS = 2500;
 // Quanto tempo o retorno curto de uma ação fica na tela.
 export const BOARD_FEEDBACK_MS = 4000;
 
+// O que a tela de uma faixa entrega para exportar (o BusinessViewComponent, ou o que o substitua nos testes).
+interface LaneExporter {
+  exportData(): BusinessExportData | null;
+}
+
 // O levantamento novo da faixa terminou com falha: a faixa fica com o antigo.
 class ResurveyFailedError extends Error {}
 
@@ -58,6 +68,9 @@ export class BoardPage {
   private readonly i18n = inject(LanguageService);
   private readonly ai = inject(AiStatusService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
+  private readonly laneViews = viewChildren<LaneExporter>('laneView');
 
   readonly id = input.required<string>();
 
@@ -416,6 +429,141 @@ export class BoardPage {
         this.sayError(error);
       },
     });
+  }
+
+  // ---- Exportar (Fase 61) ----
+
+  protected readonly exportOpen = signal(false);
+  protected readonly menuCopy = new CopyFeedback();
+
+  protected toggleExport(): void {
+    const opening = !this.exportOpen();
+    this.exportOpen.set(opening);
+    if (opening) afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>('#board-export-menu button')?.focus(), { injector: this.injector });
+  }
+
+  protected closeExport(): void {
+    this.exportOpen.set(false);
+  }
+
+  // Esc fecha o menu, e as setas, Home e End andam pelos itens.
+  protected onExportKey(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      event.stopPropagation();
+      this.closeExport();
+      return;
+    }
+    const items = Array.from((event.currentTarget as HTMLElement).querySelectorAll<HTMLElement>('button'));
+    const current = items.indexOf(document.activeElement as HTMLElement);
+    const next =
+      event.key === 'ArrowDown' ? (current + 1) % items.length
+      : event.key === 'ArrowUp' ? (current - 1 + items.length) % items.length
+      : event.key === 'Home' ? 0
+      : event.key === 'End' ? items.length - 1
+      : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    items[next]?.focus();
+  }
+
+  // As faixas que já estão desenhadas, na ordem do quadro, com o desenho que a tela de cada uma entrega.
+  private drawnLanes(): { lane: BoardLane; data: BusinessExportData }[] {
+    const byId = new Map<string, BusinessExportData>();
+    for (const view of this.laneViews()) {
+      const data = view.exportData();
+      if (data) byId.set(data.surveyId, data);
+    }
+    return this.lanes().flatMap((lane) => {
+      const data = byId.get(lane.surveyId);
+      return data ? [{ lane, data }] : [];
+    });
+  }
+
+  private exportName(): string {
+    return `rastro-quadro-${fileSlug(this.board()?.name ?? 'quadro')}`;
+  }
+
+  private notDrawn(): void {
+    this.say('board.export.notDrawn', true);
+  }
+
+  private started(file: string): void {
+    this.say('survey.export.started', false, { file });
+  }
+
+  private noteOf(drawn: readonly { data: BusinessExportData }[]) {
+    return boardNoteLines(
+      this.board()?.glossary ?? null,
+      drawn.map((d) => d.data.flow),
+      { glossary: this.i18n.t('board.glossary.label'), legend: this.i18n.t('board.legend.label'), kind: (kind) => this.i18n.t(BUSINESS_KIND_LABEL_KEY[kind]) },
+    );
+  }
+
+  // draw.io: uma moldura por faixa, os passos na posição salva e o link de cada um para o host (o levantamento da
+  // faixa resolve o dele). Sem os links (rota fora do ar) o arquivo sai do mesmo jeito, só sem eles.
+  protected exportDrawio(): void {
+    this.closeExport();
+    const drawn = this.drawnLanes();
+    if (drawn.length === 0) {
+      this.notDrawn();
+      return;
+    }
+    forkJoin(drawn.map(({ lane }) => this.api.links(lane.surveyId).pipe(map((links) => hostLinkResolver(links)), catchError(() => of(undefined))))).subscribe((resolvers) => {
+      const lanes: ExportLane[] = drawn.map(({ lane, data }, i) => ({ title: lane.title, data, linkOf: resolvers[i] }));
+      const name = this.exportName();
+      downloadBlob(new Blob([boardToDrawio(lanes, this.board()?.name ?? name, this.noteOf(drawn))], { type: DRAWIO_MIME }), `${name}.drawio`);
+      this.started(`${name}.drawio`);
+    });
+  }
+
+  protected exportMermaid(download: boolean): void {
+    this.closeExport();
+    const drawn = this.drawnLanes();
+    const text = businessToMermaid(
+      drawn.map(({ lane, data }) => ({ title: lane.title, flow: data.flow })),
+      true,
+    );
+    if (!text) {
+      this.notDrawn();
+      return;
+    }
+    if (download) {
+      const name = this.exportName();
+      downloadBlob(new Blob([text], { type: 'text/plain' }), `${name}.mmd`);
+      this.started(`${name}.mmd`);
+    } else {
+      this.menuCopy.copy('```mermaid\n' + text + '```\n');
+    }
+  }
+
+  protected exportImage(format: 'png' | 'svg'): void {
+    this.closeExport();
+    const drawn = this.drawnLanes();
+    const style = getComputedStyle(this.host.nativeElement);
+    const image = businessToSvg(
+      drawn.map(({ lane, data }) => ({ title: lane.title, data })),
+      readBusinessColors((name) => style.getPropertyValue(name)),
+      true,
+      this.noteOf(drawn),
+    );
+    if (!image) {
+      this.notDrawn();
+      return;
+    }
+    const name = this.exportName();
+    if (format === 'svg') {
+      downloadBlob(new Blob([image.svg], { type: 'image/svg+xml' }), `${name}.svg`);
+      this.started(`${name}.svg`);
+      return;
+    }
+    svgToPng(image.svg, image.width, image.height).then(
+      (blob) => {
+        downloadBlob(blob, `${name}.png`);
+        this.started(`${name}.png`);
+      },
+      (error: Error) => this.say('survey.export.imageFailed', true, { message: error.message }),
+    );
   }
 
   // ---- Retorno curto ----

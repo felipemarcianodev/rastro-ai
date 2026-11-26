@@ -1129,7 +1129,6 @@
       "copyMermaid": "Copiar como Mermaid",
       "downloadMermaid": "Descargar como Mermaid (.mmd)",
       "drawio": "Descargar para draw.io (.drawio)",
-      "businessOnly": "Esta vista se exporta a draw.io: usa la opción draw.io",
       "c4": "Diagramas C4 (Structurizr DSL)",
       "notDrawn": "El grafo aún no está dibujado. Espera a que aparezca e inténtalo de nuevo.",
       "started": "Descarga iniciada: {file}",
@@ -1913,6 +1912,10 @@
     },
     "legend": {
       "label": "Leyenda de los tipos de paso"
+    },
+    "export": {
+      "title": "PNG, SVG, Mermaid y draw.io",
+      "notDrawn": "El tablero aún no tiene ningún carril dibujado. Espera a que aparezcan e inténtalo de nuevo."
     },
     "lane": {
       "aria": "Carril {title}",

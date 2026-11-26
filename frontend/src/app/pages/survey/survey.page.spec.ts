@@ -361,7 +361,7 @@ describe('SurveyPage', () => {
   });
 
   // WEB-BIZV-034 (Fase 57)
-  it('menuExportar_comAVisaoDeNegocio_desabilitaImagemEMermaidEMantemODrawioEOC4', async () => {
+  it('menuExportar_comAVisaoDeNegocio_deixaTodosOsFormatosHabilitados', async () => {
     TestBed.resetTestingModule();
     localStorage.removeItem('rastro.layoutDirection');
     graphOverride = graphWith(1, 0);
@@ -371,15 +371,45 @@ describe('SurveyPage', () => {
     [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!.click();
     lastFixture!.detectChanges();
     const items = [...el.querySelectorAll<HTMLButtonElement>('#export-menu button')];
-    const by = (text: string) => items.find((b) => b.textContent!.includes(text))!;
 
-    for (const text of ['PNG', 'SVG', 'Copiar como Mermaid', 'Baixar como Mermaid']) {
-      expect(by(text).disabled).withContext(text).toBeTrue();
-      expect(by(text).getAttribute('aria-disabled')).toBe('true');
-      expect(by(text).title).toContain('draw.io');
+    expect(items.length).toBe(6);
+    for (const item of items) {
+      expect(item.disabled).withContext(item.textContent!).toBeFalse();
+      expect(item.hasAttribute('aria-disabled')).withContext(item.textContent!).toBeFalse();
     }
-    expect(by('draw.io').disabled).toBeFalse();
-    expect(items.some((b) => b.textContent!.includes('C4') && !b.disabled)).toBeTrue();
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-BIZV-035 (Fase 61)
+  it('baixarComoSvgEMermaid_comAVisaoDeNegocioNaTela_geraOsArquivosDaVisao', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+    const exported: Blob[] = [];
+    spyOn(URL, 'createObjectURL').and.callFake((blob) => {
+      exported.push(blob as Blob);
+      return 'blob:teste';
+    });
+    spyOn(HTMLAnchorElement.prototype, 'click');
+    const choose = (text: string) => {
+      [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!.click();
+      lastFixture!.detectChanges();
+      [...el.querySelectorAll<HTMLButtonElement>('#export-menu button')].find((b) => b.textContent!.includes(text))!.click();
+      lastFixture!.detectChanges();
+    };
+
+    choose('Imagem SVG');
+    choose('Baixar como Mermaid');
+
+    const svg = await exported[0].text();
+    expect(svg).toContain('<svg');
+    expect(svg).toContain('O pedido é válido?');
+    expect(new DOMParser().parseFromString(svg, 'image/svg+xml').getElementsByTagName('parsererror').length).toBe(0);
+    const mermaid = await exported[1].text();
+    expect(mermaid.startsWith('flowchart TD')).toBeTrue();
+    expect(mermaid).toContain('O pedido é válido?');
     localStorage.removeItem('rastro.layoutDirection');
   });
 

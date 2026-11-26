@@ -132,3 +132,4 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 57 | Fluxo sem passo-chave além da entrada: a mensagem e o atalho para o grafo completo | [fase-57/04-sem-passo-chave.jpg](fase-57/04-sem-passo-chave.jpg) |
 | Fase 57 | A visão de negócio exportada aberta no draw.io, com as cores e os links | [fase-57/05-visao-de-negocio-no-drawio.jpg](fase-57/05-visao-de-negocio-no-drawio.jpg) |
 | Fase 60 | Quadro com dois fluxos do próprio Rastro lado a lado: título e ordem das faixas, "O código mudou", glossário e legenda | [fase-60/01-quadro-duas-faixas.jpg](fase-60/01-quadro-duas-faixas.jpg) |
+| Fase 61 | O quadro exportado aberto no draw.io: uma moldura por faixa, cores por tipo, links e a nota com o glossário e a legenda | [fase-61/01-quadro-no-drawio.jpg](fase-61/01-quadro-no-drawio.jpg) |

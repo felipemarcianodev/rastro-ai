@@ -616,7 +616,7 @@ export class SurveyPage {
 
   protected exportImage(format: 'png' | 'svg'): void {
     this.closePopovers();
-    const image = this.canvas()?.exportSvg();
+    const image = this.showBusiness() ? this.businessView()?.exportSvg() : this.canvas()?.exportSvg();
     if (!image) {
       this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;
@@ -638,7 +638,7 @@ export class SurveyPage {
 
   protected exportMermaid(download: boolean): void {
     this.closePopovers();
-    const text = this.canvas()?.exportMermaid();
+    const text = this.showBusiness() ? this.businessView()?.exportMermaid() : this.canvas()?.exportMermaid();
     if (!text) {
       this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
       return;

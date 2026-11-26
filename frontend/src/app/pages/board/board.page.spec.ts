@@ -6,6 +6,8 @@ import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { AiStatusService } from '../../core/ai-status.service';
 import { AiProvider, AiUse, BoardDetail, BoardLane, BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, LabelOrigin, LabelState, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
+import { BusinessExportData } from '../../core/graph/business-export';
+import { businessLayout } from '../../core/graph/business-layout';
 import { BusinessViewComponent } from '../survey/business-view.component';
 import { BoardPage } from './board.page';
 
@@ -16,6 +18,12 @@ class StubBusinessView {
   readonly boardId = input<string | null>(null);
   readonly boardFlow = input<BusinessFlow | null>(null);
   readonly boardLayout = input<BusinessLayout | null>(null);
+
+  // O que a visão de verdade entrega para a exportação: o desenho automático do fluxo da faixa.
+  exportData(): BusinessExportData | null {
+    const flow = this.boardFlow();
+    return flow ? { surveyId: this.detail().survey.id, flow, geometry: businessLayout(flow), bends: new Map() } : null;
+  }
 }
 
 const step = (id: string, kind: BusinessKind): BusinessStep => ({
@@ -388,5 +396,114 @@ describe('BoardPage (Fase 60)', () => {
     expect(views[0].boardLayout()).toEqual({ steps: [], edges: [] });
     expect(views[1].boardLayout()).toEqual({ steps: [{ stepId: 'p1', x: 10, y: 20 }], edges: [] });
     expect(views[1].boardFlow()!.surveyId).toBe('s2');
+  });
+
+  // Fase 61: exportar o quadro
+  async function openExport() {
+    const ctx = await setup(board([lane('s1', 0), lane('s2', 1)], { name: 'Compra / Cancelamento: "2026"', glossary: 'Pedido: compra do cliente' }));
+    const exported: Blob[] = [];
+    const names: string[] = [];
+    spyOn(URL, 'createObjectURL').and.callFake((blob) => {
+      exported.push(blob as Blob);
+      return 'blob:teste';
+    });
+    spyOn(HTMLAnchorElement.prototype, 'click').and.callFake(function (this: HTMLAnchorElement) {
+      names.push(this.download);
+    });
+    const choose = (text: string) => {
+      ctx.el.querySelector<HTMLButtonElement>('.board-bar-side .popover > button')!.click();
+      ctx.fixture.detectChanges();
+      Array.from(ctx.el.querySelectorAll<HTMLButtonElement>('#board-export-menu button')).find((b) => b.textContent!.includes(text))!.click();
+      ctx.fixture.detectChanges();
+    };
+    return { ...ctx, exported, names, choose };
+  }
+
+  // WEB-BOARD-050
+  it('menuExportar_listaCincoFormatos_eFechaComEsc', async () => {
+    const { el, fixture } = await setup();
+    el.querySelector<HTMLButtonElement>('.board-bar-side .popover > button')!.click();
+    fixture.detectChanges();
+
+    const items = Array.from(el.querySelectorAll<HTMLButtonElement>('#board-export-menu button')).map((b) => b.textContent!.trim());
+    expect(items).toEqual(['Imagem PNG', 'Imagem SVG', 'Copiar como Mermaid', 'Baixar como Mermaid (.mmd)', 'Baixar para o draw.io (.drawio)']);
+    el.querySelector('#board-export-menu')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    fixture.detectChanges();
+
+    expect(el.querySelector('#board-export-menu')).toBeNull();
+  });
+
+  // WEB-BOARD-051
+  it('exportarMermaid_baixa_umSubgraphPorFaixa_eONomeDoArquivoSaiDoNomeDoQuadro', async () => {
+    const { exported, names, choose } = await openExport();
+
+    choose('Baixar como Mermaid');
+
+    const text = await exported[0].text();
+    expect(text.startsWith('flowchart TD')).toBeTrue();
+    expect(text.match(/subgraph /g)!.length).toBe(2);
+    expect(text).toContain('["Faixa s1"]');
+    expect(names).toEqual(['rastro-quadro-compra-cancelamento-2026.mmd']);
+    expect(names[0]).not.toMatch(/[\\/:*?"<>|\s]/);
+  });
+
+  // WEB-BOARD-052
+  it('exportarDrawio_buscaOsLinksDeCadaFaixa_eBaixaUmaMolduraPorFaixaComANotaDoGlossario', async () => {
+    const { http, exported, names, choose, fixture } = await openExport();
+
+    choose('draw.io');
+    const links = http.match((r) => r.url.endsWith('/links'));
+    expect(links.map((r) => r.request.url).sort()).toEqual(['/api/surveys/s1/links', '/api/surveys/s2/links']);
+    links.forEach((r) => r.flush([]));
+    fixture.detectChanges();
+
+    const xml = await exported[0].text();
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    expect(doc.getElementsByTagName('parsererror').length).toBe(0);
+    expect([...doc.querySelectorAll('mxCell[id^="f"]')].map((f) => f.getAttribute('value'))).toEqual(['Faixa s1', 'Faixa s2']);
+    expect(xml).toContain('Pedido: compra do cliente');
+    expect(names).toEqual(['rastro-quadro-compra-cancelamento-2026.drawio']);
+  });
+
+  // WEB-BOARD-053
+  it('exportarDrawio_comARotaDeLinksForaDoAr_baixaOArquivoSemLink', async () => {
+    const { http, exported, choose, fixture } = await openExport();
+
+    choose('draw.io');
+    http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush({ code: 'X' }, { status: 500, statusText: 'Erro' }));
+    fixture.detectChanges();
+
+    expect(exported.length).toBe(1);
+    expect(await exported[0].text()).not.toContain(' link="');
+  });
+
+  // WEB-BOARD-054
+  it('exportarSvg_baixaOSvgDoQuadroComAsFaixas', async () => {
+    const { exported, names, choose } = await openExport();
+
+    choose('Imagem SVG');
+
+    const svg = await exported[0].text();
+    expect(new DOMParser().parseFromString(svg, 'image/svg+xml').getElementsByTagName('parsererror').length).toBe(0);
+    expect(svg).toContain('>Faixa s1<');
+    expect(svg).toContain('>Faixa s2<');
+    expect(svg).toContain('Pedido: compra do cliente');
+    expect(names).toEqual(['rastro-quadro-compra-cancelamento-2026.svg']);
+  });
+
+  // WEB-BOARD-055
+  it('exportarSemFaixaDesenhada_avisaEmVezDeBaixarArquivoVazio', async () => {
+    const { el, fixture } = await setup(board([lane('s1', 0, { status: SurveyStatus.Running, flow: null })]));
+    const download = spyOn(HTMLAnchorElement.prototype, 'click');
+    el.querySelector<HTMLButtonElement>('.board-bar-side .popover > button')!.click();
+    fixture.detectChanges();
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('#board-export-menu button')).find((b) => b.textContent!.includes('Baixar como Mermaid'))!.click();
+    fixture.detectChanges();
+
+    expect(download).not.toHaveBeenCalled();
+    expect(el.querySelector('.toast')!.textContent).toContain('ainda não tem faixa desenhada');
+    fixture.destroy();
+    TestBed.inject(HttpTestingController).match(() => true);
   });
 });
