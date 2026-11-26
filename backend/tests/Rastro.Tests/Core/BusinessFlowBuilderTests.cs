@@ -796,6 +796,26 @@ public class BusinessFlowBuilderTests
     }
 
     [Fact]
+    public void Derive_RecusaComTextoCortadoPeloExtrator_SemVirgulaSoltaEComReticencias()
+    {
+        // CORE-BIZ-038 (o rótulo do nó encurta retornos longos e termina em "…" antes de fechar as aspas)
+        var graph = G("m:e",
+            [
+                M("m:e", "Ctrl.A", kind: NodeKind.Entry),
+                Dec("if:1", "a"), Ret("ret:1", "return BadRequest(\"O comando precisa caber numa linha, …"),
+                M("m:fim", "Ctrl.Fim")
+            ],
+            [
+                E("m:e", "if:1", 1), E("if:1", "ret:1", 1, "then"),
+                E("m:e", "m:fim", 2)
+            ]);
+
+        var flow = Derive(graph, language: UiLanguage.Portuguese);
+
+        Assert.Equal("Recusa: O comando precisa caber numa linha…", Step(flow, "ret:1").Label);
+    }
+
+    [Fact]
     public void Derive_ReturnNaoErroDentroDoServico_NaoEncerraOFluxo()
     {
         // CORE-BIZ-030 (saída do método continua no chamador)

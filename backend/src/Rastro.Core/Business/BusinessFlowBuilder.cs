@@ -555,8 +555,11 @@ public static class BusinessFlowBuilder
                 if (c == '"') return builder.ToString().Trim();
                 builder.Append(c);
             }
-            // Texto cortado pelo extrator: aproveita o que há, sem as reticências.
-            return builder.ToString().TrimEnd('…', ')', ' ');
+            // Texto cortado pelo extrator (o rótulo do nó encurta retornos longos e termina em "…" antes de fechar as
+            // aspas): aproveita o que há, sem a pontuação solta do fim, e mantém as reticências para não parecer que
+            // o texto acabou ali ("O comando precisa caber numa linha…", não "O comando precisa caber numa linha,").
+            var cut = builder.ToString().TrimEnd('…', ')', ' ', ',', ';', ':');
+            return cut.Length == 0 ? null : cut + Ellipsis;
         }
 
         private static string? ReturnExpression(FlowNode node)
