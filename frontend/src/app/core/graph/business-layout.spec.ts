@@ -2,7 +2,7 @@ import { BusinessEdge, BusinessFlow, BusinessKind, BusinessStep, LabelOrigin, La
 import { BUSINESS_BOX, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from './business-layout';
 
 function step(id: string, kind: BusinessKind = BusinessKind.Step, label = id): BusinessStep {
-  return { id, nodeId: `n-${id}`, kind, label, labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: [`n-${id}`], inferred: false };
+  return { id, nodeId: `n-${id}`, kind, label, labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: [`n-${id}`], inferred: false, codeChanged: false };
 }
 
 function flowOf(steps: BusinessStep[], edges: [string, string, string?][]): BusinessFlow {

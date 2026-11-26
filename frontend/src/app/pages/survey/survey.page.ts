@@ -24,6 +24,7 @@ import { isFrameworkCall, withoutFrameworkCalls } from '../../core/graph/visibil
 import {
   AiUse,
   AI_PROVIDER_LABEL,
+  BusinessKind,
   RefactorSuggestion,
   ChangeKind,
   ChangePrompt,
@@ -301,6 +302,9 @@ export class SurveyPage {
   });
   protected readonly c4Open = signal(false);
   protected readonly menu = signal<{ nodeId: string; x: number; y: number } | null>(null);
+  // "Mostrar na visão de negócio" só aparece para o nó que ainda não é passo-chave: falso ou nulo (ainda sem
+  // resposta, ou a visão não veio) esconde o item; só o "ainda não é passo-chave" confirmado o mostra.
+  protected readonly menuNotKeyStep = signal(false);
 
   // Contagem da comparação pelo que está na tela (chamadas do .NET escondidas não contam).
   protected readonly visibleChanges = computed(() => {
@@ -1033,6 +1037,17 @@ export class SurveyPage {
     this.select(menu.nodeId);
     // Não deixa o menu sair da janela.
     this.menu.set(menu);
+    this.menuNotKeyStep.set(false);
+    const surveyId = this.detail()?.survey.id;
+    if (surveyId) {
+      this.api.business(surveyId).subscribe({
+        next: (flow) => {
+          if (this.menu()?.nodeId === menu.nodeId) this.menuNotKeyStep.set(!flow.steps.some((s) => s.nodeId === menu.nodeId));
+        },
+        // Sem a visão, o item some: o resto do menu segue igual.
+        error: () => this.menuNotKeyStep.set(false),
+      });
+    }
     setTimeout(() => {
       const element = this.host.nativeElement.querySelector<HTMLElement>('.context-menu');
       if (!element) return;
@@ -1065,6 +1080,18 @@ export class SurveyPage {
     if (next < 0) return;
     event.preventDefault();
     items[next]?.focus();
+  }
+
+  // "Mostrar na visão de negócio": grava o tipo Passo, confirmado, para o nó. A visão lê de novo ao abrir.
+  protected showInBusinessView(): void {
+    const nodeId = this.menu()?.nodeId;
+    const surveyId = this.detail()?.survey.id;
+    this.closeMenu();
+    if (!nodeId || !surveyId) return;
+    this.api.setBusinessKind(surveyId, nodeId, BusinessKind.Step).subscribe({
+      next: () => this.showExport({ ok: true, text: this.i18n.t('survey.menu.businessShown') }),
+      error: (error) => this.showExport({ ok: false, text: apiErrorMessage(error) }),
+    });
   }
 
   // "Ver no grafo" da visão de negócio: volta ao canvas com o nó escolhido (sem mudar o desenho guardado).

@@ -46,6 +46,7 @@ public class RastroTools(
     Rastro.Infrastructure.Database.Live.LiveConnectionStore liveConnections,
     Rastro.Infrastructure.Database.Live.LiveDatabaseService liveDatabase,
     Rastro.Infrastructure.Business.BusinessViewService business,
+    Rastro.Infrastructure.Business.BusinessAnnotationService businessAnnotations,
     Rastro.Infrastructure.Links.CodeLinkService codeLinks,
     ILogger<RastroTools> logger)
 {
@@ -217,6 +218,8 @@ public class RastroTools(
             if (step.Ref is { } at && templates.TryGetValue(at.Repository, out var template))
                 where += " " + Rastro.Core.Links.CodeLinks.Fill(template, at.File, at.Line);
             var proposed = step.LabelState == Rastro.Core.Business.LabelState.Proposed ? " " + T("Business.Proposed") : string.Empty;
+            if (step.CodeChanged) proposed += " " + T("Business.CodeChanged");
+            if (step.KindProposal is { } kindProposal) proposed += " " + T("Business.KindProposal", kindProposal.Kind, kindProposal.Reason);
             text.AppendLine(T("Business.Step", handle, step.Kind, step.Label, handles.GetValueOrDefault(step.NodeId, step.NodeId), where, proposed));
         }
         text.AppendLine(T("Business.Links"));
@@ -229,6 +232,67 @@ public class RastroTools(
         if (flow.CollapsedDecisions > 0) text.AppendLine(T("Business.Collapsed", flow.Steps.Count, flow.CollapsedDecisions));
         return text.ToString();
     }
+
+    [McpServerTool(Name = "propose_business_label"), Description("Proposes the business text of a key step of the business view (get_business_view): a single line of up to 120 characters, in the user's language; a decision is a question that ends with \"?\"; no method, class or variable names, and nothing the code does not show. It shows on the screen as proposed by an agent and only the user confirms it. A text the user already confirmed is never changed. Does not use the compiler: the text is not proof, it is a proposal.")]
+    public async Task<string> ProposeBusinessLabel(
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Step handle (b3, from get_business_view), node handle (n12), node id or step id. Use the step handle to point to the End step.")] string nodeId,
+        [Description("The text of the step: one line, up to 120 characters.")] string text,
+        CancellationToken ct = default)
+    {
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
+        var segment = await StepSegmentAsync(surveyId, graph, nodeId, ct);
+        if (segment is null) return T("Business.StepNotFound");
+
+        var outcome = await businessAnnotations.ProposeLabelAsync(surveyId, segment, text, Rastro.Core.Business.LabelOrigin.Agent, Language, ct);
+        return outcome.Ok
+            ? T("Business.LabelProposed", nodeId.Trim(), outcome.Step!.Label)
+            : BusinessEditText(outcome.Error);
+    }
+
+    [McpServerTool(Name = "propose_business_kind"), Description("Proposes another business type for a key step of the business view (get_business_view): Start, Decision, Notification, Rejection, CrossSystem, Step or End (or the number 0 to 6), with a short reason (up to 300 characters, one line) that points to what the code shows. The drawing does not change: it shows on the screen as a proposal of an agent and only the user confirms or dismisses it. A type the user already confirmed is never changed.")]
+    public async Task<string> ProposeBusinessKind(
+        [Description("Trace id.")] Guid surveyId,
+        [Description("Step handle (b3, from get_business_view), node handle (n12), node id or step id.")] string nodeId,
+        [Description("The type: Start, Decision, Notification, Rejection, CrossSystem, Step or End.")] string kind,
+        [Description("Why this step is of that type (what in the code shows it).")] string reason,
+        CancellationToken ct = default)
+    {
+        if (await GraphAsync(surveyId, ct) is not { } graph) return T("Surveys.NotFound");
+        var segment = await StepSegmentAsync(surveyId, graph, nodeId, ct);
+        if (segment is null) return T("Business.StepNotFound");
+
+        var text = kind.Trim();
+        if (!Enum.TryParse<Rastro.Core.Business.BusinessKind>(text, true, out var parsed) || !Enum.IsDefined(parsed))
+            return T("Business.KindInvalid");
+
+        var outcome = await businessAnnotations.ProposeKindAsync(surveyId, segment, (int)parsed, reason, Language, ct);
+        return outcome.Ok
+            ? T("Business.KindProposed", nodeId.Trim(), parsed)
+            : BusinessEditText(outcome.Error);
+    }
+
+    // b3 (passo da visão de negócio), n12 (nó), id do nó ou Id do passo. Nulo se não apontar para nada.
+    private async Task<string?> StepSegmentAsync(Guid surveyId, FlowGraph graph, string reference, CancellationToken ct)
+    {
+        var text = reference.Trim();
+        if (text.Length > 1 && text[0] is 'b' or 'B' && int.TryParse(text[1..], out var index) && index >= 1)
+        {
+            var flow = await business.GetAsync(surveyId, Language, ct);
+            return flow is not null && index <= flow.Steps.Count ? flow.Steps[index - 1].Id : null;
+        }
+        return FindNode(graph, text)?.Id ?? (text.Length > 0 ? text : null);
+    }
+
+    private string BusinessEditText(Rastro.Infrastructure.Business.BusinessEditError error) => error switch
+    {
+        Rastro.Infrastructure.Business.BusinessEditError.LabelInvalid => T("Business.LabelInvalid"),
+        Rastro.Infrastructure.Business.BusinessEditError.KindInvalid => T("Business.KindInvalid"),
+        Rastro.Infrastructure.Business.BusinessEditError.ReasonInvalid => T("Business.ReasonInvalid"),
+        Rastro.Infrastructure.Business.BusinessEditError.AlreadyConfirmed => T("Business.AlreadyConfirmed"),
+        Rastro.Infrastructure.Business.BusinessEditError.SurveyNotFound => T("Surveys.NotFound"),
+        _ => T("Business.StepNotFound")
+    };
 
     [McpServerTool(Name = "list_unresolved"), Description("Lists the calls the compiler did not resolve (the gaps to fill), with the reason and where they are.")]
     public async Task<string> ListUnresolved([Description("Trace id.")] Guid surveyId, CancellationToken ct = default)

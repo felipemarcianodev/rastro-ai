@@ -34,10 +34,13 @@ public sealed record CodeRef(string Repository, string File, int Line, string? C
 
 // Id: estável, os 16 primeiros caracteres hexadecimais (minúsculos) do SHA-256 de "{surveyId:N}|{nodeId}".
 // SourceNodeIds: o nó do passo e os nós de código agrupados nele.
+// CodeChanged (Fase 59): o código do passo mudou desde que o texto foi gravado. KindProposal: proposta de troca de
+// tipo do agente, que só vale quando o usuário confirma.
 public sealed record BusinessStep(
     string Id, string NodeId, BusinessKind Kind, string Label,
     LabelOrigin LabelOrigin, LabelState LabelState, CodeRef? Ref,
-    IReadOnlyList<string> SourceNodeIds, bool Inferred);
+    IReadOnlyList<string> SourceNodeIds, bool Inferred,
+    bool CodeChanged = false, KindProposal? KindProposal = null);
 
 // From e To são Ids de BusinessStep (não ids de nó).
 public sealed record BusinessEdge(string From, string To, string? Label, bool Inferred);

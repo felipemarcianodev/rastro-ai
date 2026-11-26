@@ -7,7 +7,10 @@ import {
   AiSettingsView,
   AiStatus,
   BusinessFlow,
+  BusinessKind,
+  BusinessLabelSuggestion,
   BusinessLayout,
+  BusinessStep,
   DescribeResponse,
   FillHoleResponse,
   ChangePrompt,
@@ -229,6 +232,35 @@ export class RastroApi {
   // Visão de negócio (Fase 55): os passos-chave do fluxo.
   business(id: string): Observable<BusinessFlow> {
     return this.http.get<BusinessFlow>(`/api/surveys/${id}/business`);
+  }
+
+  // Texto e tipo do passo-chave (Fase 59). O segmento do passo é o id do passo ou o id do nó, sempre codificado.
+  private businessStepUrl(id: string, stepId: string): string {
+    return `/api/surveys/${id}/business/steps/${encodeURIComponent(stepId)}`;
+  }
+
+  saveBusinessLabel(id: string, stepId: string, text: string | null): Observable<BusinessStep> {
+    return this.http.put<BusinessStep>(`${this.businessStepUrl(id, stepId)}/label`, { text });
+  }
+
+  confirmBusinessLabel(id: string, stepId: string): Observable<BusinessStep> {
+    return this.http.post<BusinessStep>(`${this.businessStepUrl(id, stepId)}/label/confirm`, {});
+  }
+
+  setBusinessKind(id: string, stepId: string, kind: BusinessKind | null): Observable<BusinessFlow> {
+    return this.http.put<BusinessFlow>(`${this.businessStepUrl(id, stepId)}/kind`, { kind });
+  }
+
+  confirmBusinessKind(id: string, stepId: string): Observable<BusinessFlow> {
+    return this.http.post<BusinessFlow>(`${this.businessStepUrl(id, stepId)}/kind/confirm`, {});
+  }
+
+  dismissBusinessKind(id: string, stepId: string): Observable<BusinessFlow> {
+    return this.http.post<BusinessFlow>(`${this.businessStepUrl(id, stepId)}/kind/dismiss`, {});
+  }
+
+  suggestBusinessLabels(id: string): Observable<BusinessLabelSuggestion> {
+    return this.http.post<BusinessLabelSuggestion>(`/api/surveys/${id}/business/labels/suggest`, {});
   }
 
   // Posição dos balões da visão de negócio (Fase 58): ler, salvar em lote e reorganizar (apagar).

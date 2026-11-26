@@ -555,6 +555,10 @@ export const API_ERROR_MESSAGE_KEY: Record<string, string> = {
   AI_SETTINGS_INVALID: 'error.AI_SETTINGS_INVALID',
   AI_DISABLED: 'error.AI_DISABLED',
   AI_USE_DISABLED: 'error.AI_USE_DISABLED',
+  BUSINESS_LABEL_INVALID: 'error.BUSINESS_LABEL_INVALID',
+  BUSINESS_KIND_INVALID: 'error.BUSINESS_KIND_INVALID',
+  BUSINESS_STEP_NOT_FOUND: 'error.BUSINESS_STEP_NOT_FOUND',
+  BUSINESS_PROPOSAL_NOT_FOUND: 'error.BUSINESS_PROPOSAL_NOT_FOUND',
   AI_NOT_CONFIGURED: 'error.AI_NOT_CONFIGURED',
   AI_BUDGET_EXCEEDED: 'error.AI_BUDGET_EXCEEDED',
   AI_PROVIDER_ERROR: 'error.AI_PROVIDER_ERROR',
@@ -992,6 +996,20 @@ export interface BusinessStep {
   // Nós do grafo que este passo-chave resume.
   sourceNodeIds: string[];
   inferred: boolean;
+  // Fase 59: o código do passo mudou depois de o texto ser confirmado.
+  codeChanged: boolean;
+  // Proposta de tipo do agente, à espera do usuário (some quando não há proposta).
+  kindProposal?: BusinessKindProposal;
+}
+
+export interface BusinessKindProposal {
+  kind: BusinessKind;
+  reason: string;
+}
+
+export interface BusinessLabelSuggestion {
+  proposed: number;
+  skipped: number;
 }
 
 export interface BusinessEdge {

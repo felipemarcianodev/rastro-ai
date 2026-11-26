@@ -121,6 +121,25 @@ public class AiController(AiSettingsService settings, AiGateway gateway) : Contr
         }
     }
 
+    // Sugerir textos de negócio (Fase 59, uso "Sugestões"): o provedor propõe o texto dos passos sem texto confirmado.
+    // Só propõe (origem Ai, estado proposto); quem confirma é o usuário, na tela. Sem IA ligada ou com o uso desligado,
+    // devolve os códigos de IA que já existem.
+    [HttpPost("api/surveys/{id:guid}/business/labels/suggest")]
+    public async Task<ActionResult<BusinessLabelSuggestion>> SuggestBusinessLabels(Guid id, [FromServices] BusinessLabelAdvisor advisor, CancellationToken ct)
+    {
+        var language = UiLanguages.FromCulture(CultureInfo.CurrentUICulture);
+        try
+        {
+            // Levantamento inexistente ou ainda sem grafo: o advisor devolve nulo e vira 404.
+            return await RunAsync(async () => await advisor.SuggestAsync(id, language, null, ct)
+                                              ?? throw new FindingNotFoundException("Levantamento ainda sem grafo."));
+        }
+        catch (FindingNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
     // A IA sugere a melhora de uma consulta (Fase 41, uso "Sugestões"): a reescrita e os índices passam pela
     // conferência do núcleo antes de voltar e, com banco vivo, o custo estimado antes e depois (sem executar).
     // Nada é aplicado: quem copia é o usuário. O texto da consulta não vai para o log.

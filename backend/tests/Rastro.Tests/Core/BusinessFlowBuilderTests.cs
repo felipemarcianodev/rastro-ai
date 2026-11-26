@@ -120,7 +120,7 @@ public class BusinessFlowBuilderTests
         // CORE-BIZ-003
         var flow = Derive(Cancelamento());
 
-        Assert.Equal("pedido.Enviado?", Step(flow, "if:1").Label);
+        Assert.Equal("Pedido enviado?", Step(flow, "if:1").Label);
         Assert.Equal("Rejected: enviado", Step(flow, "ret:1").Label);
         Assert.Equal("Repo.Gravar", Step(flow, "m:db").Label);
         Assert.Equal("Sends email", Step(flow, "m:mail").Label);
@@ -389,7 +389,7 @@ public class BusinessFlowBuilderTests
 
         Assert.Equal("case Cartao", Link(flow, "sw:1", "m:mail").Label);
         Assert.Equal("case Boleto", Link(flow, "sw:1", "thr:1").Label);
-        Assert.Equal("meio?", Step(flow, "sw:1").Label);
+        Assert.Equal("Meio?", Step(flow, "sw:1").Label);
     }
 
     [Fact]
@@ -563,9 +563,9 @@ public class BusinessFlowBuilderTests
     }
 
     [Theory]
-    [InlineData(UiLanguage.English, "Sends email", "cond?", "Rejected: Erro")]
-    [InlineData(UiLanguage.Portuguese, "Envia e-mail", "cond?", "Recusa: Erro")]
-    [InlineData(UiLanguage.Spanish, "Envía correo", "¿cond?", "Rechazo: Erro")]
+    [InlineData(UiLanguage.English, "Sends email", "Cond?", "Rejected: Erro")]
+    [InlineData(UiLanguage.Portuguese, "Envia e-mail", "Cond?", "Recusa: Erro")]
+    [InlineData(UiLanguage.Spanish, "Envía correo", "¿Cond?", "Rechazo: Erro")]
     public void Derive_Idioma_TextosNosTresIdiomas(UiLanguage language, string email, string decisao, string recusa)
     {
         // CORE-BIZ-025
@@ -628,7 +628,7 @@ public class BusinessFlowBuilderTests
         Assert.Equal("Bloqueado na tela", Step(flow, "if:html").Label);
         Assert.Equal("detalhe-pedido.component.html", Step(flow, "if:html").Ref!.File);
         Assert.Equal(BusinessKind.Decision, Step(flow, "if:ts").Kind);
-        Assert.Equal("this.pedido.enviado?", Step(flow, "if:ts").Label);
+        Assert.Equal("Pedido enviado?", Step(flow, "if:ts").Label);
         Assert.Equal(BusinessKind.Rejection, Step(flow, "ret:ts").Kind);
         Assert.Equal("Bloqueado na tela", Step(flow, "ret:ts").Label);
         Assert.Equal("POST api/pedidos/{}/cancelamento", Step(flow, "m:svc").Label);

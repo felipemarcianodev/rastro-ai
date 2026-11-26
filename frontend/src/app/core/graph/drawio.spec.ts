@@ -198,9 +198,9 @@ describe('drawio', () => {
       schemaVersion: 1,
       collapsedDecisions: 0,
       steps: [
-        { id: 'p0', nodeId: 'a', kind: BusinessKind.Start, label: 'Cliente cancela o pedido', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: { repository: 'api-pedidos', file: 'src/Api/PedidosController.cs', line: 12, commitHash: null, branch: null }, sourceNodeIds: ['a'], inferred: false },
-        { id: 'p1', nodeId: 'b', kind: BusinessKind.Decision, label: 'Está dentro do prazo?', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Proposed, ref: null, sourceNodeIds: ['b'], inferred: false },
-        { id: 'p2', nodeId: 'c', kind: BusinessKind.CrossSystem, label: 'Pede o estorno', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: { repository: 'api-pagamentos', file: 'src/Estornos.cs', line: 8, commitHash: null, branch: null }, sourceNodeIds: ['c'], inferred: true },
+        { id: 'p0', nodeId: 'a', kind: BusinessKind.Start, label: 'Cliente cancela o pedido', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: { repository: 'api-pedidos', file: 'src/Api/PedidosController.cs', line: 12, commitHash: null, branch: null }, sourceNodeIds: ['a'], inferred: false, codeChanged: false },
+        { id: 'p1', nodeId: 'b', kind: BusinessKind.Decision, label: 'Está dentro do prazo?', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Proposed, ref: null, sourceNodeIds: ['b'], inferred: false, codeChanged: false },
+        { id: 'p2', nodeId: 'c', kind: BusinessKind.CrossSystem, label: 'Pede o estorno', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: { repository: 'api-pagamentos', file: 'src/Estornos.cs', line: 8, commitHash: null, branch: null }, sourceNodeIds: ['c'], inferred: true, codeChanged: false },
       ],
       edges: [
         { from: 'p0', to: 'p1', label: null, inferred: false },

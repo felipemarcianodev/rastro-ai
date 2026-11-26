@@ -2,11 +2,12 @@ import { Component, DebugElement, signal } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
+import { AiStatusService } from '../../core/ai-status.service';
 import { DesktopBridge } from '../../core/desktop-bridge.service';
 import { MAP_FIXTURE_GRAPH } from '../../core/graph/flow-map-fixture.spec';
 import { LayoutDirection } from '../../core/graph/layout';
 import { FlowSummary } from '../../core/graph/summary';
-import { BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, LabelOrigin, LabelState, RepositoryHostKind, RepositoryLinks, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
+import { AiProvider, AiUse, BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, LabelOrigin, LabelState, RepositoryHostKind, RepositoryLinks, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
 import { businessLayout } from '../../core/graph/business-layout';
 import { By } from '@angular/platform-browser';
 import { FCanvasComponent, FConnectionContent, FConnectionWaypoints, FControlSchemeController, FDraggableDirective, FNodeDirective, FZoomDirective } from '@foblex/flow';
@@ -44,6 +45,7 @@ function step(id: string, nodeId: string, kind: BusinessKind, label: string, ext
     ref: { repository: 'pedidos-web', file: 'src/Pedidos.cs', line: 10, commitHash: 'abcdef1234567890', branch: 'main' },
     sourceNodeIds: [nodeId],
     inferred: false,
+    codeChanged: false,
     ...extra,
   };
 }
@@ -79,7 +81,7 @@ const LINKS: RepositoryLinks[] = [
   imports: [BusinessViewComponent],
   // O Foblex avisa (e não desenha) um fluxo sem altura: na página, o contêiner da visão dá a altura.
   styles: ['app-business-view { display: block; width: 900px; height: 600px; }'],
-  template: `<app-business-view [detail]="detail" [selectedId]="selected()" [notes]="notes" (selectNode)="picked.push($event)" (directionChange)="directions.push($event)" (summaryChange)="summaries.push($event)" (focusFlow)="focused.push($event)" (showInGraph)="inGraph.push($event)" />`,
+  template: `<app-business-view [detail]="detail" [selectedId]="selected()" [notes]="notes" (selectNode)="picked.push($event); selected.set($event)" (directionChange)="directions.push($event)" (summaryChange)="summaries.push($event)" (focusFlow)="focused.push($event)" (showInGraph)="inGraph.push($event)" />`,
 })
 class HostComponent {
   readonly detail = detail;
@@ -850,5 +852,302 @@ describe('BusinessViewComponent (Fase 57)', () => {
 
     expect(node('s1').getAttribute('aria-describedby')).toBe('biz-keys-help');
     expect(el.querySelector('#biz-keys-help')!.textContent).toContain('Tab');
+  });
+});
+
+describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
+  const STEP_URL = (id: string, tail: string) => `/api/surveys/s1/business/steps/${id}/${tail}`;
+  const typeInto = (input: HTMLInputElement, value: string) => {
+    input.value = value;
+    input.dispatchEvent(new Event('input'));
+  };
+  const key = (target: HTMLElement, k: string) => target.dispatchEvent(new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  const withAi = (fixture: { detectChanges(): void }, uses: AiUse[]) => {
+    TestBed.inject(AiStatusService).status.set({ enabled: true, configured: true, provider: AiProvider.Claude, model: 'm', uses, tokensToday: 0, dailyTokenBudget: 0 });
+    fixture.detectChanges();
+  };
+  const panelInput = (el: HTMLElement) => el.querySelector<HTMLInputElement>('.biz-panel input[data-edit]')!;
+
+  // WEB-BIZV-060
+  it('editarNoPainel_enterSalvaOTextoEAtualizaOBalaoEAOrigem', async () => {
+    const { fixture, el, node, button, http } = await setup();
+    node('s1').click();
+    fixture.detectChanges();
+
+    button('Editar texto').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const input = panelInput(el);
+    expect(input.maxLength).toBe(120);
+    typeInto(input, '  Pedido   chegou ao sistema  ');
+    key(input, 'Enter');
+    fixture.detectChanges();
+
+    const put = http.expectOne(STEP_URL('s1', 'label'));
+    expect(put.request.method).toBe('PUT');
+    expect(put.request.body).toEqual({ text: 'Pedido chegou ao sistema' });
+    put.flush(step('s1', 'n1', BusinessKind.Start, 'Pedido chegou ao sistema', { labelOrigin: LabelOrigin.User, labelState: LabelState.Confirmed, sourceNodeIds: ['n1', 'n2'] }));
+    fixture.detectChanges();
+
+    expect(node('s1').querySelector('.biz-text')!.textContent).toContain('Pedido chegou ao sistema');
+    expect(el.querySelector('.biz-origin')!.textContent).toContain('Confirmado por você');
+    expect(el.querySelector('.toast')!.textContent).toContain('Texto salvo');
+  });
+
+  // WEB-BIZV-061
+  it('editarComEsc_cancelaESemMudancaNaoGrava', async () => {
+    const { fixture, el, node, button, http } = await setup();
+    node('s1').click();
+    fixture.detectChanges();
+    button('Editar texto').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    typeInto(panelInput(el), 'outro texto');
+    key(panelInput(el), 'Escape');
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-panel input[data-edit]')).toBeNull();
+
+    button('Editar texto').click();
+    fixture.detectChanges();
+    key(panelInput(el), 'Enter');
+    fixture.detectChanges();
+
+    http.expectNone((r) => r.method === 'PUT');
+    expect(el.querySelector('.biz-panel-title')!.textContent).toContain('Pedido recebido');
+  });
+
+  // WEB-BIZV-062
+  it('duploCliqueNoBalao_editaNoProprioBalaoSemAbrirOPainelNemMoverOBalao', async () => {
+    const { fixture, el, node, http } = await setup();
+
+    node('s4').dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    const input = node('s4').querySelector<HTMLInputElement>('input[data-edit]')!;
+    expect(input).not.toBeNull();
+    expect(node('s4').querySelector('.biz-text')).toBeNull();
+    expect(input.value).toBe('Pedido concluído');
+
+    // As teclas do campo não sobem para o balão: seta não move.
+    const arrow = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+    input.dispatchEvent(arrow);
+    expect(arrow.defaultPrevented).toBeFalse();
+
+    typeInto(input, 'Pedido entregue');
+    key(input, 'Enter');
+    fixture.detectChanges();
+    const put = http.expectOne(STEP_URL('s4', 'label'));
+    expect(put.request.body).toEqual({ text: 'Pedido entregue' });
+    put.flush(step('s4', 'n5', BusinessKind.End, 'Pedido entregue', { labelOrigin: LabelOrigin.User }));
+    fixture.detectChanges();
+
+    expect(node('s4').querySelector('.biz-text')!.textContent).toContain('Pedido entregue');
+    expect(el.querySelector('.biz-panel-title')).toBeNull();
+  });
+
+  // WEB-BIZV-063
+  it('textoVazio_enviaNuloEVoltaAoTextoDaRegra', async () => {
+    const { fixture, el, node, button, http } = await setup();
+    node('s1').click();
+    fixture.detectChanges();
+    button('Editar texto').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    typeInto(panelInput(el), '   ');
+    key(panelInput(el), 'Enter');
+    fixture.detectChanges();
+
+    expect(http.expectOne(STEP_URL('s1', 'label')).request.body).toEqual({ text: null });
+  });
+
+  // WEB-BIZV-064
+  it('textoDoUsuario_oferecePorUsarOTextoDaRegra', async () => {
+    const user = { ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's1' ? { ...s, labelOrigin: LabelOrigin.User } : s)) };
+    const { fixture, node, button, http } = await setup(user);
+    node('s1').click();
+    fixture.detectChanges();
+
+    button('Usar o texto da regra').click();
+    fixture.detectChanges();
+
+    const put = http.expectOne(STEP_URL('s1', 'label'));
+    expect(put.request.body).toEqual({ text: null });
+    put.flush(step('s1', 'n1', BusinessKind.Start, 'Pedido recebido', { sourceNodeIds: ['n1', 'n2'] }));
+  });
+
+  // WEB-BIZV-065
+  it('textoProposto_ficaEmItalicoComSeloEConfirmarGravaEOSeloSai', async () => {
+    const { fixture, el, node, button, http } = await setup();
+    const hasConfirm = () => Array.from(el.querySelectorAll('.biz-panel button')).some((b) => b.textContent!.trim() === 'Confirmar');
+
+    expect(node('s2').classList).toContain('is-proposed');
+    expect(getComputedStyle(node('s2').querySelector('.biz-text')!).fontStyle).toBe('italic');
+    expect(getComputedStyle(node('s1').querySelector('.biz-text')!).fontStyle).toBe('normal');
+
+    node('s1').click();
+    fixture.detectChanges();
+    expect(hasConfirm()).toBeFalse();
+    node('s2').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-origin')!.textContent).toContain('Proposto pela IA');
+    expect(hasConfirm()).toBeTrue();
+
+    button('Confirmar').click();
+    const post = http.expectOne(STEP_URL('s2', 'label/confirm'));
+    expect(post.request.method).toBe('POST');
+    post.flush(step('s2', 'n3', BusinessKind.Decision, 'O pagamento foi aprovado?', { labelOrigin: LabelOrigin.Ai, labelState: LabelState.Confirmed }));
+    fixture.detectChanges();
+
+    expect(node('s2').querySelector('.biz-badge.is-proposed')).toBeNull();
+    expect(el.querySelector('.biz-origin')!.textContent).toContain('Confirmado pela IA');
+  });
+
+  // WEB-BIZV-066
+  it('codigoMudou_mostraOSeloNoPainelSoNoPassoQueMudou', async () => {
+    const changed = { ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's4' ? { ...s, codeChanged: true } : s)) };
+    const { fixture, el, node } = await setup(changed);
+
+    node('s1').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-badge.is-changed')).toBeNull();
+    node('s4').click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.biz-badge.is-changed')!.textContent).toContain('Código mudou desde a confirmação');
+  });
+
+  // WEB-BIZV-067
+  it('trocarOTipo_enviaOTipoEDetectadoEnviaNuloEODesenhoUsaOFluxoDaResposta', async () => {
+    const { fixture, el, node, http } = await setup();
+    node('s4').click();
+    fixture.detectChanges();
+    const select = () => el.querySelector<HTMLSelectElement>('#biz-kind-pick')!;
+    const options = Array.from(select().options).map((o) => o.textContent!.trim());
+    expect(options[0]).toBe('Detectado');
+    expect(options.length).toBe(8);
+    expect(select().value).toBe(String(BusinessKind.End));
+
+    select().value = String(BusinessKind.Rejection);
+    select().dispatchEvent(new Event('change'));
+    const put = http.expectOne(STEP_URL('s4', 'kind'));
+    expect(put.request.method).toBe('PUT');
+    expect(put.request.body).toEqual({ kind: BusinessKind.Rejection });
+    put.flush({ ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's4' ? { ...s, kind: BusinessKind.Rejection } : s)) });
+    fixture.detectChanges();
+    expect(node('s4').classList).toContain('biz-kind-rejection');
+
+    select().value = 'detected';
+    select().dispatchEvent(new Event('change'));
+    const back = http.expectOne(STEP_URL('s4', 'kind'));
+    expect(back.request.body).toEqual({ kind: null });
+    back.flush(FLOW);
+    fixture.detectChanges();
+    expect(node('s4').classList).toContain('biz-kind-end');
+  });
+
+  // WEB-BIZV-068
+  it('propostaDeTipoDoAgente_mostraOMotivoEConfirmarEDescartarChamamAsRotas', async () => {
+    const proposal = { kind: BusinessKind.Notification, reason: 'Envia e-mail ao cliente' };
+    const withProposal = { ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's4' ? { ...s, kindProposal: proposal } : s)) };
+    const { fixture, el, node, http } = await setup(withProposal);
+    const proposalButton = (text: string) => Array.from(el.querySelectorAll<HTMLButtonElement>('.biz-proposal button')).find((b) => b.textContent!.trim() === text)!;
+    node('s1').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-proposal')).toBeNull();
+
+    node('s4').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-proposal')!.textContent).toContain('O agente propõe o tipo Notificação');
+    expect(el.querySelector('.biz-proposal')!.textContent).toContain('Envia e-mail ao cliente');
+
+    proposalButton('Confirmar').click();
+    const confirm = http.expectOne(STEP_URL('s4', 'kind/confirm'));
+    expect(confirm.request.method).toBe('POST');
+    confirm.flush({ ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's4' ? { ...s, kind: BusinessKind.Notification } : s)) });
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-proposal')).toBeNull();
+    expect(node('s4').classList).toContain('biz-kind-notification');
+
+    // Descartar: a proposta de outro passo, no mesmo fluxo.
+    const again = { ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's4' ? { ...s, kindProposal: proposal } : s)) };
+    (fixture.debugElement.query(By.directive(BusinessViewComponent)).componentInstance as { flow: { set(f: BusinessFlow): void } }).flow.set(again);
+    fixture.detectChanges();
+    proposalButton('Descartar').click();
+    const dismiss = http.expectOne(STEP_URL('s4', 'kind/dismiss'));
+    expect(dismiss.request.method).toBe('POST');
+    dismiss.flush(FLOW);
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-proposal')).toBeNull();
+  });
+
+  // WEB-BIZV-069
+  it('sugerirTextos_soApareceComIaLigadaEOUsoSugestoes_nuncaBotaoMorto', async () => {
+    const { fixture, el } = await setup();
+    const suggest = () => Array.from(el.querySelectorAll('.biz-bar button')).find((b) => b.textContent!.includes('Sugerir textos'));
+
+    expect(suggest()).toBeUndefined();
+    withAi(fixture, [AiUse.FillHoles]);
+    expect(suggest()).toBeUndefined();
+    TestBed.inject(AiStatusService).status.update((s) => ({ ...s!, configured: false, uses: [AiUse.Suggestions] }));
+    fixture.detectChanges();
+    expect(suggest()).toBeUndefined();
+    withAi(fixture, [AiUse.Suggestions]);
+    expect(suggest()).toBeDefined();
+  });
+
+  // WEB-BIZV-070
+  it('sugerirTextos_mostraCarregandoDizQuantosForamPropostosERecarregaAVisao', async () => {
+    const { fixture, el, node, http } = await setup();
+    withAi(fixture, [AiUse.Suggestions]);
+    const bar = () => Array.from(el.querySelectorAll<HTMLButtonElement>('.biz-bar button')).find((b) => b.textContent!.includes('Sugerir') || b.textContent!.includes('Sugerindo'))!;
+
+    bar().click();
+    fixture.detectChanges();
+    expect(bar().disabled).toBeTrue();
+    expect(bar().textContent).toContain('Sugerindo');
+    const post = http.expectOne('/api/surveys/s1/business/labels/suggest');
+    expect(post.request.method).toBe('POST');
+    post.flush({ proposed: 2, skipped: 1 });
+    fixture.detectChanges();
+
+    expect(bar().disabled).toBeFalse();
+    expect(el.querySelector('.toast')!.textContent).toContain('2 textos propostos');
+    http.expectOne('/api/surveys/s1/business').flush({ ...FLOW, steps: FLOW.steps.map((s) => (s.id === 's4' ? { ...s, label: 'Pedido finalizado', labelOrigin: LabelOrigin.Ai, labelState: LabelState.Proposed } : s)) });
+    fixture.detectChanges();
+    expect(node('s4').querySelector('.biz-text')!.textContent).toContain('Pedido finalizado');
+    expect(node('s4').querySelector('.biz-badge.is-proposed')).not.toBeNull();
+  });
+
+  // WEB-BIZV-071
+  it('sugerirTextosComIaDesligadaNoServidor_mostraOErroPeloCodigo', async () => {
+    const { fixture, el, http } = await setup();
+    withAi(fixture, [AiUse.Suggestions]);
+
+    Array.from(el.querySelectorAll<HTMLButtonElement>('.biz-bar button')).find((b) => b.textContent!.includes('Sugerir textos'))!.click();
+    http.expectOne('/api/surveys/s1/business/labels/suggest').flush({ code: 'AI_DISABLED' }, { status: 409, statusText: 'Conflict' });
+    fixture.detectChanges();
+
+    expect(el.querySelector('.toast')!.getAttribute('role')).toBe('alert');
+    expect(el.querySelector('.toast')!.textContent).toContain('A IA está desligada');
+  });
+
+  // WEB-BIZV-072
+  it('textoInvalido_mostraAMensagemDoCodigoENaoMudaOBalao', async () => {
+    const { fixture, el, node, button, http } = await setup();
+    node('s1').click();
+    fixture.detectChanges();
+    button('Editar texto').click();
+    fixture.detectChanges();
+    await fixture.whenStable();
+    typeInto(panelInput(el), 'texto novo');
+    key(panelInput(el), 'Enter');
+
+    http.expectOne(STEP_URL('s1', 'label')).flush({ code: 'BUSINESS_LABEL_INVALID' }, { status: 400, statusText: 'Bad Request' });
+    fixture.detectChanges();
+
+    expect(el.querySelector('.toast')!.textContent).toContain('O texto do passo está vazio demais');
+    expect(node('s1').querySelector('.biz-text')!.textContent).toContain('Pedido recebido');
   });
 });

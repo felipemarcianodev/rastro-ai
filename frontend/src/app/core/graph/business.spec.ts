@@ -4,7 +4,7 @@ import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_LABEL_KEY, BUSINESS_KIND_SLUG, LABEL
 // Fase 57: rótulos da visão de negócio e caminho da entrada até um passo.
 
 function step(id: string, kind: BusinessKind = BusinessKind.Step, label = id): BusinessStep {
-  return { id, nodeId: `n-${id}`, kind, label, labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: [`n-${id}`], inferred: false };
+  return { id, nodeId: `n-${id}`, kind, label, labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: [`n-${id}`], inferred: false, codeChanged: false };
 }
 
 function flowOf(steps: BusinessStep[], edges: [string, string, string?][]): BusinessFlow {

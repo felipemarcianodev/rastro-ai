@@ -265,4 +265,14 @@
   <data name="business.label.email" xml:space="preserve"><value>Envía correo</value></data>
   <data name="business.label.inApp" xml:space="preserve"><value>Aviso en la app</value></data>
   <data name="business.label.end" xml:space="preserve"><value>Fin</value></data>
+  <data name="business.rule.not" xml:space="preserve"><value>no</value></data>
+  <data name="business.rule.and" xml:space="preserve"><value>y</value></data>
+  <data name="business.rule.or" xml:space="preserve"><value>o</value></data>
+  <data name="business.rule.is" xml:space="preserve"><value>es</value></data>
+  <data name="business.rule.isNot" xml:space="preserve"><value>no es</value></data>
+  <data name="business.rule.gt" xml:space="preserve"><value>es mayor que</value></data>
+  <data name="business.rule.gte" xml:space="preserve"><value>es al menos</value></data>
+  <data name="business.rule.lt" xml:space="preserve"><value>es menor que</value></data>
+  <data name="business.rule.lte" xml:space="preserve"><value>es como máximo</value></data>
+  <data name="business.rule.empty" xml:space="preserve"><value>vacío</value></data>
 </root>

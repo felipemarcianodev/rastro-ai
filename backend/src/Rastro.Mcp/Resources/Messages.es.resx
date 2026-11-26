@@ -37,6 +37,15 @@ Usa list_unresolved para ver los huecos y get_flow para el flujo completo.</valu
   <data name="Business.Links" xml:space="preserve"><value>Enlaces:</value></data>
   <data name="Business.Inferred" xml:space="preserve"><value>[inferido]</value></data>
   <data name="Business.Collapsed" xml:space="preserve"><value>Flujo resumido en {0} pasos; se agruparon {1} decisiones.</value></data>
+  <data name="Business.CodeChanged" xml:space="preserve"><value>[el código cambió desde que se guardó el texto]</value></data>
+  <data name="Business.KindProposal" xml:space="preserve"><value>[tipo propuesto: {0}. {1}]</value></data>
+  <data name="Business.LabelProposed" xml:space="preserve"><value>Texto propuesto para el paso {0}: "{1}". Aparece en la pantalla como propuesto por un agente; solo el usuario lo confirma.</value></data>
+  <data name="Business.KindProposed" xml:space="preserve"><value>Tipo {1} propuesto para el paso {0}. El dibujo no cambia hasta que el usuario lo confirme en la pantalla.</value></data>
+  <data name="Business.StepNotFound" xml:space="preserve"><value>Paso no encontrado en la vista de negocio de este rastreo. Use get_business_view para ver los pasos (b1, b2...).</value></data>
+  <data name="Business.LabelInvalid" xml:space="preserve"><value>Texto no válido: use una sola línea de 1 a 120 caracteres.</value></data>
+  <data name="Business.KindInvalid" xml:space="preserve"><value>Tipo no válido. Use Start, Decision, Notification, Rejection, CrossSystem, Step o End.</value></data>
+  <data name="Business.ReasonInvalid" xml:space="preserve"><value>Motivo no válido: use una sola línea de 1 a 300 caracteres que diga qué en el código muestra el tipo.</value></data>
+  <data name="Business.AlreadyConfirmed" xml:space="preserve"><value>El usuario ya lo confirmó en la pantalla; no se cambió nada.</value></data>
   <data name="Unresolved.None" xml:space="preserve"><value>Ningún hueco: el compilador resolvió todas las llamadas de este flujo.</value></data>
   <data name="Unresolved.Call" xml:space="preserve"><value>- {0} llamada `{1}` en {2}</value></data>
   <data name="Unresolved.Reason" xml:space="preserve"><value>  motivo: {0}{1}</value></data>

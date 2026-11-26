@@ -292,6 +292,10 @@
     "AI_SETTINGS_INVALID": "Invalid settings: check the models, keys and budget.",
     "AI_DISABLED": "AI is turned off in the settings.",
     "AI_USE_DISABLED": "This use of AI is turned off in the settings.",
+    "BUSINESS_LABEL_INVALID": "The step text is empty, too long or has more than one line.",
+    "BUSINESS_KIND_INVALID": "The chosen type does not exist.",
+    "BUSINESS_STEP_NOT_FOUND": "This step is no longer in the business view. Reload the screen.",
+    "BUSINESS_PROPOSAL_NOT_FOUND": "There is no pending proposal for this step.",
     "AI_NOT_CONFIGURED": "The API key for the chosen provider is missing.",
     "AI_BUDGET_EXCEEDED": "The daily token budget has run out.",
     "AI_PROVIDER_ERROR": "The AI provider did not respond. Try again in a moment.",
@@ -610,7 +614,7 @@
       "resetFailed": "Could not rearrange. Try again.",
       "loadFailed": "Could not load the saved positions. The automatic layout was used."
     },
-    "keysHelp": "Tab: next bubble. Enter: open the panel. Arrows: move the bubble 10 pixels at a time. Esc: clear the choice. Plus, minus and zero: zoom.",
+    "keysHelp": "Tab: next bubble. Enter: open the panel. Arrows: move the bubble 10 pixels at a time. Esc: clear the choice. Plus, minus and zero: zoom. F2: edit the text.",
     "hint": "Choose a bubble to see the business text, the code and the path from the entry to it. Drag a bubble to move it and an empty area (or Space and drag) to move the view. Ctrl and the wheel zoom.",
     "kind": {
       "start": "Start",
@@ -619,7 +623,9 @@
       "rejection": "Rejection",
       "cross-system": "Cross-system call",
       "step": "Step",
-      "end": "End"
+      "end": "End",
+      "pick": "Step type",
+      "detected": "Detected"
     },
     "origin": {
       "rule": "by the rule",
@@ -659,7 +665,45 @@
       "title": "Step note"
     },
     "seeInGraph": "See in graph",
-    "seeInGraphTitle": "Goes back to the graph with this step selected"
+    "seeInGraphTitle": "Goes back to the graph with this step selected",
+    "codeChanged": "Code changed since confirmation",
+    "codeChangedTitle": "The code of this step changed after you confirmed the text. Check that the text still holds.",
+    "edit": {
+      "label": "Business text of the step",
+      "help": "Enter saves and Esc cancels. Up to {max} characters, one line. Empty goes back to the rule text.",
+      "title": "Write the business text of this step",
+      "button": "Edit text"
+    },
+    "confirm": {
+      "button": "Confirm",
+      "title": "Confirms the proposed text as it is"
+    },
+    "ruleText": {
+      "button": "Use the rule text",
+      "title": "Discards your text and goes back to the text the rule generates"
+    },
+    "kindProposal": {
+      "label": "Agent type proposal",
+      "text": "The agent proposes the type {kind}.",
+      "confirm": "Confirm",
+      "dismiss": "Dismiss"
+    },
+    "suggest": {
+      "button": "Suggest texts",
+      "running": "Suggesting…",
+      "title": "Asks the AI for a business text for the steps without a confirmed text. You confirm each one."
+    },
+    "feedback": {
+      "labelSaved": "Text saved.",
+      "labelRule": "Back to the rule text.",
+      "labelConfirmed": "Text confirmed.",
+      "kindSaved": "Type changed.",
+      "kindDetected": "Back to the detected type.",
+      "kindConfirmed": "Type confirmed.",
+      "kindDismissed": "Type proposal dismissed.",
+      "suggested": "{count, plural, =1 {# text proposed} other {# texts proposed}}. Confirm the ones that fit.",
+      "suggestedNone": "No new text to propose."
+    }
   },
   "nodePanel": {
     "closeAria": "Close the step and go back to the overview",
@@ -1204,7 +1248,10 @@
       "openVsCode": "Open in VS Code",
       "copyLocation": "Copy file:line",
       "expand": "Expand what comes next",
-      "collapse": "Collapse what comes next"
+      "collapse": "Collapse what comes next",
+      "businessShow": "Show in the business view",
+      "businessShowTitle": "Marks this step as a key step in the business view",
+      "businessShown": "Step added to the business view."
     },
     "toast": {
       "copied": "Copied."

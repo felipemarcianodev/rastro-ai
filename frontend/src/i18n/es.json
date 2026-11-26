@@ -292,6 +292,10 @@
     "AI_SETTINGS_INVALID": "Configuración inválida: revisa los modelos, las claves y el presupuesto.",
     "AI_DISABLED": "La IA está desactivada en la configuración.",
     "AI_USE_DISABLED": "Este uso de la IA está desactivado en la configuración.",
+    "BUSINESS_LABEL_INVALID": "El texto del paso está vacío, es demasiado largo o tiene más de una línea.",
+    "BUSINESS_KIND_INVALID": "El tipo elegido no existe.",
+    "BUSINESS_STEP_NOT_FOUND": "Este paso ya no está en la vista de negocio. Recarga la pantalla.",
+    "BUSINESS_PROPOSAL_NOT_FOUND": "No hay propuesta pendiente para este paso.",
     "AI_NOT_CONFIGURED": "Falta la clave de API del proveedor elegido.",
     "AI_BUDGET_EXCEEDED": "Se agotó el presupuesto diario de tokens.",
     "AI_PROVIDER_ERROR": "El proveedor de IA no respondió. Inténtalo de nuevo en unos instantes.",
@@ -610,7 +614,7 @@
       "resetFailed": "No se pudo reorganizar. Inténtalo de nuevo.",
       "loadFailed": "No se pudieron cargar las posiciones guardadas. Se usó la organización automática."
     },
-    "keysHelp": "Tab: siguiente globo. Enter: abrir el panel. Flechas: mover el globo de 10 en 10 píxeles. Esc: limpiar la elección. Más, menos y cero: zoom.",
+    "keysHelp": "Tab: siguiente globo. Enter: abrir el panel. Flechas: mover el globo de 10 en 10 píxeles. Esc: limpiar la elección. Más, menos y cero: zoom. F2: editar el texto.",
     "hint": "Elige un globo para ver el texto de negocio, el código y el camino desde la entrada hasta él. Arrastra un globo para cambiarlo de lugar y un área vacía (o Espacio y arrastrar) para mover la vista. Ctrl y la rueda acercan.",
     "kind": {
       "start": "Inicio",
@@ -619,7 +623,9 @@
       "rejection": "Rechazo",
       "cross-system": "Llamada entre sistemas",
       "step": "Paso",
-      "end": "Fin"
+      "end": "Fin",
+      "pick": "Tipo del paso",
+      "detected": "Detectado"
     },
     "origin": {
       "rule": "por la regla",
@@ -659,7 +665,45 @@
       "title": "Nota del paso"
     },
     "seeInGraph": "Ver en el grafo",
-    "seeInGraphTitle": "Vuelve al grafo con este paso elegido"
+    "seeInGraphTitle": "Vuelve al grafo con este paso elegido",
+    "codeChanged": "El código cambió desde la confirmación",
+    "codeChangedTitle": "El código de este paso cambió después de que confirmaras el texto. Revisa si el texto sigue valiendo.",
+    "edit": {
+      "label": "Texto de negocio del paso",
+      "help": "Enter guarda y Esc cancela. Hasta {max} caracteres, una línea. Vacío vuelve al texto de la regla.",
+      "title": "Escribir el texto de negocio de este paso",
+      "button": "Editar texto"
+    },
+    "confirm": {
+      "button": "Confirmar",
+      "title": "Confirma el texto propuesto tal como está"
+    },
+    "ruleText": {
+      "button": "Usar el texto de la regla",
+      "title": "Descarta tu texto y vuelve al texto que genera la regla"
+    },
+    "kindProposal": {
+      "label": "Propuesta de tipo del agente",
+      "text": "El agente propone el tipo {kind}.",
+      "confirm": "Confirmar",
+      "dismiss": "Descartar"
+    },
+    "suggest": {
+      "button": "Sugerir textos",
+      "running": "Sugiriendo…",
+      "title": "Pide a la IA un texto de negocio para los pasos sin texto confirmado. Tú confirmas cada uno."
+    },
+    "feedback": {
+      "labelSaved": "Texto guardado.",
+      "labelRule": "Volvió al texto de la regla.",
+      "labelConfirmed": "Texto confirmado.",
+      "kindSaved": "Tipo cambiado.",
+      "kindDetected": "Volvió al tipo detectado.",
+      "kindConfirmed": "Tipo confirmado.",
+      "kindDismissed": "Propuesta de tipo descartada.",
+      "suggested": "{count, plural, =1 {# texto propuesto} other {# textos propuestos}}. Confirma los que sirvan.",
+      "suggestedNone": "Ningún texto nuevo para proponer."
+    }
   },
   "nodePanel": {
     "closeAria": "Cerrar el paso y volver a la vista general",
@@ -1204,7 +1248,10 @@
       "openVsCode": "Abrir en VS Code",
       "copyLocation": "Copiar archivo:línea",
       "expand": "Expandir lo que viene después",
-      "collapse": "Contraer lo que viene después"
+      "collapse": "Contraer lo que viene después",
+      "businessShow": "Mostrar en la vista de negocio",
+      "businessShowTitle": "Marca este paso como paso clave en la vista de negocio",
+      "businessShown": "Paso incluido en la vista de negocio."
     },
     "toast": {
       "copied": "Copiado."

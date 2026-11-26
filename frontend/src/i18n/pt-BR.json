@@ -292,6 +292,10 @@
     "AI_SETTINGS_INVALID": "Configuração inválida: confira modelos, chaves e orçamento.",
     "AI_DISABLED": "A IA está desligada na configuração.",
     "AI_USE_DISABLED": "Este uso da IA está desligado na configuração.",
+    "BUSINESS_LABEL_INVALID": "O texto do passo está vazio demais, longo demais ou tem mais de uma linha.",
+    "BUSINESS_KIND_INVALID": "O tipo escolhido não existe.",
+    "BUSINESS_STEP_NOT_FOUND": "Este passo não está mais na visão de negócio. Recarregue a tela.",
+    "BUSINESS_PROPOSAL_NOT_FOUND": "Não há proposta pendente para este passo.",
     "AI_NOT_CONFIGURED": "Falta a chave de API do provedor escolhido.",
     "AI_BUDGET_EXCEEDED": "O orçamento diário de tokens acabou.",
     "AI_PROVIDER_ERROR": "O provedor de IA não respondeu. Tente de novo em instantes.",
@@ -610,7 +614,7 @@
       "resetFailed": "Não deu para reorganizar. Tente de novo.",
       "loadFailed": "Não deu para carregar as posições salvas. A organização automática foi usada."
     },
-    "keysHelp": "Tab: próximo balão. Enter: abrir o painel. Setas: mover o balão de 10 em 10 pixels. Esc: limpar a escolha. Mais, menos e zero: zoom.",
+    "keysHelp": "Tab: próximo balão. Enter: abrir o painel. Setas: mover o balão de 10 em 10 pixels. Esc: limpar a escolha. Mais, menos e zero: zoom. F2: editar o texto.",
     "hint": "Escolha um balão para ver o texto de negócio, o código e o caminho da entrada até ele. Arraste um balão para mudar de lugar e uma área vazia (ou Espaço e arrastar) para mover a tela. Ctrl e a roda aproximam.",
     "kind": {
       "start": "Início",
@@ -619,7 +623,9 @@
       "rejection": "Recusa",
       "cross-system": "Chamada entre sistemas",
       "step": "Passo",
-      "end": "Fim"
+      "end": "Fim",
+      "pick": "Tipo do passo",
+      "detected": "Detectado"
     },
     "origin": {
       "rule": "pela regra",
@@ -659,7 +665,45 @@
       "title": "Nota do passo"
     },
     "seeInGraph": "Ver no grafo",
-    "seeInGraphTitle": "Volta ao grafo com este passo escolhido"
+    "seeInGraphTitle": "Volta ao grafo com este passo escolhido",
+    "codeChanged": "Código mudou desde a confirmação",
+    "codeChangedTitle": "O código deste passo mudou depois de você confirmar o texto. Confira se o texto ainda vale.",
+    "edit": {
+      "label": "Texto de negócio do passo",
+      "help": "Enter salva e Esc cancela. Até {max} caracteres, uma linha. Vazio volta ao texto da regra.",
+      "title": "Escrever o texto de negócio deste passo",
+      "button": "Editar texto"
+    },
+    "confirm": {
+      "button": "Confirmar",
+      "title": "Confirma o texto proposto como está"
+    },
+    "ruleText": {
+      "button": "Usar o texto da regra",
+      "title": "Descarta o seu texto e volta ao texto que a regra gera"
+    },
+    "kindProposal": {
+      "label": "Proposta de tipo do agente",
+      "text": "O agente propõe o tipo {kind}.",
+      "confirm": "Confirmar",
+      "dismiss": "Descartar"
+    },
+    "suggest": {
+      "button": "Sugerir textos",
+      "running": "Sugerindo…",
+      "title": "Pede à IA um texto de negócio para os passos sem texto confirmado. Você confirma cada um."
+    },
+    "feedback": {
+      "labelSaved": "Texto salvo.",
+      "labelRule": "Voltou ao texto da regra.",
+      "labelConfirmed": "Texto confirmado.",
+      "kindSaved": "Tipo alterado.",
+      "kindDetected": "Voltou ao tipo detectado.",
+      "kindConfirmed": "Tipo confirmado.",
+      "kindDismissed": "Proposta de tipo descartada.",
+      "suggested": "{count, plural, =1 {# texto proposto} other {# textos propostos}}. Confirme os que servirem.",
+      "suggestedNone": "Nenhum texto novo para propor."
+    }
   },
   "nodePanel": {
     "closeAria": "Fechar o passo e voltar à visão geral",
@@ -1204,7 +1248,10 @@
       "openVsCode": "Abrir no VS Code",
       "copyLocation": "Copiar arquivo:linha",
       "expand": "Expandir o que vem depois",
-      "collapse": "Recolher o que vem depois"
+      "collapse": "Recolher o que vem depois",
+      "businessShow": "Mostrar na visão de negócio",
+      "businessShowTitle": "Marca este passo como passo-chave na visão de negócio",
+      "businessShown": "Passo incluído na visão de negócio."
     },
     "toast": {
       "copied": "Copiado."

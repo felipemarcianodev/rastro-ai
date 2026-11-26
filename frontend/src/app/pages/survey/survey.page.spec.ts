@@ -94,8 +94,8 @@ const BUSINESS_FLOW: BusinessFlow = {
   schemaVersion: 1,
   collapsedDecisions: 0,
   steps: [
-    { id: 'b1', nodeId: 'entry', kind: BusinessKind.Start, label: 'Pedido recebido', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['entry'], inferred: false },
-    { id: 'b2', nodeId: 'm0', kind: BusinessKind.Decision, label: 'O pedido é válido?', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['m0'], inferred: false },
+    { id: 'b1', nodeId: 'entry', kind: BusinessKind.Start, label: 'Pedido recebido', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['entry'], inferred: false, codeChanged: false },
+    { id: 'b2', nodeId: 'm0', kind: BusinessKind.Decision, label: 'O pedido é válido?', labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: ['m0'], inferred: false, codeChanged: false },
   ],
   edges: [{ from: 'b1', to: 'b2', label: null, inferred: false }],
 };
@@ -320,6 +320,43 @@ describe('SurveyPage', () => {
     expect(el.querySelector('app-business-view')).toBeNull();
     expect(el.querySelector('app-flow-canvas')).not.toBeNull();
     expect(el.querySelector('app-node-panel')!.textContent).toContain('PedidoRepo0.Salvar');
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-BIZV-073 (Fase 59)
+  it('menuDoNo_mostrarNaVisaoDeNegocio_soApareceParaONoQueAindaNaoEPassoChaveEGravaOTipoPasso', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(2, 0);
+    const el = open(SurveyStatus.Completed);
+    const http = TestBed.inject(HttpTestingController);
+    const page = lastFixture!.componentInstance as unknown as { openMenu(menu: { nodeId: string; x: number; y: number }): void };
+    const hasItem = () => [...el.querySelectorAll('.context-menu button')].some((b) => b.textContent!.includes('Mostrar na visão de negócio'));
+    const answerBusiness = () => {
+      http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(BUSINESS_FLOW));
+      lastFixture!.detectChanges();
+    };
+
+    // Antes de a visão responder, o item não aparece; e a entrada já é passo-chave.
+    page.openMenu({ nodeId: 'entry', x: 10, y: 10 });
+    lastFixture!.detectChanges();
+    expect(hasItem()).toBeFalse();
+    answerBusiness();
+    expect(hasItem()).toBeFalse();
+
+    page.openMenu({ nodeId: 'm1', x: 10, y: 10 });
+    lastFixture!.detectChanges();
+    answerBusiness();
+    expect(hasItem()).toBeTrue();
+
+    [...el.querySelectorAll<HTMLButtonElement>('.context-menu button')].find((b) => b.textContent!.includes('Mostrar na visão de negócio'))!.click();
+    const put = http.expectOne((r) => r.method === 'PUT' && r.url.endsWith('/business/steps/m1/kind'));
+    expect(put.request.body).toEqual({ kind: BusinessKind.Step });
+    put.flush(BUSINESS_FLOW);
+    lastFixture!.detectChanges();
+
+    expect(el.querySelector('.context-menu')).toBeNull();
+    expect(el.querySelector('.menu-toast')!.textContent).toContain('Passo incluído na visão de negócio');
     localStorage.removeItem('rastro.layoutDirection');
   });
 

@@ -56,8 +56,21 @@ public static class BusinessFlowBuilder
     private static readonly Regex LeadingIf = new(@"^(if|se|si)\s+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
     // Pura e determinística. Grafo sem o nó de entrada devolve a visão vazia.
-    public static BusinessFlow Derive(FlowGraph graph, BusinessSource source, BusinessViewOptions options, UiLanguage language) =>
-        new Deriver(graph, source, options, language).Run();
+    // O overlay (Fase 59) leva o que está gravado: tipos trocados e confirmados e propostas de tipo do agente.
+    public static BusinessFlow Derive(FlowGraph graph, BusinessSource source, BusinessViewOptions options, UiLanguage language,
+        BusinessOverlay? overlay = null) =>
+        new Deriver(graph, source, options, language, overlay ?? BusinessOverlay.Empty).Run();
+
+    // Chave com que o texto e o tipo de um passo ficam gravados: o id do nó e, no Fim (que mora no nó de entrada),
+    // "end|{id}", para não colidir com o Início.
+    public static string StorageKey(string nodeId, bool isEnd) => isEnd ? $"end|{nodeId}" : nodeId;
+
+    // Id do passo (estável): os 16 primeiros caracteres hexadecimais do SHA-256 de "{surveyId:N}|{chave}".
+    public static string StepIdOf(Guid surveyId, string storageKey)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{surveyId:N}|{storageKey}"));
+        return Convert.ToHexString(bytes).ToLowerInvariant()[..HashLength];
+    }
 
     // ---------- árvore de execução ----------
 
@@ -116,6 +129,9 @@ public static class BusinessFlowBuilder
         public bool IsKey { get; set; }
         public bool Forced { get; set; }
         public bool? HasAlertCache { get; set; }
+
+        // O usuário confirmou um tipo para este nó: ele aparece como passo, ainda que a regra não o escolhesse.
+        public bool Shown { get; set; }
     }
 
     // ---------- derivação ----------
@@ -126,18 +142,20 @@ public static class BusinessFlowBuilder
         private readonly BusinessSource _source;
         private readonly BusinessViewOptions _options;
         private readonly UiLanguage _language;
+        private readonly BusinessOverlay _overlay;
         private readonly Dictionary<string, FlowNode> _nodes;
         private readonly Dictionary<string, List<FlowEdge>> _out;
         private readonly List<Regex> _patterns;
         private readonly HashSet<string> _onPath = new(StringComparer.Ordinal);
         private int _expansions;
 
-        public Deriver(FlowGraph graph, BusinessSource source, BusinessViewOptions options, UiLanguage language)
+        public Deriver(FlowGraph graph, BusinessSource source, BusinessViewOptions options, UiLanguage language, BusinessOverlay overlay)
         {
             _graph = graph;
             _source = source;
             _options = options;
             _language = language;
+            _overlay = overlay;
             _nodes = new Dictionary<string, FlowNode>(StringComparer.Ordinal);
             foreach (var node in graph.Nodes) _nodes.TryAdd(node.Id, node);
 
@@ -165,6 +183,7 @@ public static class BusinessFlowBuilder
             _onPath.Add(entry.Id);
             var body = Children(entry.Id, new Ctx(0, false));
             _onPath.Remove(entry.Id);
+            if (_overlay.KindOverrides.Count > 0) ApplyOverrides(body);
 
             var depths = Depths(entry.Id);
             var forks = new List<ForkItem>();
@@ -193,6 +212,36 @@ public static class BusinessFlowBuilder
         }
 
         private sealed record Ctx(int CatchDepth, bool Quiet);
+
+        // ---------- tipo trocado pelo usuário (Fase 59) ----------
+
+        private static string KeyOf(string internalId) =>
+            internalId.StartsWith(EndKeyPrefix, StringComparison.Ordinal) ? StorageKey(internalId[EndKeyPrefix.Length..], true) : internalId;
+
+        private BusinessKind KindFor(string internalId, BusinessKind detected) =>
+            _overlay.KindOverrides.TryGetValue(KeyOf(internalId), out var kind) ? kind : detected;
+
+        // O nó que só era visitado e ganhou tipo confirmado vira passo-chave; a decisão, o laço e o try idem.
+        private void ApplyOverrides(List<Item> items)
+        {
+            for (var i = 0; i < items.Count; i++)
+            {
+                switch (items[i])
+                {
+                    case VisitItem visit when _overlay.KindOverrides.TryGetValue(KeyOf(visit.Node.Id), out var kind):
+                        items[i] = new KeyItem(visit.Node, kind, Clip(visit.Node.Label),
+                            new StepRef(visit.Node.Location, visit.Node.System)) { Inferred = visit.Inferred };
+                        break;
+                    case ScopeItem scope:
+                        ApplyOverrides(scope.Items);
+                        break;
+                    case ForkItem fork:
+                        if (_overlay.KindOverrides.ContainsKey(KeyOf(fork.Node.Id))) fork.Shown = true;
+                        foreach (var branch in fork.Branches) ApplyOverrides(branch.Items);
+                        break;
+                }
+            }
+        }
 
         // ---------- expansão ----------
 
@@ -578,8 +627,10 @@ public static class BusinessFlowBuilder
             {
                 text = LeadingIf.Replace(text, string.Empty);
             }
-            text = text.TrimEnd('?', ' ');
-            return Clip(LocalizedText.Get(KeyDecision, _language, text));
+            // Fase 59: a condição em código vira frase (identificadores em palavras, "this." fora, "!" em "não ...").
+            var human = BusinessLabelRule.Humanize(text, _language);
+            if (human.Length == 0) human = text.TrimEnd('?', ' ');
+            return Clip(LocalizedText.Get(KeyDecision, _language, human));
         }
 
         private static string Clip(string text) =>
@@ -716,7 +767,7 @@ public static class BusinessFlowBuilder
                 fork.IsKey = !fork.Forced && different;
             }
 
-            return fork.IsKey
+            return fork.IsKey || fork.Shown
                 ? [fork.Node.Id]
                 : Normalize(sets.SelectMany(s => s));
         }
@@ -814,6 +865,12 @@ public static class BusinessFlowBuilder
                         new StepRef(fork.Node.Location, fork.Node.System)) { Inferred = fork.Inferred };
                     bases = Emit(key, frontier);
                 }
+                else if (fork.Shown)
+                {
+                    // Tipo confirmado pelo usuário num nó que a regra não mostraria: entra como passo, sem ramos rotulados.
+                    bases = Emit(new KeyItem(fork.Node, BusinessKind.Step, Clip(fork.Node.Label),
+                        new StepRef(fork.Node.Location, fork.Node.System)) { Inferred = fork.Inferred }, frontier);
+                }
                 else
                 {
                     bases = fork.VisitSelf ? Touch(fork.Node, fork.Inferred, frontier) : frontier;
@@ -838,7 +895,7 @@ public static class BusinessFlowBuilder
             {
                 if (!_steps.TryGetValue(key.Node.Id, out var step))
                 {
-                    step = new StepDraft(key.Node, key.Kind, key.Label, key.Reference, key.Inferred);
+                    step = new StepDraft(key.Node, owner.KindFor(key.Node.Id, key.Kind), key.Label, key.Reference, key.Inferred);
                     _steps[key.Node.Id] = step;
                     _order.Add(step);
                 }
@@ -882,7 +939,8 @@ public static class BusinessFlowBuilder
                 var steps = _order.Select(s => new BusinessStep(
                     owner.StepId(s.Node.Id), RealNodeId(s.Node.Id), s.Kind, s.Label,
                     LabelOrigin.Rule, LabelState.Proposed,
-                    owner.RefOf(s.Reference), s.Kind == BusinessKind.End ? [RealNodeId(s.Node.Id)] : s.Sources, s.Inferred)).ToList();
+                    owner.RefOf(s.Reference), s.Node.Id.StartsWith(EndKeyPrefix, StringComparison.Ordinal) ? [RealNodeId(s.Node.Id)] : s.Sources, s.Inferred,
+                    KindProposal: owner._overlay.KindProposals.GetValueOrDefault(KeyOf(s.Node.Id)))).ToList();
                 var edges = _edges.Select(e => new BusinessEdge(owner.StepId(e.From), owner.StepId(e.To), e.Label, e.Inferred)).ToList();
                 return new BusinessFlow(owner._source.SurveyId, owner._graph.SchemaVersion, steps, edges, collapsed);
             }
@@ -890,15 +948,8 @@ public static class BusinessFlowBuilder
 
         // ---------- identificação e referência ----------
 
-        public string StepId(string nodeId)
-        {
-            // O Fim leva "end|" na frente do nó de entrada: o Id não pode colidir com o do Início.
-            var seed = nodeId.StartsWith(EndKeyPrefix, StringComparison.Ordinal)
-                ? $"end|{nodeId[EndKeyPrefix.Length..]}"
-                : nodeId;
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes($"{_source.SurveyId:N}|{seed}"));
-            return Convert.ToHexString(bytes).ToLowerInvariant()[..HashLength];
-        }
+        // O Fim leva "end|" na frente do nó de entrada: o Id não pode colidir com o do Início.
+        public string StepId(string nodeId) => StepIdOf(_source.SurveyId, KeyOf(nodeId));
 
         public CodeRef? RefOf(StepRef reference)
         {

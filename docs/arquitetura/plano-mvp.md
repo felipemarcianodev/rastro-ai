@@ -1325,13 +1325,22 @@ Decisão do dono (2026-11-26), depois do merge das Fases 54 a 57: as Fases 58 a 
   - **Para o levantamento de UX final:** os pontos de dobra candidatos (os círculos no meio das ligações) ficam sempre à vista e poluem o desenho.
   - **Testes:** backend 1037/1037; frontend 679/679.
 
-## Fase 59: texto de negócio `[ ]` (depende da Fase 57; pode andar junto com a 58)
+## Fase 59: texto de negócio `[x]` (depende da Fase 57; pode andar junto com a 58)
 
-- [ ] Regra sem IA (símbolo humanizado, condição e detalhe), decisão com "?", até 120 caracteres.
-- [ ] `business_labels` e `business_kind_overrides` por levantamento, ligados ao hash do código, com o selo "o código mudou desde a confirmação".
-- [ ] IA pelo provedor (uso "Sugestões"), só em `Rastro.Ai`, com o glossário do quadro no prompt e a proibição de inventar o que não está no código; agente pelo MCP (`propose_business_label`, `propose_business_kind`). Nenhuma ferramenta confirma a própria proposta.
-- [ ] Edição no painel e no próprio balão (duplo clique), confirmação, troca de tipo e "Mostrar na visão de negócio" no grafo.
-- [ ] Rotas de rótulo, confirmação, tipo e sugestão; documentação do MCP e do que vai para o provedor de IA (`SECURITY.md`).
+- [x] Regra sem IA (símbolo humanizado, condição e detalhe), decisão com "?", até 120 caracteres.
+- [x] `business_labels` e `business_kind_overrides` por levantamento, ligados ao hash do código, com o selo "o código mudou desde a confirmação".
+- [x] IA pelo provedor (uso "Sugestões"), só em `Rastro.Ai`, com o glossário do quadro no prompt e a proibição de inventar o que não está no código; agente pelo MCP (`propose_business_label`, `propose_business_kind`). Nenhuma ferramenta confirma a própria proposta.
+- [x] Edição no painel e no próprio balão (duplo clique), confirmação, troca de tipo e "Mostrar na visão de negócio" no grafo.
+- [x] Rotas de rótulo, confirmação, tipo e sugestão; documentação do MCP e do que vai para o provedor de IA (`SECURITY.md`).
+- **Registro (2026-11-26):**
+  - **Texto por regra (núcleo, sem IA):** `BusinessLabelRule` humaniza a condição da decisão (identificadores em palavras, `this.` fora, operadores em palavras, `!` vira "não", `is { } v` vira "não é vazio"), com o idioma como parâmetro explícito; passou de 118 caracteres, fica a primeira parte e "…". `this.pedido.enviado` vira "Pedido enviado?". Limite: os nomes do código não se traduzem, então o texto sai misturado quando o nome está em inglês ("Request language não é vazio e não (ui languages is defined)?"). A primeira versão punha o "não" no meio do verbo inglês ("is não defined"); visto no navegador e corrigido: fora do inglês, a negação vem antes da expressão, entre parênteses.
+  - **Gravado por levantamento:** migration `VisaoDeNegocioTexto`, com `business_labels` e `business_kind_overrides` (FK com cascata para o levantamento). O texto gravado vale no lugar do da regra; o `code_hash` (SHA-256 do trecho de 30 linhas em volta do passo, lido pelo `RepositoryCatalog`) acende o "o código mudou desde a confirmação". O tipo confirmado troca o tipo do passo, e um nó que não era passo-chave passa a ser ("Mostrar na visão de negócio"); a proposta de tipo do agente não muda o desenho até o usuário confirmar.
+  - **Rotas:** texto (`PUT .../label`, vazio volta à regra), confirmar o texto, trocar o tipo (`null` volta ao detectado), confirmar e descartar a proposta de tipo, e `POST .../labels/suggest`. O passo na rota aceita o id curto do passo ou o id do nó codificado, sempre conferido contra os nós do próprio levantamento. Códigos novos: `BUSINESS_LABEL_INVALID`, `BUSINESS_KIND_INVALID`, `BUSINESS_STEP_NOT_FOUND` e `BUSINESS_PROPOSAL_NOT_FOUND`.
+  - **IA e agente só propõem:** a sugestão (uso "Sugestões", só em `Rastro.Ai`) manda por passo o tipo, o texto da regra, até 30 linhas de código e o caminho da entrada, marcados como dado, e nunca o nome de arquivo, o caminho da máquina, o commit nem chave; a resposta vira proposta. O MCP ganhou `propose_business_label` e `propose_business_kind`, sem ferramenta de confirmar (um teste confere por reflexão). O que o usuário confirmou nunca é sobrescrito.
+  - **Tela:** editar no painel e no balão (duplo clique ou F2), confirmar, origem e estado, selo do código que mudou, trocar o tipo (com "Detectado"), proposta de tipo do agente com "Confirmar" e "Descartar", "Sugerir textos" só com IA e o uso "Sugestões", e "Mostrar na visão de negócio" no menu do nó do grafo. O estilo do painel subiu para o tema (`_business.scss`), para o componente caber nos 6 kB.
+  - **Verificado no navegador, com clique de verdade:** duplo clique no losango abriu o campo (com o foco, o texto e o limite de 120); Enter gravou como "Confirmado por você", tirou o selo "proposto" e mostrou o aviso; "Usar o texto da regra" voltou à regra; no grafo, o menu do nó comum trouxe "Mostrar na visão de negócio", e o clique incluiu o passo. Os dados de teste foram desfeitos no fim (pasta de dados temporária). A sugestão pela IA não foi vista no navegador (IA desligada nesta máquina): está coberta por testes com provedor de mentira.
+  - **Para o levantamento de UX final:** o texto do passo comum e do início ainda é o nome do método (`UiLanguages.IsDefined`); a regra humaniza só a decisão.
+  - **Testes:** backend 1080/1080; frontend 693/693.
 
 ## Fase 60: quadro de fluxos `[ ]` (depende das Fases 58 e 59)
 

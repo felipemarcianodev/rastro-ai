@@ -6,14 +6,16 @@ import { DesktopBridge } from '../../core/desktop-bridge.service';
 import { shortCommit } from '../../core/format';
 import { LanguageService } from '../../core/i18n/i18n';
 import { flowSummaryOf } from '../../core/graph/consolidated';
-import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_LABEL_KEY, BUSINESS_KIND_SLUG, LABEL_ORIGIN_LABEL_KEY, pathTo } from '../../core/graph/business';
+import { AiStatusService } from '../../core/ai-status.service';
+import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_LABEL_KEY, BUSINESS_KIND_ORDER, BUSINESS_KIND_SLUG, LABEL_ORIGIN_LABEL_KEY, pathTo } from '../../core/graph/business';
 import { BUSINESS_BOX, BusinessGeometry, LayoutPoint, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from '../../core/graph/business-layout';
 import { businessToDrawio } from '../../core/graph/drawio';
 import { HostLinkOf, fillLinkTemplate } from '../../core/graph/link-template';
 import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL_KEY, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
 import { FlowSummary, readingLabel } from '../../core/graph/summary';
-import { BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, CodeRef, LabelState, RepositoryHostKind, RepositoryLinks, SurveyDetail } from '../../core/models';
+import { AiUse, BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, CodeRef, LabelOrigin, LabelState, RepositoryHostKind, RepositoryLinks, SurveyDetail, aiCan } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
+import { Observable } from 'rxjs';
 import { ConfirmDialogComponent } from './confirm-dialog.component';
 
 // Zoom da visão de negócio: mesmos limites e passo do canvas do grafo.
@@ -60,6 +62,19 @@ const NOTICE_KEY: Record<Notice, string> = {
   [Notice.ResetFailed]: 'business.layout.resetFailed',
   [Notice.LoadFailed]: 'business.layout.loadFailed',
 };
+// Texto de negócio (Fase 59): o mesmo limite da API, uma linha só.
+export const LABEL_MAX_LENGTH = 120;
+// Quanto tempo o retorno curto de uma ação fica na tela.
+export const FEEDBACK_MS = 4000;
+// Valor da opção "Detectado" na lista de tipos (volta ao tipo que a regra achou).
+export const KIND_DETECTED = 'detected';
+
+// Onde o texto está sendo editado: no painel do passo ou no próprio balão.
+export enum EditPlace {
+  Panel = 0,
+  Node = 1,
+}
+
 // Rótulo do ramo perto da chegada (0 = origem, 1 = destino): quando duas ligações saem da mesma porta, o trecho do
 // meio é comum às duas, e só o final mostra de que ramo é o rótulo.
 export const BRANCH_LABEL_POSITION = 0.88;
@@ -123,6 +138,7 @@ export class BusinessViewComponent {
   private readonly i18n = inject(LanguageService);
   private readonly bridge = inject(DesktopBridge);
   private readonly canvas = viewChild(FCanvasComponent);
+  private readonly ai = inject(AiStatusService);
 
   readonly detail = input.required<SurveyDetail>();
   readonly selectedId = input<string | null>(null);
@@ -194,6 +210,21 @@ export class BusinessViewComponent {
   protected readonly originLabel = LABEL_ORIGIN_LABEL_KEY;
   protected readonly stateLabel = BUSINESS_STATE_LABEL_KEY;
   protected readonly hostLabel = BUSINESS_HOST_LABEL_KEY;
+  protected readonly kindOrder = BUSINESS_KIND_ORDER;
+  protected readonly kindDetected = KIND_DETECTED;
+  protected readonly labelMax = LABEL_MAX_LENGTH;
+  protected readonly EditPlace = EditPlace;
+  protected readonly LabelOrigin = LabelOrigin;
+
+  // Texto de negócio (Fase 59): edição em curso (um campo por vez), rascunho, ação rodando e retorno curto.
+  protected readonly editing = signal<{ stepId: string; place: EditPlace } | null>(null);
+  protected readonly draft = signal('');
+  protected readonly busy = signal(false);
+  protected readonly suggesting = signal(false);
+  protected readonly feedback = signal<{ text: string; error: boolean } | null>(null);
+  private feedbackTimer: ReturnType<typeof setTimeout> | undefined;
+  // "Sugerir textos" só existe com a IA ligada e o uso "Sugestões" habilitado: nunca botão morto.
+  protected readonly canSuggest = computed(() => aiCan(this.ai.status(), AiUse.Suggestions));
 
   private readonly nodes = computed(() => new Map((this.detail().graph?.nodes ?? []).map((node) => [node.id, node])));
 
@@ -269,7 +300,10 @@ export class BusinessViewComponent {
   constructor() {
     let loadedId: string | null = null;
     // Posição ainda não gravada vai embora junto com a tela (ou com a troca de levantamento).
-    inject(DestroyRef).onDestroy(() => this.flushSave());
+    inject(DestroyRef).onDestroy(() => {
+      this.flushSave();
+      clearTimeout(this.feedbackTimer);
+    });
     effect((onCleanup) => {
       const detail = this.detail();
       this.reload();
@@ -286,6 +320,7 @@ export class BusinessViewComponent {
           this.bends.set(new Map());
           this.layoutReady.set(false);
           this.focusedId.set(null);
+          this.editing.set(null);
         }
         // Tentar de novo depois de um erro busca tudo outra vez, inclusive a posição salva.
         if (this.error() !== null) this.layoutReady.set(false);
@@ -663,6 +698,175 @@ export class BusinessViewComponent {
 
   protected isProposed(step: BusinessStep): boolean {
     return step.labelState === LabelState.Proposed;
+  }
+
+  // ---- Texto e tipo do passo (Fase 59) ----
+
+  protected isEditing(stepId: string, place: EditPlace): boolean {
+    const edit = this.editing();
+    return edit !== null && edit.stepId === stepId && edit.place === place;
+  }
+
+  // Abre o campo (no painel ou no balão) com o texto atual e leva o foco para ele.
+  protected startEdit(step: BusinessStep, place: EditPlace): void {
+    this.editing.set({ stepId: step.id, place });
+    this.draft.set(step.label);
+    afterNextRender(
+      () => {
+        const input = this.host.nativeElement.querySelector<HTMLInputElement>(`input[data-edit="${place}"]`);
+        input?.focus({ preventScroll: true });
+        input?.select();
+      },
+      { injector: this.injector },
+    );
+  }
+
+  protected onDraft(event: Event): void {
+    this.draft.set((event.target as HTMLInputElement).value);
+  }
+
+  // Enter salva e Esc cancela. As teclas do campo não sobem para o balão (setas movem, Enter abre o painel).
+  protected editKey(event: KeyboardEvent): void {
+    event.stopPropagation();
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      this.commitEdit(true);
+    } else if (event.key === 'Escape') {
+      event.preventDefault();
+      this.cancelEdit();
+    }
+  }
+
+  protected cancelEdit(): void {
+    const edit = this.editing();
+    this.editing.set(null);
+    if (edit) this.focusAfterRender(edit.stepId);
+  }
+
+  // Salva o texto (vazio volta ao da regra). Sem mudança, só fecha o campo.
+  protected commitEdit(refocus = false): void {
+    const edit = this.editing();
+    if (!edit) return;
+    this.editing.set(null);
+    const step = this.flow()?.steps.find((s) => s.id === edit.stepId);
+    if (!step) return;
+    if (refocus) this.focusAfterRender(step.id);
+    const text = this.draft().replace(/\s+/g, ' ').trim();
+    if (text === step.label) return;
+    this.saveLabel(step, text || null);
+  }
+
+  protected useRuleText(step: BusinessStep): void {
+    this.saveLabel(step, null);
+  }
+
+  private saveLabel(step: BusinessStep, text: string | null): void {
+    this.act(this.api.saveBusinessLabel(this.surveyId, step.id, text), (updated) => {
+      this.replaceStep(updated);
+      this.say(text === null ? 'business.feedback.labelRule' : 'business.feedback.labelSaved');
+    });
+  }
+
+  protected confirmLabel(step: BusinessStep): void {
+    this.act(this.api.confirmBusinessLabel(this.surveyId, step.id), (updated) => {
+      this.replaceStep(updated);
+      this.say('business.feedback.labelConfirmed');
+    });
+  }
+
+  // Lista de tipos: "Detectado" tira o tipo escolhido e volta ao que a regra achou.
+  protected onKindChange(step: BusinessStep, event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    const kind = value === KIND_DETECTED ? null : (Number(value) as BusinessKind);
+    this.act(this.api.setBusinessKind(this.surveyId, step.id, kind), (flow) => {
+      this.applyFlow(flow);
+      this.say(kind === null ? 'business.feedback.kindDetected' : 'business.feedback.kindSaved');
+    });
+  }
+
+  protected confirmKind(step: BusinessStep): void {
+    this.act(this.api.confirmBusinessKind(this.surveyId, step.id), (flow) => {
+      this.applyFlow(flow);
+      this.say('business.feedback.kindConfirmed');
+    });
+  }
+
+  protected dismissKind(step: BusinessStep): void {
+    this.act(this.api.dismissBusinessKind(this.surveyId, step.id), (flow) => {
+      this.applyFlow(flow);
+      this.say('business.feedback.kindDismissed');
+    });
+  }
+
+  // Pede ao provedor os textos que faltam: eles voltam como propostas, que só o usuário confirma.
+  protected suggest(): void {
+    if (this.suggesting()) return;
+    const surveyId = this.surveyId;
+    this.suggesting.set(true);
+    this.api.suggestBusinessLabels(surveyId).subscribe({
+      next: (result) =>
+        untracked(() => {
+          this.suggesting.set(false);
+          if (surveyId !== this.surveyId) return;
+          this.say(result.proposed > 0 ? 'business.feedback.suggested' : 'business.feedback.suggestedNone', { count: result.proposed, skipped: result.skipped });
+          this.api.business(surveyId).subscribe({
+            next: (flow) => untracked(() => surveyId === this.surveyId && this.applyFlow(flow)),
+            error: (error) => untracked(() => this.sayError(error)),
+          });
+        }),
+      error: (error) =>
+        untracked(() => {
+          this.suggesting.set(false);
+          this.sayError(error);
+        }),
+    });
+  }
+
+  // Roda uma ação de gravação: um clique por vez, o desenho se atualiza com a resposta e o erro vira aviso.
+  private act<T>(request: Observable<T>, done: (result: T) => void): void {
+    const surveyId = this.surveyId;
+    this.busy.set(true);
+    request.subscribe({
+      next: (result) =>
+        untracked(() => {
+          this.busy.set(false);
+          if (surveyId === this.surveyId) done(result);
+        }),
+      error: (error) =>
+        untracked(() => {
+          this.busy.set(false);
+          this.sayError(error);
+        }),
+    });
+  }
+
+  private replaceStep(updated: BusinessStep): void {
+    this.flow.update((flow) => (flow ? { ...flow, steps: flow.steps.map((s) => (s.id === updated.id ? updated : s)) } : flow));
+  }
+
+  // O fluxo inteiro volta da API quando o tipo muda (o passo pode ganhar ou perder ligações).
+  private applyFlow(flow: BusinessFlow): void {
+    this.flow.set(flow);
+    if (!flow.steps.some((s) => s.id === this.stepId())) this.stepId.set(null);
+  }
+
+  private say(key: string, params?: Record<string, unknown>): void {
+    this.showFeedback({ text: this.i18n.t(key, params), error: false });
+  }
+
+  private sayError(error: unknown): void {
+    this.showFeedback({ text: apiErrorMessage(error), error: true });
+  }
+
+  private showFeedback(feedback: { text: string; error: boolean }): void {
+    this.feedback.set(feedback);
+    clearTimeout(this.feedbackTimer);
+    this.feedbackTimer = setTimeout(() => this.feedback.set(null), FEEDBACK_MS);
+  }
+
+  protected dismissFeedback(): void {
+    clearTimeout(this.feedbackTimer);
+    this.feedback.set(null);
   }
 
   // draw.io (Fase 57): a visão de negócio como está na tela, com o link de cada balão para o código.

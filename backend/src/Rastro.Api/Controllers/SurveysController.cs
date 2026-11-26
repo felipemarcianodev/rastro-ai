@@ -483,6 +483,61 @@ public class SurveysController(
         return NoContent();
     }
 
+    // Texto e tipo dos passos da visão de negócio (Fase 59). O passo vem na rota pelo Id do passo (16 hexadecimais,
+    // seguro na URL) ou pelo id do nó do grafo (com ':' e '/', codificado); o servidor resolve contra os nós do
+    // próprio levantamento e nunca trata o valor como caminho. Só o usuário confirma: estas rotas são da tela.
+    [HttpPut("{id:guid}/business/steps/{stepId}/label")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessStep>> SetBusinessLabel(Guid id, string stepId, BusinessLabelRequest request,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        StepResult(await annotations.SetLabelAsync(id, stepId, request.Text, RequestLanguage.Current, ct));
+
+    [HttpPost("{id:guid}/business/steps/{stepId}/label/confirm")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessStep>> ConfirmBusinessLabel(Guid id, string stepId,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        StepResult(await annotations.ConfirmLabelAsync(id, stepId, RequestLanguage.Current, ct));
+
+    // Devolve a visão inteira: trocar o tipo muda o desenho (um nó pode virar passo-chave).
+    [HttpPut("{id:guid}/business/steps/{stepId}/kind")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessFlow>> SetBusinessKind(Guid id, string stepId, BusinessKindRequest request,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        FlowResult(await annotations.SetKindAsync(id, stepId, request.Kind, RequestLanguage.Current, ct));
+
+    [HttpPost("{id:guid}/business/steps/{stepId}/kind/confirm")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessFlow>> ConfirmBusinessKind(Guid id, string stepId,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        FlowResult(await annotations.ConfirmKindAsync(id, stepId, RequestLanguage.Current, ct));
+
+    [HttpPost("{id:guid}/business/steps/{stepId}/kind/dismiss")]
+    public async Task<ActionResult<Rastro.Core.Business.BusinessFlow>> DismissBusinessKind(Guid id, string stepId,
+        [FromServices] Rastro.Infrastructure.Business.BusinessAnnotationService annotations, CancellationToken ct) =>
+        FlowResult(await annotations.DismissKindAsync(id, stepId, RequestLanguage.Current, ct));
+
+    private ActionResult<Rastro.Core.Business.BusinessStep> StepResult(Rastro.Infrastructure.Business.BusinessEditOutcome outcome) =>
+        outcome.Ok ? outcome.Step! : BusinessError(outcome.Error);
+
+    private ActionResult<Rastro.Core.Business.BusinessFlow> FlowResult(Rastro.Infrastructure.Business.BusinessEditOutcome outcome) =>
+        outcome.Ok ? outcome.Flow! : BusinessError(outcome.Error);
+
+    // Erro estável da edição de texto e de tipo: código para a tela traduzir e mensagem no idioma do pedido.
+    private ActionResult BusinessError(Rastro.Infrastructure.Business.BusinessEditError error)
+    {
+        var language = UiLanguages.FromCulture(System.Globalization.CultureInfo.CurrentUICulture);
+        if (error == Rastro.Infrastructure.Business.BusinessEditError.SurveyNotFound) return StatusCode(StatusCodes.Status404NotFound);
+        var (status, code, key) = error switch
+        {
+            Rastro.Infrastructure.Business.BusinessEditError.LabelInvalid =>
+                (StatusCodes.Status400BadRequest, ErrorCodes.BusinessLabelInvalid, "BusinessLabel.Invalid"),
+            Rastro.Infrastructure.Business.BusinessEditError.KindInvalid =>
+                (StatusCodes.Status400BadRequest, ErrorCodes.BusinessKindInvalid, "BusinessKind.Invalid"),
+            Rastro.Infrastructure.Business.BusinessEditError.ProposalNotFound =>
+                (StatusCodes.Status404NotFound, ErrorCodes.BusinessProposalNotFound, "BusinessProposal.NotFound"),
+            _ => (StatusCodes.Status404NotFound, ErrorCodes.BusinessStepNotFound, "BusinessStep.NotFound")
+        };
+        var problem = new ProblemDetails { Status = status, Title = Rastro.Api.Cli.ApiText.Get(key, language) };
+        problem.Extensions["code"] = code;
+        return StatusCode(status, problem);
+    }
+
     // Links do código (Fase 56): por repositório do levantamento, os modelos de link para o host (pelo commit e pela
     // branch) e para o editor, com {path} e {line} a preencher pela tela. O remote sai sem credencial.
     [HttpGet("{id:guid}/links")]

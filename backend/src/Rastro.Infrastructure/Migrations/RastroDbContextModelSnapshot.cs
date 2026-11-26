@@ -52,6 +52,86 @@ namespace Rastro.Infrastructure.Migrations
                     b.ToTable("business_edge_layouts", (string)null);
                 });
 
+            modelBuilder.Entity("Rastro.Core.Business.BusinessKindOverride", b =>
+                {
+                    b.Property<Guid>("SurveyId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("survey_id");
+
+                    b.Property<string>("NodeId")
+                        .HasMaxLength(600)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("node_id");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("kind");
+
+                    b.Property<int>("Origin")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("origin");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("reason");
+
+                    b.Property<int>("State")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("state");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("SurveyId", "NodeId")
+                        .HasName("pk_business_kind_overrides");
+
+                    b.ToTable("business_kind_overrides", (string)null);
+                });
+
+            modelBuilder.Entity("Rastro.Core.Business.BusinessLabel", b =>
+                {
+                    b.Property<Guid>("SurveyId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("survey_id");
+
+                    b.Property<string>("NodeId")
+                        .HasMaxLength(600)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("node_id");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("code_hash");
+
+                    b.Property<int>("Origin")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("origin");
+
+                    b.Property<int>("State")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("TEXT")
+                        .HasColumnName("text");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("SurveyId", "NodeId")
+                        .HasName("pk_business_labels");
+
+                    b.ToTable("business_labels", (string)null);
+                });
+
             modelBuilder.Entity("Rastro.Core.Business.BusinessStepLayout", b =>
                 {
                     b.Property<int>("Scope")
@@ -567,6 +647,26 @@ namespace Rastro.Infrastructure.Migrations
                         .HasName("pk_live_connections");
 
                     b.ToTable("live_connections", (string)null);
+                });
+
+            modelBuilder.Entity("Rastro.Core.Business.BusinessKindOverride", b =>
+                {
+                    b.HasOne("Rastro.Core.Surveys.Survey", null)
+                        .WithMany()
+                        .HasForeignKey("SurveyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_kind_overrides_surveys_survey_id");
+                });
+
+            modelBuilder.Entity("Rastro.Core.Business.BusinessLabel", b =>
+                {
+                    b.HasOne("Rastro.Core.Surveys.Survey", null)
+                        .WithMany()
+                        .HasForeignKey("SurveyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_business_labels_surveys_survey_id");
                 });
 
             modelBuilder.Entity("Rastro.Core.Surveys.SurveyArchitecture", b =>

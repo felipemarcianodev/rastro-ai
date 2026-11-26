@@ -123,4 +123,14 @@ public static class ErrorCodes
     public const string LiveDatabaseError = "LIVE_DATABASE_ERROR";
     public const string LanguageInvalid = "LANGUAGE_INVALID";
     public const string BusinessLayoutInvalid = "BUSINESS_LAYOUT_INVALID";
+    public const string BusinessLabelInvalid = "BUSINESS_LABEL_INVALID";
+    public const string BusinessKindInvalid = "BUSINESS_KIND_INVALID";
+    public const string BusinessStepNotFound = "BUSINESS_STEP_NOT_FOUND";
+    public const string BusinessProposalNotFound = "BUSINESS_PROPOSAL_NOT_FOUND";
 }
+
+// Corpo de PUT business/steps/{stepId}/label: texto vazio volta ao da regra.
+public record BusinessLabelRequest(string? Text);
+
+// Corpo de PUT business/steps/{stepId}/kind: o BusinessKind em int; nulo volta ao detectado.
+public record BusinessKindRequest(int? Kind);

@@ -432,6 +432,11 @@
         <button type="button" role="menuitem" (click)="copyMenuLocation()">{{ 'survey.menu.copyLocation' | translate }}</button>
       </li>
     }
+    @if (menuNotKeyStep()) {
+      <li role="none">
+        <button type="button" role="menuitem" (click)="showInBusinessView()" [title]="'survey.menu.businessShowTitle' | translate">{{ 'survey.menu.businessShow' | translate }}</button>
+      </li>
+    }
     <li role="none">
       <button type="button" role="menuitem" (click)="closeMenu(); toggleCollapse(m.nodeId)">{{ (menuCollapsed() ? 'survey.menu.expand' : 'survey.menu.collapse') | translate }}</button>
     </li>

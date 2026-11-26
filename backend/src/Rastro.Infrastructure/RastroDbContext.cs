@@ -19,6 +19,8 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
     public DbSet<RouteIndex> RouteIndexes => Set<RouteIndex>();
     public DbSet<Core.Business.BusinessStepLayout> BusinessStepLayouts => Set<Core.Business.BusinessStepLayout>();
     public DbSet<Core.Business.BusinessEdgeLayout> BusinessEdgeLayouts => Set<Core.Business.BusinessEdgeLayout>();
+    public DbSet<Core.Business.BusinessLabel> BusinessLabels => Set<Core.Business.BusinessLabel>();
+    public DbSet<Core.Business.BusinessKindOverride> BusinessKindOverrides => Set<Core.Business.BusinessKindOverride>();
     public DbSet<Database.Live.LiveConnection> LiveConnections => Set<Database.Live.LiveConnection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -64,6 +66,26 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             layout.Property(l => l.FromStep).HasMaxLength(64);
             layout.Property(l => l.ToStep).HasMaxLength(64);
             layout.Property(l => l.PointsJson).IsRequired();
+        });
+
+        // Texto e tipo gravados dos passos da visão de negócio (Fase 59): somem junto com o levantamento (cascata).
+        modelBuilder.Entity<Core.Business.BusinessLabel>(label =>
+        {
+            label.ToTable("business_labels");
+            label.HasKey(l => new { l.SurveyId, l.NodeId });
+            label.HasOne<Survey>().WithMany().HasForeignKey(l => l.SurveyId).OnDelete(DeleteBehavior.Cascade);
+            label.Property(l => l.NodeId).HasMaxLength(600);
+            label.Property(l => l.CodeHash).HasMaxLength(64).IsRequired();
+            label.Property(l => l.Text).HasMaxLength(Core.Business.BusinessLabelLimits.MaxLabelLength).IsRequired();
+        });
+
+        modelBuilder.Entity<Core.Business.BusinessKindOverride>(kind =>
+        {
+            kind.ToTable("business_kind_overrides");
+            kind.HasKey(k => new { k.SurveyId, k.NodeId });
+            kind.HasOne<Survey>().WithMany().HasForeignKey(k => k.SurveyId).OnDelete(DeleteBehavior.Cascade);
+            kind.Property(k => k.NodeId).HasMaxLength(600);
+            kind.Property(k => k.Reason).HasMaxLength(Core.Business.BusinessLabelLimits.MaxReasonLength).IsRequired();
         });
 
         modelBuilder.Entity<SurveyProposal>(proposal =>
