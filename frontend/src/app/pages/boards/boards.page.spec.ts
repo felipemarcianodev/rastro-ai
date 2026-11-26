@@ -5,7 +5,7 @@ import { Router, provideRouter } from '@angular/router';
 import { BoardDetail, BoardSummary, SourceLanguage, SurveyStatus, SurveySummary } from '../../core/models';
 import { AddToBoardDialogComponent } from './add-to-board-dialog.component';
 import { BoardCreateDialogComponent } from './board-create-dialog.component';
-import { BoardsPage } from './boards.page';
+import { BOARDS_DELETED_STATE, BoardsPage } from './boards.page';
 
 const summary = (id: string, name: string, laneCount = 2): BoardSummary => ({ id, name, laneCount, updatedAt: '2026-11-26T10:00:00Z' });
 
@@ -144,6 +144,98 @@ describe('BoardsPage (Fase 60)', () => {
     expect(el.querySelector('#board-create-name-error')!.textContent).toContain('Informe o nome do quadro');
     expect(el.querySelector('#board-create-surveys-error')!.textContent).toContain('Escolha de 1 a 12');
   });
+
+  // UX-FIM-206
+  it('criar_navegaPrimeiro_eSoFechaODialogoQuandoATelaDoQuadroAbriu', async () => {
+    const { fixture, el, button, http } = setupList([]);
+    let finish!: (opened: boolean) => void;
+    spyOn(TestBed.inject(Router), 'navigate').and.returnValue(new Promise<boolean>((resolve) => (finish = resolve)));
+    button('Novo quadro').click();
+    http.expectOne('/api/surveys').flush([survey('s1')]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    el.querySelector<HTMLInputElement>('#board-create-name')!.value = 'Compra';
+    el.querySelector<HTMLInputElement>('#board-create-name')!.dispatchEvent(new Event('input'));
+    el.querySelector<HTMLInputElement>('.dialog .pick input')!.click();
+    el.querySelector<HTMLFormElement>('.dialog form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    http.expectOne({ method: 'POST', url: '/api/boards' }).flush(created());
+    fixture.detectChanges();
+
+    expect(el.querySelector('app-board-create-dialog')).not.toBeNull();
+    finish(true);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('app-board-create-dialog')).toBeNull();
+    expect(el.querySelector('.notice.is-error')).toBeNull();
+  });
+
+  // UX-FIM-206
+  it('criarComNavegacaoCancelada_fechaODialogoEAvisaComOLinkParaOQuadro', async () => {
+    const { fixture, el, button, http } = setupList([]);
+    spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(false);
+    button('Novo quadro').click();
+    http.expectOne('/api/surveys').flush([survey('s1')]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    el.querySelector<HTMLInputElement>('#board-create-name')!.value = 'Compra';
+    el.querySelector<HTMLInputElement>('#board-create-name')!.dispatchEvent(new Event('input'));
+    el.querySelector<HTMLInputElement>('.dialog .pick input')!.click();
+    el.querySelector<HTMLFormElement>('.dialog form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    http.expectOne({ method: 'POST', url: '/api/boards' }).flush(created());
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const notice = el.querySelector('.notice.is-error[role="alert"]')!;
+    expect(notice).not.toBeNull();
+    expect(notice.querySelector('a')!.getAttribute('href')).toBe('/boards/b9');
+    expect(el.querySelector('app-board-create-dialog')).toBeNull();
+  });
+
+  // UX-FIM-106
+  it('novoQuadro_mostraAbrindoEnquantoBuscaOsLevantamentos', () => {
+    const { fixture, el, button, http } = setupList([]);
+
+    button('Novo quadro').click();
+    fixture.detectChanges();
+    const opening = el.querySelector<HTMLButtonElement>('.board-head .btn-p')!;
+    expect(opening.getAttribute('aria-busy')).toBe('true');
+    expect(opening.getAttribute('aria-disabled')).toBe('true');
+    opening.click();
+    http.expectOne('/api/surveys').flush([]);
+    fixture.detectChanges();
+
+    expect(el.querySelector<HTMLButtonElement>('.board-head .btn-p')!.getAttribute('aria-busy')).toBe('false');
+  });
+
+  // UX-FIM-112
+  it('erroAoExcluir_apareceSeparadoEMantemOsQuadrosNaTela', () => {
+    const { fixture, el, http } = setupList([summary('b1', 'Compra'), summary('b2', 'Estorno')]);
+
+    el.querySelectorAll<HTMLButtonElement>('.board-row button')[0].click();
+    fixture.detectChanges();
+    Array.from(el.querySelectorAll<HTMLButtonElement>('app-confirm-dialog button')).find((b) => b.textContent!.trim() === 'Excluir')!.click();
+    http.expectOne({ method: 'DELETE', url: '/api/boards/b1' }).flush({ code: 'BOARD_NOT_FOUND' }, { status: 404, statusText: 'Not Found' });
+    fixture.detectChanges();
+
+    expect(el.querySelector('.notice.is-error[role="alert"]')).not.toBeNull();
+    expect(el.querySelectorAll('.board-row').length).toBe(2);
+  });
+
+  // UX-FIM-112
+  it('vindoDaExclusaoPelaTelaDoQuadro_mostraOAvisoComONome', () => {
+    const previous = history.state;
+    history.replaceState({ ...previous, [BOARDS_DELETED_STATE]: 'Compra' }, '');
+    try {
+      const { el } = setupList([summary('b2', 'Estorno')]);
+
+      expect(el.querySelector('.visually-hidden[role="status"]')!.textContent).toContain('Compra');
+    } finally {
+      history.replaceState(previous, '');
+    }
+  });
 });
 
 describe('BoardCreateDialogComponent (Fase 60)', () => {
@@ -173,6 +265,48 @@ describe('BoardCreateDialogComponent (Fase 60)', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('[role="alert"]')!.textContent).toContain('ainda não está pronto');
+  });
+
+  // UX-FIM-214
+  it('cadaCaixaMarcada_mostraAPosicaoQueAFaixaVaiTer', async () => {
+    const { fixture, el } = open(['s2', 's1'], [survey('s1'), survey('s2'), survey('s3')]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const positions = Array.from(el.querySelectorAll('.pick')).map((p) => p.querySelector('.pick-position')?.textContent?.trim() ?? null);
+    expect(positions).toEqual(['2', '1', null]);
+    expect(el.querySelector('.pick-position')!.getAttribute('aria-label')).toContain('no quadro');
+
+    el.querySelectorAll<HTMLInputElement>('.pick input')[2].click();
+    fixture.detectChanges();
+    expect(el.querySelectorAll('.pick-position')[2].textContent!.trim()).toBe('3');
+  });
+
+  // UX-FIM-104
+  it('erroDeCampo_ligaAMensagemAoCampo_focaOCampoEUsaRoleAlert', async () => {
+    const { fixture, el } = open([], [survey('s1')]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(el.querySelector('#board-create-name')!.getAttribute('aria-describedby')).toBeNull();
+
+    el.querySelector<HTMLFormElement>('form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector('#board-create-name-error')!.getAttribute('role')).toBe('alert');
+    expect(el.querySelector('#board-create-name')!.getAttribute('aria-describedby')).toBe('board-create-name-error');
+    expect(document.activeElement).toBe(el.querySelector('#board-create-name'));
+    expect(el.querySelector('fieldset')!.getAttribute('aria-describedby')).toBe('board-create-surveys-error');
+  });
+
+  // UX-FIM-104
+  it('semLevantamentoPronto_oBotaoCriarFicaDesabilitado', async () => {
+    const { fixture, el } = open([], [survey('s3', SurveyStatus.Failed)]);
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(el.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBeTrue();
   });
 });
 
@@ -204,6 +338,9 @@ describe('AddToBoardDialogComponent (Fase 60)', () => {
 
     expect(el.querySelector('.note-ok')!.textContent).toContain('Adicionado ao quadro "Compra"');
     expect(el.querySelector('a.btn-p')!.getAttribute('href')).toBe('/boards/b1');
+    // UX-FIM-204: o formulário sumiu, o foco vai para "Abrir o quadro".
+    await fixture.whenStable();
+    expect(document.activeElement).toBe(el.querySelector('a.btn-p'));
   });
 
   // WEB-BOARD-059
@@ -219,6 +356,8 @@ describe('AddToBoardDialogComponent (Fase 60)', () => {
     fixture.detectChanges();
     http.expectNone((r) => r.method === 'POST');
     expect(el.querySelector('#add-board-name-error')!.textContent).toContain('Informe o nome do quadro');
+    expect(el.querySelector('#add-board-name-error')!.getAttribute('role')).toBe('alert');
+    expect(el.querySelector('#add-board-name')!.getAttribute('aria-describedby')).toBe('add-board-name-error');
 
     el.querySelector<HTMLInputElement>('#add-board-name')!.value = 'Compra';
     el.querySelector<HTMLInputElement>('#add-board-name')!.dispatchEvent(new Event('input'));

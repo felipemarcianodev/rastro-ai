@@ -890,4 +890,61 @@ describe('SurveysPage, escolha para o quadro (Fase 60)', () => {
     fixture.detectChanges();
     expect(el.querySelector('.pick-bar')).toBeNull();
   });
+  // UX-FIM-206
+  describe('criar quadro pela lista', () => {
+    async function withPicked() {
+      TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+      const fixture = TestBed.createComponent(SurveysPage);
+      fixture.detectChanges();
+      const http = TestBed.inject(HttpTestingController);
+      http.expectOne('/api/surveys').flush([survey('1', 'A.Pronto', SurveyStatus.Completed), survey('2', 'B.Pronto', SurveyStatus.Completed)]);
+      http.expectOne('/api/repositories').flush([]);
+      fixture.detectChanges();
+      const el = fixture.nativeElement as HTMLElement;
+      el.querySelectorAll<HTMLInputElement>('.row-pick input').forEach((box) => box.click());
+      fixture.detectChanges();
+      const created = { id: 'b9', name: 'Novo', glossary: null, lanes: [], layout: { steps: [], edges: [] } };
+      const onCreated = (fixture.componentInstance as unknown as { onBoardCreated(board: typeof created): void }).onBoardCreated.bind(fixture.componentInstance);
+      return { fixture, el, http, created, onCreated };
+    }
+
+    it('navegacaoQueAbriu_limpaASelecao', async () => {
+      const { fixture, el, http, created, onCreated } = await withPicked();
+      spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(true);
+
+      onCreated(created);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.pick-bar')).toBeNull();
+      expect(el.querySelector('.notice.is-error')).toBeNull();
+      http.match(() => true).forEach((request) => request.flush([]));
+    });
+
+    it('navegacaoCancelada_mantemASelecaoEAvisaComOLinkParaOQuadro', async () => {
+      const { fixture, el, http, created, onCreated } = await withPicked();
+      spyOn(TestBed.inject(Router), 'navigate').and.resolveTo(false);
+
+      onCreated(created);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.pick-bar')).not.toBeNull();
+      const notice = el.querySelector('.notice.is-error[role="alert"]')!;
+      expect(notice.querySelector('a')!.getAttribute('href')).toBe('/boards/b9');
+      http.match(() => true).forEach((request) => request.flush([]));
+    });
+
+    it('navegacaoComErro_trataComoCancelada', async () => {
+      const { fixture, el, http, created, onCreated } = await withPicked();
+      spyOn(TestBed.inject(Router), 'navigate').and.rejectWith(new Error('falhou'));
+
+      onCreated(created);
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(el.querySelector('.notice.is-error a')).not.toBeNull();
+      http.match(() => true).forEach((request) => request.flush([]));
+    });
+  });
 });
