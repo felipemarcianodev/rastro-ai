@@ -21,7 +21,7 @@ O Rastro roda só na sua máquina: o código analisado nunca sai dela. Funciona 
 - **Esquema do banco pelo código:** tabelas, colunas, chaves, índices, views e procedures lidos do modelo do EF Core, das migrations e dos `.sql` (SQL Server e PostgreSQL, o dialeto sai do repositório), com a fonte de cada item e a divergência entre fontes marcada. Sem conectar em banco nenhum e sem ler dados. Na tela "Mapa do banco" de cada repositório, na API e no MCP.
 - **Análise de consulta sem IA:** cole uma consulta SQL (ou abra a de um passo do fluxo) e o Rastro aponta os gargalos por gravidade, com o trecho marcado e o motivo, cruzando com o esquema: `SELECT *`, função na coluna do filtro, `LIKE '%...'` (e `ILIKE` no PostgreSQL), conversão com `::`, coluna sem índice, junção sem condição e outros. A consulta não é executada.
 - **Mudança desenhada no grafo:** você edita o fluxo, o Rastro gera o prompt da mudança e, depois que o agente aplica, valida contra o código novo (build, testes e o fluxo de novo).
-- **Arquitetura:** exporta o fluxo em Mermaid e SVG e a arquitetura em C4 (Structurizr), e aponta melhorias e dívida técnica (DDD, código limpo, métricas).
+- **Arquitetura:** exporta o fluxo em Mermaid, SVG e draw.io (`.drawio`) e a arquitetura em C4 (Structurizr), e aponta melhorias e dívida técnica (DDD, código limpo, métricas).
 
 ![Linha do tempo de um fluxo, com os passos numerados e o resumo na visão geral](docs/telas/fase-24/01-linha-do-tempo.jpg)
 

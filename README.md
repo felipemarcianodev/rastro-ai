@@ -21,7 +21,7 @@ Rastro runs only on your machine: the code it analyzes never leaves it. It works
 - **Database schema from the code:** tables, columns, keys, indexes, views and procedures read from the EF Core model, the migrations and the `.sql` files (SQL Server and PostgreSQL, the dialect comes from the repository), with the source of each item and any disagreement between sources marked. It connects to no database and reads no data. On the "Database map" screen of each repository, in the API and in the MCP.
 - **Query analysis without AI:** paste a SQL query (or open the one from a flow step) and Rastro points out the bottlenecks by severity, with the marked excerpt and the reason, cross-checking against the schema: `SELECT *`, a function on the filter column, `LIKE '%...'` (and `ILIKE` on PostgreSQL), a `::` cast, a column without an index, a join without a condition, and more. The query is not executed.
 - **Change drawn on the graph:** you edit the flow, Rastro generates the change prompt and, after the agent applies it, validates against the new code (build, tests and the flow again).
-- **Architecture:** exports the flow as Mermaid and SVG and the architecture as C4 (Structurizr), and points out improvements and technical debt (DDD, clean code, metrics).
+- **Architecture:** exports the flow as Mermaid, SVG and draw.io (`.drawio`) and the architecture as C4 (Structurizr), and points out improvements and technical debt (DDD, clean code, metrics).
 
 ![Timeline of a flow, with numbered steps and the summary in the overview](docs/telas/readme/fluxo-en-US.png)
 

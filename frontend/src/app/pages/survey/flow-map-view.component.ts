@@ -22,6 +22,7 @@ import {
   segmentsToReveal,
   visibleMap,
 } from '../../core/graph/flow-map';
+import { mapToDrawio } from '../../core/graph/drawio';
 import { fieldsText } from '../../core/graph/flow-insight';
 import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL_KEY, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
 import { plainBranch } from '../../core/graph/plain';
@@ -417,6 +418,14 @@ export class FlowMapViewComponent {
     if (event.target instanceof Element && event.target.closest('input, textarea, select')) return;
     event.preventDefault();
     this.walk(step);
+  }
+
+  // draw.io (Fase 54): o mapa com o que está aberto na tela, na geometria larga ou na de uma coluna.
+  exportDrawio(name: string): string | null {
+    const geometry = this.geometry();
+    if (!geometry) return null;
+    const lanes = this.laneTitles();
+    return mapToDrawio(geometry, (block) => this.titleOf(block), (lane) => lanes.get(lane.id) ?? lane.id, this.detail().survey.repository, name);
   }
 
   protected titleOf(block: MapBlock): string {

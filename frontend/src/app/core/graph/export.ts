@@ -104,12 +104,32 @@ export interface SvgExtras {
   heads?: readonly TimelineHead[];
 }
 
-// Ligação no SVG, como na tela (timelineRoutes): "next" é o passo seguinte, "section" o primeiro
-// passo de uma seção do bloco, "branch" o primeiro passo de um galho.
-type EdgeShape = 'next' | 'section' | 'branch';
+// Ligação no SVG e no draw.io, como na tela (timelineRoutes): "next" é o passo seguinte, "section"
+// o primeiro passo de uma seção do bloco, "branch" o primeiro passo de um galho.
+export type EdgeShape = 'next' | 'section' | 'branch';
+
+// Rota de uma aresta entre as caixas desenhadas: source e target são ids de caixa (o do nó ou o do
+// passo repetido), sem o prefixo da porta.
+export interface EdgeRoute {
+  index: number;
+  source: string;
+  target: string;
+  shape: EdgeShape;
+}
+
+export function edgeRoutes(graph: FlowGraph, repeats: ReadonlyMap<string, TimelineRepeat> = new Map()): EdgeRoute[] {
+  const routes = timelineRoutes(graph, repeats);
+  const portless = (id: string) => id.slice(id.indexOf(':') + 1);
+  return graph.edges.flatMap((_, index) => {
+    const route = routes.get(index);
+    if (!route) return [];
+    const shape: EdgeShape = route.source.startsWith(Port.Side) ? 'branch' : route.target.startsWith(Port.Top) ? 'next' : 'section';
+    return [{ index, source: portless(route.source), target: portless(route.target), shape }];
+  });
+}
 
 // Porta a 16px da borda, como no tema (centro a 20px).
-const PORT = 20;
+export const PORT = 20;
 
 export function toSvg(
   graph: FlowGraph,
@@ -132,15 +152,11 @@ export function toSvg(
   const height = Math.max(...all.map((b) => b.y + b.height)) - minY + PADDING;
   const across = direction === LayoutDirection.Horizontal;
 
-  const routes = timelineRoutes(graph, repeats);
-  const portless = (id: string) => id.slice(id.indexOf(':') + 1);
-  const edges = graph.edges.flatMap((edge, index) => {
-    const route = routes.get(index);
-    const a = route && boxes.get(portless(route.source));
-    const b = route && boxes.get(portless(route.target));
-    if (!route || !a || !b) return [];
-    const shape: EdgeShape = route.source.startsWith(Port.Side) ? 'branch' : route.target.startsWith(Port.Top) ? 'next' : 'section';
-    return [edgePath(edge, shape, across, a, b, minX, minY, colors)];
+  const edges = edgeRoutes(graph, repeats).flatMap((route) => {
+    const a = boxes.get(route.source);
+    const b = boxes.get(route.target);
+    if (!a || !b) return [];
+    return [edgePath(graph.edges[route.index], route.shape, across, a, b, minX, minY, colors)];
   });
 
   const nodes = shown.map(({ node, id, repeat }) => {

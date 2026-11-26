@@ -21,7 +21,7 @@ Rastro se ejecuta solo en tu máquina: el código analizado nunca sale de ella. 
 - **Esquema de la base de datos desde el código:** tablas, columnas, claves, índices, vistas y procedimientos leídos del modelo de EF Core, de las migrations y de los `.sql` (SQL Server y PostgreSQL, el dialecto sale del repositorio), con la fuente de cada elemento y la discrepancia entre fuentes marcada. Sin conectarse a ninguna base de datos y sin leer datos. En la pantalla "Mapa de la base de datos" de cada repositorio, en la API y en el MCP.
 - **Análisis de consulta sin IA:** pega una consulta SQL (o abre la de un paso del flujo) y Rastro señala los cuellos de botella por gravedad, con el fragmento marcado y el motivo, cruzando con el esquema: `SELECT *`, función en la columna del filtro, `LIKE '%...'` (e `ILIKE` en PostgreSQL), conversión con `::`, columna sin índice, join sin condición y otros. La consulta no se ejecuta.
 - **Cambio dibujado en el grafo:** tú editas el flujo, Rastro genera el prompt del cambio y, después de que el agente lo aplica, valida contra el código nuevo (compilación, pruebas y el flujo otra vez).
-- **Arquitectura:** exporta el flujo en Mermaid y SVG y la arquitectura en C4 (Structurizr), y señala mejoras y deuda técnica (DDD, código limpio, métricas).
+- **Arquitectura:** exporta el flujo en Mermaid, SVG y draw.io (`.drawio`) y la arquitectura en C4 (Structurizr), y señala mejoras y deuda técnica (DDD, código limpio, métricas).
 
 ![Línea de tiempo de un flujo, con los pasos numerados y el resumen en la vista general](docs/telas/readme/fluxo-es.png)
 

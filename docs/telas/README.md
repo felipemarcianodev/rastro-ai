@@ -123,3 +123,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 53 | Conferência visual: as Configurações em espanhol, em 360 px | [fase-53/tela-5-360-es.png](fase-53/tela-5-360-es.png) |
 | Fase 53 | Conferência visual: o levantamento em 360 px, em português | [fase-53/tela-2-360-pt-BR.png](fase-53/tela-2-360-pt-BR.png) |
 | Fase 53 | Conferência visual: o levantamento em 360 px, em inglês | [fase-53/tela-2-360-en-US.png](fase-53/tela-2-360-en-US.png) |
+| Fase 54 | O item "Baixar para o draw.io" no menu Exportar do levantamento (fluxo do próprio Rastro) | [fase-54/01-menu-exportar-drawio.jpg](fase-54/01-menu-exportar-drawio.jpg) |
+| Fase 54 | O grafo exportado aberto no draw.io, com as posições, as portas e os passos repetidos da tela | [fase-54/02-grafo-no-drawio.jpg](fase-54/02-grafo-no-drawio.jpg) |
+| Fase 54 | O mapa por sistemas exportado aberto no draw.io, com a faixa em moldura e o ramo no rótulo | [fase-54/03-mapa-no-drawio.jpg](fase-54/03-mapa-no-drawio.jpg) |

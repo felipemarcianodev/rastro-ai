@@ -1239,15 +1239,22 @@ Decisões do dono (2026-11-25): o `.drawio` vale também para o grafo e o Mapa p
 
 Cada fase sai num branch empilhado sobre o anterior (regra "Pilha de PRs" do `CLAUDE.md`).
 
-## Fase 54: exportar o grafo e o mapa para draw.io `[ ]`
+## Fase 54: exportar o grafo e o mapa para draw.io `[x]`
 
-- [ ] `frontend/src/app/core/graph/drawio.ts`: gerador de `mxfile` (uma página, `mxGraphModel`, `mxCell` com `vertex` e `edge`), com escape do atributo XML e do HTML do rótulo (escape duplo), ligação `edgeStyle=orthogonalEdgeStyle` com `labelBackgroundColor` e estilo por tipo de nó.
-- [ ] Grafo: as posições da tela (as mesmas caixas do SVG, inclusive as arrastadas); uma moldura tracejada por sistema quando o fluxo atravessa mais de um; ligação inferida tracejada, confirmada mais grossa, HTTP com o rótulo "VERBO rota".
-- [ ] Mapa por sistemas: as faixas viram retângulos tracejados com o título, os blocos ficam com a geometria do mapa e as ligações de desfecho levam o rótulo do ramo.
-- [ ] Rótulo de cada passo com a referência `repositório · arquivo:linha` (fonte monoespaçada, 9 px) e `tooltip` com o símbolo. O link para o host entra na Fase 56.
-- [ ] Item "draw.io (.drawio)" no menu Exportar do grafo e do mapa, com o mesmo aviso de arquivo salvo dos outros formatos; textos nos três idiomas.
-- [ ] Testes: XML válido (`DOMParser` sem `parsererror`), um `mxCell` por passo e por ligação, escape de `<`, `&` e aspas no rótulo, moldura por sistema, rótulo de ramo no mapa.
-- [ ] Prova manual: o arquivo de um levantamento do próprio Rastro abre no draw.io com as posições da tela; print em `docs/telas/fase-54/`.
+- [x] `frontend/src/app/core/graph/drawio.ts`: gerador de `mxfile` (uma página, `mxGraphModel`, `mxCell` com `vertex` e `edge`), com escape do atributo XML e do HTML do rótulo (escape duplo), ligação `edgeStyle=orthogonalEdgeStyle` com `labelBackgroundColor` e estilo por tipo de nó.
+- [x] Grafo: as posições da tela (as mesmas caixas do SVG, inclusive as arrastadas); uma moldura tracejada por sistema quando o fluxo atravessa mais de um; ligação inferida tracejada, confirmada mais grossa, HTTP com o rótulo "VERBO rota".
+- [x] Mapa por sistemas: as faixas viram retângulos tracejados com o título, os blocos ficam com a geometria do mapa e as ligações de desfecho levam o rótulo do ramo.
+- [x] Rótulo de cada passo com a referência `repositório · arquivo:linha` (fonte monoespaçada, 9 px) e `tooltip` com o símbolo. O link para o host entra na Fase 56.
+- [x] Item "draw.io (.drawio)" no menu Exportar do grafo e do mapa, com o mesmo aviso de arquivo salvo dos outros formatos; textos nos três idiomas.
+- [x] Testes: XML válido (`DOMParser` sem `parsererror`), um `mxCell` por passo e por ligação, escape de `<`, `&` e aspas no rótulo, moldura por sistema, rótulo de ramo no mapa.
+- [x] Prova manual: o arquivo de um levantamento do próprio Rastro abre no draw.io com as posições da tela; print em `docs/telas/fase-54/`.
+- **Registro (2026-11-25):**
+  - **Gerador:** `graphToDrawio` e `mapToDrawio` montam a página e `toDrawio` escreve o `mxfile`; o balão é um `UserObject` com rótulo em HTML, `tooltip` (símbolo e caminho completo) e, a partir da Fase 56, `link`. O passo de outro sistema cita o repositório dele, e a faixa de fora do código não leva repositório na referência.
+  - **Portas da tela:** a primeira prova no draw.io mostrou linhas atravessando o grafo inteiro, porque o export ligava o passo repetido (↻) ao nó original e deixava o draw.io escolher as portas. As rotas do SVG viraram `edgeRoutes` (`export.ts`), usadas pelo SVG e pelo `.drawio`; o passo repetido ganhou balão próprio, e cada ligação leva `exitX/exitY/entryX/entryY` conforme a direção do desenho, como na tela.
+  - **Menu:** "Baixar para o draw.io (.drawio)" no menu Exportar, para o grafo e para o mapa por sistemas (antes, o menu só funcionava com o grafo na tela); o título do menu e o do atalho do painel citam o draw.io.
+  - **Prova:** levantamento de `SettingsController.SetLanguage` do próprio Rastro, com a API numa pasta de dados temporária (`RASTRO_HOME`), sem tocar no `~/.rastro`. O arquivo foi aberto no draw.io pelo modo embutido (`embed.diagrams.net`, que recebe o XML por `postMessage` e desenha no navegador): grafo com 32 balões e 31 ligações, mapa com 12 blocos, 11 ligações e a moldura da faixa. O download foi interceptado na página, então nenhum arquivo foi gravado na pasta do dono.
+  - **Documentação:** README da raiz e README do pacote, nos três idiomas.
+  - **Testes:** frontend 602/602 (11 novos em `drawio.spec.ts`), build sem aviso. O backend não mudou nesta fase; o workflow do PR roda a suíte dele.
 
 ## Fase 55: derivação dos passos-chave (núcleo, API e MCP) `[ ]` (depende da Fase 54)
 
