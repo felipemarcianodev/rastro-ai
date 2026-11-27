@@ -855,7 +855,10 @@
       "improvementsDebt": "Mejoras y deuda técnica",
       "noHoles": "Sin huecos: el compilador resolvió todas las llamadas de este flujo.",
       "deleteSurvey": "Eliminar rastreo…"
-    }
+    },
+    "openInOtherEditor": "Abrir en el editor",
+    "openInOtherEditorTitle": "Abre en el editor configurado, en la carpeta {folder}",
+    "editorOpeningOther": "Abriendo en el editor… Si no se abre, revisa el editor y la carpeta en Configuración."
   },
   "findings": {
     "legacy": "Este rastreo es anterior a la inspección de calidad. Rastrea el flujo de nuevo para ver las mejoras.",
@@ -1294,7 +1297,8 @@
       "businessShow": "Mostrar en la vista de negocio",
       "businessShowTitle": "Marca este paso como paso clave en la vista de negocio",
       "businessShown": "Paso incluido en la vista de negocio.",
-      "businessSee": "Ver"
+      "businessSee": "Ver",
+      "openEditor": "Abrir en el editor"
     },
     "toast": {
       "copied": "Copiado."

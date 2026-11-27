@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { EditorLinks, vscodeLink } from './editor-links';
-import { RepositoryItem } from './models';
+import { EditorLinks, isVsCodeLink, vscodeLink } from './editor-links';
+import { RepositoryHostKind, RepositoryItem } from './models';
 
 describe('vscodeLink', () => {
   it('junta a pasta do Windows com o arquivo do repositório e a linha', () => {
@@ -45,5 +45,21 @@ describe('EditorLinks', () => {
     expect(editor.folder('meu-sistema')).toBe(repo.path);
     editor.set([]);
     expect(editor.link('meu-sistema', 'src/App.cs', 3)).toBeNull();
+  });
+
+  // Pendência da Fase D: o grafo segue o editor configurado (Rastro:Editor:UrlTemplate), como a visão de negócio.
+  it('comOModeloDoLevantamento_usaOEditorConfigurado_eAoLimparVoltaAoVsCode', () => {
+    const editor = TestBed.inject(EditorLinks);
+    editor.set([repo]);
+    editor.useSurveyLinks([
+      { repository: 'Meu-Sistema', host: RepositoryHostKind.Unknown, commitTemplate: null, branchTemplate: null, editorTemplate: 'jetbrains://open?file=C:/codigo/meu-sistema/{path}&line={line}' },
+    ]);
+
+    const link = editor.link('meu-sistema', 'src/Pedido Job.cs', 7);
+    expect(link).toBe('jetbrains://open?file=C:/codigo/meu-sistema/src/Pedido%20Job.cs&line=7');
+    expect(isVsCodeLink(link)).toBeFalse();
+
+    editor.clearSurveyLinks();
+    expect(isVsCodeLink(editor.link('meu-sistema', 'src/App.cs', 3))).toBeTrue();
   });
 });

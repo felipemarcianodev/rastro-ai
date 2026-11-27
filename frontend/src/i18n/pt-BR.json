@@ -855,7 +855,10 @@
       "improvementsDebt": "Melhorias e dívida técnica",
       "noHoles": "Sem buracos: o compilador resolveu todas as chamadas deste fluxo.",
       "deleteSurvey": "Excluir levantamento…"
-    }
+    },
+    "openInOtherEditor": "Abrir no editor",
+    "openInOtherEditorTitle": "Abre no editor configurado, na pasta {folder}",
+    "editorOpeningOther": "Abrindo no editor… Se não abrir, confira o editor e a pasta em Configurações."
   },
   "findings": {
     "legacy": "Levantamento anterior à inspeção de qualidade. Levante o fluxo de novo para ver as melhorias.",
@@ -1294,7 +1297,8 @@
       "businessShow": "Mostrar na visão de negócio",
       "businessShowTitle": "Marca este passo como passo-chave na visão de negócio",
       "businessShown": "Passo incluído na visão de negócio.",
-      "businessSee": "Ver"
+      "businessSee": "Ver",
+      "openEditor": "Abrir no editor"
     },
     "toast": {
       "copied": "Copiado."

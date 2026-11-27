@@ -590,6 +590,30 @@ describe('SurveyPage', () => {
     localStorage.removeItem('rastro.layoutDirection');
   });
 
+  // WEB-UXC-301 (pendência do passo de UX da release 0.11.0)
+  it('telaEstreitaComAVisaoDeNegocio_painelDoNoComecaRecolhido_semMudarAPreferenciaGravada', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.panelCollapsed');
+    const real = window.matchMedia.bind(window);
+    spyOn(window, 'matchMedia').and.callFake((query: string) =>
+      query === '(max-width: 1000px)' ? ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined } as unknown as MediaQueryList) : real(query));
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    const workspace = () => el.querySelector('.workspace')!;
+
+    await showBusiness(el);
+    expect(workspace().classList).toContain('is-panel-collapsed');
+    expect(localStorage.getItem('rastro.panelCollapsed')).toBeNull();
+
+    // A aba abre o painel quando a pessoa pede.
+    el.querySelector<HTMLButtonElement>('.panel-toggle')!.click();
+    lastFixture!.detectChanges();
+    expect(workspace().classList).not.toContain('is-panel-collapsed');
+    expect(localStorage.getItem('rastro.panelCollapsed')).toBeNull();
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
   // WEB-UXC-102 (UX-FIM-102)
   it('avisoDeErroDaExportacao_naoSomeSozinho_eFechaPeloBotao', () => {
     TestBed.resetTestingModule();

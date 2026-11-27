@@ -122,7 +122,7 @@
         <code>{{ breakable(location.file) }}:{{ location.line }}</code>
         <span class="location-actions">
           @if (editorLink(node)) {
-            <button type="button" class="btn btn-g btn-small" (click)="openInEditor(node)" [title]="'nodePanel.openInEditorTitle' | translate: { folder: editor.folder(repository()) }">{{ 'nodePanel.openInEditor' | translate }}</button>
+            <button type="button" class="btn btn-g btn-small" (click)="openInEditor(node)" [title]="(vsCode(node) ? 'nodePanel.openInEditorTitle' : 'nodePanel.openInOtherEditorTitle') | translate: { folder: editor.folder(node.system ?? repository()) }">{{ (vsCode(node) ? 'nodePanel.openInEditor' : 'nodePanel.openInOtherEditor') | translate }}</button>
           }
           <button type="button" class="btn btn-g btn-small" (click)="copyLocation(node)" >{{ locationCopy.label('nodePanel.copyLocation' | translate) }}</button>
         </span>

@@ -38,7 +38,7 @@ import { breakable, shortCommit } from '../../core/format';
 import { DB_SURVEY_ORIGIN_PARAM, DB_TAB_QUERY_PARAM } from '../../core/database/query-analysis';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
-import { EditorLinks } from '../../core/editor-links';
+import { EditorLinks, isVsCodeLink } from '../../core/editor-links';
 import { FOREIGN_EDIT_MESSAGE_KEY } from '../../core/graph/draft-editor';
 import { rulesTimeline } from '../../core/graph/rules-timeline';
 import { collapsedOwner } from '../../core/graph/collapse';
@@ -326,6 +326,11 @@ export class NodePanelComponent {
     return place ? this.editor.link(node.system ?? this.repository(), place.file, place.line) : null;
   }
 
+  // O rótulo diz "VS Code" só quando o link é dele; com outro editor configurado, "editor".
+  protected vsCode(node: FlowNode): boolean {
+    return isVsCodeLink(this.editorLink(node));
+  }
+
   // De onde o passo vem: o sistema (repositório) e o commit do trecho. Só aparece quando o fluxo
   // passa por mais de um sistema; o primeiro usa o repositório e o commit do levantamento.
   protected origin(node: FlowNode): { system: string; language: string; commit?: string } | null {
@@ -356,8 +361,8 @@ export class NodePanelComponent {
   protected openInEditor(node: FlowNode): void {
     const link = this.editorLink(node);
     if (!link) return;
-    window.location.assign(link);
-    this.editorStatus.set(this.i18n.t('nodePanel.editorOpening'));
+    this.editor.open(link);
+    this.editorStatus.set(this.i18n.t(isVsCodeLink(link) ? 'nodePanel.editorOpening' : 'nodePanel.editorOpeningOther'));
     clearTimeout(this.editorTimer);
     this.editorTimer = setTimeout(() => this.editorStatus.set(null), 5000);
   }
