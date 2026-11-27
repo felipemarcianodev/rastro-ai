@@ -1477,12 +1477,19 @@ O pedido, em duas partes:
   - **Não verificado:** a janela Photino e o WebKit; o "Reorganizar" volta ao XML gerado quando o desenho abriu, e não ao código atual (o desenho de origem já não está na tela).
   - **Testes:** backend 1161/1161 (API-DRWL-001 a 011); frontend 875/875; build sem aviso.
 
-### Fase 67: criar e mudar o fluxo pelo draw.io `[ ]` (depende da 66)
+### Fase 67: criar e mudar o fluxo pelo draw.io `[x]` (depende da 66)
 
 - [ ] No modo "Editar fluxo", o draw.io vale como a tela de edição de hoje: caixa nova é um método novo (com o diálogo de descrever o que ele faz), ligação nova é uma chamada nova, apagar e mover entre ramos também, e tudo vira o mesmo rascunho (Fases 7 a 9).
 - [ ] O prompt e a validação da mudança saem do rascunho como hoje, determinísticos, sem IA.
 - [ ] Ligação desenhada não vira `extracted` nem `confirmed`: entra no rascunho como mudança pedida.
 - **Aceite:** a mesma mudança feita na tela de edição de hoje e no draw.io gera o mesmo rascunho e o mesmo prompt (teste de igualdade).
+- **Registro (2026-11-27):**
+  - **Como funciona:** no modo "Editar fluxo", o botão draw.io abre o grafo do rascunho, e cada autosave é comparado com o anterior por uma função pura (`drawioToDraft`), que chama as mesmas funções da tela de edição (`addStep`, `connect`, `removeEdge`, `reassign`, `removeStep`). Caixa sem `rastroId` vira passo novo (losango vira decisão), com o nome do texto da caixa; seta nova entre balões vira chamada nova; seta religada move o passo; balão apagado tira o passo do fluxo; seta apagada tira a ligação. O passo de entrada e passo de outro sistema não se editam, com o aviso da tela de hoje. O passo novo abre no painel, para descrever o que ele deve fazer. Nesse modo, nada vai para a tabela do draw.io (as anotações não se aplicam, para não virarem passos).
+  - **Teste de igualdade:** passo novo e ligação, tirar passo e mover ligação, feitos pelas funções da tela e pelo draw.io (dois XML), dão o mesmo rascunho.
+  - **Defeito achado no navegador e corrigido:** no draw.io de verdade, a caixa nasce vazia e ganha o texto num autosave seguinte, e a seta pode ser desenhada antes; como cada autosave se compara com o anterior, a caixa nunca contava como nova. Agora vale a caixa que ainda não virou passo e a seta do editor que ainda não foi ligada (teste do caso).
+  - **Verificado no navegador, com o draw.io de verdade:** no modo de edição, uma caixa da coluna de formas com o texto "ValidarCadastro" virou passo novo (1 mudança, aviso e painel do passo aberto); apagar o balão "Is valid name" tirou o passo do fluxo, e o prompt cita a saída; nada saiu da máquina; console sem erro. Print em `docs/telas/fase-67/`.
+  - **Limites:** desfazer no Rastro não desfaz o desenho dentro do draw.io, e o contrário também; mudar o rascunho pelo painel com o draw.io aberto não redesenha o editor (o desenho de origem não está na tela para gerar o XML de novo); o balão de entrada apagado no editor só volta ao reabrir.
+  - **Testes:** frontend 889/889; build sem aviso; backend sem mudança.
 
 ### Fase 68: paridade, quadro de fluxos e fim do plano `[ ]` (depende da 67)
 
