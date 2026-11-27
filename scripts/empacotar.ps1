@@ -1,5 +1,5 @@
 ﻿# Gera o pacote do Rastro (ADR-002): artifacts/rastro-ai.<versão>.nupkg, pronto para "dotnet tool install".
-#   1. build do front (Angular) para o wwwroot da API;
+#   1. build do front (Angular) para o wwwroot da API e o draw.io (ADR-011) ao lado do executável;
 #   2. dotnet pack em Release.
 # Código aberto (ADR-004): sem licença no programa e sem ofuscação.
 # Uso: powershell -File scripts/empacotar.ps1
@@ -25,6 +25,9 @@ try {
 $wwwroot = Join-Path $api 'wwwroot'
 if (Test-Path $wwwroot) { Remove-Item $wwwroot -Recurse -Force }
 Copy-Item (Join-Path $root 'frontend/dist/rastro-web/browser') $wwwroot -Recurse
+
+# draw.io dentro do pacote (ADR-011): versão e hash fixos, conferidos antes de extrair.
+Invoke-Step 'draw.io' { powershell -NoProfile -File (Join-Path $PSScriptRoot 'preparar-drawio.ps1') }
 
 # 2. Pacote
 $package = Join-Path $artifacts "rastro-ai.$version.nupkg"

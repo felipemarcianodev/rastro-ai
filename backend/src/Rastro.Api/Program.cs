@@ -97,6 +97,9 @@ app.UseRequestLocalization(localization);
 // Host filtering (AllowedHosts) já entra sozinho no WebApplication; o Origin é verificado aqui (ADR-003).
 app.UseMiddleware<Rastro.Api.OriginGuardMiddleware>();
 
+// draw.io dentro do Rastro (ADR-011), em /drawio, também no desenvolvimento (a pasta vem do scripts/preparar-drawio.ps1).
+Rastro.Api.Editor.DrawioHosting.UseDrawio(app);
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
