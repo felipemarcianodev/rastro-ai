@@ -1420,7 +1420,7 @@ O pedido, em duas partes:
 - [ ] ADR-011 com as três decisões acima e a resposta do dono sobre a hospedagem; `visao.md` com a linha da decisão.
 - **Aceite:** ADR aceita pelo dono, números medidos registrados e a lista do que a edição pode mudar fechada.
 
-### Fase 63: seletor de desenho dentro do painel `[ ]` (pode andar em paralelo com a 62)
+### Fase 63: seletor de desenho dentro do painel `[x]` (pode andar em paralelo com a 62)
 
 - [ ] Tirar da barra do levantamento o seletor segmentado (Grafo, Mapa por sistemas, Visão consolidada, Visão de negócio).
 - [ ] Barra de desenho no canto do painel do desenho, junto com o zoom, com um botão por tipo e o ícone do que ele é, cada um com a dica no `title` e o nome no `aria-label`: grafo vertical (linha do tempo), grafo horizontal, árvore, por sistemas, visão de negócio, Mermaid e, a partir da Fase 64, draw.io. O botão ⇉ de hoje (troca de arranjo do grafo) some, porque os arranjos viram botões próprios.
@@ -1428,6 +1428,12 @@ O pedido, em duas partes:
 - [ ] O menu Exportar e os itens desabilitados por desenho seguem o desenho escolhido; a visão consolidada (página de edição do Mermaid) continua alcançável pelo botão Mermaid.
 - [ ] Textos nos três idiomas, prints em 1440 e 360 px, levantamento de UX das telas tocadas e conferência no navegador com clique de verdade.
 - **Aceite:** a barra do levantamento sem o seletor; todo desenho de hoje alcançável por um botão do painel, com dica; testes de teclado e de `aria-pressed`.
+- **Registro (2026-11-27):**
+  - **Barra de desenhos:** componente `DrawingSwitcherComponent`, com seis botões na ordem grafo vertical, grafo horizontal, árvore, por sistemas, visão de negócio e Mermaid; cada um com ícone, dica no `title`, nome no `aria-label` e `aria-pressed` no ativo; tabindex itinerante, com as setas andando entre os botões. Rótulo e dica saem de `Record<LayoutDirection, string>`. Na edição e na comparação, os desenhos fora do grafo ficam desabilitados, com a dica do motivo (só o grafo mostra o rascunho e as diferenças).
+  - **Onde fica:** no lugar do botão ⇉ de cada desenho, junto do zoom (em coluna no grafo e no Mermaid, em linha no mapa e na visão de negócio). A faixa do quadro de fluxos não tem a barra. O seletor segmentado saiu da barra do levantamento, e o ⇉ e o código dele (`NEXT_LAYOUT_DIRECTION`, `nextDrawing`) também.
+  - **Comportamento:** a troca é anunciada ao leitor de tela; o foco volta ao botão do desenho novo (trocar para o mapa, a visão de negócio ou o Mermaid recria a barra, e o foco caía no `body`); a escolha fica guardada por pessoa; `?desenho=<slug>` abre num desenho (vale na abertura da página).
+  - **Verificado no navegador, com clique de verdade:** os seis botões trocam o desenho e o foco fica no ativo; as setas e o Enter; `?desenho=mapa`; em 360 px e em 1440 por 600, nenhum botão cortado e nenhuma rolagem horizontal; console sem erro. Prints em `docs/telas/fase-63/`.
+  - **Testes:** frontend 836/836 (o componente novo, a página sem o seletor, o `?desenho=` e o foco depois da troca); build sem aviso.
 
 ### Fase 64: o draw.io dentro do Rastro, para ver `[ ]` (depende da 62)
 

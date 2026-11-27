@@ -72,49 +72,32 @@
   font-size: var(--text-sm);
 }
 
-// Seletor das visões: um controle só, com a visão atual marcada.
-.segmented {
+// Barra de desenhos do painel (um botão por tipo): em coluna no canto do canvas, em linha nas barras do mapa
+// e da visão de negócio. O desenho ativo fica marcado.
+.drawing-switcher {
   display: inline-flex;
-  overflow: hidden;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+  gap: var(--space-1);
+
+  &.is-vertical {
+    flex-direction: column;
+    flex-wrap: nowrap;
+  }
 }
 
-.segmented-item {
-  min-height: var(--control-h-sm);
-  padding: 0 var(--space-3);
-  border: 0;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
+.drawing-switcher-item.is-pressed {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
 
-  &[aria-pressed='true'] {
+  &:hover:not(:disabled) {
     background: var(--ink);
-    color: var(--paper);
-    font-weight: 600;
-  }
-
-  &:focus-visible {
-    outline: none;
-    box-shadow: inset 0 0 0 2px var(--trail);
   }
 }
 
-// Tela estreita: o seletor ocupa a largura e quebra em linhas, em vez de passar da tela e empurrar os botões
-// vizinhos para fora (visto em 360 px no levantamento de UX do fim da visão de negócio). Cada opção fica numa
-// linha só, sem partir "Mapa por sistemas" em três.
-@media (max-width: 40rem) {
-  .segmented {
-    display: flex;
-    flex-wrap: wrap;
-    width: 100%;
-  }
-
-  .segmented-item {
-    flex: 1 1 auto;
-    white-space: nowrap;
-  }
+.drawing-switcher-item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 // Aviso de copiar e exportar (o menu já fechou): no alto, abaixo da barra, longe do "Desfazer" do canvas.

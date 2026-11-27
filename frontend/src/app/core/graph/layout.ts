@@ -25,27 +25,16 @@ export const LAYOUT_DIRECTION_SLUG: Record<LayoutDirection, string> = {
   [LayoutDirection.Business]: 'negocio',
 };
 
-// Ordem do botão que troca o desenho: horizontal, linha do tempo, árvore, consolidado, mapa, negócio e de volta.
-export const NEXT_LAYOUT_DIRECTION: Record<LayoutDirection, LayoutDirection> = {
-  [LayoutDirection.Horizontal]: LayoutDirection.Timeline,
-  [LayoutDirection.Timeline]: LayoutDirection.Tree,
-  [LayoutDirection.Tree]: LayoutDirection.Consolidated,
-  [LayoutDirection.Consolidated]: LayoutDirection.Map,
-  [LayoutDirection.Map]: LayoutDirection.Business,
-  [LayoutDirection.Business]: LayoutDirection.Horizontal,
-};
+// Desenho de um link direto (?desenho=<slug>); slug desconhecido não escolhe nada.
+export function directionFromSlug(slug: string | null | undefined): LayoutDirection | null {
+  if (!slug) return null;
+  const found = Object.entries(LAYOUT_DIRECTION_SLUG).find(([, value]) => value === slug);
+  return found ? (Number(found[0]) as LayoutDirection) : null;
+}
 
 // Desenhos que não passam pelo canvas: a página os desenha no lugar dele.
 export function isOutsideCanvas(direction: LayoutDirection): boolean {
   return direction === LayoutDirection.Consolidated || direction === LayoutDirection.Map || direction === LayoutDirection.Business;
-}
-
-// Próximo desenho do botão. Na edição e na comparação só o canvas mostra o rascunho e as
-// diferenças: "restricted" pula o consolidado e o mapa.
-export function nextDrawing(direction: LayoutDirection, restricted: boolean): LayoutDirection {
-  let next = NEXT_LAYOUT_DIRECTION[direction];
-  while (restricted && isOutsideCanvas(next)) next = NEXT_LAYOUT_DIRECTION[next];
-  return next;
 }
 
 // Chaves de tradução do rótulo de cada desenho (traduzidas na hora de usar).

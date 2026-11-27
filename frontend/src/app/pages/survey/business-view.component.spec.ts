@@ -6,6 +6,7 @@ import { AiStatusService } from '../../core/ai-status.service';
 import { DesktopBridge } from '../../core/desktop-bridge.service';
 import { MAP_FIXTURE_GRAPH } from '../../core/graph/flow-map-fixture.spec';
 import { LayoutDirection } from '../../core/graph/layout';
+import { DRAWING_SWITCHER_ORDER } from './drawing-switcher.component';
 import { FlowSummary } from '../../core/graph/summary';
 import { AiProvider, AiUse, BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, LabelOrigin, LabelState, RepositoryHostKind, RepositoryLinks, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
 import { businessLayout } from '../../core/graph/business-layout';
@@ -514,7 +515,7 @@ describe('BusinessViewComponent (Fase 57)', () => {
   it('botaoDoDesenho_voltaAoHorizontalEOResumoVaiParaOPainel', async () => {
     const { el, host } = await setup();
 
-    (el.querySelector('[aria-label^="Desenho em visão de negócio"]') as HTMLButtonElement).click();
+    el.querySelectorAll<HTMLButtonElement>('.drawing-switcher-item')[DRAWING_SWITCHER_ORDER.indexOf(LayoutDirection.Horizontal)].click();
 
     expect(host.directions).toEqual([LayoutDirection.Horizontal]);
     expect(host.summaries.length).toBeGreaterThan(0);
@@ -1485,7 +1486,7 @@ describe('BusinessViewComponent (Fase 60, faixa de um quadro)', () => {
 
     const labels = Array.from(el.querySelectorAll('.biz-bar button')).map((b) => b.textContent!.trim());
     expect(labels.some((t) => t.includes('Sugerir textos'))).toBeFalse();
-    expect(el.querySelector('.biz-bar [aria-label^="Desenho"]')).toBeNull();
+    expect(el.querySelector('.biz-bar app-drawing-switcher')).toBeNull();
     node('s2').click();
     fixture.detectChanges();
     expect(el.querySelector('.biz-panel')).not.toBeNull();

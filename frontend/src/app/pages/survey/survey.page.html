@@ -60,15 +60,7 @@
         }
         @if (!editing()) {
           <div class="bar-group" role="group" [attr.aria-label]="'survey.group.view' | translate">
-            @if (d.survey.status === SurveyStatus.Completed) {
-              <div class="segmented" role="group" [attr.aria-label]="'survey.group.drawing' | translate">
-                @for (view of drawingViews; track view.direction) {
-                  <button type="button" class="segmented-item" (click)="showDrawing(view.direction)" [attr.aria-pressed]="drawingPressed(view.direction)" [title]="view.title | translate" [attr.aria-describedby]="'drawing-desc-' + view.direction">{{ view.label | translate }}</button>
-                  <span class="visually-hidden" [id]="'drawing-desc-' + view.direction">{{ view.title | translate }}</span>
-                }
-                <span class="visually-hidden" role="status" aria-live="polite">{{ drawingAnnouncement() }}</span>
-              </div>
-            }
+            <span class="visually-hidden" role="status" aria-live="polite">{{ drawingAnnouncement() }}</span>
             <a class="btn btn-g btn-small" [routerLink]="['/repositorios', d.survey.repository, 'banco']" [queryParams]="dbOriginQuery(d.survey.id)" [title]="'survey.databaseMapTitle' | translate">{{ 'survey.databaseMap' | translate }}</a>
           </div>
           @if (d.survey.status === SurveyStatus.Completed) {

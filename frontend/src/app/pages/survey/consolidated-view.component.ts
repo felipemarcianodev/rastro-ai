@@ -5,7 +5,8 @@ import { Subscription } from 'rxjs';
 import { resolveDiagram } from '../../core/diagram-source';
 import { consolidatedMermaid, flowSummaryOf, mergeDiagram, nodeOfStep, stepId } from '../../core/graph/consolidated';
 import { FlowSummary } from '../../core/graph/summary';
-import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
+import { LayoutDirection } from '../../core/graph/layout';
+import { DrawingSwitcherComponent } from './drawing-switcher.component';
 import { DIAGRAM_RENDERER, readDiagramColors } from '../../core/mermaid-render';
 import { FlowGraph, SurveyDetail, SurveyDiagram } from '../../core/models';
 import { RastroApi } from '../../core/rastro-api.service';
@@ -15,7 +16,7 @@ import { DiagramStageComponent, StagePick } from '../diagram/diagram-stage.compo
 // no lugar do canvas. Clicar num passo escolhe o nó do grafo e abre o painel do passo.
 @Component({
   selector: 'app-consolidated-view',
-  imports: [RouterLink, TranslatePipe, DiagramStageComponent],
+  imports: [RouterLink, TranslatePipe, DiagramStageComponent, DrawingSwitcherComponent],
   templateUrl: './consolidated-view.component.html',
   styleUrl: './consolidated-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,9 +49,6 @@ export class ConsolidatedViewComponent {
   protected readonly selectedHidden = signal(false);
 
   protected readonly LayoutDirection = LayoutDirection;
-  protected readonly next = NEXT_LAYOUT_DIRECTION[LayoutDirection.Consolidated];
-  protected readonly directionLabel = LAYOUT_DIRECTION_LABEL;
-  protected readonly directionGlyph = LAYOUT_DIRECTION_GLYPH;
 
   private renderSeq = 0;
   private resolving?: Subscription;
@@ -125,10 +123,6 @@ export class ConsolidatedViewComponent {
   protected onPick(pick: StagePick | null): void {
     const graph = this.detail().graph;
     this.selectNode.emit(pick && graph ? nodeOfStep(graph, pick.id) : null);
-  }
-
-  protected toggleDirection(): void {
-    this.directionChange.emit(this.next);
   }
 
   private hasStep(step: string): boolean {

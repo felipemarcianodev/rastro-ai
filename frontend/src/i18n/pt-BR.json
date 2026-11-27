@@ -495,9 +495,7 @@
       "tree": "em árvore",
       "consolidated": "consolidado, num desenho só",
       "map": "em mapa, por sistema",
-      "business": "em visão de negócio",
-      "directionAria": "Desenho {current}. Trocar para {next}",
-      "directionTitle": "Desenhar {next}"
+      "business": "em visão de negócio"
     },
     "flowMap": {
       "outsideLane": "Fora do código",
@@ -953,8 +951,6 @@
   },
   "consolidated": {
     "stageLabel": "Visão consolidada do fluxo",
-    "directionAria": "Desenho {current}. Trocar para {next}",
-    "directionTitle": "Desenhar {next}",
     "barLabel": "Visão consolidada",
     "hintEdited": "Com as suas cores e textos. Clique num passo para ver o contexto.",
     "hintGenerated": "Gerada do fluxo. Clique num passo para ver o contexto.",
@@ -1111,16 +1107,11 @@
       "promptToCode": "Da mudança ao código"
     },
     "view": {
-      "graph": {
-        "label": "Grafo",
-        "title": "O grafo do fluxo, passo a passo"
-      },
       "map": {
         "label": "Mapa por sistemas",
         "title": "Um mapa por sistema, com os caminhos de ponta a ponta"
       },
       "consolidated": {
-        "label": "Visão consolidada",
         "title": "O fluxo todo num desenho só, com as suas cores"
       },
       "business": {
@@ -1987,5 +1978,23 @@
       "retryLabel": "Tentar carregar de novo a faixa {title}"
     },
     "renamed": "Quadro renomeado."
+  },
+  "drawingSwitcher": {
+    "timeline": {
+      "label": "Grafo vertical",
+      "title": "O grafo em linha do tempo, de cima para baixo"
+    },
+    "horizontal": {
+      "label": "Grafo horizontal",
+      "title": "O grafo da esquerda para a direita"
+    },
+    "tree": {
+      "label": "Árvore",
+      "title": "O grafo em árvore, com ligações retas"
+    },
+    "mermaid": {
+      "label": "Mermaid"
+    },
+    "disabledTitle": "Na edição e na comparação, só o grafo mostra o rascunho e as diferenças"
   }
 }

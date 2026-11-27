@@ -495,9 +495,7 @@
       "tree": "as a tree",
       "consolidated": "consolidated, in a single drawing",
       "map": "as a map, by system",
-      "business": "as a business view",
-      "directionAria": "Drawing {current}. Switch to drawing {next}",
-      "directionTitle": "Draw {next}"
+      "business": "as a business view"
     },
     "flowMap": {
       "outsideLane": "Outside the code",
@@ -953,8 +951,6 @@
   },
   "consolidated": {
     "stageLabel": "Consolidated view of the flow",
-    "directionAria": "Drawing {current}. Switch to {next}",
-    "directionTitle": "Draw {next}",
     "barLabel": "Consolidated view",
     "hintEdited": "With your colors and texts. Click a step to see the context.",
     "hintGenerated": "Generated from the flow. Click a step to see the context.",
@@ -1111,16 +1107,11 @@
       "promptToCode": "From change to code"
     },
     "view": {
-      "graph": {
-        "label": "Graph",
-        "title": "The flow graph, step by step"
-      },
       "map": {
         "label": "Map by system",
         "title": "One map per system, with the paths from end to end"
       },
       "consolidated": {
-        "label": "Consolidated view",
         "title": "The whole flow in a single drawing, with its colors"
       },
       "business": {
@@ -1987,5 +1978,23 @@
       "retryLabel": "Try again the lane {title}"
     },
     "renamed": "Board renamed."
+  },
+  "drawingSwitcher": {
+    "timeline": {
+      "label": "Vertical graph",
+      "title": "The graph as a timeline, from top to bottom"
+    },
+    "horizontal": {
+      "label": "Horizontal graph",
+      "title": "The graph from left to right"
+    },
+    "tree": {
+      "label": "Tree",
+      "title": "The graph as a tree, with straight links"
+    },
+    "mermaid": {
+      "label": "Mermaid"
+    },
+    "disabledTitle": "While editing or comparing, only the graph shows the draft and the differences"
   }
 }

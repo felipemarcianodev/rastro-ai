@@ -1,7 +1,5 @@
 <div class="map-bar" role="group" [attr.aria-label]="'flowMap.barLabel' | translate">
-  <button type="button" class="btn btn-icon" (click)="toggleDirection()"
-    [attr.aria-label]="'graph.layout.directionAria' | translate: { current: (directionLabel[LayoutDirection.Map] | translate), next: (directionLabel[next] | translate) }"
-    [title]="'graph.layout.directionTitle' | translate: { next: (directionLabel[next] | translate) }">{{ directionGlyph[next] }}</button>
+  <app-drawing-switcher [active]="LayoutDirection.Map" (pick)="directionChange.emit($event)" />
   <span class="map-zoom" role="group" [attr.aria-label]="'flowMap.zoomLabel' | translate">
     <button type="button" class="btn btn-icon" (click)="zoomOut()" [attr.aria-label]="'flowCanvas.zoomOut' | translate" [title]="'flowCanvas.zoomOut' | translate">−</button>
     <button type="button" class="btn btn-icon map-zoom-actual" (click)="actualSize()" [attr.aria-label]="'flowMap.zoomActualAria' | translate: { percent: percent() }" [title]="'flowMap.zoomActualTitle' | translate">{{ percent() }}%</button>

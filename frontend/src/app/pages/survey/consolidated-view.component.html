@@ -1,7 +1,5 @@
 <app-diagram-stage class="stage" [svg]="svg()" [selected]="selectedStep()" [repeats]="true" [label]="'consolidated.stageLabel' | translate" (pick)="onPick($event)">
-  <button type="button" class="btn btn-icon" (click)="toggleDirection()"
-    [attr.aria-label]="'consolidated.directionAria' | translate: { current: directionLabel[LayoutDirection.Consolidated], next: directionLabel[next] }"
-    [title]="'consolidated.directionTitle' | translate: { next: directionLabel[next] }">{{ directionGlyph[next] }}</button>
+  <app-drawing-switcher [active]="LayoutDirection.Consolidated" [vertical]="true" (pick)="directionChange.emit($event)" />
 </app-diagram-stage>
 
 <div class="consolidated-bar" role="group" [attr.aria-label]="'consolidated.barLabel' | translate">
