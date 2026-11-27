@@ -849,6 +849,17 @@ export function extrair(ts, { root, project, entry, depth, projectName, lang }) 
       }
     }
 
+    // Campo readonly da classe com valor inicial: `private readonly url = `${environment.apiUrl}/pedidos``, usado
+    // como `this.url` (ou `Classe.url`, quando estático). Sem readonly o campo pode mudar depois, e a rota fica
+    // desconhecida. Achado num sistema real: o serviço montava a URL assim, e a costura não achava a API.
+    if (ts.isPropertyAccessExpression(atual)) {
+      const decl = checker.getSymbolAtLocation(atual.name)?.valueDeclaration;
+      if (decl && ts.isPropertyDeclaration(decl) && decl.initializer &&
+          decl.modifiers?.some((m) => m.kind === ts.SyntaxKind.ReadonlyKeyword)) {
+        return coletarRota(decl.initializer, pedacos, aninhado, nivel + 1);
+      }
+    }
+
     // Só dentro de uma concatenação ou de um template um pedaço qualquer vira buraco; sozinho, a rota é desconhecida.
     if (!aninhado) return false;
     pedacos.push({ texto: '', buraco: true });

@@ -30,5 +30,6 @@ Ler TypeScript bem exige o que o Roslyn dá ao C#: tipos resolvidos, a injeção
 - O Rastro passa a ter um segundo extrator, em JavaScript, com testes próprios (`node --test`) e um job no workflow de PR.
 - O resultado do Angular depende do `npm install` feito no repositório analisado.
 - O que só existe em tempo de execução (provider trocado por configuração, URL montada fora do código) vira nó não resolvido com o motivo, como no C#.
+- A rota da chamada HTTP se lê do literal, do template, da concatenação com `+`, de `const` com literal e, desde 2026-11-26, do campo `readonly` da classe com valor inicial (`` private readonly url = `${environment.apiUrl}/pedidos` ``, usado como `this.url`). Campo sem `readonly` pode mudar depois e continua como rota desconhecida.
 - As regras de IA plugável não mudam: o extrator Angular é determinístico e não usa IA.
 - O modal aberto por `MatDialog.open` ou `Dialog.open` (issue #32) liga a tela aos métodos que o template do modal chama em eventos. Esse vínculo depende do clique do usuário, não de uma chamada que o compilador prova, então a aresta sai como inferida, com o rótulo "ação do usuário no modal", e o dono confirma ou descarta no painel, como qualquer aresta inferida.
