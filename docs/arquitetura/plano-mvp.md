@@ -1389,7 +1389,7 @@ As Fases 54 a 61 estão **EXECUTADAS**. Pendências:
 - [x] Cache da visão de negócio por levantamento (483 nós levavam de 500 a 800 ms). Feito em 2026-11-26.
 - [ ] Abrir o link de verdade pela janela própria nos três sistemas (a decisão de abrir ou recusar e a resposta à tela têm teste; a abertura real não).
 - [ ] Na criação do quadro pela lista, a página uma vez não foi para o quadro novo; não reproduzido.
-- [ ] Release com as Fases 54 a 61 pela skill `gerar-release`, quando o dono pedir.
+- [ ] Release com as Fases 54 a 61 pela skill `gerar-release`, quando o dono pedir. Pedida em 2026-11-27 (versão 0.11.0). O passo de UX da release (todas as rotas em 1440 e 360 px, nas paletas Papel, Carta náutica e Planta técnica e no tema escuro) achou e corrigiu, antes da versão: o tema e a paleta só se aplicavam depois de abrir as Configurações (o serviço só era criado ali); o título da barra do levantamento chegava a 0 px em 1440 com os botões novos; o enquadramento da visão de negócio ia a 2%, abaixo do mínimo de 25%; e a lista de quadros vazia tinha dois botões primários.
 
 ## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
 
