@@ -11,7 +11,8 @@ import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { EditorLinks, isVsCodeLink } from '../../core/editor-links';
 import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
-import { addStep, changeCount, connect, reassign, removeEdge, removeStep, restoreStep, setIntent } from '../../core/graph/draft-editor';
+import { FOREIGN_EDIT_MESSAGE_KEY, addStep, changeCount, connect, reassign, removeEdge, removeStep, restoreStep, setIntent } from '../../core/graph/draft-editor';
+import { drawioToDraft } from '../../core/graph/drawio-draft';
 import { trailTo } from '../../core/graph/trail';
 import { surveySystems } from '../../core/graph/timeline-layout';
 import { focusOn } from '../../core/graph/focus';
@@ -192,8 +193,13 @@ export class SurveyPage {
   protected readonly showMap = computed(() => this.mapped() && !this.editing() && !this.comparison());
   protected readonly showBusiness = computed(() => this.business() && !this.editing() && !this.comparison());
   // Draw.io dentro do Rastro (Fase 64): o sétimo desenho, no lugar do canvas, aberto com o XML do desenho de origem.
-  protected readonly showDrawio = computed(() => this.drawing() === LayoutDirection.Drawio && !this.editing() && !this.comparison());
+  protected readonly showDrawio = computed(() => this.drawing() === LayoutDirection.Drawio && !this.comparison());
   protected readonly drawioXml = signal('');
+  // Edição do fluxo pelo draw.io (Fase 67): o último XML já aplicado ao rascunho, as células que viraram passo novo e o
+  // desenho em que a pessoa estava antes de abrir o draw.io na edição.
+  private drawioSeen = '';
+  private drawioKnown = new Map<string, string>();
+  private drawioBeforeEdit: LayoutDirection | null = null;
   // Fase 65: de onde o desenho veio, o que ele tinha ao abrir e o XML gerado do código (o Reorganizar volta a ele). Sem
   // o levantamento (a leitura do guardado falhou), o editor abre sem gravar para não apagar o que já estava guardado.
   protected readonly drawioSource = signal(DrawioSource.Graph);
@@ -539,6 +545,20 @@ export class SurveyPage {
 
   // Entra no draw.io: lê o guardado desta origem (posições e anotações) e aplica no XML gerado antes de abrir o editor.
   private enterDrawio(origin: LayoutDirection, xml: string): void {
+    // Na edição o editor mexe no rascunho: nada de guardado (posição, anotação) entra, e nada vai para a tabela do draw.io.
+    if (this.editing()) {
+      this.drawioBeforeEdit = this.drawing();
+      this.drawioGenerated = xml;
+      this.drawioShiftOf = null;
+      this.drawioSeen = xml;
+      this.drawioKnown = new Map();
+      this.drawioSource.set(DrawioSource.Graph);
+      this.drawioBaseline.set(drawioBaseline(xml, xml, null));
+      this.drawioSaveId.set(null);
+      this.drawioXml.set(xml);
+      this.applyDirection(LayoutDirection.Drawio);
+      return;
+    }
     saveDrawioOrigin(origin);
     const id = this.detail()?.survey.id ?? null;
     const source = DRAWIO_SOURCE_OF[origin];
@@ -566,6 +586,33 @@ export class SurveyPage {
         this.showExport({ ok: false, text: this.i18n.t('drawio.loadFailed') });
       },
     });
+  }
+
+  // Cada autosave do editor, na edição do fluxo, vira edição do rascunho (Fase 67): o mesmo desfazer, o mesmo indicador de
+  // alterado e o mesmo prompt e validação da tela de edição.
+  protected onDrawioChanged(xml: string): void {
+    const draft = this.draft();
+    if (!this.editing() || !draft || !this.showDrawio()) return;
+    const result = drawioToDraft(draft, this.drawioSeen, xml, this.drawioKnown);
+    this.drawioSeen = xml;
+    this.drawioKnown = result.known;
+    if (result.draft !== draft) this.apply(result.draft);
+    if (result.refused > 0) {
+      const key = result.foreignRefused > 0 ? FOREIGN_EDIT_MESSAGE_KEY : 'drawio.edit.entryStays';
+      this.draftMessage.set({ ok: false, text: this.i18n.t(key) });
+    } else if (result.created.length > 0) {
+      this.draftMessage.set({ ok: true, text: this.i18n.t('drawio.edit.stepCreated') });
+    }
+    // O passo novo ainda não diz o que deve fazer: o painel do passo abre para a pessoa descrever.
+    if (result.created.length > 0) this.pickInDrawing(result.created[0]);
+  }
+
+  // Sai do draw.io de volta ao desenho de antes (ao entrar ou sair da edição, já que o XML da edição é do rascunho).
+  private leaveDrawioEditing(): void {
+    if (this.drawing() !== LayoutDirection.Drawio) return;
+    const back = this.drawioBeforeEdit ?? readDrawioOrigin();
+    this.drawioBeforeEdit = null;
+    this.applyDirection(back === LayoutDirection.Drawio ? LayoutDirection.Horizontal : back);
   }
 
   // Reorganizar: o guardado já foi apagado, e o editor volta ao desenho gerado do código.
@@ -1059,6 +1106,8 @@ export class SurveyPage {
         this.redoStack.set([]);
         this.dirty.set(false);
         this.editing.set(true);
+        // O draw.io aberto antes da edição mostra o código, não o rascunho: volta ao desenho de origem.
+        this.leaveDrawioEditing();
         this.openHintFirstTime();
         if (saved) this.draftMessage.set({ ok: true, text: this.i18n.t('survey.draft.loaded') });
       },
@@ -1593,6 +1642,7 @@ export class SurveyPage {
     const leave = () => {
       this.editing.set(false);
       this.selectedId.set(null);
+      this.leaveDrawioEditing();
     };
     if (this.dirty()) this.saveDraft(leave);
     else leave();

@@ -871,6 +871,63 @@ describe('SurveyPage', () => {
     }
   });
 
+  // WEB-DRIO-030 (Fase 67)
+  it('drawio_naEdicaoDoFluxo_abreORascunho_aplicaOAutosaveNele_eNaoGravaATabelaDoDrawio', async () => {
+    TestBed.resetTestingModule();
+    drawioInstalled = true;
+    graphOverride = graphWith(2, 0);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+    try {
+      const el = open(SurveyStatus.Completed);
+      const fixture = lastFixture!;
+      const http = TestBed.inject(HttpTestingController);
+      const editor = fixture.componentInstance as unknown as {
+        startEditing(): void;
+        onDrawioChanged(xml: string): void;
+        draft(): { nodes: { id: string; label: string; change?: number }[]; edges: { from: string; to: string }[] } | null;
+        dirty(): boolean;
+        draftMessage(): { ok: boolean; text: string } | null;
+        selectedId(): string | null;
+      };
+      editor.startEditing();
+      http.match(() => true).forEach((r) => r.flush(null));
+      fixture.detectChanges();
+
+      // Na edição o botão do draw.io fica habilitado e abre o rascunho, sem ler o guardado da tabela do draw.io.
+      const button = drawingButtons(el)[DRAWING_SWITCHER_ORDER.indexOf(LayoutDirection.Drawio)];
+      expect(button.disabled).toBeFalse();
+      await fixture.whenStable();
+      fixture.detectChanges();
+      button.click();
+      http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+      fixture.detectChanges();
+      http.expectNone((r) => /\/drawio\/\d$/.test(r.url));
+      expect(el.querySelector('app-drawio-view')).not.toBeNull();
+      expect(page().drawioSaveId()).toBeNull();
+      const xml = page().drawioXml();
+      expect(xml).toContain('rastroNode="m0"');
+
+      // O autosave do editor com um balão novo vira passo novo no rascunho, que abre no painel do passo.
+      expect(editor.dirty()).toBeFalse();
+      const added = '<mxCell id="x1" value="Notificar cliente" style="rounded=1;" vertex="1" parent="1"><mxGeometry x="1" y="1" width="100" height="40" as="geometry"/></mxCell>';
+      editor.onDrawioChanged(xml.replace('</root>', `${added}</root>`));
+      fixture.detectChanges();
+
+      const created = editor.draft()!.nodes.find((n) => n.label === 'Notificar cliente')!;
+      expect(created.id.startsWith('new:')).toBeTrue();
+      expect(editor.dirty()).toBeTrue();
+      expect(editor.draftMessage()!.ok).toBeTrue();
+      expect(editor.selectedId()).toBe(created.id);
+
+      // Sair da edição volta ao desenho de antes (o XML do draw.io era do rascunho).
+      http.match(() => true);
+    } finally {
+      localStorage.removeItem('rastro.layoutDirection');
+      localStorage.removeItem('rastro.drawioOrigin');
+    }
+  });
+
   // WEB-DRIO-021 (Fase 64)
   it('drawio_semNaInstalacao_naoTemOBotao_eAberturaDiretaFicaNaOrigem', () => {
     TestBed.resetTestingModule();

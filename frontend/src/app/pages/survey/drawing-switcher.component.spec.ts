@@ -5,11 +5,12 @@ import { DRAWING_LABEL_KEY, DRAWING_SWITCHER_ORDER, DRAWING_TITLE_KEY, DrawingSw
 
 @Component({
   imports: [DrawingSwitcherComponent],
-  template: `<app-drawing-switcher [active]="active()" [restricted]="restricted()" [vertical]="vertical()" [drawioAvailable]="drawio()" (pick)="picked.push($event)" />`,
+  template: `<app-drawing-switcher [active]="active()" [restricted]="restricted()" [allowDrawio]="allowDrawio()" [vertical]="vertical()" [drawioAvailable]="drawio()" (pick)="picked.push($event)" />`,
 })
 class HostComponent {
   readonly active = signal(LayoutDirection.Horizontal);
   readonly restricted = signal(false);
+  readonly allowDrawio = signal(false);
   readonly vertical = signal(false);
   readonly drawio = signal<boolean | null>(null);
   readonly picked: LayoutDirection[] = [];
@@ -118,5 +119,18 @@ describe('DrawingSwitcherComponent', () => {
     host.drawio.set(false);
     fixture.detectChanges();
     expect(buttons().length).toBe(6);
+  });
+
+  // WEB-DRSW-009 (Fase 67)
+  it('restritaNaEdicao_liberaSoODrawio_eOsOutrosForaDoCanvasContinuamDesligados', () => {
+    const { buttons, host, fixture } = setup();
+    host.drawio.set(true);
+    host.restricted.set(true);
+    host.allowDrawio.set(true);
+    fixture.detectChanges();
+
+    expect(buttons().map((b) => b.disabled)).toEqual([false, false, false, true, true, true, false]);
+    buttons()[6].click();
+    expect(host.picked).toEqual([LayoutDirection.Drawio]);
   });
 });

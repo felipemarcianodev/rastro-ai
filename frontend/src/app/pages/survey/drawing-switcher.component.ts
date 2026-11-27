@@ -64,6 +64,8 @@ export class DrawingSwitcherComponent {
   readonly active = input.required<LayoutDirection>();
   // Na edição e na comparação só o canvas mostra o rascunho e as diferenças: os outros desenhos ficam desligados.
   readonly restricted = input(false);
+  // Na edição o draw.io também vale (Fase 67): ele edita o mesmo rascunho.
+  readonly allowDrawio = input(false);
   // Coluna (canto do canvas) ou linha (barra do mapa e da visão de negócio).
   readonly vertical = input(false);
   readonly pick = output<LayoutDirection>();
@@ -81,6 +83,7 @@ export class DrawingSwitcherComponent {
   protected readonly glyph = LAYOUT_DIRECTION_GLYPH;
 
   protected isDisabled(direction: LayoutDirection): boolean {
+    if (this.allowDrawio() && direction === LayoutDirection.Drawio) return false;
     return this.restricted() && isOutsideCanvas(direction);
   }
 
