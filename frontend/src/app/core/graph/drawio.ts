@@ -20,6 +20,12 @@ export interface DrawioVertex {
   reference?: string | null;
   tooltip?: string | null;
   link?: string | null;
+  // Id do Rastro (nó do grafo, bloco do mapa, passo da visão de negócio): o draw.io dentro do Rastro (ADR-011)
+  // devolve o balão escolhido e as posições por ele.
+  rastroId?: string | null;
+  // Nó do grafo por trás do balão (o mesmo do id no grafo; o bloco e o passo apontam o nó que lhes dá o nome):
+  // o clique no draw.io abre o painel desse nó.
+  rastroNode?: string | null;
   style: string;
   x: number;
   y: number;
@@ -149,6 +155,8 @@ export function graphToDrawio(
     const box = boxes.get(id)!;
     return {
       text: repeat ? `↻ ${node.label}` : node.label,
+      rastroId: repeat ? null : node.id,
+      rastroNode: node.id,
       reference: codeReference(node.system ?? repository, node.location),
       tooltip: tooltipOf(node.symbol, node.location),
       link: extras.linkOf?.(node.system ?? repository, node.location) ?? null,
@@ -212,6 +220,8 @@ export function mapToDrawio(
   const vertices = geometry.blocks.map(
     (placed): DrawioVertex => ({
       text: titleOf(placed.block),
+      rastroId: placed.block.id,
+      rastroNode: placed.block.nodeId,
       reference: codeReference(laneRepository(placed.block.lane), placed.block.location),
       tooltip: tooltipOf(placed.block.symbol, placed.block.location),
       link: laneRepository(placed.block.lane) ? (linkOf?.(laneRepository(placed.block.lane)!, placed.block.location) ?? null) : null,
@@ -270,6 +280,8 @@ export function businessCells(flow: BusinessFlow, geometry: BusinessGeometry, be
     const location = step.ref ? { file: step.ref.file, line: step.ref.line } : null;
     return {
       text: step.label,
+      rastroId: step.id,
+      rastroNode: step.nodeId,
       reference: codeReference(step.ref?.repository, location),
       tooltip: tooltipOf(null, location),
       link: step.ref ? (linkOf?.(step.ref.repository, location) ?? null) : null,
@@ -341,7 +353,11 @@ export function toDrawio(page: DrawioPage): string {
     );
   });
   page.vertices.forEach((vertex, i) => {
-    const extra = (vertex.tooltip ? ` tooltip="${attr(vertex.tooltip)}"` : '') + (vertex.link ? ` link="${attr(vertex.link)}"` : '');
+    const extra =
+      (vertex.tooltip ? ` tooltip="${attr(vertex.tooltip)}"` : '') +
+      (vertex.link ? ` link="${attr(vertex.link)}"` : '') +
+      (vertex.rastroId ? ` rastroId="${attr(vertex.rastroId)}"` : '') +
+      (vertex.rastroNode ? ` rastroNode="${attr(vertex.rastroNode)}"` : '');
     cells.push(
       `<UserObject id="n${i}" label="${attr(vertexLabel(vertex))}"${extra}>` +
         `<mxCell style="${attr(vertex.style)}" vertex="1" parent="1">${geometry(vertex)}</mxCell></UserObject>`,

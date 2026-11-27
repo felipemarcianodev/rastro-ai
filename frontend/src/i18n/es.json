@@ -495,7 +495,8 @@
       "tree": "en árbol",
       "consolidated": "consolidado, en un solo dibujo",
       "map": "en mapa, por sistema",
-      "business": "en vista de negocio"
+      "business": "en vista de negocio",
+      "drawio": "en el editor draw.io"
     },
     "flowMap": {
       "outsideLane": "Fuera del código",
@@ -1995,6 +1996,15 @@
     "mermaid": {
       "label": "Mermaid"
     },
-    "disabledTitle": "En la edición y la comparación, solo el grafo muestra el borrador y las diferencias"
+    "disabledTitle": "En la edición y la comparación, solo el grafo muestra el borrador y las diferencias",
+    "drawio": {
+      "label": "draw.io",
+      "title": "El dibujo abierto en el editor draw.io, dentro de Rastro"
+    }
+  },
+  "drawio": {
+    "loading": "Abriendo el editor draw.io…",
+    "failed": "El editor draw.io no respondió.",
+    "frameTitle": "Editor draw.io"
   }
 }

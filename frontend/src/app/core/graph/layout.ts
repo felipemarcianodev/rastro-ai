@@ -14,6 +14,7 @@ export enum LayoutDirection {
   Consolidated = 3,
   Map = 4,
   Business = 5,
+  Drawio = 6,
 }
 
 export const LAYOUT_DIRECTION_SLUG: Record<LayoutDirection, string> = {
@@ -23,6 +24,7 @@ export const LAYOUT_DIRECTION_SLUG: Record<LayoutDirection, string> = {
   [LayoutDirection.Consolidated]: 'consolidado',
   [LayoutDirection.Map]: 'mapa',
   [LayoutDirection.Business]: 'negocio',
+  [LayoutDirection.Drawio]: 'drawio',
 };
 
 // Desenho de um link direto (?desenho=<slug>); slug desconhecido não escolhe nada.
@@ -34,7 +36,7 @@ export function directionFromSlug(slug: string | null | undefined): LayoutDirect
 
 // Desenhos que não passam pelo canvas: a página os desenha no lugar dele.
 export function isOutsideCanvas(direction: LayoutDirection): boolean {
-  return direction === LayoutDirection.Consolidated || direction === LayoutDirection.Map || direction === LayoutDirection.Business;
+  return direction === LayoutDirection.Consolidated || direction === LayoutDirection.Map || direction === LayoutDirection.Business || direction === LayoutDirection.Drawio;
 }
 
 // Chaves de tradução do rótulo de cada desenho (traduzidas na hora de usar).
@@ -45,6 +47,7 @@ export const LAYOUT_DIRECTION_LABEL_KEY: Record<LayoutDirection, string> = {
   [LayoutDirection.Consolidated]: 'graph.layout.consolidated',
   [LayoutDirection.Map]: 'graph.layout.map',
   [LayoutDirection.Business]: 'graph.layout.business',
+  [LayoutDirection.Drawio]: 'graph.layout.drawio',
 };
 
 // O texto já traduzido, para quem lê o rótulo direto (traduz na hora da leitura).
@@ -57,6 +60,7 @@ export const LAYOUT_DIRECTION_GLYPH: Record<LayoutDirection, string> = {
   [LayoutDirection.Consolidated]: '◇',
   [LayoutDirection.Map]: '▦',
   [LayoutDirection.Business]: '◆',
+  [LayoutDirection.Drawio]: '◫',
 };
 
 const DIRECTION_KEY = 'rastro.layoutDirection';
@@ -76,6 +80,27 @@ export function saveLayoutDirection(direction: LayoutDirection): void {
     localStorage.setItem(DIRECTION_KEY, String(direction));
   } catch {
     // Armazenamento bloqueado: a escolha vale só nesta visita.
+  }
+}
+
+const DRAWIO_ORIGIN_KEY = 'rastro.drawioOrigin';
+
+// O desenho de onde se abriu o draw.io (Fase 64): ele é a origem do XML e o desenho que abre primeiro quando o
+// draw.io é a escolha guardada. Valor desconhecido ou o próprio draw.io vale o grafo horizontal.
+export function readDrawioOrigin(): LayoutDirection {
+  try {
+    const saved = Number(localStorage.getItem(DRAWIO_ORIGIN_KEY));
+    return saved !== LayoutDirection.Drawio && Object.values(LayoutDirection).includes(saved) ? saved : LayoutDirection.Horizontal;
+  } catch {
+    return LayoutDirection.Horizontal;
+  }
+}
+
+export function saveDrawioOrigin(direction: LayoutDirection): void {
+  try {
+    localStorage.setItem(DRAWIO_ORIGIN_KEY, String(direction));
+  } catch {
+    // Armazenamento bloqueado: a origem vale só nesta visita.
   }
 }
 

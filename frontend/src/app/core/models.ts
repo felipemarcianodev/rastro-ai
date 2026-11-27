@@ -953,6 +953,12 @@ export enum RepositoryHostKind {
   Bitbucket = 4,
 }
 
+// Se o draw.io veio nesta instalação (GET /api/drawio, ADR-011): sem ele, a tela não oferece o desenho draw.io.
+export interface DrawioStatus {
+  available: boolean;
+  version: string | null;
+}
+
 // Modelos de link de um repositório do levantamento, com {path} e {line} a preencher (link-template.ts).
 export interface RepositoryLinks {
   repository: string;

@@ -3,7 +3,7 @@ import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@a
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { BusinessFlow, BusinessKind, CheckStatus, EdgeConfidence, FlowGraph, LabelOrigin, LabelState, NodeKind, SourceLanguage, SurveyDetail, SurveyStatus, ValidationStatus, ValidationVerdict, ValidationView } from '../../core/models';
-import { LAYOUT_DIRECTION_SLUG, LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
+import { LAYOUT_DIRECTION_SLUG, LayoutDirection, readDrawioOrigin, readLayoutDirection, saveDrawioOrigin, saveLayoutDirection } from '../../core/graph/layout';
 import { DRAWING_SWITCHER_ORDER } from './drawing-switcher.component';
 import { EDIT_HINT_SEEN_KEY, SurveyPage } from './survey.page';
 
@@ -11,6 +11,8 @@ const SURVEY_ID = 's1';
 
 // Grafo do teste: a entrada, `unresolved` buracos e `methods` métodos que batem com a busca "Pedido".
 let graphOverride: FlowGraph | undefined;
+// O draw.io está na instalação do teste? (GET /api/drawio)
+let drawioInstalled = false;
 
 function graphWith(methods: number, unresolved: number): FlowGraph {
   const nodes = [
@@ -80,6 +82,9 @@ function open(status: SurveyStatus, validations: ValidationView[] = [], inputs: 
     const url = request.request.url;
     if (url.endsWith(`/api/surveys/${SURVEY_ID}`)) request.flush(detail(status));
     else if (url.endsWith('/validations')) request.flush(validations);
+    else if (url.endsWith('/business')) request.flush(BUSINESS_FLOW);
+    else if (url.endsWith('/business/layout')) request.flush({ steps: [], edges: [] });
+    else if (url.endsWith('/api/drawio')) request.flush({ available: drawioInstalled, version: drawioInstalled ? '99.0.0' : null });
     else if (url.endsWith('/draft') || url.endsWith('/staleness')) request.flush(null);
     else request.flush([]);
   };
@@ -131,6 +136,7 @@ async function showBusiness(el: HTMLElement): Promise<void> {
 describe('SurveyPage', () => {
   afterEach(() => {
     graphOverride = undefined;
+    drawioInstalled = false;
   });
 
   it('mostra o botão Mapa do banco com a rota do repositório, em qualquer status', () => {
@@ -738,4 +744,81 @@ describe('SurveyPage', () => {
     localStorage.removeItem('rastro.layoutDirection');
   });
 
+
+  // Responde o que a visão de negócio e o draw.io pedem à API do teste.
+  function answerDrawing(): void {
+    const http = TestBed.inject(HttpTestingController);
+    http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(BUSINESS_FLOW));
+    http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+    http.match((r) => r.url.endsWith('/business/layout')).forEach((r) => r.flush({ steps: [], edges: [] }));
+    lastFixture!.detectChanges();
+  }
+
+  // WEB-DRIO-020 (Fase 64)
+  it('drawio_comOBotaoNaBarra_trocaComOXmlDoDesenhoAnterior_eGuardaAOrigem', async () => {
+    TestBed.resetTestingModule();
+    drawioInstalled = true;
+    graphOverride = graphWith(1, 0);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+    const el = open(SurveyStatus.Completed);
+    expect(drawingButtons(el).length).toBe(7);
+    await showBusiness(el);
+
+    pickDrawing(el, LayoutDirection.Drawio);
+    answerDrawing();
+
+    expect(el.querySelector('app-drawio-view')).not.toBeNull();
+    expect(el.querySelector('app-business-view')).toBeNull();
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Drawio]);
+    expect(readLayoutDirection()).toBe(LayoutDirection.Drawio);
+    expect(readDrawioOrigin()).toBe(LayoutDirection.Business);
+    const xml = (lastFixture!.componentInstance as unknown as { drawioXml(): string }).drawioXml();
+    expect(xml).toContain('<mxfile');
+    expect(xml).toContain('O pedido é válido?');
+    expect(xml).toContain('rastroNode="m0"');
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+  });
+
+  // WEB-DRIO-021 (Fase 64)
+  it('drawio_semNaInstalacao_naoTemOBotao_eAberturaDiretaFicaNaOrigem', () => {
+    TestBed.resetTestingModule();
+    graphOverride = graphWith(1, 0);
+    saveLayoutDirection(LayoutDirection.Drawio);
+    saveDrawioOrigin(LayoutDirection.Tree);
+    const el = open(SurveyStatus.Completed);
+
+    expect(drawingButtons(el).length).toBe(6);
+    expect(el.querySelector('app-drawio-view')).toBeNull();
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Tree]);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+  });
+
+  // WEB-DRIO-022 (Fase 64)
+  it('drawio_escolhaGuardada_abrePelaOrigemETrocaQuandoTemXml', async () => {
+    TestBed.resetTestingModule();
+    drawioInstalled = true;
+    graphOverride = graphWith(1, 0);
+    saveLayoutDirection(LayoutDirection.Drawio);
+    saveDrawioOrigin(LayoutDirection.Business);
+    const el = open(SurveyStatus.Completed);
+    expect(el.querySelector('app-drawio-view')).toBeNull();
+
+    // A visão de negócio carrega aos poucos: a página tenta de novo até ter o XML.
+    for (let i = 0; i < 8 && !el.querySelector('app-drawio-view'); i++) {
+      answerDrawing();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      answerDrawing();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+    answerDrawing();
+
+    expect(el.querySelector('app-drawio-view')).not.toBeNull();
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Drawio]);
+    expect(readDrawioOrigin()).toBe(LayoutDirection.Business);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+  });
 });

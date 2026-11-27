@@ -495,7 +495,8 @@
       "tree": "as a tree",
       "consolidated": "consolidated, in a single drawing",
       "map": "as a map, by system",
-      "business": "as a business view"
+      "business": "as a business view",
+      "drawio": "in the draw.io editor"
     },
     "flowMap": {
       "outsideLane": "Outside the code",
@@ -1995,6 +1996,15 @@
     "mermaid": {
       "label": "Mermaid"
     },
-    "disabledTitle": "While editing or comparing, only the graph shows the draft and the differences"
+    "disabledTitle": "While editing or comparing, only the graph shows the draft and the differences",
+    "drawio": {
+      "label": "draw.io",
+      "title": "The drawing open in the draw.io editor, inside Rastro"
+    }
+  },
+  "drawio": {
+    "loading": "Opening the draw.io editor…",
+    "failed": "The draw.io editor did not respond.",
+    "frameTitle": "draw.io editor"
   }
 }
