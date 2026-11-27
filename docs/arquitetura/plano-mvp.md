@@ -1391,6 +1391,94 @@ As Fases 54 a 61 estão **EXECUTADAS**. Pendências:
 - [ ] Na criação do quadro pela lista, a página uma vez não foi para o quadro novo; não reproduzido.
 - [x] Release com as Fases 54 a 61 pela skill `gerar-release`: versão 0.11.0, publicada no nuget.org em 2026-11-27 com a aprovação do dono. O passo de UX da release (todas as rotas em 1440 e 360 px, nas paletas Papel, Carta náutica e Planta técnica e no tema escuro) achou e corrigiu, antes da versão: o tema e a paleta só se aplicavam depois de abrir as Configurações (o serviço só era criado ali); o título da barra do levantamento chegava a 0 px em 1440 com os botões novos; o enquadramento da visão de negócio ia a 2%, abaixo do mínimo de 25%; e a lista de quadros vazia tinha dois botões primários.
 
+## Draw.io dentro do Rastro e seletor de desenho no painel (Fases 62 a 68) (pedido do dono em 2026-11-27)
+
+O pedido, em duas partes:
+- trazer o draw.io para dentro do Rastro: além de exportar, ver o fluxo, mover, editar e criar no próprio draw.io, com tudo o que a tela já faz hoje;
+- tirar da barra do levantamento o seletor "Grafo, Mapa por sistemas, Visão consolidada, Visão de negócio" e pôr, dentro do painel do desenho, botões que trocam o tipo de desenho pelo que ele realmente é (grafo vertical, grafo horizontal, árvore, por sistemas, visão de negócio, Mermaid, draw.io), cada um com a dica no `title`, como já é hoje.
+
+### Decisões que o plano propõe (o dono decide na Fase 62)
+
+1. **De onde o draw.io carrega.** O editor do draw.io (jgraph/drawio, licença Apache-2.0) é uma aplicação web inteira, que a página abre num `iframe` e com quem conversa por mensagens (`postMessage`, modo `embed` com `proto=json`). As opções:
+   - **A. Do site diagrams.net** (`embed.diagrams.net`): nada a mais no pacote, mas precisa de internet e põe um script de terceiro numa página que mostra o código do cliente. Vai contra a ADR-002 (o código não sai da máquina) e não funciona sem rede.
+   - **B. Dentro do pacote do Rastro**, servido pela própria API (`127.0.0.1`): funciona sem rede e nada sai da máquina, mas o pacote cresce (o tamanho exato se mede na Fase 62).
+   - **C. Baixado uma vez para `~/.rastro`**, na primeira vez que a pessoa abre o draw.io, com versão fixa e hash conferido: o pacote não cresce, mas o primeiro uso precisa de rede, e a origem do arquivo vira um ponto a proteger.
+   - **Recomendação: B**, se o acréscimo couber no pacote (a medir); C como reserva. A nunca, pela ADR-002.
+2. **O draw.io é mais um desenho, não o substituto dos atuais.** O grafo, o mapa, a visão de negócio e o Mermaid continuam no Foblex e no SVG próprios, que já têm teclado, leitor de tela, busca, trilha, recorte e o painel do nó. O draw.io é forte para mover e anotar, mas fraco em acessibilidade, então entra como um tipo de desenho a mais, e não como o padrão.
+3. **O que a edição no draw.io pode mudar.** O código continua sendo a fonte da verdade (visão e ADR-001):
+   - **mover, redimensionar e dobrar ligações** vale sempre e grava a posição no mesmo lugar que o desenho de origem já usa;
+   - **texto e tipo de um passo** da visão de negócio vão pelas rotas da Fase 59, como texto do usuário;
+   - **caixa, seta e texto livres**, sem ligação com um passo, viram anotações do desenho, guardadas à parte, que nunca entram no fluxo nem no prompt;
+   - **criar passo, criar ligação, apagar ou mover passo entre ramos** só no modo "Editar fluxo", e viram o mesmo rascunho que a edição de hoje gera (Fases 7 a 9), com o mesmo prompt e a mesma validação. Nenhuma ligação desenhada no draw.io vira `extracted`.
+
+### Fase 62: ADR-011 e prova de conceito `[ ]`
+
+- [ ] Prova de conceito fora do produto (pasta temporária): o draw.io servido por um servidor local, aberto num `iframe` em modo `embed`, recebendo o `.drawio` que o Rastro já gera e devolvendo as mudanças por `autosave`, no Chrome e na janela Photino (WebView2; WebKit no macOS e no Linux só se der para testar).
+- [ ] Medir: o tamanho da aplicação do draw.io (aberta e compactada no `.nupkg`), o tempo para abrir e o que ela tenta buscar na rede com os parâmetros de modo isolado (`stealth=1`, `offline=1` e os de desligar plugins e nuvem). Meta: nenhuma requisição para fora de `127.0.0.1`.
+- [ ] Conferir a licença (Apache-2.0: `NOTICE` e créditos no pacote e no README) e escolher a versão fixa.
+- [ ] Desenhar o mapeamento de ida e volta: cada balão e cada ligação do `.drawio` levam o id do Rastro (atributos do `UserObject`), e o que volta do draw.io é comparado com o que foi: posição, dobra, texto, tipo, criado, apagado, anotação.
+- [ ] ADR-011 com as três decisões acima e a resposta do dono sobre a hospedagem; `visao.md` com a linha da decisão.
+- **Aceite:** ADR aceita pelo dono, números medidos registrados e a lista do que a edição pode mudar fechada.
+
+### Fase 63: seletor de desenho dentro do painel `[ ]` (pode andar em paralelo com a 62)
+
+- [ ] Tirar da barra do levantamento o seletor segmentado (Grafo, Mapa por sistemas, Visão consolidada, Visão de negócio).
+- [ ] Barra de desenho no canto do painel do desenho, junto com o zoom, com um botão por tipo e o ícone do que ele é, cada um com a dica no `title` e o nome no `aria-label`: grafo vertical (linha do tempo), grafo horizontal, árvore, por sistemas, visão de negócio, Mermaid e, a partir da Fase 64, draw.io. O botão ⇉ de hoje (troca de arranjo do grafo) some, porque os arranjos viram botões próprios.
+- [ ] Mesmo comportamento de hoje: botão pressionado com `aria-pressed`, setas entre os botões, troca anunciada ao leitor de tela, escolha guardada por pessoa e link direto para um desenho (`?desenho=`).
+- [ ] O menu Exportar e os itens desabilitados por desenho seguem o desenho escolhido; a visão consolidada (página de edição do Mermaid) continua alcançável pelo botão Mermaid.
+- [ ] Textos nos três idiomas, prints em 1440 e 360 px, levantamento de UX das telas tocadas e conferência no navegador com clique de verdade.
+- **Aceite:** a barra do levantamento sem o seletor; todo desenho de hoje alcançável por um botão do painel, com dica; testes de teclado e de `aria-pressed`.
+
+### Fase 64: o draw.io dentro do Rastro, para ver `[ ]` (depende da 62)
+
+- [ ] O draw.io na forma decidida na ADR-011, servido pela API em `127.0.0.1`, sem nenhuma requisição para fora (cabeçalho de segurança de conteúdo restringindo a origem).
+- [ ] Componente do desenho draw.io: abre o `iframe`, confere a origem de cada mensagem, carrega o `.drawio` do desenho de origem (grafo, mapa por sistemas ou visão de negócio; o quadro de fluxos na Fase 68), com o tema claro ou escuro, o idioma da tela e os links para o código.
+- [ ] Botão "draw.io" na barra de desenho da Fase 63, que abre o mesmo conteúdo do desenho escolhido antes.
+- [ ] Clique num balão abre o painel do nó do Rastro (o id volta pela mensagem).
+- [ ] Documentação do ambiente do cliente no mesmo PR: README e README do pacote nos três idiomas (o que vem no pacote, o tamanho), `SECURITY.md` (o que a página carrega, que nada sai da máquina), `visao.md`.
+- **Aceite:** o fluxo do próprio Rastro aberto no draw.io dentro da janela e do navegador, sem rede (conferido com a rede desligada), com o painel do nó funcionando.
+
+### Fase 65: mover no draw.io `[ ]` (depende da 64)
+
+- [ ] Mover, redimensionar e dobrar no draw.io grava a posição pelo `autosave` (com intervalo, como o salvamento da Fase 58), no mesmo lugar que o desenho de origem usa: as tabelas de layout da visão de negócio e do quadro e, para o grafo e o mapa, um escopo novo na mesma tabela (migration, documentada no mesmo PR).
+- [ ] Voltar ao desenho de origem mostra as posições movidas no draw.io, e vice-versa.
+- [ ] "Reorganizar" apaga as posições daquele desenho, como hoje.
+- **Aceite:** mover no draw.io, recarregar e ver no lugar, no draw.io e no desenho de origem; conflito (duas abas) resolvido pela última gravação, com aviso.
+
+### Fase 66: editar texto, tipo e anotar no draw.io `[ ]` (depende da 65)
+
+- [ ] Texto editado num balão da visão de negócio vai pela rota de texto da Fase 59 (texto do usuário, confirmado); o tipo, pela rota de tipo.
+- [ ] Caixa, seta e texto livres viram anotações do desenho: tabela própria por levantamento e desenho (migration), mostradas só no draw.io e nas exportações, nunca no fluxo, no prompt nem na IA.
+- [ ] Apagar no draw.io um balão que é passo do fluxo não apaga nada fora do modo de edição: o balão volta, com o aviso de que o fluxo vem do código.
+- **Aceite:** texto e tipo editados no draw.io aparecem na visão de negócio e no MCP; anotações sobrevivem a recarregar e não aparecem no prompt.
+
+### Fase 67: criar e mudar o fluxo pelo draw.io `[ ]` (depende da 66)
+
+- [ ] No modo "Editar fluxo", o draw.io vale como a tela de edição de hoje: caixa nova é um método novo (com o diálogo de descrever o que ele faz), ligação nova é uma chamada nova, apagar e mover entre ramos também, e tudo vira o mesmo rascunho (Fases 7 a 9).
+- [ ] O prompt e a validação da mudança saem do rascunho como hoje, determinísticos, sem IA.
+- [ ] Ligação desenhada não vira `extracted` nem `confirmed`: entra no rascunho como mudança pedida.
+- **Aceite:** a mesma mudança feita na tela de edição de hoje e no draw.io gera o mesmo rascunho e o mesmo prompt (teste de igualdade).
+
+### Fase 68: paridade, quadro de fluxos e fim do plano `[ ]` (depende da 67)
+
+- [ ] Lista do que a tela faz hoje em cada desenho (painel do nó, busca, trilha, recorte, legenda, minimapa, teclado, exportações, links para o código, quadro de fluxos) e, para cada item, onde ele vale no draw.io ou por que não vale.
+- [ ] Quadro de fluxos no draw.io: as faixas como molduras, com mover e anotar.
+- [ ] Levantamento de UX completo, correções e release pela skill `gerar-release`.
+
+### Fora de escopo
+
+- Nuvem do diagrams.net, Google Drive, OneDrive, colaboração em tempo real e plugins de terceiros: ficam desligados.
+- Trocar o Foblex pelo draw.io nos desenhos atuais.
+- Editar no draw.io o banco (mapa relacional) e o C4.
+
+### Riscos
+
+- Tamanho do pacote (hospedagem B) e tempo de abertura do draw.io.
+- Acessibilidade do draw.io, que é a razão de ele não virar o padrão.
+- Diferença entre WebView2 (Windows) e WebKit (macOS e Linux) para um `iframe` grande; o macOS e o Linux podem ficar sem teste real, como na abertura de link.
+- Conflito entre a edição no draw.io e no desenho de origem abertos ao mesmo tempo.
+- O draw.io muda o formato entre versões: versão fixa e atualização só com teste.
+
 ## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
 
 O Dependabot propôs o Roslyn 5.12 (`Microsoft.CodeAnalysis.CSharp.Workspaces` e `Workspaces.MSBuild`). Ele exige o MSBuild 18.7.1, e o MSBuild vem do SDK do .NET instalado na máquina de quem usa (MSBuildLocator): o SDK 10.0.1xx traz o MSBuild 18.0, o 10.0.2xx traz o 18.3, e só a faixa 10.0.3xx em diante atende. O dono decidiu ficar no Roslyn 5.9 por ora, e o Dependabot deixou de propor versão nova do Roslyn.
