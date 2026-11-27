@@ -32,6 +32,7 @@
   <data name="Cli.Window.StillUp" xml:space="preserve"><value>Rastro is still running: open {0} in the browser. Ctrl+C to quit.</value></data>
   <data name="Cli.Window.FailedReason" xml:space="preserve"><value>the window failed to open (details in the log)</value></data>
   <data name="BusinessLayout.Invalid" xml:space="preserve"><value>Invalid layout: up to 500 steps and 500 links, up to 20 bend points per link, finite numbers between -100000 and 100000, and step ids up to 64 characters.</value></data>
+  <data name="DrawioLayout.Invalid" xml:space="preserve"><value>Invalid drawing: up to 2000 shapes, finite numbers between -100000 and 100000 (width and height above 0 and up to 10000), shape ids up to 128 characters, and notes as well-formed XML up to 512 KB with only loose cells.</value></data>
   <data name="BusinessLabel.Invalid" xml:space="preserve"><value>Invalid text: use a single line of up to 120 characters.</value></data>
   <data name="BusinessKind.Invalid" xml:space="preserve"><value>Invalid step type.</value></data>
   <data name="BusinessStep.NotFound" xml:space="preserve"><value>Step not found in this trace's business view.</value></data>

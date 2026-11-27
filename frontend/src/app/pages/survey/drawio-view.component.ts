@@ -1,10 +1,15 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, ElementRef, computed, effect, inject, input, output, signal, untracked, viewChild } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { TranslatePipe } from '@ngx-translate/core';
+import { RastroApi } from '../../core/rastro-api.service';
+import { DrawioBaseline, readDrawioChanges } from '../../core/graph/drawio-merge';
+import { snapToGrid } from '../../core/graph/business-layout';
+import { DrawioSource, StepPosition } from '../../core/models';
 import { LanguageService } from '../../core/i18n/i18n';
 import { UiLanguage } from '../../core/i18n/language';
 import { LayoutDirection } from '../../core/graph/layout';
 import { ThemeService } from '../../core/theme.service';
+import { ConfirmDialogComponent } from './confirm-dialog.component';
 import { DrawingSwitcherComponent } from './drawing-switcher.component';
 
 // Onde a API serve o draw.io (mesma origem, ADR-011) e os parâmetros fixos do modo embed: sem rede, sem salvar
@@ -41,6 +46,12 @@ export const DRAWIO_ACTION_LOAD = 'load';
 
 // Quanto esperar o editor responder antes de avisar (a primeira abertura carrega o editor inteiro).
 export const DRAWIO_LOAD_TIMEOUT_MS = 20000;
+// Intervalo do salvamento depois do último autosave (Fase 65) e quanto tempo o "Desenho salvo" fica na tela.
+export const DRAWIO_SAVE_DEBOUNCE_MS = 800;
+export const DRAWIO_SAVED_MS = 2500;
+
+const SAVE_FAILED_KEY = 'drawio.saveFailed';
+const RESET_FAILED_KEY = 'drawio.reset.failed';
 
 enum DrawioState {
   Loading = 0,
@@ -52,12 +63,16 @@ enum DrawioState {
 // de origem. Só aceita mensagem da própria janela do iframe e da mesma origem.
 @Component({
   selector: 'app-drawio-view',
-  imports: [TranslatePipe, DrawingSwitcherComponent],
+  imports: [TranslatePipe, DrawingSwitcherComponent, ConfirmDialogComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { '(window:message)': 'onMessage($event)' },
   template: `
     <div class="drawio-bar">
       <app-drawing-switcher [active]="LayoutDirection.Drawio" [drawioAvailable]="true" [vertical]="false" (pick)="directionChange.emit($event)" />
+      @if (surveyId()) {
+        <button type="button" class="btn btn-g btn-small" (click)="confirmingReset.set(true)" [title]="'drawio.reset.title' | translate">{{ 'drawio.reset.button' | translate }}</button>
+      }
+      <span class="muted drawio-saved" role="status">@if (saved()) {{{ 'drawio.saved' | translate }}}</span>
     </div>
     @if (state() === State.Loading) {
       <p class="muted drawio-status" role="status">{{ 'drawio.loading' | translate }}</p>
@@ -69,6 +84,17 @@ enum DrawioState {
       </div>
     }
     <iframe #frame class="drawio-frame" [src]="src()" [title]="'drawio.frameTitle' | translate"></iframe>
+    @if (saveError(); as error) {
+      <div class="toast is-error" role="alert">
+        <span>{{ error | translate }}</span>
+        <button type="button" class="btn btn-g btn-small" (click)="saveError.set(null)">{{ 'common.close' | translate }}</button>
+      </div>
+    } @else if (removed() > 0) {
+      <div class="toast" role="status">{{ 'drawio.removed' | translate }}</div>
+    }
+    @if (confirmingReset()) {
+      <app-confirm-dialog [title]="'drawio.reset.confirmTitle' | translate" [text]="'drawio.reset.confirmText' | translate" [confirmLabel]="'drawio.reset.confirmAction' | translate" [busy]="resetting()" (confirm)="confirmReset()" (cancel)="confirmingReset.set(false)" />
+    }
   `,
 })
 export class DrawioViewComponent {
@@ -79,10 +105,16 @@ export class DrawioViewComponent {
 
   // O .drawio do desenho de origem, carregado quando o editor avisa que iniciou (e de novo se mudar).
   readonly xml = input.required<string>();
+  // O que o editor guarda (Fase 65): o levantamento, a origem do desenho e a linha de base. Sem o levantamento, nada se grava.
+  readonly surveyId = input<string | null>(null);
+  readonly source = input<DrawioSource>(DrawioSource.Graph);
+  readonly baseline = input<DrawioBaseline | null>(null);
   readonly selectNode = output<string>();
   // O editor gravou uma mudança (autosave): a Fase 65 guarda a posição por aqui.
   readonly changed = output<string>();
   readonly directionChange = output<LayoutDirection>();
+  // O "Reorganizar" apagou o guardado: a página gera o desenho do código de novo e manda para o editor (reload).
+  readonly reorganized = output<void>();
 
   protected readonly LayoutDirection = LayoutDirection;
   protected readonly State = DrawioState;
@@ -92,6 +124,20 @@ export class DrawioViewComponent {
   private current: string | null = null;
   private initialized = false;
   private timer?: ReturnType<typeof setTimeout>;
+  private readonly api = inject(RastroApi);
+  protected readonly saved = signal(false);
+  protected readonly saveError = signal<string | null>(null);
+  protected readonly removed = signal(0);
+  protected readonly confirmingReset = signal(false);
+  protected readonly resetting = signal(false);
+  private saveTimer?: ReturnType<typeof setTimeout>;
+  private savedTimer?: ReturnType<typeof setTimeout>;
+  private pendingXml: string | null = null;
+  // O último XML enviado ao editor: o mesmo XML de novo não recarrega, e a assinatura do que já está guardado não regrava.
+  private sentXml: string | null = null;
+  private savedSignature = '';
+  private knownPositions = new Map<string, { x: number; y: number }>();
+  private knownTexts = new Map<string, string>();
 
   private readonly dark = computed(() => {
     const choice = this.theme.choice();
@@ -108,7 +154,22 @@ export class DrawioViewComponent {
   });
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearTimeout(this.timer));
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.timer);
+      clearTimeout(this.savedTimer);
+      // O que o último autosave deixou pendente é gravado antes de a tela sair.
+      if (this.pendingXml) this.flush();
+      clearTimeout(this.saveTimer);
+    });
+    // A linha de base nova (o desenho foi gerado de novo): o que vale como carregado muda.
+    effect(() => {
+      const baseline = this.baseline();
+      untracked(() => {
+        this.knownPositions = new Map(baseline?.positions ?? []);
+        this.knownTexts = new Map(baseline?.texts ?? []);
+        this.removed.set(0);
+      });
+    });
     // Trocar idioma ou tema recarrega o editor: volta a "carregando" e espera o novo init.
     effect(() => {
       this.src();
@@ -123,7 +184,7 @@ export class DrawioViewComponent {
       const xml = this.xml();
       untracked(() => {
         this.current = xml;
-        if (this.initialized) this.sendLoad(xml);
+        if (this.initialized && xml !== this.sentXml) this.sendLoad(xml);
       });
     });
   }
@@ -146,6 +207,7 @@ export class DrawioViewComponent {
         if (typeof message['xml'] === 'string') {
           this.current = message['xml'];
           this.changed.emit(message['xml']);
+          this.scheduleSave(message['xml']);
         }
         break;
       case DRAWIO_EVENT.RastroSelect:
@@ -170,8 +232,114 @@ export class DrawioViewComponent {
     this.frame().nativeElement.contentWindow?.postMessage(JSON.stringify(message), window.location.origin);
   }
 
+  // Carrega um XML novo no editor, mesmo igual ao anterior (o Reorganizar volta ao desenho gerado).
+  reload(xml: string): void {
+    this.current = xml;
+    this.sendLoad(xml);
+  }
+
   private sendLoad(xml: string): void {
+    clearTimeout(this.saveTimer);
+    this.pendingXml = null;
+    this.sentXml = xml;
+    this.savedSignature = signatureOf(readDrawioChanges(xml));
     this.post({ action: DRAWIO_ACTION_LOAD, xml, autosave: 1 });
+  }
+
+  // ---- Guardar o que o usuário mexeu (Fase 65) ----
+
+  private scheduleSave(xml: string): void {
+    if (!this.surveyId()) return;
+    this.pendingXml = xml;
+    clearTimeout(this.saveTimer);
+    this.saveTimer = setTimeout(() => this.flush(), DRAWIO_SAVE_DEBOUNCE_MS);
+  }
+
+  private flush(): void {
+    clearTimeout(this.saveTimer);
+    const xml = this.pendingXml;
+    const id = this.surveyId();
+    this.pendingXml = null;
+    const changes = xml && id ? readDrawioChanges(xml) : null;
+    if (!changes || !id) return;
+    const source = this.source();
+    const baseline = this.baseline();
+    // Os passos do fluxo vêm do código: apagar o balão no editor não apaga nada, e ele volta na próxima abertura.
+    this.removed.set(baseline ? [...baseline.ids].filter((rastroId) => !changes.texts.has(rastroId)).length : 0);
+    const signature = signatureOf(changes);
+    if (signature !== this.savedSignature) {
+      this.api.saveDrawioLayout(id, source, { cells: changes.cells, annotations: changes.annotations }).subscribe({
+        next: () => {
+          this.savedSignature = signature;
+          this.announceSaved();
+        },
+        error: () => this.saveError.set(SAVE_FAILED_KEY),
+      });
+    }
+    if (source === DrawioSource.Business && baseline) this.saveBusiness(id, changes, baseline);
+  }
+
+  // Origem visão de negócio: o balão que mudou de lugar também muda na visão (a coordenada do .drawio volta para a da
+  // tela pela diferença guardada ao gerar) e o texto editado vai como texto do usuário.
+  private saveBusiness(id: string, changes: NonNullable<ReturnType<typeof readDrawioChanges>>, baseline: DrawioBaseline): void {
+    const shift = baseline.shift;
+    const steps: StepPosition[] = [];
+    if (shift) {
+      for (const cell of changes.cells) {
+        const known = this.knownPositions.get(cell.rastroId);
+        if (known && (known.x !== cell.x || known.y !== cell.y)) {
+          steps.push({ stepId: cell.rastroId, x: snapToGrid(cell.x - shift.x), y: snapToGrid(cell.y - shift.y) });
+        }
+      }
+    }
+    if (steps.length > 0) {
+      const moved = new Map(changes.cells.map((c) => [c.rastroId, { x: c.x, y: c.y }]));
+      this.api.saveBusinessLayout(id, { steps, edges: [] }).subscribe({
+        next: () => {
+          for (const step of steps) this.knownPositions.set(step.stepId, moved.get(step.stepId)!);
+          this.announceSaved();
+        },
+        error: () => this.saveError.set(SAVE_FAILED_KEY),
+      });
+    }
+    for (const [stepId, text] of changes.texts) {
+      if (text === '' || !this.knownTexts.has(stepId) || this.knownTexts.get(stepId) === text) continue;
+      this.api.saveBusinessLabel(id, stepId, text).subscribe({
+        next: () => {
+          this.knownTexts.set(stepId, text);
+          this.announceSaved();
+        },
+        error: () => this.saveError.set(SAVE_FAILED_KEY),
+      });
+    }
+  }
+
+  private announceSaved(): void {
+    this.saveError.set(null);
+    this.saved.set(true);
+    clearTimeout(this.savedTimer);
+    this.savedTimer = setTimeout(() => this.saved.set(false), DRAWIO_SAVED_MS);
+  }
+
+  protected confirmReset(): void {
+    const id = this.surveyId();
+    if (!id) return;
+    clearTimeout(this.saveTimer);
+    this.pendingXml = null;
+    this.resetting.set(true);
+    this.api.resetDrawioLayout(id, this.source()).subscribe({
+      next: () => {
+        this.resetting.set(false);
+        this.confirmingReset.set(false);
+        this.saveError.set(null);
+        this.reorganized.emit();
+      },
+      error: () => {
+        this.resetting.set(false);
+        this.confirmingReset.set(false);
+        this.saveError.set(RESET_FAILED_KEY);
+      },
+    });
   }
 
   private armTimeout(): void {
@@ -180,6 +348,11 @@ export class DrawioViewComponent {
       if (this.state() === DrawioState.Loading) this.state.set(DrawioState.Failed);
     }, DRAWIO_LOAD_TIMEOUT_MS);
   }
+}
+
+// O que vai para a API de um XML: as posições e as anotações (a mesma leitura dá a mesma assinatura).
+function signatureOf(changes: ReturnType<typeof readDrawioChanges>): string {
+  return changes ? JSON.stringify([changes.cells, changes.annotations]) : '';
 }
 
 // Mensagem do editor: texto JSON (ou objeto) com o campo "event"; qualquer outra coisa é ignorada.

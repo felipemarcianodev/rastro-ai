@@ -148,3 +148,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 64 | A visão de negócio aberta no draw.io dentro do Rastro, com a barra de desenhos no alto e o editor em português, sem rede | [fase-64/01-visao-de-negocio-no-drawio.png](fase-64/01-visao-de-negocio-no-drawio.png) |
 | Fase 64 | O grafo horizontal no draw.io (o desenho inteiro enquadrado) | [fase-64/02-grafo-no-drawio.png](fase-64/02-grafo-no-drawio.png) |
 | Fase 64 | Clique num balão do draw.io abre o painel do nó do Rastro | [fase-64/03-clique-no-balao-abre-o-painel.png](fase-64/03-clique-no-balao-abre-o-painel.png) |
+| Fase 65 | O balão de início arrastado no draw.io e uma forma solta (anotação), com o aviso "Desenho salvo" | [fase-65/01-arrastado-e-anotado-no-drawio.png](fase-65/01-arrastado-e-anotado-no-drawio.png) |
+| Fase 65 | O draw.io reaberto: o balão no lugar novo e a anotação de volta | [fase-65/02-reaberto-com-posicao-e-anotacao.png](fase-65/02-reaberto-com-posicao-e-anotacao.png) |
+| Fase 65 | A visão de negócio com a posição movida no draw.io e o botão Reorganizar | [fase-65/03-visao-de-negocio-com-a-posicao-do-drawio.png](fase-65/03-visao-de-negocio-com-a-posicao-do-drawio.png) |

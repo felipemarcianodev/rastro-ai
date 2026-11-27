@@ -234,6 +234,35 @@ namespace Rastro.Infrastructure.Migrations
                     b.ToTable("business_layouts", (string)null);
                 });
 
+            modelBuilder.Entity("Rastro.Core.Business.DrawioLayout", b =>
+                {
+                    b.Property<Guid>("SurveyId")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("survey_id");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("source");
+
+                    b.Property<string>("AnnotationsXml")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("annotations_xml");
+
+                    b.Property<string>("CellsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT")
+                        .HasColumnName("cells_json");
+
+                    b.Property<long>("UpdatedAt")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("SurveyId", "Source")
+                        .HasName("pk_drawio_layouts");
+
+                    b.ToTable("drawio_layouts", (string)null);
+                });
+
             modelBuilder.Entity("Rastro.Core.Surveys.NodeNote", b =>
                 {
                     b.Property<Guid>("Id")
@@ -753,6 +782,16 @@ namespace Rastro.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_business_labels_surveys_survey_id");
+                });
+
+            modelBuilder.Entity("Rastro.Core.Business.DrawioLayout", b =>
+                {
+                    b.HasOne("Rastro.Core.Surveys.Survey", null)
+                        .WithMany()
+                        .HasForeignKey("SurveyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_drawio_layouts_surveys_survey_id");
                 });
 
             modelBuilder.Entity("Rastro.Core.Surveys.SurveyArchitecture", b =>

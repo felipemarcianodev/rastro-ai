@@ -32,6 +32,7 @@
   <data name="Cli.Window.StillUp" xml:space="preserve"><value>Rastro sigue en marcha: abre {0} en el navegador. Ctrl+C para salir.</value></data>
   <data name="Cli.Window.FailedReason" xml:space="preserve"><value>la ventana no se pudo abrir (detalle en el registro)</value></data>
   <data name="BusinessLayout.Invalid" xml:space="preserve"><value>Layout no válido: hasta 500 pasos y 500 enlaces, hasta 20 puntos de quiebre por enlace, números finitos entre -100000 y 100000 e ids de paso de hasta 64 caracteres.</value></data>
+  <data name="DrawioLayout.Invalid" xml:space="preserve"><value>Dibujo no válido: hasta 2000 globos, números finitos entre -100000 y 100000 (ancho y alto mayores que 0 y hasta 10000), ids de globo de hasta 128 caracteres y anotaciones en XML bien formado de hasta 512 KB, solo con celdas sueltas.</value></data>
   <data name="BusinessLabel.Invalid" xml:space="preserve"><value>Texto no válido: use una sola línea de hasta 120 caracteres.</value></data>
   <data name="BusinessKind.Invalid" xml:space="preserve"><value>Tipo de paso no válido.</value></data>
   <data name="BusinessStep.NotFound" xml:space="preserve"><value>Paso no encontrado en la vista de negocio de este rastreo.</value></data>

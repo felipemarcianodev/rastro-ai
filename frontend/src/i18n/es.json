@@ -2005,6 +2005,18 @@
   "drawio": {
     "loading": "Abriendo el editor draw.io…",
     "failed": "El editor draw.io no respondió.",
-    "frameTitle": "Editor draw.io"
+    "frameTitle": "Editor draw.io",
+    "saved": "Dibujo guardado",
+    "saveFailed": "No se pudo guardar el dibujo. El próximo cambio lo intenta de nuevo.",
+    "removed": "Los pasos del flujo vienen del código: el globo vuelve cuando el dibujo se abra de nuevo.",
+    "loadFailed": "No se pudo cargar lo que estaba guardado de este dibujo. Se abrió sin guardar, para no borrar lo que ya está guardado.",
+    "reset": {
+      "button": "Reorganizar",
+      "title": "Vuelve al dibujo generado del código, sin las posiciones y las anotaciones guardadas",
+      "confirmTitle": "¿Reorganizar el dibujo en draw.io?",
+      "confirmText": "Las posiciones de los globos y las anotaciones que dibujaste aquí vuelven al dibujo generado del código. No se puede deshacer.",
+      "confirmAction": "Reorganizar",
+      "failed": "No se pudo reorganizar. Inténtalo de nuevo."
+    }
   }
 }

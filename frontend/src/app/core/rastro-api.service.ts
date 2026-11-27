@@ -11,6 +11,9 @@ import {
   BoardLayout,
   BoardSummary,
   DrawioStatus,
+  DrawioLayout,
+  DrawioLayoutBody,
+  DrawioSource,
   BoardUpdateRequest,
   BusinessFlow,
   BusinessKind,
@@ -281,6 +284,20 @@ export class RastroApi {
 
   resetBusinessLayout(id: string): Observable<void> {
     return this.http.delete<void>(`/api/surveys/${id}/business/layout`);
+  }
+
+  // O que se guarda do desenho aberto no draw.io (Fase 65), por levantamento e por origem: as posições dos balões e as
+  // anotações. O "Reorganizar" apaga e volta ao desenho gerado do código.
+  drawioLayout(id: string, source: DrawioSource): Observable<DrawioLayout> {
+    return this.http.get<DrawioLayout>(`/api/surveys/${id}/drawio/${source}`);
+  }
+
+  saveDrawioLayout(id: string, source: DrawioSource, body: DrawioLayoutBody): Observable<void> {
+    return this.http.put<void>(`/api/surveys/${id}/drawio/${source}`, body);
+  }
+
+  resetDrawioLayout(id: string, source: DrawioSource): Observable<void> {
+    return this.http.delete<void>(`/api/surveys/${id}/drawio/${source}`);
   }
 
   // Quadros de fluxos (Fase 60).

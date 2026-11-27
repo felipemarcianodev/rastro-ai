@@ -1060,6 +1060,34 @@ export interface BusinessLayout {
   edges: EdgePoints[];
 }
 
+// Desenho de origem do .drawio aberto no editor (Fase 65): o que se guarda é por levantamento e por origem.
+export enum DrawioSource {
+  Graph = 0,
+  Map = 1,
+  Business = 2,
+}
+
+// Posição de um balão do .drawio (o que tem rastroId).
+export interface DrawioCell {
+  rastroId: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+// Posições dos balões e anotações desenhadas no editor (células sem rastroId, em XML de <root> com <mxCell>).
+export interface DrawioLayout {
+  cells: DrawioCell[];
+  annotations: string | null;
+  updatedAt?: string | null;
+}
+
+export interface DrawioLayoutBody {
+  cells: DrawioCell[];
+  annotations: string | null;
+}
+
 // Quadro de fluxos (Fase 60): vários levantamentos lado a lado, cada um numa faixa. A posição é por quadro, e o
 // id do passo é por levantamento: cada item leva o levantamento da faixa.
 export const BOARD_MAX_LANES = 12;

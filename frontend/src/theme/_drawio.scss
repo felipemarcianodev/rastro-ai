@@ -18,6 +18,20 @@ app-drawio-view {
   background: var(--surface);
 }
 
+// Retorno discreto de "Desenho salvo": não ocupa espaço quando vazio.
+.drawio-saved {
+  margin-left: var(--space-2);
+  font-size: var(--text-xs);
+
+  &:empty {
+    display: none;
+  }
+}
+
+.drawio-bar .btn-small {
+  margin-left: var(--space-3);
+}
+
 .drawio-frame {
   flex: 1;
   min-height: 0;

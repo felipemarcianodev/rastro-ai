@@ -2005,6 +2005,18 @@
   "drawio": {
     "loading": "Abrindo o editor draw.io…",
     "failed": "O editor draw.io não respondeu.",
-    "frameTitle": "Editor draw.io"
+    "frameTitle": "Editor draw.io",
+    "saved": "Desenho salvo",
+    "saveFailed": "Não deu para salvar o desenho. A próxima alteração tenta de novo.",
+    "removed": "Os passos do fluxo vêm do código: o balão volta quando o desenho abrir de novo.",
+    "loadFailed": "Não deu para carregar o que estava salvo deste desenho. Ele abriu sem gravar, para não apagar o que já está guardado.",
+    "reset": {
+      "button": "Reorganizar",
+      "title": "Volta ao desenho gerado do código, sem as posições e as anotações guardadas",
+      "confirmTitle": "Reorganizar o desenho no draw.io?",
+      "confirmText": "As posições dos balões e as anotações que você desenhou aqui voltam ao desenho gerado do código. Não dá para desfazer.",
+      "confirmAction": "Reorganizar",
+      "failed": "Não deu para reorganizar. Tente de novo."
+    }
   }
 }

@@ -34,6 +34,8 @@ import {
   FlowGraph,
   NodeKind,
   CrossFlowFinding,
+  DrawioCell,
+  DrawioSource,
   SURVEY_STATUS_LABEL_KEY,
   aiCan,
   SURVEY_STATUS_SLUG,
@@ -53,6 +55,7 @@ import { SurveyPageTitle } from '../../core/page-title.strategy';
 import { FlowCanvasComponent } from './flow-canvas.component';
 import { ConsolidatedViewComponent } from './consolidated-view.component';
 import { DRAWIO_MIME } from '../../core/graph/drawio';
+import { DrawioBaseline, applyDrawioLayout, drawioBaseline, drawioShift } from '../../core/graph/drawio-merge';
 import { HostLinkOf, hostLinkResolver } from '../../core/graph/link-template';
 import { MERMAID_MIME, SVG_MIME, mermaidFenced } from '../../core/graph/export';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
@@ -79,6 +82,17 @@ const EXPORT_MESSAGE_MS = 4000;
 // Abertura direta no draw.io: quantas vezes tentar (o desenho de origem pode ainda estar carregando) e o intervalo.
 const DRAWIO_OPEN_ATTEMPTS = 10;
 const DRAWIO_OPEN_RETRY_MS = 500;
+// Desenho de origem do draw.io (a tela que gerou o XML) e o que se guarda por origem (Fase 65). Os três arranjos do
+// grafo guardam juntos: o draw.io parte do mesmo XML do grafo.
+const DRAWIO_SOURCE_OF: Record<LayoutDirection, DrawioSource> = {
+  [LayoutDirection.Timeline]: DrawioSource.Graph,
+  [LayoutDirection.Horizontal]: DrawioSource.Graph,
+  [LayoutDirection.Tree]: DrawioSource.Graph,
+  [LayoutDirection.Map]: DrawioSource.Map,
+  [LayoutDirection.Business]: DrawioSource.Business,
+  [LayoutDirection.Consolidated]: DrawioSource.Graph,
+  [LayoutDirection.Drawio]: DrawioSource.Graph,
+};
 // Aviso do menu de exportar e do menu do nó; a ação opcional (ex.: "Ver") fecha o aviso ao ser usada.
 interface ExportMessage {
   ok: boolean;
@@ -180,6 +194,13 @@ export class SurveyPage {
   // Draw.io dentro do Rastro (Fase 64): o sétimo desenho, no lugar do canvas, aberto com o XML do desenho de origem.
   protected readonly showDrawio = computed(() => this.drawing() === LayoutDirection.Drawio && !this.editing() && !this.comparison());
   protected readonly drawioXml = signal('');
+  // Fase 65: de onde o desenho veio, o que ele tinha ao abrir e o XML gerado do código (o Reorganizar volta a ele). Sem
+  // o levantamento (a leitura do guardado falhou), o editor abre sem gravar para não apagar o que já estava guardado.
+  protected readonly drawioSource = signal(DrawioSource.Graph);
+  protected readonly drawioBaseline = signal<DrawioBaseline | null>(null);
+  protected readonly drawioSaveId = signal<string | null>(null);
+  private drawioGenerated = '';
+  private drawioShiftOf: { x: number; y: number } | null = null;
   private readonly drawioStatus = inject(DrawioStatusService);
   // Abertura por ?desenho=drawio ou pela escolha guardada: abre o desenho de origem e troca quando ele tem XML.
   private readonly drawioPending = signal(false);
@@ -516,10 +537,43 @@ export class SurveyPage {
     });
   }
 
+  // Entra no draw.io: lê o guardado desta origem (posições e anotações) e aplica no XML gerado antes de abrir o editor.
   private enterDrawio(origin: LayoutDirection, xml: string): void {
     saveDrawioOrigin(origin);
+    const id = this.detail()?.survey.id ?? null;
+    const source = DRAWIO_SOURCE_OF[origin];
+    // A diferença entre a coordenada do .drawio e a da tela só existe enquanto a visão de negócio está desenhada.
+    const boxes = origin === LayoutDirection.Business ? this.businessView()?.exportData()?.geometry.boxes : undefined;
+    const shift = boxes ? drawioShift(xml, boxes) : null;
+    const open = (layout: { cells: DrawioCell[]; annotations: string | null } | null) => {
+      const merged = layout ? applyDrawioLayout(xml, layout) : xml;
+      this.drawioGenerated = xml;
+      this.drawioShiftOf = shift;
+      this.drawioSource.set(source);
+      this.drawioBaseline.set(drawioBaseline(xml, merged, shift));
+      this.drawioSaveId.set(layout ? id : null);
+      this.drawioXml.set(merged);
+      this.applyDirection(LayoutDirection.Drawio);
+    };
+    if (!id) {
+      open(null);
+      return;
+    }
+    this.api.drawioLayout(id, source).subscribe({
+      next: (layout) => open({ cells: layout?.cells ?? [], annotations: layout?.annotations ?? null }),
+      error: () => {
+        open(null);
+        this.showExport({ ok: false, text: this.i18n.t('drawio.loadFailed') });
+      },
+    });
+  }
+
+  // Reorganizar: o guardado já foi apagado, e o editor volta ao desenho gerado do código.
+  protected onDrawioReorganized(): void {
+    const xml = this.drawioGenerated;
+    this.drawioBaseline.set(drawioBaseline(xml, xml, this.drawioShiftOf));
+    this.drawioFrame()?.reload(xml);
     this.drawioXml.set(xml);
-    this.applyDirection(LayoutDirection.Drawio);
   }
 
   // O botão do canvas já gravou o draw.io como escolha: se a troca não acontece, a escolha volta ao desenho da tela.

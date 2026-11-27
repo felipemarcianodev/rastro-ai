@@ -746,11 +746,16 @@ describe('SurveyPage', () => {
 
 
   // Responde o que a visão de negócio e o draw.io pedem à API do teste.
+  // `drawioSaved` é o que a API devolve do guardado do draw.io (Fase 65); `drawioFails` faz a leitura dele falhar.
+  let drawioSaved: { cells: { rastroId: string; x: number; y: number; width: number; height: number }[]; annotations: string | null } = { cells: [], annotations: null };
+  let drawioFails = false;
   function answerDrawing(): void {
     const http = TestBed.inject(HttpTestingController);
     http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(BUSINESS_FLOW));
     http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
     http.match((r) => r.url.endsWith('/business/layout')).forEach((r) => r.flush({ steps: [], edges: [] }));
+    // O guardado do draw.io é pedido depois que os links chegam (a abertura gera o XML primeiro).
+    http.match((r) => r.method === 'GET' && /\/drawio\/\d$/.test(r.url)).forEach((r) => (drawioFails ? r.flush(null, { status: 500, statusText: 'Erro' }) : r.flush({ ...drawioSaved, updatedAt: null })));
     lastFixture!.detectChanges();
   }
 
@@ -779,6 +784,91 @@ describe('SurveyPage', () => {
     expect(xml).toContain('rastroNode="m0"');
     localStorage.removeItem('rastro.layoutDirection');
     localStorage.removeItem('rastro.drawioOrigin');
+  });
+
+  // Abre o draw.io a partir da visão de negócio, com o guardado que o teste definiu.
+  async function openDrawioFromBusiness(): Promise<HTMLElement> {
+    TestBed.resetTestingModule();
+    drawioInstalled = true;
+    graphOverride = graphWith(1, 0);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+    pickDrawing(el, LayoutDirection.Drawio);
+    answerDrawing();
+    return el;
+  }
+
+  function page(): { drawioXml(): string; drawioSaveId(): string | null; drawioBaseline(): { shift: { x: number; y: number } | null; ids: Set<string> } | null } {
+    return lastFixture!.componentInstance as never;
+  }
+
+  const DRAWIO_NOTE = '<mxCell id="abc-1" value="Anotação do teste" style="text;html=1" vertex="1" parent="1"><mxGeometry x="300" y="120" width="120" height="30" as="geometry"/></mxCell>';
+
+  // WEB-DRIO-023 (Fase 65)
+  it('drawio_aoAbrir_aplicaOGuardadoDaOrigemNoXml_eGuardaADiferencaDaVisaoDeNegocio', async () => {
+    drawioSaved = { cells: [{ rastroId: 'b2', x: 777, y: 555, width: 260, height: 130 }, { rastroId: 'sumiu', x: 1, y: 1, width: 1, height: 1 }], annotations: `<root>${DRAWIO_NOTE}</root>` };
+    try {
+      const el = await openDrawioFromBusiness();
+      const http = TestBed.inject(HttpTestingController);
+
+      expect(el.querySelector('app-drawio-view')).not.toBeNull();
+      const xml = page().drawioXml();
+      expect(xml).toContain('Anotação do teste');
+      expect(xml).toContain('x="777" y="555" width="260" height="130"');
+      expect(xml).not.toContain('sumiu');
+      expect(page().drawioSaveId()).toBe('s1');
+      expect([...page().drawioBaseline()!.ids]).toEqual(['b1', 'b2']);
+      // O toDrawio leva o desenho para a margem de 40 px: a diferença para a tela é guardada.
+      expect(page().drawioBaseline()!.shift).not.toBeNull();
+      http.match(() => true);
+    } finally {
+      drawioSaved = { cells: [], annotations: null };
+      localStorage.removeItem('rastro.layoutDirection');
+      localStorage.removeItem('rastro.drawioOrigin');
+    }
+  });
+
+  // WEB-DRIO-024 (Fase 65)
+  it('drawio_leituraDoGuardadoFalha_abreSemGravar_eAvisa', async () => {
+    drawioFails = true;
+    try {
+      const el = await openDrawioFromBusiness();
+
+      expect(el.querySelector('app-drawio-view')).not.toBeNull();
+      expect(page().drawioXml()).not.toContain('Anotação do teste');
+      // Sem o guardado lido, gravar apagaria o que já estava lá: o editor abre sem levantamento para gravar.
+      expect(page().drawioSaveId()).toBeNull();
+      expect(el.querySelector('.drawio-bar button:not(.drawing-switcher-item)')).toBeNull();
+    } finally {
+      drawioFails = false;
+      localStorage.removeItem('rastro.layoutDirection');
+      localStorage.removeItem('rastro.drawioOrigin');
+    }
+  });
+
+  // WEB-DRIO-025 (Fase 65)
+  it('drawio_reorganizar_apagaOGuardadoEVoltaAoDesenhoGerado', async () => {
+    drawioSaved = { cells: [], annotations: `<root>${DRAWIO_NOTE}</root>` };
+    try {
+      const el = await openDrawioFromBusiness();
+      const http = TestBed.inject(HttpTestingController);
+      expect(page().drawioXml()).toContain('Anotação do teste');
+
+      el.querySelector<HTMLButtonElement>('.drawio-bar button:not(.drawing-switcher-item)')!.click();
+      lastFixture!.detectChanges();
+      el.querySelector<HTMLButtonElement>('app-confirm-dialog .btn-danger')!.click();
+      http.expectOne((r) => r.method === 'DELETE' && r.url === '/api/surveys/s1/drawio/2').flush(null);
+      lastFixture!.detectChanges();
+
+      expect(page().drawioXml()).not.toContain('Anotação do teste');
+      expect(page().drawioXml()).toContain('rastroNode="m0"');
+    } finally {
+      drawioSaved = { cells: [], annotations: null };
+      localStorage.removeItem('rastro.layoutDirection');
+      localStorage.removeItem('rastro.drawioOrigin');
+    }
   });
 
   // WEB-DRIO-021 (Fase 64)
