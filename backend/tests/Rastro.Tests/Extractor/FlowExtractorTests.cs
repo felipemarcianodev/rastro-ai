@@ -250,4 +250,15 @@ public class FlowExtractorTests
 
         Assert.Contains("nenhum método chamado NaoExiste", error.Message);
     }
+
+    [Fact] // EXT-FLOW-019
+    public async Task Extrair_TipoDeRetorno_SemTaskEmVoltaENuloEmTask()
+    {
+        var g = await ExtractAsync();
+
+        // A visão de negócio usa o tipo para reconhecer a recusa por um auxiliar (`return Error(...)`).
+        Assert.Null(g.Nodes.Single(n => n.Id == g.EntryNodeId).ReturnType);
+        Assert.Equal("List", Node(g, "AlertJob.LoadDue", NodeKind.Method).ReturnType);
+        Assert.Equal("Boolean", Node(g, "AlertJob.IsDue", NodeKind.Method).ReturnType);
+    }
 }
