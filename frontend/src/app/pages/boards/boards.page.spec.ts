@@ -66,6 +66,8 @@ describe('BoardsPage (Fase 60)', () => {
   // WEB-BOARD-051B (D-06)
   it('semQuadros_oVazioTemBotaoQueAbreODialogoELinkParaALista', () => {
     const { fixture, el, button, http } = setupList([]);
+    // Um primário por tela: o "Novo quadro" do cabeçalho (achado no passo de UX da release 0.11.0).
+    expect(el.querySelectorAll('.btn-p').length).toBe(1);
 
     button('Escolher levantamentos').click();
     http.expectOne('/api/surveys').flush([survey('s1')]);
