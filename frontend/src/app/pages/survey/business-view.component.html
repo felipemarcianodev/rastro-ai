@@ -49,7 +49,7 @@
   <div class="biz-stage" role="group" [attr.aria-label]="'business.canvasLabel' | translate" [attr.aria-describedby]="keysHelpId" (keydown)="onStageKey($event)">
     <f-flow fDraggable class="flow-host biz-host" [class.is-panning]="panning()" [hCellSize]="grid" [vCellSize]="grid" [fCellSizeWhileDragging]="true"
       [fNodeMoveTrigger]="nodeMoveTrigger" [fCanvasMoveTrigger]="canvasMoveTrigger" (fConnectionWaypointsChanged)="bent($event)" (fFullRendered)="onFullRendered()">
-      <f-canvas fZoom [fZoomMinimum]="zoomMin" [fZoomMaximum]="zoomMax" (fCanvasChange)="scale.set($event.scale)">
+      <f-canvas fZoom [fZoomMinimum]="zoomMin" [fZoomMaximum]="zoomMax" (fCanvasChange)="onCanvasChange($event.scale)">
         <ng-container ngProjectAs="[fConnections]">
           @for (edge of edges(); track edge.index) {
             <f-connection

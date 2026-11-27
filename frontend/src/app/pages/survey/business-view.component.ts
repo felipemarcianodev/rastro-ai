@@ -514,23 +514,41 @@ export class BusinessViewComponent {
 
   // Enquadra o quadro inteiro, sem passar de 100%.
   protected fit(): void {
-    this.canvas()?.fitToScreen({ x: FIT_PADDING, y: FIT_PADDING }, true, false, 1);
-    this.syncScale();
+    this.fitClamped(true);
   }
 
   // Abre já enquadrado.
   protected onFullRendered(): void {
     if (this.fitted) return;
     this.fitted = true;
-    this.canvas()?.fitToScreen({ x: FIT_PADDING, y: FIT_PADDING }, false, false, 1);
+    this.fitClamped(false);
+  }
+
+  private fitClamped(animated: boolean): void {
+    this.canvas()?.fitToScreen({ x: FIT_PADDING, y: FIT_PADDING }, animated, false, 1);
     this.syncScale();
+  }
+
+  // O enquadramento do Foblex não respeita o fZoomMinimum: numa área pequena (360 px, com o painel de baixo aberto)
+  // chegava a 2% e o desenho virava um ponto (visto no passo de UX da release 0.11.0). Ele se aplica um quadro
+  // depois da chamada, então a correção fica aqui, na mudança do canvas: abaixo do mínimo, volta para o mínimo e a
+  // pessoa move a tela.
+  protected onCanvasChange(scale: number): void {
+    const canvas = this.canvas();
+    if (canvas && scale < ZOOM_MIN) {
+      canvas.setScale(ZOOM_MIN);
+      this.scale.set(ZOOM_MIN);
+      return;
+    }
+    this.scale.set(scale);
   }
 
   private syncScale(): void {
     clearTimeout(this.scaleTimer);
     this.scaleTimer = setTimeout(() => {
       const canvas = this.canvas();
-      if (canvas) this.scale.set(canvas.getScale());
+      // O enquadramento não avisa pelo fCanvasChange: o mínimo se confere também aqui (ver onCanvasChange).
+      if (canvas) this.onCanvasChange(canvas.getScale());
     }, SYNC_SCALE_DELAY_MS);
   }
 

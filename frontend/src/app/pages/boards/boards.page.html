@@ -38,7 +38,8 @@
       <p>{{ 'boards.empty.none' | translate }}</p>
       <p class="muted">{{ 'boards.empty.hint' | translate }}</p>
       <div class="board-empty-actions">
-        <button type="button" class="btn btn-p" (click)="openCreate()" [attr.aria-busy]="opening()" [attr.aria-disabled]="opening() || null">{{ 'boards.empty.choose' | translate }}</button>
+        <!-- Secundário: o primário da tela é o "Novo quadro" do cabeçalho (um primário por tela). -->
+        <button type="button" class="btn btn-g" (click)="openCreate()" [attr.aria-busy]="opening()" [attr.aria-disabled]="opening() || null">{{ 'boards.empty.choose' | translate }}</button>
       </div>
       <p class="muted">{{ 'boards.empty.noSurvey' | translate }} <a routerLink="/">{{ 'boards.empty.surveysLink' | translate }}</a>.</p>
     </div>
