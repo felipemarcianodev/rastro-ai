@@ -275,4 +275,9 @@
   <data name="business.rule.lt" xml:space="preserve"><value>es menor que</value></data>
   <data name="business.rule.lte" xml:space="preserve"><value>es como máximo</value></data>
   <data name="business.rule.empty" xml:space="preserve"><value>vacío</value></data>
+  <data name="Branch.Catch" xml:space="preserve"><value>Si falla</value></data>
+  <data name="Branch.CatchType" xml:space="preserve"><value>Si falla ({0})</value></data>
+  <data name="Branch.Finally" xml:space="preserve"><value>Siempre al final</value></data>
+  <data name="Branch.Case" xml:space="preserve"><value>Caso {0}</value></data>
+  <data name="Branch.Or" xml:space="preserve"><value>{0} o {1}</value></data>
 </root>

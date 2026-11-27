@@ -31,7 +31,7 @@ public class FlowRuleExtractorTests
 
         var rule = Assert.Single(rules, r => r.Condition == "meio");
         Assert.Equal(RuleEffect.SideEffect, rule.Effect);
-        Assert.Equal("Quando meio é Cartao, chama GatewayCartao.Estornar.", rule.Text);
+        Assert.Equal("Quando meio é cartao, chama GatewayCartao.Estornar.", rule.Text);
         Assert.Equal("pagamentos", rule.Sources[0].Lane);
     }
 
@@ -101,9 +101,9 @@ public class FlowRuleExtractorTests
     }
 
     [Theory] // AI-LANG-005
-    [InlineData(UiLanguage.English, "If pedido.Enviado, ends the flow with an exception.", "When meio is Cartao, calls GatewayCartao.Estornar.")]
-    [InlineData(UiLanguage.Portuguese, "Se pedido.Enviado, encerra o fluxo com exceção.", "Quando meio é Cartao, chama GatewayCartao.Estornar.")]
-    [InlineData(UiLanguage.Spanish, "Si pedido.Enviado, termina el flujo con una excepción.", "Cuando meio es Cartao, llama a GatewayCartao.Estornar.")]
+    [InlineData(UiLanguage.English, "If pedido.Enviado, ends the flow with an exception.", "When meio is cartao, calls GatewayCartao.Estornar.")]
+    [InlineData(UiLanguage.Portuguese, "Se pedido.Enviado, encerra o fluxo com exceção.", "Quando meio é cartao, chama GatewayCartao.Estornar.")]
+    [InlineData(UiLanguage.Spanish, "Si pedido.Enviado, termina el flujo con una excepción.", "Cuando meio es cartao, llama a GatewayCartao.Estornar.")]
     public void Extract_TextoGeradoSaiNoIdiomaDoPedido(UiLanguage language, string blocks, string sideEffect)
     {
         var graph = FlowMapBuilderTests.Loja();

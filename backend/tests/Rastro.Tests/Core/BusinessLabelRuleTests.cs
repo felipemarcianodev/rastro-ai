@@ -113,7 +113,7 @@ public class BusinessLabelRuleTests
         Assert.DoesNotContain(antes.Steps, s => s.NodeId == "m:svc");
         var passo = Assert.Single(depois.Steps, s => s.NodeId == "m:svc");
         Assert.Equal(BusinessKind.Step, passo.Kind);
-        Assert.Equal("Svc.Calcular", passo.Label);
+        Assert.Equal("Calcular", passo.Label);
         Assert.Contains(depois.Edges, e => e.To == passo.Id);
     }
 
@@ -165,5 +165,50 @@ public class BusinessLabelRuleTests
         var fim = flow.Steps[^1];
         Assert.Equal(BusinessKind.Rejection, fim.Kind);
         Assert.Equal(BusinessFlowBuilder.StepIdOf(SurveyId, "end|m:e"), fim.Id);
+    }
+
+    [Theory] // CORE-BIZ-041
+    [InlineData("SettingsController.SetLanguage", "Set language")]
+    [InlineData("PedidoService.CancelarPedidoAsync", "Cancelar pedido")]
+    [InlineData("Svc.Calcular", "Calcular")]
+    [InlineData("Servico.Externo.GetCPF", "Get CPF")]
+    [InlineData("POST /api/pedidos", "POST /api/pedidos")]
+    public void MethodText_RotuloDeMetodo_NomeDoMetodoEmPalavras(string rotulo, string esperado)
+    {
+        Assert.Equal(esperado, BusinessLabelRule.MethodText(rotulo));
+    }
+
+    [Fact] // CORE-BIZ-042
+    public void Derive_InicioEPassoComum_MostramONomeDoMetodoEmPalavras()
+    {
+        var graph = G(
+            [M("m:e", "SettingsController.SetLanguage", NodeKind.Entry), M("m:db", "Repo.GravarPedidoAsync") with { Db = [new DbAccess("pedidos", DbOperation.Insert, 20)] }],
+            [E("m:e", "m:db", 1)]);
+
+        var flow = Derive(graph);
+
+        Assert.Equal("Set language", flow.Steps.First(s => s.Kind == BusinessKind.Start).Label);
+        Assert.Equal("Gravar pedido", Assert.Single(flow.Steps, s => s.NodeId == "m:db").Label);
+    }
+
+    [Theory] // CORE-BIZ-043
+    [InlineData("catch (IOException)", UiLanguage.Portuguese, "Se der erro (IOException)")]
+    [InlineData("catch", UiLanguage.Portuguese, "Se der erro")]
+    [InlineData("finally", UiLanguage.Portuguese, "Sempre ao final")]
+    [InlineData("catch (IOException)", UiLanguage.English, "If it fails (IOException)")]
+    [InlineData("finally", UiLanguage.English, "Always at the end")]
+    [InlineData("catch (IOException)", UiLanguage.Spanish, "Si falla (IOException)")]
+    [InlineData("finally", UiLanguage.Spanish, "Siempre al final")]
+    [InlineData("case RepositoryConfigOutcome.FolderNotFound", UiLanguage.Portuguese, "Caso folder not found")]
+    [InlineData("case RepositoryConfigOutcome.FolderNotFound", UiLanguage.English, "Case folder not found")]
+    [InlineData("case RepositoryConfigOutcome.FolderNotFound", UiLanguage.Spanish, "Caso folder not found")]
+    [InlineData("case 1", UiLanguage.Portuguese, "Caso 1")]
+    [InlineData("case \"x\"", UiLanguage.English, "Case \"x\"")]
+    [InlineData("case A | case B", UiLanguage.Portuguese, "Caso a ou b")]
+    [InlineData("then", UiLanguage.Portuguese, "then")]
+    [InlineData("default", UiLanguage.English, "default")]
+    public void Plain_RotuloDeRamo_TextoDeLeituraNosTresIdiomas(string rotulo, UiLanguage idioma, string esperado)
+    {
+        Assert.Equal(esperado, BranchText.Plain(rotulo, idioma));
     }
 }

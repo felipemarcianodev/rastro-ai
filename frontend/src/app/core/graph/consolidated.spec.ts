@@ -135,7 +135,7 @@ describe('visão consolidada (Fase 27)', () => {
 
     expect(text).not.toContain(id('try'));
     expect(line(text, `${id('begin')} --> ${id('work')}`)).toBeTrue();
-    expect(line(text, `${id('begin')} -- "catch (Exception)" --> ${id('fail')}`)).toBeTrue();
+    expect(line(text, `${id('begin')} -- "Se der erro (Exception)" --> ${id('fail')}`)).toBeTrue();
   });
 
   // CORE-DIA-007

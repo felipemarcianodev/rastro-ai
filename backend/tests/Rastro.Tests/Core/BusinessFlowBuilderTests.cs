@@ -87,7 +87,7 @@ public class BusinessFlowBuilderTests
 
         var start = Assert.Single(flow.Steps);
         Assert.Equal(BusinessKind.Start, start.Kind);
-        Assert.Equal("Ctrl.Listar", start.Label);
+        Assert.Equal("Listar", start.Label);
         Assert.Empty(flow.Edges);
         Assert.Equal(LabelOrigin.Rule, start.LabelOrigin);
         Assert.Equal(LabelState.Proposed, start.LabelState);
@@ -122,7 +122,7 @@ public class BusinessFlowBuilderTests
 
         Assert.Equal("Pedido enviado?", Step(flow, "if:1").Label);
         Assert.Equal("Rejected: enviado", Step(flow, "ret:1").Label);
-        Assert.Equal("Repo.Gravar", Step(flow, "m:db").Label);
+        Assert.Equal("Gravar", Step(flow, "m:db").Label);
         Assert.Equal("Sends email", Step(flow, "m:mail").Label);
         Assert.Equal("End", EndStep(flow).Label);
     }

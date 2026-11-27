@@ -573,6 +573,9 @@
       "branchDefault": "Nos outros casos",
       "branchCase": "Caso {value}",
       "branchOr": "{text} ou {part}",
+      "branchCatch": "Se der erro",
+      "branchCatchType": "Se der erro ({type})",
+      "branchFinally": "Sempre ao final",
       "branchOtherCases": "outros casos"
     },
     "origin": {
@@ -607,7 +610,6 @@
     "stepAriaStates": "{text} ({states})",
     "linksUnavailable": "Links do repositório indisponíveis",
     "proposed": "proposto",
-    "proposedTitle": "Texto proposto, ainda não confirmado por você",
     "inferred": "inferido",
     "inferredTitle": "Este passo veio de uma ligação inferida, a conferir",
     "panelLabel": "Painel do passo-chave",
@@ -723,7 +725,9 @@
       "agent": "agente",
       "user": "editado"
     },
-    "stepAriaOrigin": "texto {origin}"
+    "stepAriaOrigin": "texto {origin}",
+    "proposedHint": "Proposto {origin}. Confirme no painel do passo.",
+    "focusSectionTitle": "Sai da visão de negócio e abre o grafo só com o trecho deste passo"
   },
   "nodePanel": {
     "closeAria": "Fechar o passo e voltar à visão geral",
@@ -1068,7 +1072,8 @@
       "hint": "Escolha pelo menos {min} para criar um quadro.",
       "create": "Criar quadro",
       "clear": "Limpar escolha",
-      "label": "Escolher {entryPoint} para o quadro"
+      "label": "Escolher {entryPoint} para o quadro",
+      "tip": "Marque dois ou mais levantamentos prontos para juntar num quadro"
     }
   },
   "survey": {
@@ -1142,11 +1147,16 @@
       "downloadMermaid": "Baixar como Mermaid (.mmd)",
       "drawio": "Baixar para o draw.io (.drawio)",
       "c4": "Diagramas C4 (Structurizr DSL)",
-      "notDrawn": "O grafo ainda não está desenhado. Espere ele aparecer e tente de novo.",
       "started": "Download iniciado: {file}",
       "imageFailed": "Não exportou a imagem: {message} Tente o SVG.",
       "onlyGraph": "Disponível no grafo e na visão de negócio",
-      "startedNoLinks": "Download iniciado: {file}. Saiu sem os links para o código (o servidor não respondeu)."
+      "startedNoLinks": "Download iniciado: {file}. Saiu sem os links para o código (o servidor não respondeu).",
+      "notDrawnGraph": "O grafo ainda não está desenhado. Espere ele aparecer e tente de novo.",
+      "notDrawnBusiness": "A visão de negócio ainda não está desenhada. Espere ela aparecer e tente de novo.",
+      "notDrawnMap": "O mapa ainda não está desenhado. Espere ele aparecer e tente de novo.",
+      "sliceSuffix": "-recorte",
+      "filePrefix": "rastro-",
+      "fileFallback": "fluxo"
     },
     "edit": {
       "button": "Editar fluxo",
@@ -1850,7 +1860,10 @@
     "loading": "Carregando os quadros…",
     "empty": {
       "none": "Nenhum quadro ainda.",
-      "hint": "Crie um quadro escolhendo dois ou mais levantamentos prontos."
+      "hint": "Crie um quadro escolhendo um ou mais levantamentos prontos.",
+      "choose": "Escolher levantamentos",
+      "noSurvey": "Ainda não tem um levantamento pronto? Levante um fluxo na",
+      "surveysLink": "lista de levantamentos"
     },
     "laneCount": "{count, plural, =1 {# faixa} other {# faixas}}",
     "updated": "atualizado em {date}",
@@ -1886,11 +1899,12 @@
       "choose": "Quadro",
       "newOption": "Criar um quadro novo",
       "newName": "Nome do quadro novo",
-      "submit": "Adicionar",
       "adding": "Adicionando…",
       "done": "Adicionado ao quadro \"{name}\".",
       "open": "Abrir o quadro",
-      "noBoards": "Você ainda não tem quadros. Crie o primeiro aqui."
+      "noBoards": "Você ainda não tem quadros. Crie o primeiro aqui.",
+      "submitTo": "Adicionar a \"{name}\"",
+      "submitNew": "Criar quadro e adicionar"
     },
     "opening": "Abrindo…"
   },

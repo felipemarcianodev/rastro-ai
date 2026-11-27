@@ -30,9 +30,18 @@ describe('texto em português na linha do tempo (Fase 20)', () => {
   it('cabeçalho do galho', () => {
     expect(plainBranch('then')).toBe('Se sim');
     expect(plainBranch('else')).toBe('Se não');
-    expect(plainBranch('catch (Exception)')).toBe('catch (Exception)');
-    expect(plainBranch('finally')).toBe('finally');
-    expect(plainBranch('case Status.Pending | case Status.New')).toBe('Caso Status.Pending ou Status.New');
+    expect(plainBranch('catch (Exception)')).toBe('Se der erro (Exception)');
+    expect(plainBranch('catch')).toBe('Se der erro');
+    expect(plainBranch('finally')).toBe('Sempre ao final');
+    expect(plainBranch('case Status.Pending | case Status.New')).toBe('Caso pending ou new');
     expect(plainBranch('default')).toBe('Nos outros casos');
+  });
+
+  it('case mostra só o último nome em palavras; literal fica como está (D-10)', () => {
+    expect(plainBranch('case RepositoryConfigOutcome.FolderNotFound')).toBe('Caso folder not found');
+    expect(plainBranch('case 1')).toBe('Caso 1');
+    expect(plainBranch('case "x"')).toBe('Caso "x"');
+    expect(plainBranch('case A | case B')).toBe('Caso a ou b');
+    expect(plainBranch('case Status.Pending | default')).toBe('Caso pending ou outros casos');
   });
 });

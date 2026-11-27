@@ -186,7 +186,7 @@ public static class BusinessFlowBuilder
             if (!_nodes.TryGetValue(_graph.EntryNodeId, out var entry))
                 return new BusinessFlow(_source.SurveyId, _graph.SchemaVersion, [], [], 0);
 
-            var start = new KeyItem(entry, BusinessKind.Start, Clip(entry.Label), new StepRef(entry.Location, entry.System));
+            var start = new KeyItem(entry, BusinessKind.Start, StepText(entry), new StepRef(entry.Location, entry.System));
             _onPath.Add(entry.Id);
             var body = Children(entry.Id, new Ctx(0, false));
             _onPath.Remove(entry.Id);
@@ -236,7 +236,7 @@ public static class BusinessFlowBuilder
                 switch (items[i])
                 {
                     case VisitItem visit when _overlay.KindOverrides.TryGetValue(KeyOf(visit.Node.Id), out var kind):
-                        items[i] = new KeyItem(visit.Node, kind, Clip(visit.Node.Label),
+                        items[i] = new KeyItem(visit.Node, kind, StepText(visit.Node),
                             new StepRef(visit.Node.Location, visit.Node.System)) { Inferred = visit.Inferred };
                         break;
                     case ScopeItem scope:
@@ -380,7 +380,7 @@ public static class BusinessFlowBuilder
             if (IsDbWrite(child))
             {
                 // R6: escrita no banco.
-                items.Add(new KeyItem(child, BusinessKind.Step, Clip(child.Label), new StepRef(child.Location, child.System)) { Inferred = inferred });
+                items.Add(new KeyItem(child, BusinessKind.Step, StepText(child), new StepRef(child.Location, child.System)) { Inferred = inferred });
             }
             else
             {
@@ -401,10 +401,10 @@ public static class BusinessFlowBuilder
 
             if (child.Kind == NodeKind.External && symbol is not null
                 && WritePrefixes.Any(p => MethodName(symbol).StartsWith(p, StringComparison.Ordinal)))
-                return new KeyItem(child, BusinessKind.Step, Clip(child.Label), reference) { Inferred = inferred };
+                return new KeyItem(child, BusinessKind.Step, StepText(child), reference) { Inferred = inferred };
 
             if (IsDbWrite(child))
-                return new KeyItem(child, BusinessKind.Step, Clip(child.Label), reference) { Inferred = inferred };
+                return new KeyItem(child, BusinessKind.Step, StepText(child), reference) { Inferred = inferred };
 
             return new VisitItem(child) { Inferred = inferred };
         }
@@ -681,6 +681,12 @@ public static class BusinessFlowBuilder
             return Clip(LocalizedText.Get(KeyDecision, _language, human));
         }
 
+        // D-05: passo de método (Início, passo comum) mostra o nome do método em palavras; o resto, o rótulo do nó.
+        private static string StepText(FlowNode node) =>
+            Clip(node.Kind is NodeKind.Method or NodeKind.Entry or NodeKind.External
+                ? BusinessLabelRule.MethodText(node.Label)
+                : node.Label);
+
         private static string Clip(string text) =>
             text.Length <= MaxLabelLength ? text : text[..(MaxLabelLength - Ellipsis.Length)] + Ellipsis;
 
@@ -916,7 +922,7 @@ public static class BusinessFlowBuilder
                 else if (fork.Shown)
                 {
                     // Tipo confirmado pelo usuário num nó que a regra não mostraria: entra como passo, sem ramos rotulados.
-                    bases = Emit(new KeyItem(fork.Node, BusinessKind.Step, Clip(fork.Node.Label),
+                    bases = Emit(new KeyItem(fork.Node, BusinessKind.Step, StepText(fork.Node),
                         new StepRef(fork.Node.Location, fork.Node.System)) { Inferred = fork.Inferred }, frontier);
                 }
                 else

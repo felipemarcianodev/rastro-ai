@@ -16,6 +16,7 @@ public static class BusinessLabelRule
 
     private const string Ellipsis = "…";
     private const string KeyPrefix = "business.rule.";
+    private const string AsyncSuffix = "Async";
 
     private static readonly Regex WordBoundary = new(
         @"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[_\-]+", RegexOptions.CultureInvariant);
@@ -55,6 +56,32 @@ public static class BusinessLabelRule
             if (head.Length > 0 && head.Length < MaxBody) return head + Ellipsis;
         }
         return Cut(full);
+    }
+
+    private static readonly Regex MethodPath = new(@"^@?[A-Za-z_]\w*(?:\.@?[A-Za-z_]\w*)*$", RegexOptions.CultureInvariant);
+
+    // D-05: o texto por regra do Início e do passo comum é o nome do método em palavras, sem o tipo e sem o sufixo
+    // Async ("SettingsController.SetLanguage" vira "Set language", "CancelarPedidoAsync" vira "Cancelar pedido").
+    // Rótulo que não é um caminho de identificadores (rota, condição) volta como veio.
+    public static string MethodText(string label)
+    {
+        var text = (label ?? string.Empty).Trim();
+        if (!MethodPath.IsMatch(text)) return text;
+        var name = text[(text.LastIndexOf('.') + 1)..].TrimStart('@');
+        if (name.Length > AsyncSuffix.Length && name.EndsWith(AsyncSuffix, StringComparison.Ordinal))
+            name = name[..^AsyncSuffix.Length];
+        var words = Humanized(name);
+        return words.Length == 0 ? text : char.ToUpper(words[0], CultureInfo.InvariantCulture) + words[1..];
+    }
+
+    // O último nome de um valor de case em palavras ("Outcome.FolderNotFound" vira "folder not found");
+    // literal e padrão ficam como estão (D-10).
+    public static string CaseValueText(string value)
+    {
+        var text = (value ?? string.Empty).Trim();
+        if (!MethodPath.IsMatch(text) || text is "true" or "false" or "null" or "undefined") return text;
+        var words = Humanized(text[(text.LastIndexOf('.') + 1)..].TrimStart('@'));
+        return words.Length == 0 ? text : words;
     }
 
     private static string Cut(string text) =>
