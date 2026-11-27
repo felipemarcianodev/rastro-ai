@@ -60,7 +60,19 @@ describe('BoardsPage (Fase 60)', () => {
     const { el } = setupList([]);
 
     expect(el.querySelector('.board-empty')!.textContent).toContain('Nenhum quadro ainda');
-    expect(el.querySelector('.board-empty')!.textContent).toContain('dois ou mais levantamentos');
+    expect(el.querySelector('.board-empty')!.textContent).toContain('um ou mais levantamentos');
+  });
+
+  // WEB-BOARD-051B (D-06)
+  it('semQuadros_oVazioTemBotaoQueAbreODialogoELinkParaALista', () => {
+    const { fixture, el, button, http } = setupList([]);
+
+    button('Escolher levantamentos').click();
+    http.expectOne('/api/surveys').flush([survey('s1')]);
+    fixture.detectChanges();
+
+    expect(el.querySelector('app-board-create-dialog')).not.toBeNull();
+    expect(el.querySelector('.board-empty a')!.getAttribute('href')).toBe('/');
   });
 
   // WEB-BOARD-052
@@ -380,5 +392,22 @@ describe('AddToBoardDialogComponent (Fase 60)', () => {
     fixture.detectChanges();
 
     expect(el.querySelector('.field-error[role="alert"]')!.textContent).toContain('já está no quadro');
+  });
+
+  // WEB-BOARD-061 (D-08)
+  it('botaoDeEnviar_dizOQuadroDeDestinoEMudaParaCriarQuandoANovaEstaEscolhida', async () => {
+    const { fixture, el, http } = open();
+    http.expectOne('/api/boards').flush([summary('b1', 'Compra'), summary('b2', 'Estorno')]);
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const submit = () => el.querySelector<HTMLButtonElement>('button[type="submit"]')!.textContent!.trim();
+    expect(submit()).toBe('Adicionar a "Compra"');
+    const select = el.querySelector<HTMLSelectElement>('#add-board-choice')!;
+    select.value = 'new';
+    select.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    expect(submit()).toBe('Criar quadro e adicionar');
   });
 });

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using Rastro.Core.Business;
 using Rastro.Core.Localization;
 
 namespace Rastro.Core.Graph;
@@ -144,7 +145,7 @@ public static partial class FlowRuleExtractor
                 return string.Join("; ", effects) + ".";
 
             default:
-                return RuleText.Get("Rule.Decides", language, subject, string.Join(", ", outcomes.Select(o => o.Label)));
+                return RuleText.Get("Rule.Decides", language, subject, string.Join(", ", outcomes.Select(o => BranchText.Plain(o.Label, language))));
         }
     }
 
@@ -152,7 +153,9 @@ public static partial class FlowRuleExtractor
     {
         "then" => RuleText.Get("Rule.WhenThen", language, condition),
         "else" => RuleText.Get("Rule.WhenElse", language, condition),
-        _ when label.StartsWith("case ", StringComparison.Ordinal) => RuleText.Get("Rule.WhenCase", language, condition, label[5..]),
+        _ when label.StartsWith("case ", StringComparison.Ordinal) => RuleText.Get("Rule.WhenCase", language, condition, BusinessLabelRule.CaseValueText(label[5..])),
+        "finally" => BranchText.Plain(label, language),
+        _ when label.StartsWith("catch", StringComparison.Ordinal) => BranchText.Plain(label, language),
         _ => RuleText.Get("Rule.WhenOther", language, label)
     };
 

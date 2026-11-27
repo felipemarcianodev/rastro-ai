@@ -573,6 +573,9 @@
       "branchDefault": "In all other cases",
       "branchCase": "Case {value}",
       "branchOr": "{text} or {part}",
+      "branchCatch": "If it fails",
+      "branchCatchType": "If it fails ({type})",
+      "branchFinally": "Always at the end",
       "branchOtherCases": "other cases"
     },
     "origin": {
@@ -607,7 +610,6 @@
     "stepAriaStates": "{text} ({states})",
     "linksUnavailable": "Repository links unavailable",
     "proposed": "proposed",
-    "proposedTitle": "Proposed text, not yet confirmed by you",
     "inferred": "inferred",
     "inferredTitle": "This step came from an inferred link, to be reviewed",
     "panelLabel": "Key step panel",
@@ -723,7 +725,9 @@
       "agent": "agent",
       "user": "edited"
     },
-    "stepAriaOrigin": "text {origin}"
+    "stepAriaOrigin": "text {origin}",
+    "proposedHint": "Proposed {origin}. Confirm in the step panel.",
+    "focusSectionTitle": "Leaves the business view and opens the graph with only this step's section"
   },
   "nodePanel": {
     "closeAria": "Close the step and go back to the overview",
@@ -1068,7 +1072,8 @@
       "hint": "Pick at least {min} to create a board.",
       "create": "Create board",
       "clear": "Clear picks",
-      "label": "Pick {entryPoint} for the board"
+      "label": "Pick {entryPoint} for the board",
+      "tip": "Tick two or more ready surveys to join them on a board"
     }
   },
   "survey": {
@@ -1142,11 +1147,16 @@
       "downloadMermaid": "Download as Mermaid (.mmd)",
       "drawio": "Download for draw.io (.drawio)",
       "c4": "C4 diagrams (Structurizr DSL)",
-      "notDrawn": "The graph is not drawn yet. Wait for it to appear and try again.",
       "started": "Download started: {file}",
       "imageFailed": "Could not export the image: {message} Try the SVG.",
       "onlyGraph": "Available in the graph and the business view",
-      "startedNoLinks": "Download started: {file}. It has no links to the code (the server did not respond)."
+      "startedNoLinks": "Download started: {file}. It has no links to the code (the server did not respond).",
+      "notDrawnGraph": "The graph is not drawn yet. Wait for it to appear and try again.",
+      "notDrawnBusiness": "The business view is not drawn yet. Wait for it to appear and try again.",
+      "notDrawnMap": "The map is not drawn yet. Wait for it to appear and try again.",
+      "sliceSuffix": "-slice",
+      "filePrefix": "rastro-",
+      "fileFallback": "flow"
     },
     "edit": {
       "button": "Edit flow",
@@ -1850,7 +1860,10 @@
     "loading": "Loading the boards…",
     "empty": {
       "none": "No boards yet.",
-      "hint": "Create a board by picking two or more ready surveys."
+      "hint": "Create a board by choosing one or more ready surveys.",
+      "choose": "Choose surveys",
+      "noSurvey": "No ready survey yet? Trace a flow in the",
+      "surveysLink": "survey list"
     },
     "laneCount": "{count, plural, =1 {# lane} other {# lanes}}",
     "updated": "updated {date}",
@@ -1886,11 +1899,12 @@
       "choose": "Board",
       "newOption": "Create a new board",
       "newName": "New board name",
-      "submit": "Add",
       "adding": "Adding…",
       "done": "Added to the board \"{name}\".",
       "open": "Open the board",
-      "noBoards": "You have no boards yet. Create the first one here."
+      "noBoards": "You have no boards yet. Create the first one here.",
+      "submitTo": "Add to \"{name}\"",
+      "submitNew": "Create board and add"
     },
     "opening": "Opening…"
   },

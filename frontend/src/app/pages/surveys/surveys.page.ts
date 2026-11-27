@@ -273,6 +273,8 @@ export class SurveysPage implements OnInit {
   protected readonly boardDialogOpen = signal(false);
   protected readonly Completed = SurveyStatus.Completed;
   protected readonly minBoardPick = MIN_BOARD_PICK;
+  // Levantamentos prontos: só eles podem ir para um quadro (a dica de juntar aparece com dois ou mais).
+  protected readonly completedCount = computed(() => (this.surveys() ?? []).filter((s) => s.status === SurveyStatus.Completed).length);
 
   protected isPicked(id: string): boolean {
     return this.picked().includes(id);

@@ -66,7 +66,7 @@ describe('linha do tempo (Fase 20)', () => {
     expect(send.x).toBeGreaterThan(loop.x + loop.width);
     const tries = blocks.filter((b) => b.kind === BlockKind.Try);
     expect(tries.map((b) => b.id)).toEqual(['try']);
-    expect(tries[0].sections.map((s) => s.label)).toEqual(['catch (Exception)']);
+    expect(tries[0].sections.map((s) => s.label)).toEqual(['Se der erro (Exception)']);
   });
 
   it('galho com "else" ganha cabeçalho; o "then" sozinho, não', () => {
@@ -103,7 +103,7 @@ describe('linha do tempo (Fase 20)', () => {
     expect(depths.get('send')).toBe(0);
     expect(depths.get('query')).toBe(1);
     expect(outline.map((i) => i.of)).toEqual(['begin', 'try']);
-    expect(outline[1].children.find((i) => i.of === 'failure')?.head).toBe('catch (Exception)');
+    expect(outline[1].children.find((i) => i.of === 'failure')?.head).toBe('Se der erro (Exception)');
   });
 
   it('o laço ganha moldura com "Repete ..." em volta do que se repete (Fase 23)', () => {

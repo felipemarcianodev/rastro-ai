@@ -391,6 +391,44 @@ describe('BusinessViewComponent (Fase 57)', () => {
     expect(host.focused).toEqual(['n3']);
   });
 
+  // WEB-BIZV-070
+  it('painel_verNoGrafoEOUnicoPrimarioEVerSoEsteTrechoExplicaNoTitle', async () => {
+    const { fixture, el, node } = await setup();
+
+    node('s2').click();
+    fixture.detectChanges();
+    const foot = el.querySelector('.biz-panel-foot')!;
+    const primaries = Array.from(el.querySelectorAll('.biz-panel .btn-p'));
+    const only = foot.querySelectorAll('button')[1];
+
+    expect(primaries.length).toBe(1);
+    expect(primaries[0]).toBe(foot.querySelectorAll('button')[0]);
+    expect(only.getAttribute('title')).toBeTruthy();
+    expect(only.getAttribute('title')).not.toBe(foot.querySelectorAll('button')[0].getAttribute('title'));
+  });
+
+  // WEB-BIZV-071
+  it('seloProposto_levaADicaNoTitleENoTextoAcessivelEOTextoVisivelContinuaProposto', async () => {
+    const { fixture, el, node } = await setup();
+
+    const badge = node('s2').querySelector<HTMLElement>('.biz-badge.is-proposed')!;
+    expect(badge.getAttribute('title')).toBeTruthy();
+    expect(badge.querySelector('.visually-hidden')!.textContent).toContain(badge.getAttribute('title')!);
+    expect(badge.firstChild!.textContent).toBe('proposto');
+
+    node('s2').click();
+    fixture.detectChanges();
+    expect(el.querySelector('.biz-origin')!.getAttribute('title')).toBe(badge.getAttribute('title'));
+  });
+
+  // WEB-BIZV-072
+  it('balao_aAlturaVemDoTextoEAVariavelDeLinhasAcompanha', async () => {
+    const { node } = await setup();
+
+    const box = node('s1');
+    expect(box.style.getPropertyValue('--biz-lines')).toMatch(/^[1-6]$/);
+  });
+
   // WEB-BIZV-014
   it('selecaoDeFora_acendeOBalaoQueResumeOnoEAbreOPainel', async () => {
     const { fixture, el, host, node } = await setup();

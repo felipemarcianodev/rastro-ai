@@ -1,6 +1,6 @@
 # Plano de UX: fim do plano da visão de negócio (Fases 54 a 61)
 
-**Status:** Fases A, B e C EXECUTADAS no branch `feat/ux-visao-de-negocio` (registro no fim); a Fase D espera a aprovação do dono, item a item.
+**Status:** EXECUTADO. Fases A, B e C no branch `feat/ux-visao-de-negocio` (PR #138); Fase D, aprovada pelo dono em 2026-11-26 (os dez itens), no branch `feat/ux-fase-d` (registro no fim).
 **Data:** 2026-11-26.
 **Escopo:** tudo o que as Fases 54 a 61 criaram ou mudaram na tela: a visão de negócio (`business-view.component.*`, `_business.scss`), os quadros (`boards.page`, `board.page`, `board-create-dialog`, `add-to-board-dialog`, a criação pela lista de levantamentos) e o que mudou na página do levantamento (seletor de desenho, menu Exportar com draw.io, PNG, SVG e Mermaid, "Adicionar a um quadro", "Mostrar na visão de negócio" no menu do nó). Substitui as Fases B e C que sobraram do [plano de UX da Fase 57](plano-ux-2026-11-26-visao-de-negocio.md); a Fase D de lá continua valendo e foi repetida aqui.
 
@@ -172,7 +172,7 @@ Nada daqui entra sem o dono aprovar o item.
 - [x] **Fase A** (visão de negócio e tema): UX-FIM-001 a 012, 153, 154 e 155.
 - [x] **Fase B** (quadros e levantamento): UX-FIM-101 a 114, 151 e 152.
 - [x] **Fase C** (risco médio): UX-FIM-201 a 216.
-- [ ] **Fase D**: os dez itens esperam o dono.
+- [x] **Fase D**: os dez itens, aprovados pelo dono em 2026-11-26 ("pode fazer os 10 itens de risco"). Registro abaixo, em "Registro da Fase D".
 
 O que mudou em relação ao plano, e por quê:
 - **Círculos de dobra (001):** aparecem só com o mouse na ligação. A primeira versão também os mostrava com o foco no desenho, mas o clique num balão deixa o foco lá, e os círculos voltavam a poluir tudo (visto no navegador). Pelo teclado não se arrasta dobra.
@@ -190,7 +190,23 @@ Verificado no navegador, com clique de verdade (Chrome pelo Playwright, `element
 Não verificado no navegador: arrastar a faixa (destino destacado), "Desfazer" do texto, selo de origem no balão (sem IA nesta máquina), a criação do quadro com a navegação cancelada (coberta por teste) e o leitor de tela.
 
 Pendências descobertas:
-- [ ] A visão de negócio em 360 px: o seletor de desenho transborda, e o painel de baixo e o painel lateral se empilham (print 08).
-- [ ] A recusa da janela ao abrir um link (host fora da lista) não volta para a tela: a ponte (`DesktopBridge.openExternal`) não devolve resposta.
+- [x] A visão de negócio em 360 px: o seletor de desenho transbordava (resolvido no PR #139); o painel de baixo e o painel lateral continuam se empilhando em tela estreita.
+- [x] A recusa da janela ao abrir um link (host fora da lista) não voltava para a tela (resolvido no PR #139).
 
 Testes: frontend 812/812, build sem aviso. O backend não mudou.
+
+## Registro da Fase D (2026-11-26)
+
+O dono aprovou os dez itens de uma vez. Nas perguntas com duas saídas, a escolhida foi a que muda menos o que já existe:
+- **D-01:** "Ver no grafo" é o botão primário do painel do passo; "Ver só este trecho" tem a dica "Sai da visão de negócio e abre o grafo só com o trecho deste passo".
+- **D-02:** `catch` e `finally` aparecem como "Se der erro (Tipo)" (ou "Se der erro", sem tipo) e "Sempre ao final" no grafo, no mapa, na visão de negócio, nas exportações, no texto das regras, no Mermaid do documento da mudança e na saída do MCP. O código e o rótulo bruto do grafo editável não mudam. No servidor, o texto sai de `BranchText`, com o idioma como parâmetro.
+- **D-03:** o balão da visão de negócio cresce com o texto, até 6 linhas (estimativa determinística pela quantidade de caracteres, porque o layout é calculado antes de medir a tela); passou disso, corta com reticências e o texto inteiro fica na dica. As exportações usam a mesma geometria.
+- **D-04:** o selo "proposto" tem a dica "Proposto pela regra (pela IA, pelo agente). Confirme no painel do passo."; o texto do selo não mudou.
+- **D-05:** o texto por regra do início e do passo comum é o nome do método em palavras ("Set language", "Cancelar pedido"), sem o tipo e sem o `Async`. Vale também para a gravação no banco e para o passo de tipo trocado. Ficam como estavam a chamada entre sistemas ("VERBO rota"), a notificação, a recusa, a decisão e o Fim.
+- **D-06:** a lista de quadros vazia tem o botão "Escolher levantamentos" e o link para a lista de levantamentos, e o texto diz "um ou mais"; a lista de levantamentos mostra a dica "Marque dois ou mais levantamentos prontos para juntar num quadro" quando há dois ou mais prontos.
+- **D-07:** na tela do quadro, "Adicionar levantamento" é o botão primário e "Excluir quadro" fica no fim da barra, afastado dos outros.
+- **D-08:** o botão do diálogo "Adicionar a um quadro" diz o destino: "Adicionar a", seguido do nome do quadro entre aspas, ou "Criar quadro e adicionar".
+- **D-09:** o aviso de desenho que ainda não apareceu cita o desenho ativo (grafo, visão de negócio ou mapa); o prefixo, o sufixo de recorte e o nome padrão do arquivo exportado saem da tradução. "Abrir no VS Code" do menu do nó ficou como estava: a pergunta partia de que o link seguia o editor configurado, mas o menu e o painel do nó abrem sempre no VS Code (`vscode://`); o modelo configurável só vale na visão de negócio. Trocar o texto deixaria o menu menos exato e diferente do painel. Fazer o grafo seguir o editor configurado fica como pendência.
+- **D-10:** o rótulo do caso do `switch` mostra só o último nome em palavras ("Caso folder not found"); valor literal fica como está, e vários casos viram "Caso a ou b". O texto das regras segue a mesma forma: o valor do caso aparece em palavras minúsculas, como o nome vem do código.
+
+Testes: backend e frontend no registro do PR da Fase D.

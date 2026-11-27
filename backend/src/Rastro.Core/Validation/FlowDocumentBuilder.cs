@@ -128,7 +128,7 @@ public static class FlowDocumentBuilder
         }
         foreach (var edge in flow.Edges.Where(e => keys.ContainsKey(e.From) && keys.ContainsKey(e.To)))
         {
-            var label = edge.Label ?? (edge.Http is null ? null : $"{edge.Http.Method} {edge.Http.Route ?? "?"}");
+            var label = (edge.Label is null ? null : BranchText.Plain(edge.Label, language)) ?? (edge.Http is null ? null : $"{edge.Http.Method} {edge.Http.Route ?? "?"}");
             text.AppendLine(label is null
                 ? $"  {keys[edge.From]} --> {keys[edge.To]}"
                 : $"  {keys[edge.From]} -->|\"{label.Replace("\"", "'")}\"| {keys[edge.To]}");

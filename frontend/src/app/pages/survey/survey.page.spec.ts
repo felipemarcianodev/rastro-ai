@@ -413,6 +413,30 @@ describe('SurveyPage', () => {
     localStorage.removeItem('rastro.layoutDirection');
   });
 
+  // WEB-UXD-009 (D-09)
+  it('baixarComoSvg_onomeDoArquivoSaiDoI18n_comPrefixoEoNomeDaEntrada', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+    spyOn(URL, 'createObjectURL').and.returnValue('blob:teste');
+    const names: string[] = [];
+    spyOn(HTMLAnchorElement.prototype, 'click').and.callFake(function (this: HTMLAnchorElement) {
+      names.push(this.download);
+    });
+
+    [...el.querySelectorAll<HTMLButtonElement>('.bar-group button')].find((b) => b.textContent!.trim() === 'Exportar')!.click();
+    lastFixture!.detectChanges();
+    [...el.querySelectorAll<HTMLButtonElement>('#export-menu button')].find((b) => b.textContent!.includes('Imagem SVG'))!.click();
+    lastFixture!.detectChanges();
+
+    expect(names.length).toBe(1);
+    expect(names[0]).toMatch(/^rastro-.+\.svg$/);
+    expect(names[0]).not.toContain('recorte');
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
   // WEB-BIZV-032 (Fase 57)
   it('baixarParaODrawio_comAVisaoDeNegocioNaTela_exportaOLosangoDaDecisao', async () => {
     TestBed.resetTestingModule();

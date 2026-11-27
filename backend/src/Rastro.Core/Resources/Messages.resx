@@ -275,4 +275,9 @@
   <data name="business.rule.lt" xml:space="preserve"><value>is less than</value></data>
   <data name="business.rule.lte" xml:space="preserve"><value>is at most</value></data>
   <data name="business.rule.empty" xml:space="preserve"><value>empty</value></data>
+  <data name="Branch.Catch" xml:space="preserve"><value>If it fails</value></data>
+  <data name="Branch.CatchType" xml:space="preserve"><value>If it fails ({0})</value></data>
+  <data name="Branch.Finally" xml:space="preserve"><value>Always at the end</value></data>
+  <data name="Branch.Case" xml:space="preserve"><value>Case {0}</value></data>
+  <data name="Branch.Or" xml:space="preserve"><value>{0} or {1}</value></data>
 </root>

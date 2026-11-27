@@ -8,7 +8,7 @@ import { LanguageService } from '../../core/i18n/i18n';
 import { flowSummaryOf } from '../../core/graph/consolidated';
 import { AiStatusService } from '../../core/ai-status.service';
 import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_LABEL_KEY, BUSINESS_KIND_ORDER, BUSINESS_KIND_SLUG, LABEL_ORIGIN_LABEL_KEY, pathTo } from '../../core/graph/business';
-import { BRANCH_LABEL_POSITION, BUSINESS_BOX, BusinessGeometry, LayoutPoint, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from '../../core/graph/business-layout';
+import { BRANCH_LABEL_POSITION, BUSINESS_BOX, BusinessGeometry, LayoutPoint, businessLayout, businessTextLines, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from '../../core/graph/business-layout';
 import { BusinessExportData, businessToMermaid, businessToSvg, readBusinessColors } from '../../core/graph/business-export';
 import { businessToDrawio } from '../../core/graph/drawio';
 import { HostLinkOf, fillLinkTemplate } from '../../core/graph/link-template';
@@ -801,6 +801,16 @@ export class BusinessViewComponent {
     const origin = this.originBadge[step.labelOrigin] ? this.i18n.t('business.stepAriaOrigin', { origin: this.i18n.t(LABEL_ORIGIN_LABEL_KEY[step.labelOrigin]) }) : null;
     const states = [this.isProposed(step) ? this.i18n.t('business.proposed') : null, step.inferred ? this.i18n.t('business.inferred') : null, origin].filter((x) => x !== null);
     return states.length > 0 ? this.i18n.t('business.stepAriaStates', { text, states: states.join(', ') }) : text;
+  }
+
+  // Linhas do texto no balão (a mesma estimativa que dá a altura do balão no layout).
+  protected textLines(step: BusinessStep): number {
+    return businessTextLines(step);
+  }
+
+  // Dica do selo "proposto": quem propôs e onde confirmar.
+  protected proposedHint(step: BusinessStep): string {
+    return this.i18n.t('business.proposedHint', { origin: this.i18n.t(LABEL_ORIGIN_LABEL_KEY[step.labelOrigin]) });
   }
 
   protected isProposed(step: BusinessStep): boolean {

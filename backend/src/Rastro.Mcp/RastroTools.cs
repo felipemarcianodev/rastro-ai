@@ -165,12 +165,12 @@ public class RastroTools(
             {
                 text.AppendLine(T("Map.Block", block.Id, block.Kind, handles.GetValueOrDefault(block.NodeId, block.NodeId), block.Title, block.NodeIds.Count));
                 foreach (var outcome in block.Outcomes ?? [])
-                    text.AppendLine(T("Map.Outcome", outcome.Label, outcome.To ?? T("Map.Continues"), outcome.Fails ? " " + T("Map.Fails") : outcome.Ends ? " " + T("Map.Ends") : string.Empty));
+                    text.AppendLine(T("Map.Outcome", BranchText.Plain(outcome.Label, Language), outcome.To ?? T("Map.Continues"), outcome.Fails ? " " + T("Map.Fails") : outcome.Ends ? " " + T("Map.Ends") : string.Empty));
             }
         }
         text.AppendLine(T("Map.Links"));
         foreach (var link in map.Links)
-            text.AppendLine($"  {link.From} -> {link.To} {link.Kind}{(link.Label is null ? string.Empty : $" ({link.Label})")}{(link.Http is null ? string.Empty : $" {link.Http.Method} {link.Http.Route ?? "?"}")}");
+            text.AppendLine($"  {link.From} -> {link.To} {link.Kind}{(link.Label is null ? string.Empty : $" ({BranchText.Plain(link.Label, Language)})")}{(link.Http is null ? string.Empty : $" {link.Http.Method} {link.Http.Route ?? "?"}")}");
         text.AppendLine(T("Map.Paths", map.PathsTruncated ? T("Map.PathsMore", map.Paths.Count) : string.Empty));
         foreach (var path in map.Paths)
             text.AppendLine($"  {path.Id}{(path.Fails ? " " + T("Map.Fails") : string.Empty)}: {string.Join(" > ", path.Blocks)}");
@@ -292,7 +292,7 @@ public class RastroTools(
         text.AppendLine(T("Business.Links"));
         foreach (var edge in flow.Edges)
         {
-            var label = edge.Label is null ? string.Empty : $" ({edge.Label})";
+            var label = edge.Label is null ? string.Empty : $" ({BranchText.Plain(edge.Label, Language)})";
             var inferred = edge.Inferred ? " " + T("Business.Inferred") : string.Empty;
             text.AppendLine($"  {stepHandle.GetValueOrDefault(edge.From, edge.From)} -> {stepHandle.GetValueOrDefault(edge.To, edge.To)}{label}{inferred}");
         }
@@ -753,7 +753,7 @@ public class RastroTools(
     private string? EdgeTag(FlowEdge edge)
     {
         var parts = new List<string>();
-        if (edge.Label is not null) parts.Add(edge.Label);
+        if (edge.Label is not null) parts.Add(BranchText.Plain(edge.Label, Language));
         if (edge.Confidence == EdgeConfidence.Inferred) parts.Add(T("Edge.Inferred"));
         if (edge.Confidence == EdgeConfidence.Confirmed) parts.Add(T("Edge.Confirmed"));
         return parts.Count == 0 ? null : string.Join(", ", parts);

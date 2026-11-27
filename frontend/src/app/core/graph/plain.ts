@@ -49,13 +49,35 @@ export function plainLabel(node: FlowNode): string | null {
 export function plainBranch(label: string): string {
   if (label === BranchLabel.Then) return tr('graph.plain.branchThen');
   if (label === BranchLabel.Else) return tr('graph.plain.branchElse');
-  // As seções do try ficam com o nome do código, como o próprio try.
-  if (label === BranchLabel.Finally || label === BranchLabel.Catch || label.startsWith(`${BranchLabel.Catch} `)) return label;
+  // As seções do try em linguagem de leitura (D-02); o rótulo bruto fica no código e no title.
+  if (label === BranchLabel.Finally) return tr('graph.plain.branchFinally');
+  if (label === BranchLabel.Catch || label.startsWith(`${BranchLabel.Catch} `)) {
+    const type = CATCH_TYPE.exec(label)?.[1]?.trim();
+    return type ? tr('graph.plain.branchCatchType', { type }) : tr('graph.plain.branchCatch');
+  }
   if (label === BranchLabel.Default) return tr('graph.plain.branchDefault');
   return label
     .split(' | ')
-    .map((part) => (part === BranchLabel.Default ? tr('graph.plain.branchOtherCases') : part.startsWith('case ') ? part.slice('case '.length) : part))
+    .map((part) => (part === BranchLabel.Default ? tr('graph.plain.branchOtherCases') : part.startsWith('case ') ? caseValue(part.slice('case '.length)) : part))
     .reduce((text, part, index) => (index === 0 ? tr('graph.plain.branchCase', { value: part }) : tr('graph.plain.branchOr', { text, part })), '');
+}
+
+const CATCH_TYPE = /^catch\s*\((.*)\)$/;
+const IDENTIFIER_PATH = /^@?[A-Za-z_]\w*(?:\.[A-Za-z_]\w*)*$/;
+const WORD_BOUNDARY = /(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|[_-]+/;
+const LITERAL_WORDS = new Set(['true', 'false', 'null', 'undefined']);
+
+// Valor do case em palavras (D-10): "RepositoryConfigOutcome.FolderNotFound" vira "folder not found".
+// Literal (1, "x", true) e padrão (> 5, Foo f when ...) ficam como estão.
+function caseValue(value: string): string {
+  const text = value.trim();
+  if (!IDENTIFIER_PATH.test(text) || LITERAL_WORDS.has(text)) return text;
+  const last = text.slice(text.lastIndexOf('.') + 1).replace(/^@/, '');
+  return last
+    .split(WORD_BOUNDARY)
+    .filter((word) => word.length > 0)
+    .map((word) => (word.length > 1 && word === word.toUpperCase() ? word : word.toLowerCase()))
+    .join(' ');
 }
 
 function inner(label: string): string {

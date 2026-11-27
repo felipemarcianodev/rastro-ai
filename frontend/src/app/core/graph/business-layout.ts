@@ -23,9 +23,43 @@ export interface BusinessGeometry {
   height: number;
 }
 
-export function businessBoxSize(step: BusinessStep): { width: number; height: number } {
+// Estimativa do texto do balão (D-03). O layout sai antes de o DOM existir, então a altura vem da conta: caracteres
+// por linha = largura útil / largura média do caractere em --text-xs (12 px). Mesmo valor do SVG exportado.
+export const BUSINESS_TEXT = {
+  charWidth: 6.4,
+  lineHeight: 16,
+  // Acima disto o texto corta com reticências no balão (o texto inteiro fica na dica).
+  maxLines: 6,
+  // Largura que o balão de passo gasta fora do texto: padding (2 x 12), glifo (18) e espaço (6).
+  stepInset: 42,
+  // No losango: padding lateral (2 x 56), glifo e espaço.
+  decisionInset: 136,
+  // Linhas que o balão-base já comporta sem crescer.
+  stepBaseLines: 2,
+  decisionBaseLines: 3,
+} as const;
+
+function boxBase(step: BusinessStep): { width: number; height: number } {
   if (step.kind !== BusinessKind.Decision) return BUSINESS_BOX.step;
   return step.label.length > BUSINESS_BOX.longLabel ? BUSINESS_BOX.decisionLong : BUSINESS_BOX.decision;
+}
+
+// Linhas que o texto do passo ocupa no balão, de 1 até o teto. Determinístico: só depende do texto e do tipo.
+export function businessTextLines(step: BusinessStep): number {
+  const decision = step.kind === BusinessKind.Decision;
+  const inset = decision ? BUSINESS_TEXT.decisionInset : BUSINESS_TEXT.stepInset;
+  const perLine = Math.max(1, Math.floor((boxBase(step).width - inset) / BUSINESS_TEXT.charWidth));
+  return Math.min(BUSINESS_TEXT.maxLines, Math.max(1, Math.ceil(step.label.length / perLine)));
+}
+
+export function businessBoxSize(step: BusinessStep): { width: number; height: number } {
+  const base = boxBase(step);
+  const lines = businessTextLines(step);
+  const decision = step.kind === BusinessKind.Decision;
+  const extra = Math.max(0, lines - (decision ? BUSINESS_TEXT.decisionBaseLines : BUSINESS_TEXT.stepBaseLines));
+  if (extra === 0) return base;
+  // O losango perde metade da altura útil nas pontas: cada linha extra pede duas de altura.
+  return { width: base.width, height: base.height + extra * BUSINESS_TEXT.lineHeight * (decision ? 2 : 1) };
 }
 
 const snap = (value: number): number => Math.ceil(value / BUSINESS_BOX.grid) * BUSINESS_BOX.grid;

@@ -647,7 +647,7 @@ export class SurveyPage {
     this.closePopovers();
     const image = this.showBusiness() ? this.businessView()?.exportSvg() : this.canvas()?.exportSvg();
     if (!image) {
-      this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
+      this.showExport({ ok: false, text: this.notDrawnText() });
       return;
     }
     const name = this.exportName();
@@ -670,7 +670,7 @@ export class SurveyPage {
     this.closePopovers();
     const text = this.showBusiness() ? this.businessView()?.exportMermaid() : this.canvas()?.exportMermaid();
     if (!text) {
-      this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
+      this.showExport({ ok: false, text: this.notDrawnText() });
       return;
     }
     if (download) {
@@ -689,7 +689,7 @@ export class SurveyPage {
     const id = this.detail()?.survey.id;
     // Sem nada desenhado, avisa já: não vale pedir os links à API.
     if (!id || !this.drawioView()) {
-      this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
+      this.showExport({ ok: false, text: this.notDrawnText() });
       return;
     }
     this.api.links(id).subscribe({
@@ -709,7 +709,7 @@ export class SurveyPage {
     const name = this.exportName();
     const xml = this.drawioView()?.exportDrawio(name, linkOf);
     if (!xml) {
-      this.showExport({ ok: false, text: this.i18n.t('survey.export.notDrawn') });
+      this.showExport({ ok: false, text: this.notDrawnText() });
       return;
     }
     downloadBlob(new Blob([xml], { type: DRAWIO_MIME }), `${name}.drawio`);
@@ -718,10 +718,16 @@ export class SurveyPage {
     this.showExport({ ok: true, text: this.i18n.t(key, { file: `${name}.drawio` }) });
   }
 
+  // Aviso de "nada desenhado" com o nome do desenho ativo (mapa, visão de negócio ou grafo).
+  private notDrawnText(): string {
+    const key = this.showMap() ? 'survey.export.notDrawnMap' : this.showBusiness() ? 'survey.export.notDrawnBusiness' : 'survey.export.notDrawnGraph';
+    return this.i18n.t(key);
+  }
+
   private exportName(): string {
     const survey = this.detail()?.survey;
-    const focus = this.focusId() ? '-recorte' : '';
-    return `rastro-${fileSlug(survey?.entryPoint ?? 'fluxo')}${focus}`;
+    const focus = this.focusId() ? this.i18n.t('survey.export.sliceSuffix') : '';
+    return `${this.i18n.t('survey.export.filePrefix')}${fileSlug(survey?.entryPoint ?? this.i18n.t('survey.export.fileFallback'))}${focus}`;
   }
 
   protected runMessageAction(message: ExportMessage): void {

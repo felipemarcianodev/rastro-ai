@@ -573,6 +573,9 @@
       "branchDefault": "En los demás casos",
       "branchCase": "Caso {value}",
       "branchOr": "{text} o {part}",
+      "branchCatch": "Si falla",
+      "branchCatchType": "Si falla ({type})",
+      "branchFinally": "Siempre al final",
       "branchOtherCases": "otros casos"
     },
     "origin": {
@@ -607,7 +610,6 @@
     "stepAriaStates": "{text} ({states})",
     "linksUnavailable": "Enlaces del repositorio no disponibles",
     "proposed": "propuesto",
-    "proposedTitle": "Texto propuesto, aún sin confirmar por ti",
     "inferred": "inferido",
     "inferredTitle": "Este paso vino de un enlace inferido, por revisar",
     "panelLabel": "Panel del paso clave",
@@ -723,7 +725,9 @@
       "agent": "agente",
       "user": "editado"
     },
-    "stepAriaOrigin": "texto {origin}"
+    "stepAriaOrigin": "texto {origin}",
+    "proposedHint": "Propuesto {origin}. Confirma en el panel del paso.",
+    "focusSectionTitle": "Sale de la visión de negocio y abre el grafo solo con el tramo de este paso"
   },
   "nodePanel": {
     "closeAria": "Cerrar el paso y volver a la vista general",
@@ -1068,7 +1072,8 @@
       "hint": "Elija al menos {min} para crear un tablero.",
       "create": "Crear tablero",
       "clear": "Limpiar elección",
-      "label": "Elegir {entryPoint} para el tablero"
+      "label": "Elegir {entryPoint} para el tablero",
+      "tip": "Marca dos o más levantamientos listos para juntarlos en un tablero"
     }
   },
   "survey": {
@@ -1142,11 +1147,16 @@
       "downloadMermaid": "Descargar como Mermaid (.mmd)",
       "drawio": "Descargar para draw.io (.drawio)",
       "c4": "Diagramas C4 (Structurizr DSL)",
-      "notDrawn": "El grafo aún no está dibujado. Espera a que aparezca e inténtalo de nuevo.",
       "started": "Descarga iniciada: {file}",
       "imageFailed": "No se pudo exportar la imagen: {message} Prueba con el SVG.",
       "onlyGraph": "Disponible en el grafo y en la vista de negocio",
-      "startedNoLinks": "Descarga iniciada: {file}. Salió sin los enlaces al código (el servidor no respondió)."
+      "startedNoLinks": "Descarga iniciada: {file}. Salió sin los enlaces al código (el servidor no respondió).",
+      "notDrawnGraph": "El grafo aún no está dibujado. Espera a que aparezca e inténtalo de nuevo.",
+      "notDrawnBusiness": "La vista de negocio aún no está dibujada. Espera a que aparezca e inténtalo de nuevo.",
+      "notDrawnMap": "El mapa aún no está dibujado. Espera a que aparezca e inténtalo de nuevo.",
+      "sliceSuffix": "-recorte",
+      "filePrefix": "rastro-",
+      "fileFallback": "flujo"
     },
     "edit": {
       "button": "Editar flujo",
@@ -1850,7 +1860,10 @@
     "loading": "Cargando los tableros…",
     "empty": {
       "none": "Ningún tablero todavía.",
-      "hint": "Cree un tablero eligiendo dos o más levantamientos listos."
+      "hint": "Crea un tablero eligiendo uno o más levantamientos listos.",
+      "choose": "Elegir levantamientos",
+      "noSurvey": "¿Aún no tienes un levantamiento listo? Levanta un flujo en la",
+      "surveysLink": "lista de levantamientos"
     },
     "laneCount": "{count, plural, =1 {# carril} other {# carriles}}",
     "updated": "actualizado el {date}",
@@ -1886,11 +1899,12 @@
       "choose": "Tablero",
       "newOption": "Crear un tablero nuevo",
       "newName": "Nombre del tablero nuevo",
-      "submit": "Agregar",
       "adding": "Agregando…",
       "done": "Agregado al tablero \"{name}\".",
       "open": "Abrir el tablero",
-      "noBoards": "Todavía no tiene tableros. Cree el primero aquí."
+      "noBoards": "Todavía no tiene tableros. Cree el primero aquí.",
+      "submitTo": "Añadir a \"{name}\"",
+      "submitNew": "Crear tablero y añadir"
     },
     "opening": "Abriendo…"
   },
