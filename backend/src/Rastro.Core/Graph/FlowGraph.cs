@@ -29,7 +29,11 @@ public record FlowNode(
     // Nulo: primeiro trecho, o do repositório do levantamento.
     string? System = null,
     // O que o método lê e grava no banco pelo EF Core (Fase 39). Nulo quando não toca o banco.
-    IReadOnlyList<DbAccess>? Db = null);
+    IReadOnlyList<DbAccess>? Db = null,
+    // Tipo que o método devolve, sem namespace e sem o Task<> em volta (BadRequestObjectResult). Só nos métodos
+    // do C# com retorno; nulo em void, Task, no Angular e nos levantamentos antigos. A visão de negócio usa para
+    // reconhecer a recusa por um auxiliar do próprio código (`return Error(código, "mensagem")`).
+    string? ReturnType = null);
 
 // Operação de um passo no banco (Fase 39), pelo método do EF: consulta, inclusão, alteração,
 // exclusão ou execução de procedure por SQL cru.

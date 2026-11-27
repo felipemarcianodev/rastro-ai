@@ -795,6 +795,41 @@ public class BusinessFlowBuilderTests
         Assert.DoesNotContain(flow.Steps, s => s.NodeId == "ret:3");
     }
 
+    [Fact]
+    public void Derive_ReturnDeAuxiliarQueSoDevolveRecusa_ViraRecusa_EAuxiliarQueDevolveOkNao()
+    {
+        // CORE-BIZ-040 (achado no levantamento de UX: `return Error(ErrorCodes.X, "texto")` com o auxiliar
+        // `Error` devolvendo `BadRequest(problem)` deixava a visão de negócio de SurveysController.Create vazia)
+        // O auxiliar chega sem filhos (o return do fim e a chamada ao framework não viram nó); só o tipo diz o que
+        // ele devolve. Sem o tipo (levantamento antigo), o return segue sem virar recusa.
+        var graph = G("m:e",
+            [
+                M("m:e", "Ctrl.A", kind: NodeKind.Entry),
+                Dec("if:1", "a"),
+                M("m:err", "Ctrl.Error", "Ctrl.Error(string, string)") with { ReturnType = "BadRequestObjectResult" },
+                Ret("ret:1", "return Error(ErrorCodes.EntryPointRequired, \"Informe o ponto de entrada.\")"),
+                Dec("if:2", "b"),
+                M("m:ok", "Ctrl.Wrap", "Ctrl.Wrap(string)") with { ReturnType = "OkObjectResult" },
+                Ret("ret:2", "return Wrap(\"tudo certo\")"),
+                Dec("if:3", "c"),
+                M("m:old", "Ctrl.Old", "Ctrl.Old(string)"),
+                Ret("ret:3", "return Old(\"sem tipo\")"),
+                M("m:fim", "Ctrl.Fim")
+            ],
+            [
+                E("m:e", "if:1", 1), E("if:1", "m:err", 1, "then"), E("if:1", "ret:1", 2, "then"),
+                E("m:e", "if:2", 2), E("if:2", "m:ok", 1, "then"), E("if:2", "ret:2", 2, "then"),
+                E("m:e", "if:3", 3), E("if:3", "m:old", 1, "then"), E("if:3", "ret:3", 2, "then"),
+                E("m:e", "m:fim", 4)
+            ]);
+
+        var flow = Derive(graph, language: UiLanguage.Portuguese);
+
+        Assert.Equal("Recusa: Informe o ponto de entrada.", Step(flow, "ret:1").Label);
+        Assert.DoesNotContain(flow.Steps, s => s.NodeId == "ret:2");
+        Assert.DoesNotContain(flow.Steps, s => s.NodeId == "ret:3");
+    }
+
     [Theory]
     [InlineData(UiLanguage.English, "Rejected: Fora do prazo.", "Rejected: NotFound", "Rejected: PedidoJaEnviado")]
     [InlineData(UiLanguage.Portuguese, "Recusa: Fora do prazo.", "Recusa: NotFound", "Recusa: PedidoJaEnviado")]

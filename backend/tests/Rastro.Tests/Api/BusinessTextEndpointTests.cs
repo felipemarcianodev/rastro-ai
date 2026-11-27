@@ -159,6 +159,32 @@ public class BusinessTextEndpointTests(ApiFixture fixture) : IAsyncLifetime
             (await Client.PostAsync($"/api/surveys/{id}/business/steps/nao-existe/label/confirm", null)).StatusCode);
     }
 
+    [Fact] // API-BTX-012
+    public async Task VisaoDeNegocio_SegundaLeituraVemDoCache_ETipoGravadoOuIdiomaTrocamAChave()
+    {
+        var id = await SurveyAsync();
+        await using var provider = Services();
+        await using var scope = provider.CreateAsyncScope();
+        var view = scope.ServiceProvider.GetRequiredService<BusinessViewService>();
+        var annotations = scope.ServiceProvider.GetRequiredService<BusinessAnnotationService>();
+        var pt = Rastro.Core.Localization.UiLanguage.Portuguese;
+
+        var first = (await view.GetAsync(id, pt, CancellationToken.None, applyLabels: false))!;
+        var again = (await view.GetAsync(id, pt, CancellationToken.None, applyLabels: false))!;
+        Assert.Same(first, again);
+
+        var english = (await view.GetAsync(id, Rastro.Core.Localization.UiLanguage.English, CancellationToken.None, applyLabels: false))!;
+        Assert.NotSame(first, english);
+
+        // O tipo gravado muda a derivação: a leitura seguinte não pode vir da entrada antiga.
+        var decision = Decision(first);
+        var changed = await annotations.SetKindAsync(id, decision.Id, (int)BusinessKind.Step, pt, CancellationToken.None);
+        Assert.True(changed.Ok);
+        var after = (await view.GetAsync(id, pt, CancellationToken.None, applyLabels: false))!;
+        Assert.NotSame(first, after);
+        Assert.Equal(BusinessKind.Step, after.Steps.Single(s => s.NodeId == decision.NodeId).Kind);
+    }
+
     [Fact] // API-BTX-006
     public async Task CodigoMudou_HashGravadoDiferente_MarcaCodeChangedEConfirmarRenovaOHash()
     {

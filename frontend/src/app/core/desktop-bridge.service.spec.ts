@@ -74,24 +74,42 @@ describe('DesktopBridge', () => {
   });
 
   // UI-JAN-005
-  it('openExternal_naJanela_mandaMensagemTipadaSemAbrirAba', () => {
+  it('openExternal_naJanela_mandaMensagemTipadaSemAbrirAba_eDevolveARespostaDaJanela', async () => {
     const external = new FakeDesktopExternal();
     const bridge = bridgeWith(external);
     const open = spyOn(window, 'open');
 
-    bridge.openExternal('https://github.com/org/repo');
+    const opened = bridge.openExternal('https://github.com/org/repo');
 
-    expect(JSON.parse(external.sent[0])).toEqual({ type: DesktopMessageType.OpenLink, url: 'https://github.com/org/repo' });
+    const sent = JSON.parse(external.sent[0]);
+    expect(sent).toEqual({ type: DesktopMessageType.OpenLink, requestId: sent.requestId, url: 'https://github.com/org/repo' });
     expect(open).not.toHaveBeenCalled();
+    external.answer(JSON.stringify({ type: DesktopMessageType.LinkOpened, requestId: sent.requestId, opened: false }));
+    expect(await opened).toBeFalse();
+  });
+
+  // UI-JAN-007
+  it('openExternal_respostaDeOutroPedidoOuForaDoFormato_eIgnorada', async () => {
+    const external = new FakeDesktopExternal();
+    const bridge = bridgeWith(external);
+
+    const opened = bridge.openExternal('https://github.com/org/repo');
+    const { requestId } = JSON.parse(external.sent[0]);
+    external.answer(JSON.stringify({ type: DesktopMessageType.LinkOpened, requestId: 'link-99', opened: false }));
+    external.answer(JSON.stringify({ type: DesktopMessageType.LinkOpened, requestId, opened: 'sim' }));
+    external.answer(JSON.stringify({ type: DesktopMessageType.LinkOpened, requestId, opened: true }));
+
+    expect(await opened).toBeTrue();
   });
 
   // UI-JAN-006
-  it('openExternal_noNavegador_abreAbaNovaComNoopener', () => {
+  it('openExternal_noNavegador_abreAbaNovaComNoopener', async () => {
     const bridge = bridgeWith(null);
     const open = spyOn(window, 'open');
 
-    bridge.openExternal('https://github.com/org/repo');
+    const opened = await bridge.openExternal('https://github.com/org/repo');
 
     expect(open).toHaveBeenCalledOnceWith('https://github.com/org/repo', '_blank', 'noopener');
+    expect(opened).toBeTrue();
   });
 });

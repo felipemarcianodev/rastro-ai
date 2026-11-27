@@ -99,7 +99,8 @@ internal sealed partial class FlowWalker(
             MethodLabel(method),
             method.ToDisplayString(),
             ToLocation(method.Locations.FirstOrDefault(l => l.IsInSource)),
-            Project: method.ContainingAssembly?.Name));
+            Project: method.ContainingAssembly?.Name,
+            ReturnType: ReturnTypeName(method)));
         _methods[id] = method;
 
         var body = FindBody(method);
@@ -945,6 +946,20 @@ internal sealed partial class FlowWalker(
         method.MethodKind == MethodKind.LocalFunction && method.ContainingSymbol is IMethodSymbol outer
             ? $"{outer.ContainingType.Name}.{outer.Name}.{method.Name}"
             : $"{method.ContainingType.Name}.{method.Name}";
+
+    // Nome curto do tipo devolvido, sem o Task<>/ValueTask<> em volta; nulo em void, Task e ValueTask sem valor.
+    internal static string? ReturnTypeName(IMethodSymbol method)
+    {
+        var type = method.ReturnType;
+        if (method.ReturnsVoid) return null;
+        if (type is INamedTypeSymbol named && named.ContainingNamespace?.ToDisplayString() == "System.Threading.Tasks"
+            && (named.Name == "Task" || named.Name == "ValueTask"))
+        {
+            if (named.TypeArguments.Length == 0) return null;
+            type = named.TypeArguments[0];
+        }
+        return type.Name.Length == 0 ? null : type.Name;
+    }
 
     private static string CaseLabel(SwitchLabelSyntax label) => label switch
     {

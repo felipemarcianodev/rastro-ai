@@ -1377,14 +1377,16 @@ Decisão do dono (2026-11-26), depois do merge das Fases 54 a 57: as Fases 58 a 
 As Fases 54 a 61 estão **EXECUTADAS**. Pendências:
 - [x] Levantamento de UX completo e correção de todos os pontos, em branch e PR próprios, depois da aprovação do PR das Fases 58 a 61 (pedido do dono). Feito em 2026-11-26: [`plano-ux-2026-11-26-fim-visao-de-negocio.md`](../frontend/plano-ux-2026-11-26-fim-visao-de-negocio.md), com as Fases A a C (risco baixo e médio) executadas no branch `feat/ux-visao-de-negocio`.
 - [ ] Os dez itens de risco alto da Fase D desse plano esperam a aprovação do dono, item a item.
-- [ ] Visão de negócio em 360 px: o seletor de desenho transborda e os dois painéis se empilham.
-- [ ] A recusa da janela ao abrir um link fora da lista não volta para a tela (a ponte não devolve resposta).
-- [ ] Recusa pelo atalho do controller: `Error(ErrorCodes.X, "mensagem")` (sem a constante 4xx) não conta como recusa, e a visão de negócio de `SurveysController.Create` sai vazia. Achado no levantamento de UX final.
-- [ ] Extrator Angular: resolver a URL montada num campo da classe (`` private readonly url = `${environment.apiUrl}/...` ``), para a costura achar a API; hoje a rota fica "?" e o fluxo para na tela. Achado num sistema real.
+- [x] Visão de negócio em 360 px: o seletor de desenho transbordava e empurrava os botões vizinhos para fora. Agora ocupa a largura e quebra em linhas abaixo de 40rem. Os dois painéis (o de baixo e o lateral) continuam se empilhando em tela estreita: esconder um deles é decisão de UX de risco alto, fica para o dono.
+- [x] A recusa da janela ao abrir um link agora volta para a tela: a página manda um `requestId`, e a janela responde `LinkOpened` com `opened` (a recusa pela política, a falta de programa para o esquema e a falha do sistema dão `false`). A resposta não leva a URL nem o motivo. A tela troca "Abrindo…" pelo aviso de erro.
+- [x] Recusa pelo atalho do controller: `return Error(ErrorCodes.X, "mensagem")`, com o auxiliar devolvendo `BadRequest(...)`, conta como recusa. O return do fim de um método e a chamada ao framework dentro dele não viram nó, então o extrator C# passou a gravar o tipo de retorno do método (`FlowNode.ReturnType`, sem o `Task<>`), e a derivação reconhece o auxiliar pelo tipo (`BadRequestObjectResult` começa com `BadRequest`). Levantamento antigo, sem o tipo, segue sem a recusa até ser levantado de novo.
+- [x] Extrator Angular: a rota se lê também de campo `readonly` da classe com valor inicial (`this.url`, ou `Classe.url` quando estático). Campo sem `readonly` continua como rota desconhecida (ADR-005 atualizada).
+- [x] Cache da visão de negócio: a derivação fica num cache por processo (`BusinessFlowCache`, 32 fluxos), com a chave pelo conteúdo (grafo, trechos, opções do `config.json`, tipos gravados e idioma), porque o grafo muda depois da análise e o MCP grava no mesmo banco. O texto gravado se aplica depois, a cada leitura.
+- [x] Extrator Angular: resolver a URL montada num campo da classe (`` private readonly url = `${environment.apiUrl}/...` ``), para a costura achar a API. Feito em 2026-11-26 (ver as pendências do levantamento de UX final, abaixo).
 - [ ] Visão de negócio em sistema real: decisões de autenticação e de log (interceptadores) ainda aparecem quando mudam o caminho até outra chamada HTTP; agrupar o código de infraestrutura fora do fluxo de negócio.
 - [ ] Texto por regra misturado quando o nome do código está em inglês ("Request language não é vazio e não (ui languages is defined)?"); a IA, o agente ou o usuário resolvem pelo texto proposto.
-- [ ] Cache da visão de negócio por levantamento, se a tela sentir o tempo dos fluxos grandes (483 nós levam de 500 a 800 ms).
-- [ ] Abrir o link de verdade pela janela própria nos três sistemas (só a decisão de abrir ou recusar tem teste).
+- [x] Cache da visão de negócio por levantamento (483 nós levavam de 500 a 800 ms). Feito em 2026-11-26.
+- [ ] Abrir o link de verdade pela janela própria nos três sistemas (a decisão de abrir ou recusar e a resposta à tela têm teste; a abertura real não).
 - [ ] Na criação do quadro pela lista, a página uma vez não foi para o quadro novo; não reproduzido.
 - [ ] Release com as Fases 54 a 61 pela skill `gerar-release`, quando o dono pedir.
 

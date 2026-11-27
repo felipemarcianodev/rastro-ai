@@ -104,7 +104,7 @@ async function setup(flow: BusinessFlow | { status: number } = FLOW, links: Repo
   const opened: string[] = [];
   TestBed.configureTestingModule({
     imports: [HostComponent],
-    providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: (url: string) => opened.push(url) } }],
+    providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: (url: string) => { opened.push(url); return Promise.resolve(true); } } }],
   });
   const fixture = TestBed.createComponent(HostComponent);
   fixture.detectChanges();
@@ -129,7 +129,7 @@ async function setup(flow: BusinessFlow | { status: number } = FLOW, links: Repo
 async function setupLinksError() {
   TestBed.configureTestingModule({
     imports: [HostComponent],
-    providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: () => undefined } }],
+    providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: () => Promise.resolve(true) } }],
   });
   const fixture = TestBed.createComponent(HostComponent);
   fixture.detectChanges();
@@ -1313,21 +1313,28 @@ describe('BusinessViewComponent (Fase 59: texto de negócio)', () => {
   });
 
   // WEB-BIZV-077
-  it('abrirNoHost_avisaQueEstaAbrindo_eAPonteQueFalhaViraAvisoDeErro', async () => {
+  it('abrirNoHost_avisaQueEstaAbrindo_eAJanelaQueNaoAbriuViraAvisoDeErro', async () => {
     const { fixture, el, node, button } = await setup();
     node('s1').click();
     fixture.detectChanges();
 
+    // Só as promessas da ponte (o whenStable esperaria o aviso sumir sozinho).
+    const settle = async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+      fixture.detectChanges();
+    };
     button('Abrir no GitHub').click();
     fixture.detectChanges();
+    await settle();
     expect(el.querySelector('.toast')!.textContent).toContain('Abrindo');
 
+    // A janela recusou o link (ou o sistema não abriu): a resposta da ponte é "não abriu".
     const bridge = TestBed.inject(DesktopBridge);
-    (bridge as unknown as { openExternal: () => void }).openExternal = () => {
-      throw new Error('ponte fora');
-    };
+    (bridge as unknown as { openExternal: () => Promise<boolean> }).openExternal = () => Promise.resolve(false);
     button('Abrir no editor').click();
     fixture.detectChanges();
+    await settle();
 
     expect(el.querySelector('.toast')!.getAttribute('role')).toBe('alert');
     expect(el.querySelector('.toast')!.textContent).toContain('Não foi possível abrir');
@@ -1390,7 +1397,7 @@ describe('BusinessViewComponent (Fase 60, faixa de um quadro)', () => {
   async function boardSetup() {
     TestBed.configureTestingModule({
       imports: [BoardHostComponent],
-      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: () => undefined } }],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: DesktopBridge, useValue: { openExternal: () => Promise.resolve(true) } }],
     });
     const fixture = TestBed.createComponent(BoardHostComponent);
     fixture.detectChanges();

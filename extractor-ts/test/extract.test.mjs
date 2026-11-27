@@ -505,6 +505,23 @@ export class Tela {
     assert.equal(aresta.http.route, undefined);
   });
 
+  test('rota num campo readonly da classe (this.url e estático); campo sem readonly fica desconhecido', () => {
+    // EXT-TS-057 (achado num sistema real: o serviço montava a URL num campo, e a costura não achava a API)
+    const r = chamadas(
+      `
+      this.http.get(\`\${this.url}/\${id}\`);
+      this.http.get(Tela.raiz + '/itens');
+      this.http.get(this.mutavel);`,
+      `private readonly url = \`\${BASE}/pedidos\`;
+  private static readonly raiz = '/api/raiz';
+  private mutavel = '/api/muda';`,
+    );
+    assert.deepEqual(
+      r.httpCalls.map((c) => c.call.route),
+      ['api/fixa/pedidos/{}', 'api/raiz/itens', undefined],
+    );
+  });
+
   test('só o endereço base no começo sai; ${} no começo seguido de texto', () => {
     // EXT-TS-054
     const r = chamadas('this.http.get(`${url}/api/x/${id}`);');

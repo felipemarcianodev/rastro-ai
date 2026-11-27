@@ -145,6 +145,8 @@ public static class BusinessFlowBuilder
         private readonly BusinessOverlay _overlay;
         private readonly Dictionary<string, FlowNode> _nodes;
         private readonly Dictionary<string, List<FlowEdge>> _out;
+        // Quem chega em cada nó (só os ids de origem), para achar o método auxiliar chamado logo antes de um return.
+        private readonly Dictionary<string, List<string>> _in;
         private readonly List<Regex> _patterns;
         private readonly HashSet<string> _onPath = new(StringComparer.Ordinal);
         private int _expansions;
@@ -167,6 +169,11 @@ public static class BusinessFlowBuilder
                     g => g.Key,
                     g => g.OrderBy(x => x.edge.Order).ThenBy(x => x.index).Select(x => x.edge).ToList(),
                     StringComparer.Ordinal);
+
+            _in = _out.Values
+                .SelectMany(edges => edges)
+                .GroupBy(edge => edge.To, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.Select(edge => edge.From).Distinct(StringComparer.Ordinal).ToList(), StringComparer.Ordinal);
 
             _patterns = options.NotificationPatterns
                 .Where(p => !string.IsNullOrWhiteSpace(p))
@@ -593,8 +600,39 @@ public static class BusinessFlowBuilder
                 return StatusFamily.IsMatch(argument);
             }
 
-            return _options.RejectionReturnTypes.Any(t => !string.IsNullOrWhiteSpace(t)
-                && name.StartsWith(t, StringComparison.OrdinalIgnoreCase));
+            if (_options.RejectionReturnTypes.Any(t => !string.IsNullOrWhiteSpace(t)
+                && name.StartsWith(t, StringComparison.OrdinalIgnoreCase)))
+                return true;
+
+            return ReturnsHelperRejection(node, name);
+        }
+
+        // Atalho do próprio código: `return Error(ErrorCodes.X, "mensagem")`, em que o auxiliar `Error` monta e
+        // devolve um `BadRequest(...)`. O grafo traz a chamada ao auxiliar como irmã do return (mesmo nó de origem).
+        // Conta como recusa quando o tipo que o auxiliar devolve é de recusa (BadRequestObjectResult começa com
+        // BadRequest). O return do fim de um método não vira nó no extrator, e a chamada ao framework dentro do
+        // auxiliar também não: só o tipo diz o que ele devolve. Levantamento antigo, sem o tipo, segue sem a recusa.
+        private bool ReturnsHelperRejection(FlowNode returnNode, string name)
+        {
+            if (!_in.TryGetValue(returnNode.Id, out var parents)) return false;
+            return parents
+                .SelectMany(Out)
+                .Select(edge => _nodes[edge.To])
+                .Any(helper => helper.Kind == NodeKind.Method
+                    && string.Equals(MethodName(helper), name, StringComparison.Ordinal)
+                    && IsRejectionType(helper.ReturnType));
+        }
+
+        private bool IsRejectionType(string? type) =>
+            !string.IsNullOrWhiteSpace(type)
+            && _options.RejectionReturnTypes.Any(t => !string.IsNullOrWhiteSpace(t) && type.StartsWith(t, StringComparison.OrdinalIgnoreCase));
+
+        // Nome curto do método (`Error`), pelo símbolo (`Tipo.Error`) ou, sem símbolo, pelo rótulo.
+        private static string MethodName(FlowNode node)
+        {
+            var typeMethod = TypeMethod(node.Symbol) ?? node.Label;
+            var dot = typeMethod.LastIndexOf('.');
+            return dot < 0 ? typeMethod : typeMethod[(dot + 1)..];
         }
 
         // Angular: o `if (...) return;` do método clicado (o componente da entrada) bloqueia na tela. O mesmo `return;`

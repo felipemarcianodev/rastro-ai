@@ -37,6 +37,8 @@ public static class RastroServices
         services.AddScoped<ProposalService>();
         services.AddScoped<ChangeValidationService>();
         services.AddScoped<Business.BusinessCodeReader>();
+        // Um cache por processo (a API e o MCP têm o seu); a chave é o conteúdo, então os dois nunca se contradizem.
+        services.AddSingleton<Business.BusinessFlowCache>();
         services.AddScoped<Business.BusinessViewService>();
         services.AddScoped<Business.BusinessAnnotationService>();
         services.AddScoped<Business.BusinessLayoutService>();
