@@ -124,17 +124,36 @@ public class ExternalLinkPolicyTests
 // Cenários DESK-LNK-NNN: a mensagem "abrir link" da ponte da janela.
 public class DesktopOpenLinkTests
 {
-    private static string Message(string url) => System.Text.Json.JsonSerializer.Serialize(new { type = (int)DesktopMessageType.OpenLink, url });
+    private static string Message(string url) => System.Text.Json.JsonSerializer.Serialize(new { type = (int)DesktopMessageType.OpenLink, requestId = "link-1", url });
+
+    private static (int Type, string RequestId, bool Opened) Answer(string? response)
+    {
+        Assert.NotNull(response);
+        using var document = System.Text.Json.JsonDocument.Parse(response);
+        var root = document.RootElement;
+        Assert.Equal(3, root.EnumerateObject().Count());
+        return (root.GetProperty("type").GetInt32(), root.GetProperty("requestId").GetString()!, root.GetProperty("opened").GetBoolean());
+    }
 
     [Fact] // DESK-LNK-011
-    public void Handle_AbrirLinkPermitido_AbreSemResponderAPagina()
+    public void Handle_AbrirLinkPermitido_AbreEResponde()
     {
         string? opened = null;
 
-        var response = DesktopBridge.Handle(Message("https://github.com/org/repo"), () => null, NullLogger.Instance, url => opened = url);
+        var response = DesktopBridge.Handle(Message("https://github.com/org/repo"), () => null, NullLogger.Instance, url => { opened = url; return true; });
 
-        Assert.Null(response);
+        Assert.Equal(((int)DesktopMessageType.LinkOpened, "link-1", true), Answer(response));
         Assert.Equal("https://github.com/org/repo", opened);
+        // A resposta não devolve a URL.
+        Assert.DoesNotContain("github", response);
+    }
+
+    [Fact] // DESK-LNK-017
+    public void Handle_SistemaNaoAbriuOLink_RespondeQueNaoAbriu()
+    {
+        var response = DesktopBridge.Handle(Message("https://github.com/org/repo"), () => null, NullLogger.Instance, _ => false);
+
+        Assert.Equal(((int)DesktopMessageType.LinkOpened, "link-1", false), Answer(response));
     }
 
     [Theory] // DESK-LNK-012
@@ -142,13 +161,13 @@ public class DesktopOpenLinkTests
     [InlineData("file:///C:/Windows/System32/calc.exe")]
     [InlineData("vs://open?path=C:/x")]
     [InlineData("https://github.com.evil.com/x")]
-    public void Handle_AbrirLinkNaoPermitido_RecusaSemAbrir(string url)
+    public void Handle_AbrirLinkNaoPermitido_RecusaSemAbrirERespondeQueNaoAbriu(string url)
     {
         var opened = false;
 
         var response = DesktopBridge.Handle(Message(url), () => null, NullLogger.Instance, _ => opened = true);
 
-        Assert.Null(response);
+        Assert.Equal(((int)DesktopMessageType.LinkOpened, "link-1", false), Answer(response));
         Assert.False(opened);
     }
 
@@ -157,7 +176,7 @@ public class DesktopOpenLinkTests
     {
         string? opened = null;
 
-        DesktopBridge.Handle(Message("vs://open?path=C:/x/A.cs&line=3"), () => null, NullLogger.Instance, url => opened = url, "vs://open?path={path}&line={line}");
+        DesktopBridge.Handle(Message("vs://open?path=C:/x/A.cs&line=3"), () => null, NullLogger.Instance, url => { opened = url; return true; }, "vs://open?path={path}&line={line}");
 
         Assert.Equal("vs://open?path=C:/x/A.cs&line=3", opened);
     }
@@ -167,27 +186,31 @@ public class DesktopOpenLinkTests
     [InlineData("""{"type":2,"url":5}""")]
     [InlineData("""{"type":2,"url":"https://github.com/a/b","extra":1}""")]
     [InlineData("""{"type":2,"url":""}""")]
-    [InlineData("""{"type":2,"requestId":"x","url":"https://github.com/a/b"}""")]
+    [InlineData("""{"type":2,"url":"https://github.com/a/b"}""")]
+    [InlineData("""{"type":2,"requestId":"x y","url":"https://github.com/a/b"}""")]
+    [InlineData("""{"type":0,"requestId":"pasta-1","url":"https://github.com/a/b"}""")]
     public void Handle_AbrirLinkForaDoFormato_RecusaSemAbrir(string message)
     {
         var opened = false;
 
-        var response = DesktopBridge.Handle(message, () => null, NullLogger.Instance, _ => opened = true);
+        var response = DesktopBridge.Handle(message, () => null, NullLogger.Instance, _ => { opened = true; return true; });
 
         Assert.Null(response);
         Assert.False(opened);
     }
 
     [Fact] // DESK-LNK-015
-    public void Handle_AbrirLinkSemAbridor_Recusa()
+    public void Handle_AbrirLinkSemAbridor_RespondeQueNaoAbriu()
     {
-        Assert.Null(DesktopBridge.Handle(Message("https://github.com/org/repo"), () => null, NullLogger.Instance));
+        var response = DesktopBridge.Handle(Message("https://github.com/org/repo"), () => null, NullLogger.Instance);
+
+        Assert.Equal(((int)DesktopMessageType.LinkOpened, "link-1", false), Answer(response));
     }
 
     [Fact] // DESK-LNK-016
     public void Handle_PedidoDePastaContinuaFuncionando()
     {
-        var response = DesktopBridge.Handle("""{"type":0,"requestId":"pasta-1"}""", () => @"C:\codigo", NullLogger.Instance, _ => { });
+        var response = DesktopBridge.Handle("""{"type":0,"requestId":"pasta-1"}""", () => @"C:\codigo", NullLogger.Instance, _ => true);
 
         Assert.NotNull(response);
     }

@@ -598,17 +598,19 @@ export class BusinessViewComponent {
     if (step) this.showInGraph.emit(step.nodeId);
   }
 
-  // Abre o link e avisa que está abrindo; se a ponte da janela falhar, avisa que não deu (a janela, por sua vez,
-  // só abre host reconhecido e editor configurado: a recusa dela não volta para a tela).
+  // Abre o link e avisa que está abrindo. A janela só abre host reconhecido e editor configurado e responde se
+  // abriu; a recusa dela (ou o sistema sem programa para o link) troca o aviso pelo de erro.
   protected open(url: string | null): void {
     if (!url) return;
-    try {
-      this.bridge.openExternal(url);
-      this.say('business.opening');
-    } catch {
-      // A ponte lançou: não há o que registrar além do aviso, que é o retorno que a pessoa precisa.
-      this.show({ text: this.i18n.t('business.openFailed'), error: true, source: null, undo: null });
-    }
+    this.say('business.opening');
+    this.bridge.openExternal(url).then((opened) => {
+      if (!opened) this.showOpenFailed();
+    }, () => this.showOpenFailed());
+  }
+
+  // A ponte não diz o motivo (nem deve: a URL recusada não volta); o aviso é o retorno que a pessoa precisa.
+  private showOpenFailed(): void {
+    this.show({ text: this.i18n.t('business.openFailed'), error: true, source: null, undo: null });
   }
 
   private nodeElement(id: string): HTMLElement | null {
