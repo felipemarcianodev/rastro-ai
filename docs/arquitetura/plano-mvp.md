@@ -1411,7 +1411,7 @@ O pedido, em duas partes:
    - **caixa, seta e texto livres**, sem ligação com um passo, viram anotações do desenho, guardadas à parte, que nunca entram no fluxo nem no prompt;
    - **criar passo, criar ligação, apagar ou mover passo entre ramos** só no modo "Editar fluxo", e viram o mesmo rascunho que a edição de hoje gera (Fases 7 a 9), com o mesmo prompt e a mesma validação. Nenhuma ligação desenhada no draw.io vira `extracted`.
 
-### Fase 62: ADR-011 e prova de conceito `[ ]`
+### Fase 62: ADR-011 e prova de conceito `[x]`
 
 - [ ] Prova de conceito fora do produto (pasta temporária): o draw.io servido por um servidor local, aberto num `iframe` em modo `embed`, recebendo o `.drawio` que o Rastro já gera e devolvendo as mudanças por `autosave`, no Chrome e na janela Photino (WebView2; WebKit no macOS e no Linux só se der para testar).
 - [ ] Medir: o tamanho da aplicação do draw.io (aberta e compactada no `.nupkg`), o tempo para abrir e o que ela tenta buscar na rede com os parâmetros de modo isolado (`stealth=1`, `offline=1` e os de desligar plugins e nuvem). Meta: nenhuma requisição para fora de `127.0.0.1`.
@@ -1419,6 +1419,7 @@ O pedido, em duas partes:
 - [ ] Desenhar o mapeamento de ida e volta: cada balão e cada ligação do `.drawio` levam o id do Rastro (atributos do `UserObject`), e o que volta do draw.io é comparado com o que foi: posição, dobra, texto, tipo, criado, apagado, anotação.
 - [ ] ADR-011 com as três decisões acima e a resposta do dono sobre a hospedagem; `visao.md` com a linha da decisão.
 - **Aceite:** ADR aceita pelo dono, números medidos registrados e a lista do que a edição pode mudar fechada.
+- **Registro (2026-11-27):** [ADR-011](../adr/adr-011-drawio-dentro-do-rastro.md). O dono autorizou o download e a hospedagem dentro do pacote ("faz o necessário para funcionar"). Prova de conceito com o draw.io v32.6.10 servido localmente, num `iframe`, com toda requisição para fora de `127.0.0.1` bloqueada: abre em cerca de 1,5 s, carrega o XML, devolve o `autosave` com o `rastroId` e a posição nova depois de um arraste com o mouse, e não pede nada de fora nem com menus, busca de formas, tema escuro e espanhol. O conjunto que vai no pacote tem 47 MB aberto e 18 MB compactado (a aplicação inteira, 123 MB e 47 MB). A janela Photino e o WebKit ficam para a Fase 64.
 
 ### Fase 63: seletor de desenho dentro do painel `[x]` (pode andar em paralelo com a 62)
 
