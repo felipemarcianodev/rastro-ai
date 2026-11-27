@@ -11,14 +11,14 @@ namespace Rastro.Infrastructure.Business;
 // por cima dela entram o que o usuário, o agente e o provedor gravaram (Fase 59): o tipo trocado vale no desenho,
 // o texto gravado vale no lugar do texto da regra e o hash do código acusa "o código mudou". As opções são lidas
 // ao vivo, porque o MCP é um processo longo.
-public class BusinessViewService(RastroDbContext db, IOptionsMonitor<RastroOptions> options, BusinessCodeReader code)
+public class BusinessViewService(RastroDbContext db, IOptionsMonitor<RastroOptions> options, BusinessCodeReader code, BusinessFlowCache cache)
 {
     // Nulo quando o levantamento não existe ou ainda não tem grafo (em análise ou com falha). Com applyLabels falso,
     // devolve os textos da regra (quem sugere texto precisa do que a regra diria).
     public async Task<BusinessFlow?> GetAsync(Guid surveyId, UiLanguage language, CancellationToken ct, bool applyLabels = true)
     {
         var survey = await db.Surveys.AsNoTracking().FirstOrDefaultAsync(s => s.Id == surveyId, ct);
-        if (survey?.ReadGraph() is not { } graph) return null;
+        if (survey is null || string.IsNullOrEmpty(survey.GraphJson)) return null;
 
         var segments = await db.SurveySegments.AsNoTracking()
             .Where(g => g.SurveyId == surveyId)
@@ -28,11 +28,29 @@ public class BusinessViewService(RastroDbContext db, IOptionsMonitor<RastroOptio
         var source = new BusinessSource(survey.Id, survey.Repository, survey.CommitHash, survey.Branch, segments);
 
         var kinds = await db.BusinessKindOverrides.AsNoTracking().Where(k => k.SurveyId == surveyId).ToListAsync(ct);
-        var overlay = new BusinessOverlay(
-            kinds.Where(k => k.State == LabelState.Confirmed).ToDictionary(k => k.NodeId, k => k.Kind, StringComparer.Ordinal),
-            kinds.Where(k => k.State == LabelState.Proposed).ToDictionary(k => k.NodeId, k => new KindProposal(k.Kind, k.Reason), StringComparer.Ordinal));
+        var viewOptions = options.CurrentValue.BusinessView.ToOptions();
 
-        var flow = BusinessFlowBuilder.Derive(graph, source, options.CurrentValue.BusinessView.ToOptions(), language, overlay);
+        // A chave cobre tudo o que muda a derivação (ver BusinessFlowCache); o texto gravado entra depois.
+        var key = BusinessFlowCache.KeyOf(
+            survey.Id.ToString(),
+            language.ToString(),
+            survey.GraphJson,
+            survey.Repository, survey.CommitHash ?? string.Empty, survey.Branch ?? string.Empty,
+            string.Join('\u001e', segments.Select(s => $"{s.Repository}|{s.CommitHash}|{s.Branch}")),
+            string.Join('\u001e', viewOptions.NotificationPatterns),
+            string.Join('\u001e', viewOptions.RejectionReturnTypes),
+            viewOptions.MaxStepsPerFlow.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            string.Join('\u001e', kinds.OrderBy(k => k.NodeId, StringComparer.Ordinal).Select(k => $"{k.NodeId}|{(int)k.Kind}|{(int)k.State}|{k.Reason}")));
+
+        var flow = cache.GetOrAdd(key, () =>
+        {
+            // GraphJson não vazio: o levantamento terminou e o grafo se lê.
+            var graph = survey.ReadGraph()!;
+            var overlay = new BusinessOverlay(
+                kinds.Where(k => k.State == LabelState.Confirmed).ToDictionary(k => k.NodeId, k => k.Kind, StringComparer.Ordinal),
+                kinds.Where(k => k.State == LabelState.Proposed).ToDictionary(k => k.NodeId, k => new KindProposal(k.Kind, k.Reason), StringComparer.Ordinal));
+            return BusinessFlowBuilder.Derive(graph, source, viewOptions, language, overlay);
+        });
         return applyLabels ? await ApplyLabelsAsync(flow, ct) : flow;
     }
 
