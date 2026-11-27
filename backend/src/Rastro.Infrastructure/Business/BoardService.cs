@@ -18,7 +18,8 @@ public enum BoardError
     SurveyNotReady = 6,
     LaneExists = 7,
     LaneNotFound = 8,
-    LayoutInvalid = 9
+    LayoutInvalid = 9,
+    DrawioInvalid = 10
 }
 
 public sealed record BoardResult<T>(BoardError Error, T? Value = default)
@@ -66,6 +67,25 @@ public class BoardService(
     }
 
     public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => db.Boards.AnyAsync(b => b.Id == id, ct);
+
+    // Anotações do quadro no draw.io (Fase 68). Nulo quando o quadro não existe; o texto nulo quer dizer "nada guardado".
+    public async Task<BoardResult<string?>> GetDrawioAnnotationsAsync(Guid id, CancellationToken ct)
+    {
+        var row = await db.Boards.AsNoTracking().Where(b => b.Id == id).Select(b => new { b.DrawioAnnotations }).FirstOrDefaultAsync(ct);
+        return row is null ? BoardResult<string?>.Fail(BoardError.NotFound) : new BoardResult<string?>(BoardError.None, row.DrawioAnnotations);
+    }
+
+    public async Task<BoardError> SaveDrawioAnnotationsAsync(Guid id, string? annotations, CancellationToken ct)
+    {
+        var board = await db.Boards.FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (board is null) return BoardError.NotFound;
+        if (!DrawioLayoutLimits.ValidAnnotations(annotations)) return BoardError.DrawioInvalid;
+
+        board.SetDrawioAnnotations(annotations, clock.GetUtcNow());
+        await db.SaveChangesAsync(ct);
+        logger.LogInformation("Anotações do draw.io guardadas: quadro {BoardId}.", id);
+        return BoardError.None;
+    }
 
     public async Task<BoardResult<Guid>> CreateAsync(string? name, IReadOnlyList<Guid>? surveyIds, IReadOnlyList<string?>? titles, CancellationToken ct)
     {

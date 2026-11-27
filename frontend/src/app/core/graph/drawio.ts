@@ -26,6 +26,8 @@ export interface DrawioVertex {
   // Nó do grafo por trás do balão (o mesmo do id no grafo; o bloco e o passo apontam o nó que lhes dá o nome):
   // o clique no draw.io abre o painel desse nó.
   rastroNode?: string | null;
+  // Faixa do quadro (o levantamento dela): o id do passo é por levantamento, então o quadro diz de qual faixa é o balão.
+  rastroLane?: string | null;
   style: string;
   x: number;
   y: number;
@@ -357,7 +359,8 @@ export function toDrawio(page: DrawioPage): string {
       (vertex.tooltip ? ` tooltip="${attr(vertex.tooltip)}"` : '') +
       (vertex.link ? ` link="${attr(vertex.link)}"` : '') +
       (vertex.rastroId ? ` rastroId="${attr(vertex.rastroId)}"` : '') +
-      (vertex.rastroNode ? ` rastroNode="${attr(vertex.rastroNode)}"` : '');
+      (vertex.rastroNode ? ` rastroNode="${attr(vertex.rastroNode)}"` : '') +
+      (vertex.rastroLane ? ` rastroLane="${attr(vertex.rastroLane)}"` : '');
     cells.push(
       `<UserObject id="n${i}" label="${attr(vertexLabel(vertex))}"${extra}>` +
         `<mxCell style="${attr(vertex.style)}" vertex="1" parent="1">${geometry(vertex)}</mxCell></UserObject>`,

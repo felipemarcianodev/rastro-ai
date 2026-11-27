@@ -1978,7 +1978,12 @@
       "resurveyLabel": "Rastrear de nuevo el carril {title}",
       "retryLabel": "Intentar de nuevo el carril {title}"
     },
-    "renamed": "Tablero renombrado."
+    "renamed": "Tablero renombrado.",
+    "drawio": {
+      "open": "Abrir en draw.io",
+      "title": "Muestra el tablero dentro del editor draw.io: mueva globos, edite textos y anote",
+      "back": "Volver a los carriles"
+    }
   },
   "drawingSwitcher": {
     "timeline": {

@@ -68,7 +68,8 @@ public static class DrawioLayoutLimits
 
     public static bool IsDefined(int source) => Enum.IsDefined(typeof(DrawioSource), source);
 
-    private static bool ValidAnnotations(string? xml)
+    // Também usada pelas anotações do quadro de fluxos (Fase 68): mesmas regras.
+    public static bool ValidAnnotations(string? xml)
     {
         if (string.IsNullOrEmpty(xml)) return true;
         if (System.Text.Encoding.UTF8.GetByteCount(xml) > MaxAnnotationsBytes) return false;

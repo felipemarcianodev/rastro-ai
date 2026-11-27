@@ -195,3 +195,9 @@
 .board-loading {
   height: 100%;
 }
+
+// O quadro aberto no editor draw.io (Fase 68): ocupa o lugar das faixas, abaixo da barra do quadro.
+.board-drawio {
+  flex: 1;
+  min-height: 0;
+}

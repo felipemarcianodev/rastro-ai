@@ -1126,6 +1126,12 @@ export interface BoardLayout {
   edges: BoardEdgePoints[];
 }
 
+// As anotações do quadro no draw.io (Fase 68).
+export interface BoardDrawio {
+  // A API omite campo nulo: sem anotação guardada, o corpo vem vazio ({}).
+  annotations?: string | null;
+}
+
 export interface BoardDetail {
   id: string;
   name: string;

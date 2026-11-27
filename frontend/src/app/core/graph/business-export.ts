@@ -117,7 +117,7 @@ export function boardToDrawio(lanes: readonly ExportLane[], name: string, note: 
   for (const { lane, geometry, bends } of placed) {
     const cells = businessCells(lane.data.flow, geometry, bends, lane.linkOf);
     const offset = vertices.length;
-    vertices.push(...cells.vertices);
+    vertices.push(...cells.vertices.map((vertex) => ({ ...vertex, rastroLane: lane.data.surveyId })));
     edges.push(...cells.edges.map((edge) => ({ ...edge, source: edge.source + offset, target: edge.target + offset })));
   }
   if (note && placed.length > 0) {

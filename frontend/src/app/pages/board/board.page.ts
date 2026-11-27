@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, input, signal, untracked, viewChildren } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, input, signal, untracked, viewChild, viewChildren } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
@@ -7,12 +7,15 @@ import { Observable, catchError, first, forkJoin, map, of, switchMap, throwError
 import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
 import { DialogDirective } from '../../core/dialog.directive';
+import { DrawioStatusService } from '../../core/drawio-status.service';
 import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
 import { LanguageService } from '../../core/i18n/i18n';
 import { laneLayout, laneRunning, laneUpdates, legendKinds, moveLane, orderedLanes, glossaryEntries } from '../../core/graph/board';
 import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_LABEL_KEY, BUSINESS_KIND_SLUG } from '../../core/graph/business';
 import { BusinessExportData, ExportLane, boardNoteLines, boardToDrawio, businessToMermaid, businessToSvg, readBusinessColors } from '../../core/graph/business-export';
 import { DRAWIO_MIME } from '../../core/graph/drawio';
+import { BoardDrawioBase, boardDrawioBase, boardDrawioChanges, boardKey } from '../../core/graph/drawio-board';
+import { applyDrawioLayout } from '../../core/graph/drawio-merge';
 import { hostLinkResolver } from '../../core/graph/link-template';
 import {
   AiUse,
@@ -34,6 +37,7 @@ import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { BOARDS_DELETED_STATE } from '../boards/boards.page';
 import { ConfirmDialogComponent } from '../survey/confirm-dialog.component';
 import { BusinessViewComponent } from '../survey/business-view.component';
+import { DrawioViewComponent } from '../survey/drawio-view.component';
 
 // Intervalo de leitura enquanto algum levantamento do quadro está rodando.
 export const BOARD_POLL_MS = 2500;
@@ -66,7 +70,7 @@ interface Replaced {
 // do levantamento. A posição dos balões é guardada por quadro; a ordem, o título, o glossário e o nome também.
 @Component({
   selector: 'app-board-page',
-  imports: [RouterLink, TranslatePipe, FormsModule, DialogDirective, BusinessViewComponent, ConfirmDialogComponent],
+  imports: [RouterLink, TranslatePipe, FormsModule, DialogDirective, BusinessViewComponent, DrawioViewComponent, ConfirmDialogComponent],
   templateUrl: './board.page.html',
   styleUrl: './board.page.scss',
   host: { class: 'board-screen' },
@@ -80,6 +84,8 @@ export class BoardPage {
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
   private readonly laneViews = viewChildren<LaneExporter>('laneView');
+  private readonly drawioFrame = viewChild(DrawioViewComponent);
+  private readonly drawioStatus = inject(DrawioStatusService);
 
   readonly id = input.required<string>();
 
@@ -139,6 +145,7 @@ export class BoardPage {
   private pollTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor() {
+    this.drawioStatus.load();
     this.destroyRef.onDestroy(() => {
       clearTimeout(this.pollTimer);
       clearTimeout(this.feedbackTimer);
@@ -157,6 +164,7 @@ export class BoardPage {
         this.addOpen.set(false);
         this.confirmingDelete.set(false);
         this.renaming.set(false);
+        this.drawioXml.set(null);
         this.dismissFeedback();
         this.load(true);
       });
@@ -592,8 +600,6 @@ export class BoardPage {
     );
   }
 
-  // draw.io: uma moldura por faixa, os passos na posição salva e o link de cada um para o host (o levantamento da
-  // faixa resolve o dele). Sem os links (rota fora do ar) o arquivo sai do mesmo jeito, só sem eles.
   protected exportDrawio(): void {
     this.closeExport();
     const drawn = this.drawnLanes();
@@ -601,12 +607,106 @@ export class BoardPage {
       this.notDrawn();
       return;
     }
-    forkJoin(drawn.map(({ lane }) => this.api.links(lane.surveyId).pipe(map((links) => hostLinkResolver(links)), catchError(() => of(undefined))))).subscribe((resolvers) => {
-      const lanes: ExportLane[] = drawn.map(({ lane, data }, i) => ({ title: lane.title, data, linkOf: resolvers[i] }));
+    this.generatedDrawio(drawn).subscribe((xml) => {
       const name = this.exportName();
-      downloadBlob(new Blob([boardToDrawio(lanes, this.board()?.name ?? name, this.noteOf(drawn))], { type: DRAWIO_MIME }), `${name}.drawio`);
+      downloadBlob(new Blob([xml], { type: DRAWIO_MIME }), `${name}.drawio`);
       this.started(`${name}.drawio`);
     });
+  }
+
+  // O .drawio do quadro: uma moldura por faixa, os passos na posição salva, o link de cada um para o host (o
+  // levantamento da faixa resolve o dele) e a nota do glossário. Sem os links (rota fora do ar) o arquivo sai do mesmo
+  // jeito, só sem eles.
+  private generatedDrawio(drawn: readonly { lane: BoardLane; data: BusinessExportData }[]): Observable<string> {
+    return forkJoin(drawn.map(({ lane }) => this.api.links(lane.surveyId).pipe(map((links) => hostLinkResolver(links)), catchError(() => of(undefined))))).pipe(
+      map((resolvers) => {
+        const lanes: ExportLane[] = drawn.map(({ lane, data }, i) => ({ title: lane.title, data, linkOf: resolvers[i] }));
+        return boardToDrawio(lanes, this.board()?.name ?? this.exportName(), this.noteOf(drawn));
+      }),
+    );
+  }
+
+  // ---- Quadro no draw.io (Fase 68) ----
+
+  protected readonly drawioXml = signal<string | null>(null);
+  protected readonly drawioOpening = signal(false);
+  protected readonly canDrawio = computed(() => this.drawioStatus.available() && this.hasDrawn());
+  // Tabelas do que o editor tinha ao abrir; a gravação as atualiza para só mandar o que mudou de verdade.
+  private drawioBase: BoardDrawioBase | null = null;
+  // Sem ler o que estava guardado, o editor abre mas não grava anotação (gravar vazio apagaria o guardado).
+  private annotationsLocked = false;
+  protected readonly saveDrawio = (xml: string): void => this.persistDrawio(xml);
+
+  // Abre o quadro no editor: o .drawio de hoje com as anotações guardadas por cima.
+  protected openDrawio(): void {
+    const board = this.board();
+    const drawn = this.drawnLanes();
+    if (!board || this.drawioOpening()) return;
+    if (drawn.length === 0) {
+      this.notDrawn();
+      return;
+    }
+    this.drawioOpening.set(true);
+    const boxes = new Map(drawn.map(({ lane, data }) => [lane.surveyId, new Map([...data.geometry.boxes].map(([id, box]) => [id, { x: box.x, y: box.y }]))]));
+    forkJoin({ xml: this.generatedDrawio(drawn), saved: this.api.boardDrawio(board.id).pipe(catchError(() => of(null))) }).subscribe({
+      next: ({ xml, saved }) => {
+        const merged = applyDrawioLayout(xml, { cells: [], annotations: saved?.annotations ?? null });
+        this.annotationsLocked = saved === null;
+        if (saved === null) this.say('drawio.loadFailed', true);
+        this.drawioBase = boardDrawioBase(xml, merged, boxes);
+        this.drawioOpening.set(false);
+        this.drawioXml.set(merged);
+      },
+      error: () => {
+        this.drawioOpening.set(false);
+        this.say('drawio.loadFailed', true);
+      },
+    });
+  }
+
+  // Volta às faixas: grava o que ficou pendente, e a tela lê o quadro de novo (a posição mudou no editor).
+  protected closeDrawio(): void {
+    this.drawioFrame()?.flushPending();
+    this.drawioXml.set(null);
+    this.drawioBase = null;
+    this.load();
+  }
+
+  // Cada autosave do editor: posição do balão na faixa dele, texto como texto do usuário e anotações do quadro.
+  private persistDrawio(xml: string): void {
+    const board = this.board();
+    const base = this.drawioBase;
+    const changes = base ? boardDrawioChanges(xml, base) : null;
+    if (!board || !base || !changes) return;
+    const done = () => this.drawioFrame()?.announceSaved();
+    const failed = () => this.drawioFrame()?.failSave();
+    if (changes.moved.length > 0) {
+      this.api.saveBoardLayout(board.id, { steps: changes.moved.map((m) => m.step), edges: [] }).subscribe({
+        next: () => {
+          for (const m of changes.moved) base.positions.set(boardKey(m.step.laneSurveyId, m.step.stepId), m.at);
+          done();
+        },
+        error: failed,
+      });
+    }
+    for (const label of changes.labels) {
+      this.api.saveBusinessLabel(label.lane, label.stepId, label.text).subscribe({
+        next: () => {
+          base.texts.set(boardKey(label.lane, label.stepId), label.text);
+          done();
+        },
+        error: failed,
+      });
+    }
+    if (changes.annotationsChanged && !this.annotationsLocked) {
+      this.api.saveBoardDrawio(board.id, changes.annotations).subscribe({
+        next: () => {
+          base.annotations = changes.annotations;
+          done();
+        },
+        error: failed,
+      });
+    }
   }
 
   protected exportMermaid(download: boolean): void {

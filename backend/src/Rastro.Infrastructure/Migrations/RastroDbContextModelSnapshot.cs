@@ -28,6 +28,10 @@ namespace Rastro.Infrastructure.Migrations
                         .HasColumnType("INTEGER")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("DrawioAnnotations")
+                        .HasColumnType("TEXT")
+                        .HasColumnName("drawio_annotations");
+
                     b.Property<string>("Glossary")
                         .HasMaxLength(8000)
                         .HasColumnType("TEXT")

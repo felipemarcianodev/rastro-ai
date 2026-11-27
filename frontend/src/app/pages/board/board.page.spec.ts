@@ -5,6 +5,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { AiStatusService } from '../../core/ai-status.service';
+import { DrawioStatusService } from '../../core/drawio-status.service';
+import { snapToGrid } from '../../core/graph/business-layout';
+import { DrawioViewComponent } from '../survey/drawio-view.component';
 import { AiProvider, AiUse, BoardDetail, BoardLane, BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, LabelOrigin, LabelState, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
 import { BusinessExportData } from '../../core/graph/business-export';
 import { businessLayout } from '../../core/graph/business-layout';
@@ -761,5 +764,131 @@ describe('BoardPage (Fase 60)', () => {
 
     expect(el.querySelector('.toast')).toBeNull();
     fixture.destroy();
+  });
+
+  // Fase 68: o quadro no draw.io
+  const NOTE = '<mxCell id="nota-1" value="Atenção" style="text;html=1" vertex="1" parent="1"><mxGeometry x="5" y="5" width="50" height="20" as="geometry"/></mxCell>';
+
+  async function openInDrawio(annotations: string | null = null, available = true) {
+    const ctx = await setup();
+    TestBed.inject(DrawioStatusService).status.set({ available, version: available ? '99.0.0' : null });
+    ctx.fixture.detectChanges();
+    const open = ctx.el.querySelector<HTMLButtonElement>('#board-drawio-btn');
+    if (!open) return { ...ctx, open, view: null as unknown as DrawioViewComponent, xml: '' };
+    open.click();
+    ctx.http.expectOne('/api/boards/b1/drawio').flush({ annotations });
+    ctx.http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+    ctx.fixture.detectChanges();
+    const view = ctx.fixture.debugElement.query(By.directive(DrawioViewComponent)).componentInstance as DrawioViewComponent;
+    return { ...ctx, open, view, xml: view.xml() };
+  }
+
+  // O que o editor devolve depois de uma mexida: o XML aberto com o ajuste aplicado.
+  function edited(xml: string, change: (doc: Document) => void): string {
+    const doc = new DOMParser().parseFromString(xml, 'application/xml');
+    change(doc);
+    return new XMLSerializer().serializeToString(doc);
+  }
+
+  const addNote = (doc: Document): void => void doc.getElementsByTagName('root')[0].appendChild(doc.importNode(new DOMParser().parseFromString(NOTE, 'application/xml').documentElement, true));
+
+  const balloon = (doc: Document, lane: string, id: string): Element => Array.from(doc.getElementsByTagName('UserObject')).find((o) => o.getAttribute('rastroLane') === lane && o.getAttribute('rastroId') === id)!;
+
+  // WEB-BDRW-001
+  it('semODrawioNaInstalacao_oBotaoAbrirNoDrawioNaoAparece', async () => {
+    const { open, el } = await openInDrawio(null, false);
+
+    expect(open).toBeNull();
+    expect(el.querySelector('#board-export-btn')).not.toBeNull();
+  });
+
+  // WEB-BDRW-007
+  it('comODrawioNaInstalacao_oBotaoAbrirNoDrawioAparece', async () => {
+    const { open } = await openInDrawio();
+
+    expect(open).not.toBeNull();
+  });
+
+  // WEB-BDRW-002
+  it('abrirNoDrawio_carregaOXmlDoQuadroComAsAnotacoesGuardadas_eVoltarMostraAsFaixas', async () => {
+    const { el, fixture, view, xml, http } = await openInDrawio(`<root>${NOTE}</root>`);
+
+    expect(view).not.toBeNull();
+    expect(xml).toContain('rastroLane="s1"');
+    expect(xml).toContain('rastroLane="s2"');
+    expect(xml).toContain('id="nota-1"');
+    expect(el.querySelector('.lane')).toBeNull();
+    expect(el.querySelector('#board-export-btn')).toBeNull();
+
+    el.querySelector<HTMLButtonElement>('#board-drawio-back')!.click();
+    http.expectOne('/api/boards/b1').flush(board([lane('s1', 0), lane('s2', 1)]));
+    fixture.detectChanges();
+
+    expect(el.querySelectorAll('.lane').length).toBe(2);
+    expect(el.querySelector('app-drawio-view')).toBeNull();
+    http.match(() => true);
+  });
+
+  // WEB-BDRW-003
+  it('moverBalaoNoEditor_gravaAPosicaoNaFaixaCertaPelaRotaDeLayoutDoQuadro', async () => {
+    const { view, xml, http, fixture } = await openInDrawio();
+    const box = businessLayout(flow('s2', [BusinessKind.Start, BusinessKind.Decision])).boxes.get('p0')!;
+
+    view.saveXml()!(edited(xml, (doc) => {
+      const geometry = balloon(doc, 's2', 'p0').getElementsByTagName('mxGeometry')[0];
+      geometry.setAttribute('x', String(Number(geometry.getAttribute('x')) + 50));
+    }));
+    fixture.detectChanges();
+
+    const request = http.expectOne((r) => r.method === 'PUT' && r.url === '/api/boards/b1/layout');
+    expect(request.request.body).toEqual({ steps: [{ laneSurveyId: 's2', stepId: 'p0', x: snapToGrid(box.x + 50), y: snapToGrid(box.y) }], edges: [] });
+    http.expectNone('/api/boards/b1/drawio');
+    request.flush(null);
+    fixture.detectChanges();
+    http.match(() => true);
+  });
+
+  // WEB-BDRW-004
+  it('anotacaoNoEditor_gravaPeloPutDoDrawioDoQuadro_semMexerNasPosicoes', async () => {
+    const { view, xml, http, fixture } = await openInDrawio();
+
+    view.saveXml()!(edited(xml, addNote));
+    fixture.detectChanges();
+
+    const request = http.expectOne((r) => r.method === 'PUT' && r.url === '/api/boards/b1/drawio');
+    expect(request.request.body.annotations).toContain('id="nota-1"');
+    http.expectNone((r) => r.url === '/api/boards/b1/layout');
+    request.flush(null);
+    http.match(() => true);
+  });
+
+  // WEB-BDRW-005
+  it('textoEditadoNoBalao_vaiPelaRotaDeTextoDaFaixaDele', async () => {
+    const { view, xml, http } = await openInDrawio();
+
+    view.saveXml()!(edited(xml, (doc) => balloon(doc, 's1', 'p1').setAttribute('label', 'Pedido cancelado')));
+
+    const request = http.expectOne((r) => r.method === 'PUT' && r.url === '/api/surveys/s1/business/steps/p1/label');
+    expect(request.request.body).toEqual({ text: 'Pedido cancelado' });
+    request.flush({});
+    http.match(() => true);
+  });
+
+  // WEB-BDRW-006
+  it('semLerAsAnotacoesGuardadas_abreComAvisoENaoGravaAnotacao', async () => {
+    const ctx = await setup();
+    TestBed.inject(DrawioStatusService).status.set({ available: true, version: '99.0.0' });
+    ctx.fixture.detectChanges();
+    ctx.el.querySelector<HTMLButtonElement>('#board-drawio-btn')!.click();
+    ctx.http.expectOne('/api/boards/b1/drawio').flush({ code: 'X' }, { status: 500, statusText: 'Erro' });
+    ctx.http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+    ctx.fixture.detectChanges();
+    const view = ctx.fixture.debugElement.query(By.directive(DrawioViewComponent)).componentInstance as DrawioViewComponent;
+
+    expect(ctx.el.querySelector('.toast.is-error')).not.toBeNull();
+    view.saveXml()!(edited(view.xml(), addNote));
+
+    ctx.http.expectNone((r) => r.method === 'PUT' && r.url === '/api/boards/b1/drawio');
+    ctx.http.match(() => true);
   });
 });

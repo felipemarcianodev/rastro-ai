@@ -8,6 +8,7 @@ import {
   AiStatus,
   BoardCreateRequest,
   BoardDetail,
+  BoardDrawio,
   BoardLayout,
   BoardSummary,
   DrawioStatus,
@@ -342,6 +343,15 @@ export class RastroApi {
 
   suggestBoardLabels(id: string): Observable<BusinessLabelSuggestion> {
     return this.http.post<BusinessLabelSuggestion>(`/api/boards/${id}/labels/suggest`, {});
+  }
+
+  // As anotações do quadro aberto no draw.io (Fase 68): as células desenhadas à mão, por quadro.
+  boardDrawio(id: string): Observable<BoardDrawio> {
+    return this.http.get<BoardDrawio>(`/api/boards/${id}/drawio`);
+  }
+
+  saveBoardDrawio(id: string, annotations: string | null): Observable<void> {
+    return this.http.put<void>(`/api/boards/${id}/drawio`, { annotations });
   }
 
   // O draw.io dentro do Rastro está nesta instalação? (Fase 64)
