@@ -9,6 +9,9 @@
 .page-bar {
   flex: none;
   display: flex;
+  // As ações descem para a linha de baixo quando não cabem ao lado do título (com o seletor de quatro desenhos e
+  // "Adicionar a um quadro", em 1440 o título chegava a 0 px; visto no passo de UX da release 0.11.0).
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-3) var(--space-5);
@@ -31,8 +34,9 @@
 }
 
 .page-bar-title {
-  min-width: 0;
-  flex: 1;
+  // Largura mínima do título antes de as ações descerem: cabe o nome do fluxo e a linha dos dados.
+  min-width: min(var(--page-title-min), 100%);
+  flex: 1 1 var(--page-title-min);
 
   h1 {
     font-size: var(--text-lg);
@@ -53,6 +57,7 @@
 
 // Em 1280 a barra quebra linha em vez de esmagar o título.
 .page-bar-side {
+  flex: 0 1 auto;
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;

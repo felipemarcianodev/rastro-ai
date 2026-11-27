@@ -831,6 +831,21 @@ describe('BusinessViewComponent (Fase 57)', () => {
     expect(scheme.scrollPan).toBeTrue();
   });
 
+  // WEB-BIZV-082 (passo de UX da release 0.11.0: em 360 px o enquadramento chegava a 2%)
+  it('ajustar_naoDeixaOZoomAbaixoDoMinimo', async () => {
+    const { fixture, el } = await setup();
+    const host = fixture.debugElement.query(By.directive(FCanvasComponent));
+    const canvas = host.componentInstance as FCanvasComponent;
+    const setScale = spyOn(canvas, 'setScale').and.callThrough();
+
+    // O enquadramento numa área pequena demais avisa 2% na mudança do canvas.
+    host.triggerEventHandler('fCanvasChange', { scale: 0.02 });
+    fixture.detectChanges();
+
+    expect(setScale).toHaveBeenCalledWith(ZOOM_MIN);
+    expect(el.querySelector('.biz-zoom-value')!.textContent).toBe('25%');
+  });
+
   // WEB-BIZV-051
   it('grade_deDezPixelsEOBalaoTemAAlcaDeArrastar', async () => {
     const { fixture, node } = await setup();

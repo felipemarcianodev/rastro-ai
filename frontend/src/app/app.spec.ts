@@ -35,6 +35,22 @@ describe('App', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
+  // Achado no passo de UX da release 0.11.0: o tema e a paleta só voltavam depois de abrir as Configurações.
+  it('aplicaOTemaEAPaletaEscolhidos_jaNaSubida_emQualquerRota', () => {
+    localStorage.setItem('rastro.theme', 'dark');
+    localStorage.setItem('rastro.palette', 'nautica');
+    try {
+      render([]);
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+      expect(document.documentElement.getAttribute('data-palette')).toBe('nautica');
+    } finally {
+      localStorage.removeItem('rastro.theme');
+      localStorage.removeItem('rastro.palette');
+      document.documentElement.removeAttribute('data-theme');
+      document.documentElement.removeAttribute('data-palette');
+    }
+  });
+
   it('mostra o nome do produto no topo', () => {
     const { el } = render([]);
     expect(el.querySelector('.brand-name')?.textContent).toContain('Rastro AI');

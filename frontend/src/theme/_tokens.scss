@@ -95,6 +95,8 @@
   --header-h: calc(var(--topbar-h) + var(--page-bar-h));
   // Largura do painel lateral do levantamento (grade e aba de recolher).
   --panel-width: clamp(420px, 28vw, 600px);
+  // Largura mínima do título da barra de página antes de as ações descerem para a linha de baixo.
+  --page-title-min: 18rem;
 
   // Camadas: cada nível acima do outro tem nome. O fundo do menu (59) fica abaixo do menu (60 e 61), que
   // recebe o clique; o aviso passa por cima de tudo, menos do pular-para-o-conteúdo (1000, em _base).
