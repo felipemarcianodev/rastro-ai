@@ -148,7 +148,9 @@ Limite do leitor de template: as bifurcações da tela vêm de uma leitura leve 
 
 Em `surveys/:id/visao` o fluxo aparece resumido em poucos passos, em frase, como um `flowchart` Mermaid: a entrada, as bifurcações com o texto de cada ramo, as chamadas externas e os retornos antecipados. A geração é determinística, sem IA. O texto do Mermaid fica ao lado da prévia e pode ser editado; clicar num passo abre a escolha de cor (fundo, borda e texto), que vira `classDef` no próprio texto. A versão editada fica salva no levantamento, e "Gerar de novo" mantém as cores e os textos dos passos que ainda existem.
 
-A visão também é o quarto desenho do fluxo: o botão que troca o desenho passa pelo horizontal, a linha do tempo, a árvore e o consolidado (ou o botão "Visão consolidada" da barra). Nele, clicar num passo abre o painel do passo, com o código, as ligações e o caminho desde a entrada. Arrastar o fundo move o desenho e a roda do mouse aproxima em volta do cursor. "Editar texto e cores" leva à tela de edição, onde "Ver no fluxo" volta ao passo escolhido.
+A visão também é um dos desenhos do fluxo: a barra de desenhos do painel do fluxo tem um botão para cada desenho (grafo vertical, grafo horizontal, árvore, por sistemas, visão de negócio e Mermaid), e `?desenho=<slug>` no endereço abre um levantamento direto num desenho. Nele, clicar num passo abre o painel do passo, com o código, as ligações e o caminho desde a entrada. Arrastar o fundo move o desenho e a roda do mouse aproxima em volta do cursor. "Editar texto e cores" leva à tela de edição, onde "Ver no fluxo" volta ao passo escolhido.
+
+O botão **draw.io** dessa barra abre o desenho que estava na tela (grafo, mapa por sistemas ou visão de negócio) no editor do draw.io, dentro do Rastro; clicar num balão abre o painel do passo. O editor vem no pacote (draw.io 32.6.10, Apache-2.0, servido pela própria API em `/drawio/`, em `127.0.0.1`), abre em modo isolado (`stealth`, `offline`) e não precisa de rede: nada sai da máquina.
 
 ## Esquema do banco
 
@@ -225,7 +227,7 @@ cd extractor-ts && npm ci && npm test
 
 O teste de integração do backend roda o extrator Angular de verdade: precisa do Node e do `npm ci` feito em `extractor-ts`.
 
-Pacote local: `powershell -File scripts/empacotar.ps1` gera `artifacts/rastro-ai.<versão>.nupkg` (front embutido no `wwwroot` da API), e `dotnet tool install -g rastro-ai --add-source artifacts` instala para testar.
+Pacote local: `powershell -File scripts/empacotar.ps1` gera `artifacts/rastro-ai.<versão>.nupkg` (front embutido no `wwwroot` da API), e `dotnet tool install -g rastro-ai --add-source artifacts` instala para testar. O pacote inclui o editor do draw.io, cerca de 18 MB a mais (de cerca de 35 MB para cerca de 53 MB). Quem roda a API pelo código-fonte precisa rodar uma vez `powershell -File scripts/preparar-drawio.ps1` (baixa a versão fixa, confere o SHA-256 e extrai em `backend/src/Rastro.Api/drawio/`, fora do git); sem isso, o botão draw.io não aparece. O `scripts/empacotar.ps1` já chama esse script.
 
 **Docker (opcional):** `docker compose -f docker/docker-compose.yml up -d --build` sobe em http://localhost:7400, com o banco no volume `rastro-data` e os repositórios montados só para leitura (`REPOS_DIR`, `REPO_0_NAME` e `REPO_0_FOLDER`).
 
@@ -245,4 +247,4 @@ Construído em par com o Claude (Claude Code), fase a fase, com plano, testes e 
 
 [MIT](LICENSE).
 
-Componentes de terceiros que vão no pacote com licença diferente da MIT: [Photino.NET e Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), a janela própria. Falhas de segurança: veja [SECURITY.pt-BR.md](SECURITY.pt-BR.md).
+Componentes de terceiros que vão no pacote com licença diferente da MIT: [Photino.NET e Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), a janela própria, e o [draw.io (jgraph/drawio)](https://github.com/jgraph/drawio) (Apache-2.0), o editor de diagramas, com a licença em `LICENSE-drawio.txt`. Falhas de segurança: veja [SECURITY.pt-BR.md](SECURITY.pt-BR.md).

@@ -178,6 +178,7 @@ Os vídeos são produzidos no marketing, no outro repositório. Do episódio 4 e
 - Teste automatizado do pacote (sessão sem ninguém olhando, CI): `rastro --sem-janela`, para não abrir janela na tela do dono. Quem abre a janela para conferir a fecha no fim, pelo PID que subiu.
 - Mudou o código? Para o dono usar, gere o pacote (`scripts/empacotar.ps1`) e atualize com o `rastro` parado: `dotnet tool update -g rastro-ai --add-source artifacts`.
 - Com o Visual Studio rodando a API (prende o `bin`), compile e teste com `RASTRO_BIN=<pasta do repositório>/backend/bin`.
+- **draw.io** ([ADR-011](docs/adr/adr-011-drawio-dentro-do-rastro.md)): para o desenho draw.io aparecer no `dotnet run`, rode uma vez `powershell -File scripts/preparar-drawio.ps1` (baixa a versão fixa de `scripts/drawio/drawio.json`, confere o SHA-256 e extrai em `backend/src/Rastro.Api/drawio/`, fora do git). O `empacotar.ps1` já chama o script. Subir a versão do draw.io é um PR com o hash novo e o teste de que o editor abre sem rede.
 - **Memória da máquina** (o dono roda outros projetos e sessões ao mesmo tempo):
   - depois dos gates do backend, `dotnet build-server shutdown` (os nós do MSBuild ficam residentes, cerca de 200 MB cada);
   - o `ng serve` e o `rastro` de teste são derrubados no fim do trabalho;

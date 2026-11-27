@@ -55,6 +55,6 @@ Não testado na prova: a janela Photino (WebView2) e o WebKit do macOS e do Linu
 
 - O pacote cresce cerca de 18 MB.
 - O README, o README do pacote e o `SECURITY.md` dizem o que vem no pacote e que o draw.io roda sem rede.
-- O `NOTICE` do draw.io (Apache-2.0) vai junto, com os créditos no README.
+- A licença do draw.io (Apache-2.0) vai junto, em `LICENSE-drawio.txt` na pasta do editor (o `draw.war` não traz a licença principal, então ela vem do repositório do draw.io, na mesma versão), com os créditos no README.
 - Atualizar o draw.io é decisão consciente, com hash e teste, e não acontece sozinho.
 - Quem roda a API pelo código-fonte precisa rodar o script do draw.io uma vez para ter o desenho draw.io.

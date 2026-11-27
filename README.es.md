@@ -148,7 +148,9 @@ Límite del lector de plantillas: las bifurcaciones de la pantalla vienen de una
 
 En `surveys/:id/visao` el flujo aparece resumido en pocos pasos, en frases, como un `flowchart` de Mermaid: la entrada, las bifurcaciones con el texto de cada rama, las llamadas externas y los retornos anticipados. La generación es determinista, sin IA. El texto de Mermaid queda junto a la vista previa y se puede editar; al hacer clic en un paso se abre la elección de color (fondo, borde y texto), que se convierte en un `classDef` en el propio texto. La versión editada se guarda en el rastreo, y "Generar de nuevo" mantiene los colores y los textos de los pasos que aún existen.
 
-La vista también es el cuarto dibujo del flujo: el botón que cambia el dibujo pasa por el horizontal, la línea de tiempo, el árbol y el consolidado (o por el botón "Vista consolidada" de la barra). Allí, al hacer clic en un paso se abre el panel del paso, con el código, los enlaces y el camino desde la entrada. Arrastrar el fondo mueve el dibujo y la rueda del mouse acerca alrededor del cursor. "Editar texto y colores" lleva a la pantalla de edición, donde "Ver en el flujo" vuelve al paso elegido.
+La vista también es uno de los dibujos del flujo: la barra de dibujos del panel del flujo tiene un botón para cada dibujo (grafo vertical, grafo horizontal, árbol, por sistemas, vista de negocio y Mermaid), y `?desenho=<slug>` en la dirección abre un rastreo directamente en un dibujo. Allí, al hacer clic en un paso se abre el panel del paso, con el código, los enlaces y el camino desde la entrada. Arrastrar el fondo mueve el dibujo y la rueda del mouse acerca alrededor del cursor. "Editar texto y colores" lleva a la pantalla de edición, donde "Ver en el flujo" vuelve al paso elegido.
+
+El botón **draw.io** de esa barra abre el dibujo que estaba en pantalla (grafo, mapa por sistemas o vista de negocio) en el editor de draw.io, dentro de Rastro; al hacer clic en un globo se abre el panel del paso. El editor viene en el paquete (draw.io 32.6.10, Apache-2.0, servido por la propia API en `/drawio/`, en `127.0.0.1`), se abre en modo aislado (`stealth`, `offline`) y no necesita red: nada sale de la máquina.
 
 ## Esquema de la base de datos
 
@@ -225,7 +227,7 @@ cd extractor-ts && npm ci && npm test
 
 La prueba de integración del backend ejecuta de verdad el extractor Angular: requiere Node y el `npm ci` hecho en `extractor-ts`.
 
-Paquete local: `powershell -File scripts/empacotar.ps1` genera `artifacts/rastro-ai.<versión>.nupkg` (front embebido en el `wwwroot` de la API), y `dotnet tool install -g rastro-ai --add-source artifacts` lo instala para probar.
+Paquete local: `powershell -File scripts/empacotar.ps1` genera `artifacts/rastro-ai.<versión>.nupkg` (front embebido en el `wwwroot` de la API), y `dotnet tool install -g rastro-ai --add-source artifacts` lo instala para probar. El paquete incluye el editor de draw.io, unos 18 MB más (de unos 35 MB a unos 53 MB). Quien ejecuta la API desde el código fuente debe ejecutar una vez `powershell -File scripts/preparar-drawio.ps1` (descarga la versión fija, verifica el SHA-256 y la extrae en `backend/src/Rastro.Api/drawio/`, fuera de git); sin eso, el botón draw.io no aparece. `scripts/empacotar.ps1` ya llama a ese script.
 
 **Docker (opcional):** `docker compose -f docker/docker-compose.yml up -d --build` lo inicia en http://localhost:7400, con la base de datos en el volumen `rastro-data` y los repositorios montados solo para lectura (`REPOS_DIR`, `REPO_0_NAME` y `REPO_0_FOLDER`).
 
@@ -245,4 +247,4 @@ Construido en pareja con Claude (Claude Code), fase a fase, con plan, pruebas y 
 
 [MIT](LICENSE).
 
-Componentes de terceros que van en el paquete con una licencia distinta de MIT: [Photino.NET y Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), la ventana propia. Fallas de seguridad: consulta [SECURITY.es.md](SECURITY.es.md).
+Componentes de terceros que van en el paquete con una licencia distinta de MIT: [Photino.NET y Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), la ventana propia, y [draw.io (jgraph/drawio)](https://github.com/jgraph/drawio) (Apache-2.0), el editor de diagramas, con su licencia en `LICENSE-drawio.txt`. Fallas de seguridad: consulta [SECURITY.es.md](SECURITY.es.md).
