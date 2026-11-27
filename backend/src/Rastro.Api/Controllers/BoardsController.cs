@@ -16,6 +16,9 @@ public record AddBoardLaneRequest(Guid SurveyId, string? Title = null);
 
 public record ReplaceBoardLaneRequest(Guid NewSurveyId);
 
+// GET e PUT das anotações do quadro no draw.io (Fase 68).
+public record BoardDrawioDto(string? Annotations);
+
 // Resposta da troca de levantamento da faixa: o quadro já com a faixa nova e os passos do antigo que não continuam.
 public record ReplaceBoardLaneResponse(BoardDetail Board, IReadOnlyList<RemovedStep> RemovedSteps);
 
@@ -101,6 +104,21 @@ public class BoardsController(BoardService boards, ILogger<BoardsController> log
         return reset == Rastro.Infrastructure.Business.BoardError.None ? NoContent() : Fail(reset);
     }
 
+    // Anotações do quadro aberto no draw.io (Fase 68): células soltas, mesmas regras do levantamento (Fases 65 e 66).
+    [HttpGet("{id:guid}/drawio")]
+    public async Task<ActionResult<BoardDrawioDto>> GetDrawio(Guid id, CancellationToken ct)
+    {
+        var read = await boards.GetDrawioAnnotationsAsync(id, ct);
+        return read.Ok ? new BoardDrawioDto(read.Value) : Fail(read.Error);
+    }
+
+    [HttpPut("{id:guid}/drawio")]
+    public async Task<IActionResult> SaveDrawio(Guid id, BoardDrawioDto body, CancellationToken ct)
+    {
+        var saved = await boards.SaveDrawioAnnotationsAsync(id, body?.Annotations, ct);
+        return saved == Rastro.Infrastructure.Business.BoardError.None ? NoContent() : Fail(saved);
+    }
+
     private async Task<ActionResult<BoardDetail>> DetailAsync(Guid id, CancellationToken ct) =>
         await boards.GetAsync(id, RequestLanguage.Current, ct) is { } detail
             ? detail
@@ -120,6 +138,8 @@ public class BoardsController(BoardService boards, ILogger<BoardsController> log
                 (StatusCodes.Status400BadRequest, ErrorCodes.BoardLanesInvalid, "Board.LanesInvalid"),
             Rastro.Infrastructure.Business.BoardError.LayoutInvalid =>
                 (StatusCodes.Status400BadRequest, ErrorCodes.BusinessLayoutInvalid, "BusinessLayout.Invalid"),
+            Rastro.Infrastructure.Business.BoardError.DrawioInvalid =>
+                (StatusCodes.Status400BadRequest, ErrorCodes.DrawioLayoutInvalid, "DrawioLayout.Invalid"),
             Rastro.Infrastructure.Business.BoardError.SurveyNotFound =>
                 (StatusCodes.Status404NotFound, ErrorCodes.BoardSurveyNotFound, "Board.SurveyNotFound"),
             Rastro.Infrastructure.Business.BoardError.SurveyNotReady =>

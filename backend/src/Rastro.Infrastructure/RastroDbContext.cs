@@ -87,6 +87,7 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             board.HasKey(b => b.Id);
             board.Property(b => b.Name).HasMaxLength(Core.Business.BoardLimits.MaxNameLength).IsRequired();
             board.Property(b => b.Glossary).HasMaxLength(Core.Business.BoardLimits.MaxGlossaryLength);
+            board.Property(b => b.DrawioAnnotations);
         });
 
         modelBuilder.Entity<Core.Business.BoardLane>(lane =>

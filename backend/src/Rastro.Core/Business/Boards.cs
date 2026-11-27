@@ -13,7 +13,16 @@ public class Board
     public DateTimeOffset CreatedAt { get; private set; }
     public DateTimeOffset UpdatedAt { get; private set; }
 
+    // Anotações do quadro aberto no draw.io (Fase 68): XML só com células soltas (mxCell sem rastroId). Nulo quando não há.
+    public string? DrawioAnnotations { get; private set; }
+
     private Board() { }
+
+    public void SetDrawioAnnotations(string? annotations, DateTimeOffset now)
+    {
+        DrawioAnnotations = string.IsNullOrEmpty(annotations) ? null : annotations;
+        UpdatedAt = now;
+    }
 
     public static Board Create(string name, string? glossary, DateTimeOffset now) =>
         new() { Id = Guid.NewGuid(), Name = name, Glossary = glossary, CreatedAt = now, UpdatedAt = now };
