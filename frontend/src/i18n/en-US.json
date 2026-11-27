@@ -2005,6 +2005,18 @@
   "drawio": {
     "loading": "Opening the draw.io editor…",
     "failed": "The draw.io editor did not respond.",
-    "frameTitle": "draw.io editor"
+    "frameTitle": "draw.io editor",
+    "saved": "Drawing saved",
+    "saveFailed": "Could not save the drawing. The next change tries again.",
+    "removed": "The flow steps come from the code: the bubble comes back when the drawing opens again.",
+    "loadFailed": "Could not load what was saved for this drawing. It opened without saving, so it does not erase what is already stored.",
+    "reset": {
+      "button": "Rearrange",
+      "title": "Goes back to the drawing generated from the code, without the saved positions and annotations",
+      "confirmTitle": "Rearrange the drawing in draw.io?",
+      "confirmText": "The bubble positions and the annotations you drew here go back to the drawing generated from the code. This cannot be undone.",
+      "confirmAction": "Rearrange",
+      "failed": "Could not rearrange. Try again."
+    }
   }
 }
