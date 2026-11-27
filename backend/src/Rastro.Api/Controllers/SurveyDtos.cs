@@ -123,6 +123,7 @@ public static class ErrorCodes
     public const string LiveDatabaseError = "LIVE_DATABASE_ERROR";
     public const string LanguageInvalid = "LANGUAGE_INVALID";
     public const string BusinessLayoutInvalid = "BUSINESS_LAYOUT_INVALID";
+    public const string DrawioLayoutInvalid = "DRAWIO_LAYOUT_INVALID";
     public const string BusinessLabelInvalid = "BUSINESS_LABEL_INVALID";
     public const string BusinessKindInvalid = "BUSINESS_KIND_INVALID";
     public const string BusinessStepNotFound = "BUSINESS_STEP_NOT_FOUND";

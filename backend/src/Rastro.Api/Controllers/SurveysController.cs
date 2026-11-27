@@ -470,6 +470,52 @@ public class SurveysController(
         return NoContent();
     }
 
+    // Posições e anotações do desenho aberto no draw.io (Fases 65 e 66), por levantamento e origem (0 grafo, 1 mapa,
+    // 2 visão de negócio). Guarda só os balões com rastroId e as células soltas; o XML sai do código a cada abertura.
+    [HttpGet("{id:guid}/drawio/{source}")]
+    public async Task<ActionResult<Rastro.Core.Business.DrawioLayoutDto>> DrawioLayout(Guid id, string source,
+        [FromServices] Rastro.Infrastructure.Business.DrawioLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        if (!TryDrawioSource(source, out var origin)) return DrawioInvalid();
+        return await layouts.GetAsync(id, origin, ct);
+    }
+
+    [HttpPut("{id:guid}/drawio/{source}")]
+    public async Task<IActionResult> SaveDrawioLayout(Guid id, string source, Rastro.Core.Business.DrawioLayoutDto layout,
+        [FromServices] Rastro.Infrastructure.Business.DrawioLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        if (!TryDrawioSource(source, out var origin) || !Rastro.Core.Business.DrawioLayoutLimits.IsValid(layout)) return DrawioInvalid();
+        await layouts.SaveAsync(id, origin, layout, ct);
+        return NoContent();
+    }
+
+    [HttpDelete("{id:guid}/drawio/{source}")]
+    public async Task<IActionResult> ResetDrawioLayout(Guid id, string source,
+        [FromServices] Rastro.Infrastructure.Business.DrawioLayoutService layouts, CancellationToken ct)
+    {
+        if (!await db.Surveys.AnyAsync(s => s.Id == id, ct)) return NotFound();
+        if (!TryDrawioSource(source, out var origin)) return DrawioInvalid();
+        await layouts.ResetAsync(id, origin, ct);
+        return NoContent();
+    }
+
+    private static bool TryDrawioSource(string source, out Rastro.Core.Business.DrawioSource origin)
+    {
+        origin = default;
+        if (!int.TryParse(source, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var value)
+            || !Rastro.Core.Business.DrawioLayoutLimits.IsDefined(value)) return false;
+        origin = (Rastro.Core.Business.DrawioSource)value;
+        return true;
+    }
+
+    private BadRequestObjectResult DrawioInvalid()
+    {
+        var language = UiLanguages.FromCulture(System.Globalization.CultureInfo.CurrentUICulture);
+        return Error(ErrorCodes.DrawioLayoutInvalid, Rastro.Api.Cli.ApiText.Get("DrawioLayout.Invalid", language));
+    }
+
     // Texto e tipo dos passos da visão de negócio (Fase 59). O passo vem na rota pelo Id do passo (16 hexadecimais,
     // seguro na URL) ou pelo id do nó do grafo (com ':' e '/', codificado); o servidor resolve contra os nós do
     // próprio levantamento e nunca trata o valor como caminho. Só o usuário confirma: estas rotas são da tela.

@@ -21,6 +21,7 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
     public DbSet<Core.Business.BusinessEdgeLayout> BusinessEdgeLayouts => Set<Core.Business.BusinessEdgeLayout>();
     public DbSet<Core.Business.BusinessLabel> BusinessLabels => Set<Core.Business.BusinessLabel>();
     public DbSet<Core.Business.BusinessKindOverride> BusinessKindOverrides => Set<Core.Business.BusinessKindOverride>();
+    public DbSet<Core.Business.DrawioLayout> DrawioLayouts => Set<Core.Business.DrawioLayout>();
     public DbSet<Core.Business.Board> Boards => Set<Core.Business.Board>();
     public DbSet<Core.Business.BoardLane> BoardLanes => Set<Core.Business.BoardLane>();
     public DbSet<Database.Live.LiveConnection> LiveConnections => Set<Database.Live.LiveConnection>();
@@ -68,6 +69,15 @@ public class RastroDbContext(DbContextOptions<RastroDbContext> options) : DbCont
             layout.Property(l => l.FromStep).HasMaxLength(64);
             layout.Property(l => l.ToStep).HasMaxLength(64);
             layout.Property(l => l.PointsJson).IsRequired();
+        });
+
+        // Posições e anotações do draw.io (Fases 65 e 66): por levantamento e origem; somem com o levantamento (cascata).
+        modelBuilder.Entity<Core.Business.DrawioLayout>(layout =>
+        {
+            layout.ToTable("drawio_layouts");
+            layout.HasKey(l => new { l.SurveyId, l.Source });
+            layout.HasOne<Survey>().WithMany().HasForeignKey(l => l.SurveyId).OnDelete(DeleteBehavior.Cascade);
+            layout.Property(l => l.CellsJson).IsRequired();
         });
 
         // Quadro de fluxos (Fase 60): as faixas somem com o quadro e com o levantamento (cascata).
