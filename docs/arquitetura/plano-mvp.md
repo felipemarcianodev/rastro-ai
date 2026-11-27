@@ -1459,6 +1459,7 @@ O pedido, em duas partes:
 - [ ] Voltar ao desenho de origem mostra as posições movidas no draw.io, e vice-versa.
 - [ ] "Reorganizar" apaga as posições daquele desenho, como hoje.
 - **Backend (Fases 65 e 66):** migration `DrawioLayout`, com `drawio_layouts` (chave levantamento e origem, FK com cascata para o levantamento; `cells_json` com as posições dos balões com `rastroId` e `annotations_xml` com as células soltas). Rotas `GET`, `PUT` (204) e `DELETE` (204) em `api/surveys/{id}/drawio/{source}` (0 grafo, 1 mapa, 2 visão de negócio); limites e código `DRAWIO_LAYOUT_INVALID`.
+- **Backend (Fase 68):** migration `QuadroDrawio`, com a coluna `drawio_annotations` (texto, nulo) em `boards`. Rotas `GET api/boards/{id}/drawio` (`200 { annotations }`, `404` sem o quadro) e `PUT` (`204`, `400 DRAWIO_LAYOUT_INVALID`), com o mesmo validador das anotações do levantamento.
 - **Aceite:** mover no draw.io, recarregar e ver no lugar, no draw.io e no desenho de origem; conflito (duas abas) resolvido pela última gravação, com aviso.
 
 ### Fase 66: editar texto, tipo e anotar no draw.io `[x]` (depende da 65)
@@ -1494,7 +1495,25 @@ O pedido, em duas partes:
 ### Fase 68: paridade, quadro de fluxos e fim do plano `[ ]` (depende da 67)
 
 - [ ] Lista do que a tela faz hoje em cada desenho (painel do nó, busca, trilha, recorte, legenda, minimapa, teclado, exportações, links para o código, quadro de fluxos) e, para cada item, onde ele vale no draw.io ou por que não vale.
-- [ ] Quadro de fluxos no draw.io: as faixas como molduras, com mover e anotar.
+- [x] Lista de paridade (2026-11-27), o que a tela faz hoje e onde vale no draw.io:
+
+  | O que a tela faz | No draw.io dentro do Rastro |
+  |---|---|
+  | Painel do passo ao clicar | vale: o clique num balão abre o painel do nó (Fase 64) |
+  | Links para o código (host e editor) | vale: cada balão leva o link do host no `.drawio` (o draw.io abre o link pelo próprio menu) |
+  | Mover balão e guardar a posição | vale: grafo, mapa e visão de negócio, com a visão de negócio recebendo a posição de volta (Fase 65) |
+  | Texto do passo (visão de negócio) | vale: edição no balão vira texto do usuário (Fase 66) |
+  | Tipo do passo | não vale: a forma do balão não diz o tipo do Rastro sem ambiguidade; o tipo segue pelo painel |
+  | Anotar | vale, e só no draw.io: formas e texto livres, guardados e reaplicados (Fase 66) |
+  | Editar o fluxo (rascunho, prompt e validação) | vale no modo "Editar fluxo": criar, ligar, mover e tirar passos (Fase 67); desfazer fica separado entre o Rastro e o draw.io |
+  | Exportar | vale: o menu Exportar baixa o `.drawio` atual do editor; PNG, SVG e Mermaid ficam nos desenhos de origem |
+  | Busca, trilha e recorte do grafo | não vale: são do Foblex; o draw.io tem a própria busca de formas, que não conhece o fluxo |
+  | Legenda, minimapa e zoom | o draw.io tem zoom e esboço próprios; a legenda fica no desenho de origem e no quadro |
+  | Teclado e leitor de tela | fraco no draw.io (a razão de ele não ser o padrão, ADR-011); os desenhos de origem seguem acessíveis |
+  | Comparar levantamentos | não vale: a comparação só existe no grafo |
+  | Quadro de fluxos | vale: as faixas como molduras, com mover e anotar (ver o item abaixo) |
+- [x] Quadro de fluxos no draw.io: as faixas como molduras, com mover e anotar.
+  - **Registro (2026-11-27):** botão "Abrir no draw.io" na tela do quadro (só com o draw.io na instalação), que mostra no editor o `.drawio` do quadro (uma moldura por faixa, os passos, o glossário e a legenda); "Voltar às faixas" volta à tela de hoje. Cada balão leva a faixa (`rastroLane`), e mover grava a posição pela rota de layout do quadro, por faixa; o texto editado vai pela rota de texto do levantamento da faixa; as anotações ficam numa coluna nova do quadro (migration `QuadroDrawio`, `GET` e `PUT api/boards/{id}/drawio`, com as mesmas regras das anotações do levantamento). Verificado no navegador com o draw.io de verdade e a rede de fora bloqueada: um quadro com dois fluxos do próprio Rastro abriu no editor; arrastar uma recusa gravou a posição na faixa certa; uma forma solta virou anotação guardada e voltou ao reabrir; nada saiu da máquina; console sem erro. Prints em `docs/telas/fase-68/`. O clique num balão do quadro só seleciona (a tela do quadro não tem ação de abrir o passo). Testes: backend 1171/1171; frontend 900/900.
 - [ ] Levantamento de UX completo, correções e release pela skill `gerar-release`.
 
 ### Fora de escopo

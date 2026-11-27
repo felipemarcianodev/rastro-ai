@@ -152,3 +152,5 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 65 | O draw.io reaberto: o balão no lugar novo e a anotação de volta | [fase-65/02-reaberto-com-posicao-e-anotacao.png](fase-65/02-reaberto-com-posicao-e-anotacao.png) |
 | Fase 65 | A visão de negócio com a posição movida no draw.io e o botão Reorganizar | [fase-65/03-visao-de-negocio-com-a-posicao-do-drawio.png](fase-65/03-visao-de-negocio-com-a-posicao-do-drawio.png) |
 | Fase 67 | No modo "Editar fluxo", uma caixa desenhada no draw.io virou passo novo: 1 mudança, o aviso e o painel do passo aberto | [fase-67/01-passo-novo-criado-no-drawio.png](fase-67/01-passo-novo-criado-no-drawio.png) |
+| Fase 68 | O quadro de fluxos no draw.io: duas faixas em molduras, a legenda, um balão movido e uma anotação, com "Desenho salvo" | [fase-68/01-quadro-no-drawio.png](fase-68/01-quadro-no-drawio.png) |
+| Fase 68 | De volta às faixas, com a posição movida no draw.io | [fase-68/02-faixas-com-a-posicao-do-drawio.png](fase-68/02-faixas-com-a-posicao-do-drawio.png) |
