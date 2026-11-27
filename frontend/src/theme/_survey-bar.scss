@@ -101,6 +101,22 @@
   }
 }
 
+// Tela estreita: o seletor ocupa a largura e quebra em linhas, em vez de passar da tela e empurrar os botões
+// vizinhos para fora (visto em 360 px no levantamento de UX do fim da visão de negócio). Cada opção fica numa
+// linha só, sem partir "Mapa por sistemas" em três.
+@media (max-width: 40rem) {
+  .segmented {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .segmented-item {
+    flex: 1 1 auto;
+    white-space: nowrap;
+  }
+}
+
 // Aviso de copiar e exportar (o menu já fechou): no alto, abaixo da barra, longe do "Desfazer" do canvas.
 .menu-toast {
   position: fixed;
