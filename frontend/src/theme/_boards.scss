@@ -37,6 +37,16 @@
   padding: var(--space-6) 0;
 }
 
+.board-empty-actions {
+  margin: var(--space-3) 0;
+}
+
+// Dica fixa acima da lista de levantamentos (UX-FIM, D-06).
+.pick-tip {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-sm);
+}
+
 .board-rows {
   margin: 0;
   padding: 0;
@@ -92,6 +102,11 @@
   .btn-p[type='submit'] {
     align-self: flex-start;
   }
+}
+
+// "Excluir quadro" no fim da barra e afastado das ações de uso (UX-FIM, D-07).
+.board-delete {
+  margin-inline-start: var(--space-5);
 }
 
 // Escolha de levantamentos (diálogo de criar quadro e lista de levantamentos).

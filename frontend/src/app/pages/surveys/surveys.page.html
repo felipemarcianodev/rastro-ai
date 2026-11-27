@@ -94,6 +94,9 @@
           }
         </div>
       </div>
+      @if (picked().length === 0 && completedCount() >= minBoardPick) {
+        <p class="muted pick-tip">{{ 'surveys.pick.tip' | translate: { min: minBoardPick } }}</p>
+      }
       @if (picked().length > 0) {
         <div class="pick-bar" role="group" [attr.aria-label]="'surveys.pick.group' | translate">
           <span>{{ 'surveys.pick.selected' | translate: { count: picked().length } }}</span>

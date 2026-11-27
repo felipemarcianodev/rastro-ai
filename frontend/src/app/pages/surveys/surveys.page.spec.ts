@@ -855,6 +855,16 @@ describe('SurveysPage, escolha para o quadro (Fase 60)', () => {
     expect(el.querySelector('.pick-bar')).toBeNull();
   });
 
+  // WEB-BOARD-070B (D-06)
+  it('doisProntos_mostramADicaFixa_eElaSomeQuandoABarraDeEscolhaAparece', () => {
+    const { fixture, el } = open();
+
+    expect(el.querySelector('.pick-tip')!.textContent).toContain('Marque dois ou mais levantamentos prontos');
+    el.querySelector<HTMLInputElement>('.row-pick input')!.click();
+    fixture.detectChanges();
+    expect(el.querySelector('.pick-tip')).toBeNull();
+  });
+
   // WEB-BOARD-071
   it('escolhaDeUm_mostraABarraComOCriarQuadroDesabilitado_eDeDoisHabilita', () => {
     const { fixture, el } = open();

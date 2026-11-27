@@ -336,6 +336,16 @@ describe('BoardPage (Fase 60)', () => {
     expect(remove()[0].disabled).toBeTrue();
   });
 
+  // WEB-BOARD-034B (D-07)
+  it('barra_adicionarEPrimarioEExcluirQuadroFicaNoFimSeparado', async () => {
+    const { el } = await setup(board([lane('s1', 0)]));
+
+    const buttons = Array.from(el.querySelectorAll<HTMLButtonElement>('.board-bar-side button'));
+    expect(el.querySelector('#board-add-btn')!.classList.contains('btn-p')).toBeTrue();
+    expect(buttons[buttons.length - 1].textContent).toContain('Excluir quadro');
+    expect(buttons[buttons.length - 1].classList.contains('board-delete')).toBeTrue();
+  });
+
   // WEB-BOARD-035
   it('adicionarLevantamento_listaSoOsProntosQueNaoEstaoNoQuadroEAdicionaNoFim', async () => {
     const { el, fixture, http, button } = await setup(board([lane('s1', 0)]));

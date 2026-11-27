@@ -62,7 +62,7 @@ export const NEW_BOARD_CHOICE = 'new';
               }
               <footer class="dialog-foot">
                 <button type="button" class="btn btn-g" (click)="close()" [disabled]="submitting()">{{ 'common.cancel' | translate }}</button>
-                <button type="submit" class="btn btn-p" [disabled]="submitting()">{{ (submitting() ? 'boards.addTo.adding' : 'boards.addTo.submit') | translate }}</button>
+                <button type="submit" class="btn btn-p" [disabled]="submitting()">{{ submitLabel() | translate: { name: chosenName() } }}</button>
               </footer>
             </form>
           }
@@ -94,6 +94,16 @@ export class AddToBoardDialogComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
+  }
+
+  // O botão diz o destino: "Adicionar a "{nome}"" ou "Criar quadro e adicionar", para não enviar ao quadro errado.
+  protected chosenName(): string {
+    return this.boards()?.find((b) => b.id === this.choice)?.name ?? '';
+  }
+
+  protected submitLabel(): string {
+    if (this.submitting()) return 'boards.addTo.adding';
+    return this.choice === NEW_BOARD_CHOICE ? 'boards.addTo.submitNew' : 'boards.addTo.submitTo';
   }
 
   protected load(): void {
