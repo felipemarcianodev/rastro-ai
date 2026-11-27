@@ -1,5 +1,5 @@
 import { BusinessEdge, BusinessFlow, BusinessKind, BusinessStep, LabelOrigin, LabelState } from '../models';
-import { BRANCH_LABEL_POSITION, BUSINESS_BOX, businessLayout, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from './business-layout';
+import { BRANCH_LABEL_POSITION, BUSINESS_BOX, BUSINESS_TEXT, businessBoxSize, businessLayout, businessTextLines, edgeKey, flowNeighbour, snapToGrid, withSavedPositions } from './business-layout';
 
 function step(id: string, kind: BusinessKind = BusinessKind.Step, label = id): BusinessStep {
   return { id, nodeId: `n-${id}`, kind, label, labelOrigin: LabelOrigin.Rule, labelState: LabelState.Confirmed, ref: null, sourceNodeIds: [`n-${id}`], inferred: false, codeChanged: false };
@@ -57,6 +57,33 @@ describe('businessLayout', () => {
     expect(boxes.get('a')).toEqual(jasmine.objectContaining(BUSINESS_BOX.step));
     expect(boxes.get('b')).toEqual(jasmine.objectContaining(BUSINESS_BOX.decisionLong));
     expect(boxes.get('c')).toEqual(jasmine.objectContaining(BUSINESS_BOX.decision));
+  });
+
+  // WEB-BIZ-040
+  it('tamanho_textoCurtoFicaNoBalaoBase', () => {
+    expect(businessBoxSize(step('a', BusinessKind.Step, 'Valida o pedido'))).toEqual(BUSINESS_BOX.step);
+    expect(businessBoxSize(step('b', BusinessKind.Decision, 'Prazo?'))).toEqual(BUSINESS_BOX.decision);
+  });
+
+  // WEB-BIZ-041
+  it('tamanho_textoLongoCresceAlturaPorLinhaEPassaDoTeto', () => {
+    const medio = step('a', BusinessKind.Step, 'x'.repeat(100));
+    const enorme = step('b', BusinessKind.Step, 'x'.repeat(2000));
+
+    expect(businessTextLines(medio)).toBeGreaterThan(BUSINESS_TEXT.stepBaseLines);
+    expect(businessBoxSize(medio).height).toBe(BUSINESS_BOX.step.height + (businessTextLines(medio) - BUSINESS_TEXT.stepBaseLines) * BUSINESS_TEXT.lineHeight);
+    expect(businessTextLines(enorme)).toBe(BUSINESS_TEXT.maxLines);
+    expect(businessBoxSize(enorme).height).toBe(BUSINESS_BOX.step.height + (BUSINESS_TEXT.maxLines - BUSINESS_TEXT.stepBaseLines) * BUSINESS_TEXT.lineHeight);
+    expect(businessBoxSize(medio)).toEqual(businessBoxSize(step('c', BusinessKind.Step, 'x'.repeat(100))));
+  });
+
+  // WEB-BIZ-042
+  it('tamanho_losangoCresceComTextoLongoESemSobreposicaoNoLayout', () => {
+    const longo = step('b', BusinessKind.Decision, 'palavra '.repeat(30));
+    const { boxes } = businessLayout(flowOf([step('a', BusinessKind.Start), longo, step('c', BusinessKind.Step, 'x'.repeat(200))], [['a', 'b'], ['b', 'c']]));
+
+    expect(boxes.get('b')!.height).toBeGreaterThan(BUSINESS_BOX.decisionLong.height);
+    expect(boxes.get('c')!.y).toBeGreaterThanOrEqual(boxes.get('b')!.y + boxes.get('b')!.height + BUSINESS_BOX.gapY);
   });
 
   // WEB-BIZ-012

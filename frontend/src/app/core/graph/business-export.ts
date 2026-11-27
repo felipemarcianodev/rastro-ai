@@ -1,6 +1,6 @@
 import { BusinessFlow, BusinessKind, BusinessStep } from '../models';
 import { BUSINESS_KIND_GLYPH, BUSINESS_KIND_ORDER, BUSINESS_KIND_SLUG } from './business';
-import { BusinessGeometry, LayoutPoint, edgeKey } from './business-layout';
+import { BusinessGeometry, LayoutPoint, businessTextLines, edgeKey } from './business-layout';
 import { glossaryEntries } from './board';
 import { BusinessBends, DrawioEdge, DrawioFrame, DrawioVertex, businessCells, codeReference, frameAround, shift, toDrawio } from './drawio';
 import { mermaidText } from './export';
@@ -286,7 +286,7 @@ function stepSvg(step: BusinessStep, box: NodeBox, colors: BusinessSvgColors): s
     : `<rect x="${r(x)}" y="${r(y)}" width="${r(width)}" height="${r(height)}" rx="${pill ? r(height / 2) : 8}" ${stroke}/>`;
 
   const textWidth = decision ? width * 0.58 : width - 24;
-  const label = wrapText(step.label, Math.floor(textWidth / SANS_WIDTH), decision ? (height >= 150 ? 4 : 3) : 3);
+  const label = wrapText(step.label, Math.floor(textWidth / SANS_WIDTH), Math.max(3, businessTextLines(step)));
   const location = step.ref ? { file: step.ref.file, line: step.ref.line } : null;
   const reference = codeReference(step.ref?.repository, location);
   const refChars = Math.floor((decision ? width * 0.6 : width - 16) / CODE_WIDTH);

@@ -86,6 +86,7 @@
               [class.is-selected]="stepId() === p.step.id"
               [class.is-proposed]="isProposed(p.step)"
               [attr.data-step-id]="p.step.id"
+              [style.--biz-lines]="textLines(p.step)"
               [attr.title]="p.whereFull"
               [attr.tabindex]="p.step.id === tabStop() ? 0 : -1"
               role="button"
@@ -120,7 +121,7 @@
                       <span class="biz-ref" [title]="p.whereFull">{{ p.where }}</span>
                     }
                     @if (isProposed(p.step)) {
-                      <span class="biz-badge is-proposed" [title]="'business.proposedTitle' | translate">{{ 'business.proposed' | translate }}</span>
+                      <span class="biz-badge is-proposed" [title]="proposedHint(p.step)">{{ 'business.proposed' | translate }}<span class="visually-hidden">. {{ proposedHint(p.step) }}</span></span>
                     }
                     @if (originBadge[p.step.labelOrigin]; as badge) {
                       <span class="biz-badge is-origin" [title]="stateLabel[p.step.labelState] | translate: { origin: (originLabel[p.step.labelOrigin] | translate) }">{{ badge | translate }}</span>
@@ -166,7 +167,7 @@
       <strong class="biz-panel-title" [class.biz-proposed-text]="isProposed(p.step)">{{ p.step.label }}</strong>
       <button type="button" class="btn btn-g btn-small biz-panel-close" (click)="close()" [title]="'flowMap.closeBlockTitle' | translate">{{ 'common.close' | translate }}</button>
     </header>
-    <p class="muted biz-origin">{{ stateLabel[p.step.labelState] | translate: { origin: (originLabel[p.step.labelOrigin] | translate) } }}
+    <p class="muted biz-origin" [attr.title]="isProposed(p.step) ? proposedHint(p.step) : null">{{ stateLabel[p.step.labelState] | translate: { origin: (originLabel[p.step.labelOrigin] | translate) } }}
       @if (p.step.codeChanged) {
         <span class="biz-badge is-changed" [title]="'business.codeChangedTitle' | translate">{{ 'business.codeChanged' | translate }}</span>
       }
@@ -273,8 +274,8 @@
 
     @if (!inBoard()) {
     <footer class="biz-panel-foot">
-      <button type="button" class="btn btn-g btn-small" (click)="viewInGraph()" [title]="'business.seeInGraphTitle' | translate">{{ 'business.seeInGraph' | translate }}</button>
-      <button type="button" class="btn btn-g btn-small" (click)="focusSection()" [title]="'flowMap.focusSectionTitle' | translate">{{ 'flowMap.focusSection' | translate }}</button>
+      <button type="button" class="btn btn-p btn-small" (click)="viewInGraph()" [title]="'business.seeInGraphTitle' | translate">{{ 'business.seeInGraph' | translate }}</button>
+      <button type="button" class="btn btn-g btn-small" (click)="focusSection()" [title]="'business.focusSectionTitle' | translate">{{ 'flowMap.focusSection' | translate }}</button>
     </footer>
     }
   } @else {
