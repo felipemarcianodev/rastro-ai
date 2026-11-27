@@ -7,6 +7,7 @@ import { LanguageService } from './core/i18n/i18n';
 import { LastRepositoryService } from './core/last-repository.service';
 import { RepositoryItem } from './core/models';
 import { RastroApi } from './core/rastro-api.service';
+import { ThemeService } from './core/theme.service';
 
 // Áreas do produto no cabeçalho.
 export enum NavArea {
@@ -49,6 +50,9 @@ export class App {
   private readonly api = inject(RastroApi);
   private readonly router = inject(Router);
   private readonly last = inject(LastRepositoryService);
+  // Criado aqui para aplicar o tema e a paleta escolhidos já na subida, em qualquer rota. Antes só a tela de
+  // Configurações criava o serviço, e ao recarregar outra tela a escolha só voltava depois de abrir as Configurações.
+  private readonly theme = inject(ThemeService);
   protected readonly title = 'Rastro AI';
   protected readonly ai = inject(AiStatusService);
   protected readonly Area = NavArea;
