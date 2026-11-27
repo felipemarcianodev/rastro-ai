@@ -68,7 +68,7 @@ enum DrawioState {
   host: { '(window:message)': 'onMessage($event)' },
   template: `
     <div class="drawio-bar">
-      <app-drawing-switcher [active]="LayoutDirection.Drawio" [drawioAvailable]="true" [vertical]="false" (pick)="directionChange.emit($event)" />
+      <app-drawing-switcher [active]="LayoutDirection.Drawio" [drawioAvailable]="true" [restricted]="editing()" [allowDrawio]="true" [vertical]="false" (pick)="directionChange.emit($event)" />
       @if (surveyId()) {
         <button type="button" class="btn btn-g btn-small" (click)="confirmingReset.set(true)" [title]="'drawio.reset.title' | translate">{{ 'drawio.reset.button' | translate }}</button>
       }
@@ -109,6 +109,8 @@ export class DrawioViewComponent {
   readonly surveyId = input<string | null>(null);
   readonly source = input<DrawioSource>(DrawioSource.Graph);
   readonly baseline = input<DrawioBaseline | null>(null);
+  // Na edição do fluxo (Fase 67) o editor mexe no rascunho: só os arranjos do grafo ficam na barra e nada vai para a tabela.
+  readonly editing = input(false);
   readonly selectNode = output<string>();
   // O editor gravou uma mudança (autosave): a Fase 65 guarda a posição por aqui.
   readonly changed = output<string>();

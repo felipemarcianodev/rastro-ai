@@ -2017,6 +2017,10 @@
       "confirmText": "Las posiciones de los globos y las anotaciones que dibujaste aquí vuelven al dibujo generado del código. No se puede deshacer.",
       "confirmAction": "Reorganizar",
       "failed": "No se pudo reorganizar. Inténtalo de nuevo."
+    },
+    "edit": {
+      "stepCreated": "Paso nuevo creado: describe qué debe hacer en el panel del paso.",
+      "entryStays": "El paso de entrada no sale del flujo."
     }
   }
 }

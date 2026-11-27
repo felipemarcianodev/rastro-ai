@@ -2017,6 +2017,10 @@
       "confirmText": "The bubble positions and the annotations you drew here go back to the drawing generated from the code. This cannot be undone.",
       "confirmAction": "Rearrange",
       "failed": "Could not rearrange. Try again."
+    },
+    "edit": {
+      "stepCreated": "New step created: describe what it should do in the step panel.",
+      "entryStays": "The entry step cannot leave the flow."
     }
   }
 }

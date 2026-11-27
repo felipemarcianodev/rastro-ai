@@ -288,7 +288,7 @@
         } @else if (showBusiness()) {
           <app-business-view [detail]="d" [selectedId]="selectedId()" [notes]="notes()" (selectNode)="pickInDrawing($event)" (focusFlow)="focusOnNode($event)" (showInGraph)="showNodeInGraph($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
         } @else if (showDrawio()) {
-          <app-drawio-view [xml]="drawioXml()" [surveyId]="drawioSaveId()" [source]="drawioSource()" [baseline]="drawioBaseline()" (selectNode)="pickInDrawing($event)" (directionChange)="onDirection($event)" (reorganized)="onDrawioReorganized()" />
+          <app-drawio-view [xml]="drawioXml()" [surveyId]="drawioSaveId()" [source]="drawioSource()" [baseline]="drawioBaseline()" [editing]="editing()" (changed)="onDrawioChanged($event)" (selectNode)="pickInDrawing($event)" (directionChange)="onDirection($event)" (reorganized)="onDrawioReorganized()" />
         } @else {
         <app-flow-canvas [graph]="g" [repository]="d.survey.repository" [surveyId]="d.survey.id" [systems]="systems()"[selectedId]="selectedId()" [trail]="trail()" [frameworkCount]="frameworkCount()"
           [showFramework]="showFramework()" [editing]="editing()" [focusId]="focusId()" [layoutKey]="layoutKey()" [comparing]="!!comparison()" [matchIds]="matchIds()" [noteIds]="notes()" [currentMatch]="currentMatch()" (openSearch)="openSearch()" (selectNode)="select($event)" (toggleFramework)="toggleFramework()"

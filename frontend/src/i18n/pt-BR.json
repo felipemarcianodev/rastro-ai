@@ -2017,6 +2017,10 @@
       "confirmText": "As posições dos balões e as anotações que você desenhou aqui voltam ao desenho gerado do código. Não dá para desfazer.",
       "confirmAction": "Reorganizar",
       "failed": "Não deu para reorganizar. Tente de novo."
+    },
+    "edit": {
+      "stepCreated": "Passo novo criado: descreva o que ele deve fazer no painel do passo.",
+      "entryStays": "O passo de entrada não sai do fluxo."
     }
   }
 }
