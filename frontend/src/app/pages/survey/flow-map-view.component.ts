@@ -25,7 +25,8 @@ import {
 import { mapToDrawio } from '../../core/graph/drawio';
 import { HostLinkOf } from '../../core/graph/link-template';
 import { fieldsText } from '../../core/graph/flow-insight';
-import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL_KEY, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
+import { LayoutDirection } from '../../core/graph/layout';
+import { DrawingSwitcherComponent } from './drawing-switcher.component';
 import { plainBranch } from '../../core/graph/plain';
 import { FlowSummary, readingLabel } from '../../core/graph/summary';
 import { AiStatusService } from '../../core/ai-status.service';
@@ -64,7 +65,7 @@ const MAP_TABS: { tab: MapTab; labelKey: string }[] = [
 // recolhidos, e o clique num desfecho acende o caminho dele (Fase 35).
 @Component({
   selector: 'app-flow-map-view',
-  imports: [FlowMapRulesComponent, FlowMapQuestionsComponent, TranslatePipe],
+  imports: [FlowMapRulesComponent, FlowMapQuestionsComponent, TranslatePipe, DrawingSwitcherComponent],
   templateUrl: './flow-map-view.component.html',
   styleUrl: './flow-map-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -111,9 +112,6 @@ export class FlowMapViewComponent {
   protected readonly canAsk = computed(() => aiCan(this.ai.status(), AiUse.Suggestions));
 
   protected readonly LayoutDirection = LayoutDirection;
-  protected readonly next = NEXT_LAYOUT_DIRECTION[LayoutDirection.Map];
-  protected readonly directionLabel = LAYOUT_DIRECTION_LABEL_KEY;
-  protected readonly directionGlyph = LAYOUT_DIRECTION_GLYPH;
   protected readonly slug = MAP_BLOCK_SLUG;
   protected readonly glyph = MAP_BLOCK_GLYPH;
   protected readonly kindLabel = MAP_BLOCK_LABEL_KEY;
@@ -292,10 +290,6 @@ export class FlowMapViewComponent {
 
   protected retry(): void {
     this.reload.update((n) => n + 1);
-  }
-
-  protected toggleDirection(): void {
-    this.directionChange.emit(this.next);
   }
 
   protected clearPath(): void {

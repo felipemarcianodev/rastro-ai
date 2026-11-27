@@ -162,9 +162,7 @@
   <button type="button" class="btn btn-icon" (click)="zoomIn()" [attr.aria-label]="'flowCanvas.zoomIn' | translate" [title]="'flowCanvas.zoomIn' | translate">+</button>
   <button type="button" class="btn btn-icon" (click)="zoomOut()" [attr.aria-label]="'flowCanvas.zoomOut' | translate" [title]="'flowCanvas.zoomOut' | translate">−</button>
   <button type="button" class="btn btn-icon" (click)="fit()" [attr.aria-label]="'flowCanvas.fit' | translate" [title]="'flowCanvas.fit' | translate">⤢</button>
-  <button type="button" class="btn btn-icon" (click)="toggleDirection()"
-    [attr.aria-label]="'graph.layout.directionAria' | translate: { current: (directionLabel[direction()] | translate), next: (directionLabel[nextDirection()] | translate) }"
-    [title]="'graph.layout.directionTitle' | translate: { next: (directionLabel[nextDirection()] | translate) }">{{ directionGlyph[nextDirection()] }}</button>
+  <app-drawing-switcher [active]="direction()" [restricted]="drawingsRestricted()" [vertical]="true" (pick)="pickDirection($event)" />
   <button type="button" class="btn btn-g btn-small" (click)="openSearch.emit()" [attr.aria-label]="'flowCanvas.searchAria' | translate" [title]="'flowCanvas.searchAria' | translate"><span aria-hidden="true">⌕</span> {{ 'flowCanvas.search' | translate }}</button>
 </div>
 

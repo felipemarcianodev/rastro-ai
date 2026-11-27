@@ -17,6 +17,7 @@ import {
   middleButtonEventTrigger,
   primaryButtonEventTrigger,
 } from '@foblex/flow';
+import { DrawingSwitcherComponent } from './drawing-switcher.component';
 import { Latest } from '../../core/graph/latest';
 import { StepMove, stepFrom } from '../../core/graph/keyboard';
 import { COLLAPSED_PREFIX, collapsedOwner } from '../../core/graph/collapse';
@@ -24,15 +25,12 @@ import { graphToDrawio } from '../../core/graph/drawio';
 import { HostLinkOf } from '../../core/graph/link-template';
 import { SvgColors, httpLabel, toMermaid, toSvg } from '../../core/graph/export';
 import {
-  LAYOUT_DIRECTION_GLYPH,
-  LAYOUT_DIRECTION_LABEL_KEY,
   LAYOUT_DIRECTION_SLUG,
   readLayoutDirection,
   saveLayoutDirection,
   LayoutDirection,
   NodeBox,
   isOutsideCanvas,
-  nextDrawing,
 } from '../../core/graph/layout';
 import { FOLD_ACTION, FOLD_GLYPH, FoldState, foldStates } from '../../core/graph/branches';
 import { NodeText, findGuards, outcomeText, withGuards } from '../../core/graph/guards';
@@ -141,7 +139,7 @@ interface IndexedEdge {
 
 @Component({
   selector: 'app-flow-canvas',
-  imports: [FFlowModule, RouterLink, TranslatePipe],
+  imports: [FFlowModule, RouterLink, TranslatePipe, DrawingSwitcherComponent],
   templateUrl: './flow-canvas.component.html',
   styleUrl: './flow-canvas.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -245,10 +243,8 @@ export class FlowCanvasComponent {
   );
   private readonly outcomeOf: NodeText = (node) => lowerFirst(plainLabel(node) ?? outcomeText(node));
   private readonly downward = computed(() => !this.horizontal());
-  // Na edição e na comparação o consolidado e o mapa não entram: só o canvas mostra o rascunho e as diferenças.
-  protected readonly nextDirection = computed(() => nextDrawing(this.direction(), this.editing() || this.comparing()));
-  protected readonly directionLabel = LAYOUT_DIRECTION_LABEL_KEY;
-  protected readonly directionGlyph = LAYOUT_DIRECTION_GLYPH;
+  // Na edição e na comparação os desenhos fora do canvas ficam desligados: só o canvas mostra o rascunho e as diferenças.
+  protected readonly drawingsRestricted = computed(() => this.editing() || this.comparing());
   // Cada direção guarda o seu arranjo feito à mão.
   private readonly positionsKey = computed(() => {
     const key = this.layoutKey();
@@ -921,8 +917,8 @@ export class FlowCanvasComponent {
     return this.routes().get(item.index)?.target ?? Port.In + item.edge.to;
   }
 
-  protected toggleDirection(): void {
-    const next = this.nextDirection();
+  // Botão da barra de desenhos (Fase 63): o arranjo do grafo troca aqui; os outros desenhos a página faz.
+  protected pickDirection(next: LayoutDirection): void {
     saveLayoutDirection(next);
     // O consolidado e o mapa são desenhados pela página, no lugar do canvas.
     if (!isOutsideCanvas(next)) this.direction.set(next);

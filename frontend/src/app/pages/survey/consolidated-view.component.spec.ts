@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { stepId } from '../../core/graph/consolidated';
 import { LayoutDirection } from '../../core/graph/layout';
+import { DRAWING_SWITCHER_ORDER } from './drawing-switcher.component';
 import { FlowSummary } from '../../core/graph/summary';
 import { DIAGRAM_RENDERER, DiagramRenderer } from '../../core/mermaid-render';
 import { EdgeConfidence, FlowGraph, NodeKind, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
@@ -145,7 +146,7 @@ describe('ConsolidatedViewComponent (Fase 28)', () => {
   it('botaoDoDesenho_levaAoMapaELinkLevaAEdicao', async () => {
     const { el, host } = await setup();
 
-    (el.querySelector('[aria-label^="Desenho consolidado"]') as HTMLButtonElement).click();
+    el.querySelectorAll<HTMLButtonElement>('.drawing-switcher-item')[DRAWING_SWITCHER_ORDER.indexOf(LayoutDirection.Map)].click();
     expect(host.directions).toEqual([LayoutDirection.Map]);
     const link = Array.from(el.querySelectorAll('a')).find((a) => a.textContent?.includes('Editar o Mermaid (texto e cores)'))!;
     expect(link.getAttribute('href')).toBe('/surveys/s1/visao');

@@ -3,6 +3,8 @@ import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@a
 import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { BusinessFlow, BusinessKind, CheckStatus, EdgeConfidence, FlowGraph, LabelOrigin, LabelState, NodeKind, SourceLanguage, SurveyDetail, SurveyStatus, ValidationStatus, ValidationVerdict, ValidationView } from '../../core/models';
+import { LAYOUT_DIRECTION_SLUG, LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
+import { DRAWING_SWITCHER_ORDER } from './drawing-switcher.component';
 import { EDIT_HINT_SEEN_KEY, SurveyPage } from './survey.page';
 
 const SURVEY_ID = 's1';
@@ -66,10 +68,11 @@ const validation: ValidationView = {
 // O último fixture aberto: os testes que clicam precisam rodar a detecção de mudanças dele.
 let lastFixture: ComponentFixture<SurveyPage> | null = null;
 
-function open(status: SurveyStatus, validations: ValidationView[] = []): HTMLElement {
+function open(status: SurveyStatus, validations: ValidationView[] = [], inputs: Record<string, string> = {}): HTMLElement {
   TestBed.configureTestingModule({ imports: [SurveyPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
   const fixture = TestBed.createComponent(SurveyPage);
   fixture.componentRef.setInput('id', SURVEY_ID);
+  for (const [name, value] of Object.entries(inputs)) fixture.componentRef.setInput(name, value);
   lastFixture = fixture;
   fixture.detectChanges();
   const http = TestBed.inject(HttpTestingController);
@@ -100,9 +103,21 @@ const BUSINESS_FLOW: BusinessFlow = {
   edges: [{ from: 'b1', to: 'b2', label: null, inferred: false }],
 };
 
+// Botões da barra de desenhos do painel, na ordem de DRAWING_SWITCHER_ORDER.
+function drawingButtons(el: HTMLElement): HTMLButtonElement[] {
+  return [...el.querySelectorAll<HTMLButtonElement>('.drawing-switcher-item')];
+}
+
+function pickDrawing(el: HTMLElement, direction: LayoutDirection): void {
+  drawingButtons(el)[DRAWING_SWITCHER_ORDER.indexOf(direction)].click();
+}
+
+function pressedDrawings(el: HTMLElement): LayoutDirection[] {
+  return drawingButtons(el).flatMap((b, i) => (b.getAttribute('aria-pressed') === 'true' ? [DRAWING_SWITCHER_ORDER[i]] : []));
+}
+
 async function showBusiness(el: HTMLElement): Promise<void> {
-  const items = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
-  items[3].click();
+  pickDrawing(el, LayoutDirection.Business);
   lastFixture!.detectChanges();
   const http = TestBed.inject(HttpTestingController);
   http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(BUSINESS_FLOW));
@@ -198,7 +213,7 @@ describe('SurveyPage', () => {
       expect(button.textContent!.trim()).toBe('2 não resolvidos');
 
       // Vai para a visão consolidada: o botão ainda leva ao grafo e ao primeiro buraco.
-      [...el.querySelectorAll<HTMLButtonElement>('.segmented button')][2].click();
+      pickDrawing(el, LayoutDirection.Consolidated);
       fixture.detectChanges();
       expect(el.querySelector('app-flow-canvas')).toBeNull();
       el.querySelector<HTMLButtonElement>('.page-bar-meta button.has-holes')!.click();
@@ -268,21 +283,56 @@ describe('SurveyPage', () => {
     expect(meta.querySelector('.meta-details-body')?.textContent).toContain('main');
   });
 
-  // WEB-UXC-010 (F09)
-  it('o seletor tem as quatro visões, com a atual marcada e a troca pelo clique', () => {
+  // WEB-UXC-010 (F09), Fase 63
+  it('barraDoLevantamento_semSeletor_eBarraDeDesenhosNoPainelComAtualMarcada', () => {
     TestBed.resetTestingModule();
+    graphOverride = graphWith(1, 0);
+    localStorage.removeItem('rastro.layoutDirection');
     const el = open(SurveyStatus.Completed);
 
-    const group = el.querySelector('.segmented')!;
-    expect(group.getAttribute('role')).toBe('group');
-    const items = [...group.querySelectorAll<HTMLButtonElement>('button')];
-    expect(items.map((b) => b.textContent!.trim())).toEqual(['Grafo', 'Mapa por sistemas', 'Visão consolidada', 'Visão de negócio']);
-    expect(items.map((b) => b.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'false', 'false']);
+    expect(el.querySelector('.segmented')).toBeNull();
+    expect(el.querySelector('.page-bar .drawing-switcher')).toBeNull();
+    expect(drawingButtons(el).length).toBe(6);
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Horizontal]);
 
-    items[2].click();
+    pickDrawing(el, LayoutDirection.Consolidated);
     lastFixture!.detectChanges();
-    const after = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
-    expect(after.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'true', 'false']);
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Consolidated]);
+    expect(readLayoutDirection()).toBe(LayoutDirection.Consolidated);
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // Fase 63: o grafo troca de arranjo no próprio canvas, sem sair dele
+  it('barraDeDesenhos_arvore_continuaNoCanvasEGuardaAEscolha', () => {
+    TestBed.resetTestingModule();
+    graphOverride = graphWith(1, 0);
+    localStorage.removeItem('rastro.layoutDirection');
+    const el = open(SurveyStatus.Completed);
+
+    pickDrawing(el, LayoutDirection.Tree);
+    lastFixture!.detectChanges();
+
+    expect(el.querySelector('app-flow-canvas')).not.toBeNull();
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Tree]);
+    expect(readLayoutDirection()).toBe(LayoutDirection.Tree);
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // Fase 63: link direto
+  it('desenhoNaRota_abreNoDesenhoPedido_eSlugDesconhecidoUsaOGuardado', () => {
+    TestBed.resetTestingModule();
+    graphOverride = graphWith(1, 0);
+    localStorage.removeItem('rastro.layoutDirection');
+    const el = open(SurveyStatus.Completed, [], { desenho: LAYOUT_DIRECTION_SLUG[LayoutDirection.Tree] });
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Tree]);
+    expect(el.querySelector('app-flow-canvas')).not.toBeNull();
+    expect(readLayoutDirection()).toBe(LayoutDirection.Tree);
+
+    TestBed.resetTestingModule();
+    graphOverride = graphWith(1, 0);
+    saveLayoutDirection(LayoutDirection.Timeline);
+    const guardado = open(SurveyStatus.Completed, [], { desenho: 'nao-existe' });
+    expect(pressedDrawings(guardado)).toEqual([LayoutDirection.Timeline]);
     localStorage.removeItem('rastro.layoutDirection');
   });
 
@@ -295,8 +345,7 @@ describe('SurveyPage', () => {
 
     await showBusiness(el);
 
-    const items = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
-    expect(items.map((b) => b.getAttribute('aria-pressed'))).toEqual(['false', 'false', 'false', 'true']);
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Business]);
     expect(el.querySelector('app-business-view')).not.toBeNull();
     expect(el.querySelector('app-flow-canvas')).toBeNull();
     expect(el.querySelectorAll('.biz-node').length).toBe(2);
@@ -497,7 +546,7 @@ describe('SurveyPage', () => {
     localStorage.removeItem('rastro.layoutDirection');
     graphOverride = graphWith(1, 0);
     const el = open(SurveyStatus.Completed);
-    [...el.querySelectorAll<HTMLButtonElement>('.segmented button')][1].click();
+    pickDrawing(el, LayoutDirection.Map);
     lastFixture!.detectChanges();
 
     const items = openExport(el);
@@ -519,7 +568,7 @@ describe('SurveyPage', () => {
     localStorage.removeItem('rastro.layoutDirection');
     graphOverride = graphWith(1, 0);
     const el = open(SurveyStatus.Completed);
-    [...el.querySelectorAll<HTMLButtonElement>('.segmented button')][2].click();
+    pickDrawing(el, LayoutDirection.Consolidated);
     lastFixture!.detectChanges();
 
     const items = openExport(el);
@@ -530,23 +579,18 @@ describe('SurveyPage', () => {
   });
 
   // WEB-UXC-012, 152, 216 (UX-FIM-012, 152, 216)
-  it('seletorEBotoesDaBarra_temDescricaoPopupEAnuncioDaTroca', () => {
+  it('botoesDaBarra_temPopupEAnuncioDaTrocaDeDesenho', () => {
     TestBed.resetTestingModule();
     localStorage.removeItem('rastro.layoutDirection');
     graphOverride = graphWith(1, 0);
     const el = open(SurveyStatus.Completed);
 
-    const buttons = [...el.querySelectorAll<HTMLButtonElement>('.segmented button')];
-    for (const button of buttons) {
-      const id = button.getAttribute('aria-describedby')!;
-      expect(el.querySelector(`#${id}`)!.textContent!.trim()).toBe(button.title);
-    }
     const share = [...el.querySelectorAll<HTMLButtonElement>('.bar-group[aria-label="Compartilhar"] button')];
     expect(share.map((b) => b.getAttribute('aria-haspopup'))).toEqual(['menu', 'menu', 'dialog']);
 
-    const live = el.querySelector('.segmented [aria-live="polite"]')!;
+    const live = el.querySelector('.page-bar [aria-live="polite"]')!;
     expect(live.textContent!.trim()).toBe('');
-    buttons[1].click();
+    pickDrawing(el, LayoutDirection.Map);
     lastFixture!.detectChanges();
     expect(live.textContent!.trim()).not.toBe('');
     localStorage.removeItem('rastro.layoutDirection');
@@ -587,6 +631,25 @@ describe('SurveyPage', () => {
     const toast = el.querySelector('.menu-toast')!;
     expect(toast.textContent).toContain('sem os links para o código');
     expect(toast.classList).not.toContain('is-error');
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
+  // WEB-DRSW-010 (Fase 63): trocar de desenho recria a barra; o foco volta ao botão do desenho novo, não cai no body.
+  it('trocarDeDesenhoPelaBarra_deixaOFocoNoBotaoDoDesenhoNovo', async () => {
+    TestBed.resetTestingModule();
+    localStorage.removeItem('rastro.layoutDirection');
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    const business = drawingButtons(el)[DRAWING_SWITCHER_ORDER.indexOf(LayoutDirection.Business)];
+    business.focus();
+
+    await showBusiness(el);
+    TestBed.tick();
+
+    const active = document.activeElement as HTMLElement;
+    expect(active.classList).toContain('drawing-switcher-item');
+    expect(active.getAttribute('aria-pressed')).toBe('true');
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Business]);
     localStorage.removeItem('rastro.layoutDirection');
   });
 

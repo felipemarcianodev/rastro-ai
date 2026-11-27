@@ -141,3 +141,7 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | UX do fim da visão de negócio | Depois: painel do passo com largura limitada e a referência do balão com contraste acima de 4,5:1 | [ux-fim-negocio/06-depois-visao-negocio-painel.png](ux-fim-negocio/06-depois-visao-negocio-painel.png) |
 | UX do fim da visão de negócio | Depois: no mapa por sistemas, PNG, SVG e Mermaid desabilitados com a dica; o draw.io e o C4 seguem | [ux-fim-negocio/07-depois-mapa-exportar.png](ux-fim-negocio/07-depois-mapa-exportar.png) |
 | UX do fim da visão de negócio | A visão de negócio em 360 px: o seletor de desenho transborda (pendência) | [ux-fim-negocio/08-visao-negocio-360.png](ux-fim-negocio/08-visao-negocio-360.png) |
+| Fase 63 | Grafo com a barra de desenhos no painel, junto do zoom: grafo vertical, horizontal, árvore, por sistemas, visão de negócio e Mermaid | [fase-63/01-grafo-com-a-barra-de-desenhos.png](fase-63/01-grafo-com-a-barra-de-desenhos.png) |
+| Fase 63 | Mapa por sistemas com a barra de desenhos em linha, e a barra do levantamento sem o seletor | [fase-63/02-mapa-com-a-barra-de-desenhos.png](fase-63/02-mapa-com-a-barra-de-desenhos.png) |
+| Fase 63 | Visão de negócio com a barra de desenhos | [fase-63/03-visao-de-negocio-com-a-barra.png](fase-63/03-visao-de-negocio-com-a-barra.png) |
+| Fase 63 | O grafo em 360 px, com a barra de desenhos inteira | [fase-63/04-grafo-360.png](fase-63/04-grafo-360.png) |

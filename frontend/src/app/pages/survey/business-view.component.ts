@@ -12,7 +12,8 @@ import { BRANCH_LABEL_POSITION, BUSINESS_BOX, BusinessGeometry, LayoutPoint, bus
 import { BusinessExportData, businessToMermaid, businessToSvg, readBusinessColors } from '../../core/graph/business-export';
 import { businessToDrawio } from '../../core/graph/drawio';
 import { HostLinkOf, fillLinkTemplate } from '../../core/graph/link-template';
-import { LAYOUT_DIRECTION_GLYPH, LAYOUT_DIRECTION_LABEL_KEY, LayoutDirection, NEXT_LAYOUT_DIRECTION } from '../../core/graph/layout';
+import { LayoutDirection } from '../../core/graph/layout';
+import { DrawingSwitcherComponent } from './drawing-switcher.component';
 import { FlowSummary, readingLabel } from '../../core/graph/summary';
 import { AiUse, BusinessFlow, BusinessKind, BusinessLayout, BusinessStep, CodeRef, LabelOrigin, LabelState, RepositoryHostKind, RepositoryLinks, SurveyDetail, aiCan } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
@@ -147,7 +148,7 @@ interface PlacedEdge {
 // automático. Roda do mouse rola a tela, Ctrl ou Cmd com a roda aproxima, Espaço com arrastar move a tela.
 @Component({
   selector: 'app-business-view',
-  imports: [FFlowModule, TranslatePipe, ConfirmDialogComponent],
+  imports: [FFlowModule, TranslatePipe, ConfirmDialogComponent, DrawingSwitcherComponent],
   templateUrl: './business-view.component.html',
   styleUrl: './business-view.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -232,9 +233,6 @@ export class BusinessViewComponent {
   protected readonly BusinessKind = BusinessKind;
   protected readonly LabelState = LabelState;
   protected readonly LayoutDirection = LayoutDirection;
-  protected readonly next = NEXT_LAYOUT_DIRECTION[LayoutDirection.Business];
-  protected readonly directionLabel = LAYOUT_DIRECTION_LABEL_KEY;
-  protected readonly directionGlyph = LAYOUT_DIRECTION_GLYPH;
   // Rótulo do ramo em texto simples (then e else viram "Se sim" e "Se não"), como no grafo e nas ligações.
   protected readonly branchText = plainBranch;
   protected readonly slug = BUSINESS_KIND_SLUG;
@@ -554,10 +552,6 @@ export class BusinessViewComponent {
 
   protected retry(): void {
     this.reload.update((n) => n + 1);
-  }
-
-  protected toggleDirection(): void {
-    this.directionChange.emit(this.next);
   }
 
   protected seeGraph(): void {

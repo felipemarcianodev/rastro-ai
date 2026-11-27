@@ -1,8 +1,6 @@
 <div class="biz-bar" role="group" [attr.aria-label]="'business.barLabel' | translate">
   @if (!inBoard()) {
-  <button type="button" class="btn btn-icon" (click)="toggleDirection()"
-    [attr.aria-label]="'graph.layout.directionAria' | translate: { current: (directionLabel[LayoutDirection.Business] | translate), next: (directionLabel[next] | translate) }"
-    [title]="'graph.layout.directionTitle' | translate: { next: (directionLabel[next] | translate) }">{{ directionGlyph[next] }}</button>
+  <app-drawing-switcher [active]="LayoutDirection.Business" (pick)="directionChange.emit($event)" />
   }
   @if (geometry() && !empty()) {
   <span class="biz-zoom" role="group" [attr.aria-label]="'business.zoomLabel' | translate">

@@ -4,6 +4,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { MAP_FIXTURE, MAP_FIXTURE_GRAPH } from '../../core/graph/flow-map-fixture.spec';
 import { LayoutDirection } from '../../core/graph/layout';
+import { DRAWING_SWITCHER_ORDER } from './drawing-switcher.component';
 import { FlowSummary } from '../../core/graph/summary';
 import { FlowMap, MapBlockKind, MapLaneKind, MapLinkKind, SourceLanguage, SurveyDetail, SurveyStatus } from '../../core/models';
 import { FlowMapViewComponent } from './flow-map-view.component';
@@ -225,7 +226,7 @@ describe('FlowMapViewComponent (Fase 31)', () => {
   it('botaoDoDesenho_vaiParaAVisaoDeNegocioEOResumoVaiParaOPainel', async () => {
     const { el, host } = await setup();
 
-    (el.querySelector('[aria-label^="Desenho em mapa"]') as HTMLButtonElement).click();
+    el.querySelectorAll<HTMLButtonElement>('.drawing-switcher-item')[DRAWING_SWITCHER_ORDER.indexOf(LayoutDirection.Business)].click();
     expect(host.directions).toEqual([LayoutDirection.Business]);
     expect(host.summaries.length).toBeGreaterThan(0);
   });

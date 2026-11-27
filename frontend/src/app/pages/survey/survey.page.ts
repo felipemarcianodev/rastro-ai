@@ -1,4 +1,4 @@
-import { Component, DestroyRef, ElementRef, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
+import { Component, DestroyRef, ElementRef, Injector, afterNextRender, computed, effect, inject, input, signal, untracked, viewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { TranslatePipe } from '@ngx-translate/core';
@@ -58,7 +58,8 @@ import { MERMAID_MIME, SVG_MIME, mermaidFenced } from '../../core/graph/export';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { BusinessViewComponent } from './business-view.component';
 import { AddToBoardDialogComponent } from '../boards/add-to-board-dialog.component';
-import { LayoutDirection, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
+import { LayoutDirection, directionFromSlug, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
+import { DRAWING_LABEL_KEY } from './drawing-switcher.component';
 import { FlowSummary } from '../../core/graph/summary';
 import { NodePanelComponent } from './node-panel.component';
 import { ValidationDialogComponent } from './validation-dialog.component';
@@ -68,13 +69,6 @@ import { DialogDirective } from '../../core/dialog.directive';
 import { HttpErrorResponse } from '@angular/common/http';
 
 const POLL_MS = 2000;
-// As quatro visões do seletor da barra (F09, Fase 57). Rótulo e dica são chaves de tradução, nunca comparação com texto.
-const DRAWING_VIEWS: readonly { direction: LayoutDirection; label: string; title: string }[] = [
-  { direction: LayoutDirection.Horizontal, label: 'survey.view.graph.label', title: 'survey.view.graph.title' },
-  { direction: LayoutDirection.Map, label: 'survey.view.map.label', title: 'survey.view.map.title' },
-  { direction: LayoutDirection.Consolidated, label: 'survey.view.consolidated.label', title: 'survey.view.consolidated.title' },
-  { direction: LayoutDirection.Business, label: 'survey.view.business.label', title: 'survey.view.business.title' },
-];
 const SEARCH_FOCUS_DELAY_MS = 120;
 // Lista de ocorrências da busca (UX-G-F22) e espera até o canvas voltar (UX-G-F03).
 const SEARCH_LIST_LIMIT = 8;
@@ -115,6 +109,7 @@ export class SurveyPage {
   private readonly i18n = inject(LanguageService);
   private readonly router = inject(Router);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
   private readonly canvas = viewChild(FlowCanvasComponent);
   private readonly mapView = viewChild(FlowMapViewComponent);
   private readonly businessView = viewChild(BusinessViewComponent);
@@ -127,6 +122,8 @@ export class SurveyPage {
   readonly comparar = input<string | undefined>();
   // ?passo=<id do nó>: abre o fluxo com o passo escolhido (o "Ver no fluxo" da visão consolidada).
   readonly passo = input<string | undefined>();
+  // ?desenho=<slug>: abre num desenho (link direto, Fase 63); sem ele vale o guardado por pessoa.
+  readonly desenho = input<string | undefined>();
   private passoApplied: string | null = null;
 
   protected readonly detail = signal<SurveyDetail | null>(null);
@@ -430,6 +427,16 @@ export class SurveyPage {
       });
     });
 
+    // ?desenho=: escolhe o desenho antes de o canvas nascer (ele lê a escolha guardada ao ser criado).
+    effect(() => {
+      const wanted = directionFromSlug(this.desenho());
+      if (wanted === null) return;
+      untracked(() => {
+        saveLayoutDirection(wanted);
+        this.drawing.set(wanted);
+      });
+    });
+
     // A rota reaproveita o componente ao trocar de levantamento: recarrega a cada id.
     effect(() => {
       this.id();
@@ -456,7 +463,15 @@ export class SurveyPage {
     // O painel aberto pela aba na visão de negócio em tela estreita vale só enquanto ela está na tela.
     this.panelOpenedInBusiness.set(false);
     saveLayoutDirection(direction);
+    // A troca feita no painel não move o foco: o leitor de tela ouve o nome do novo desenho.
+    if (direction !== this.drawing()) this.drawingAnnouncement.set(this.i18n.t('survey.view.announce', { name: this.i18n.t(DRAWING_LABEL_KEY[direction]) }));
+    // Trocar para o mapa, a visão de negócio ou o Mermaid recria o desenho, e com ele a barra de desenhos: o foco
+    // que estava no botão clicado cairia no body. Volta para o botão do desenho novo.
+    const fromSwitcher = !!document.activeElement?.closest('.drawing-switcher');
     this.drawing.set(direction);
+    if (fromSwitcher) {
+      afterNextRender(() => this.host.nativeElement.querySelector<HTMLElement>('.drawing-switcher-item.is-pressed')?.focus({ preventScroll: true }), { injector: this.injector });
+    }
   }
 
   // Clique num passo do consolidado ou num bloco do mapa: o contexto é o painel do passo, então ele abre.
@@ -465,25 +480,8 @@ export class SurveyPage {
     this.select(id);
   }
 
-  protected readonly drawingViews = DRAWING_VIEWS;
-
-  // Seletor da barra: o Grafo é tudo o que não é mapa nem consolidado.
-  protected drawingPressed(direction: LayoutDirection): boolean {
-    if (direction === LayoutDirection.Map) return this.mapped();
-    if (direction === LayoutDirection.Consolidated) return this.consolidated();
-    if (direction === LayoutDirection.Business) return this.business();
-    return !this.mapped() && !this.consolidated() && !this.business();
-  }
-
   // Texto lido pelo leitor de tela ao trocar de desenho (a troca não move o foco).
   protected readonly drawingAnnouncement = signal('');
-
-  protected showDrawing(direction: LayoutDirection): void {
-    if (this.drawingPressed(direction)) return;
-    this.onDirection(direction);
-    const view = DRAWING_VIEWS.find((v) => v.direction === direction);
-    if (view) this.drawingAnnouncement.set(this.i18n.t('survey.view.announce', { name: this.i18n.t(view.label) }));
-  }
 
   // Mapa por sistemas e consolidado não têm o desenho do grafo: PNG, SVG e Mermaid só valem no grafo e na
   // visão de negócio. O draw.io vale também no mapa, mas não no consolidado.
