@@ -9,7 +9,7 @@ import { LanguageService } from '../../core/i18n/i18n';
 import { AiDisclosureComponent } from '../../core/ai-disclosure.component';
 import { AiStatusService } from '../../core/ai-status.service';
 import { CopyFeedback } from '../../core/copy-feedback';
-import { EditorLinks } from '../../core/editor-links';
+import { EditorLinks, isVsCodeLink } from '../../core/editor-links';
 import { downloadBlob, fileSlug, svgToPng } from '../../core/download';
 import { addStep, changeCount, connect, reassign, removeEdge, removeStep, restoreStep, setIntent } from '../../core/graph/draft-editor';
 import { trailTo } from '../../core/graph/trail';
@@ -91,6 +91,8 @@ const NOTE_UNDO_MS = 8000;
 const SHOW_FRAMEWORK_KEY = 'rastro.showFrameworkCalls';
 // Painel da direita recolhido: mais espaço para o grafo; a escolha vale para os próximos levantamentos.
 const PANEL_COLLAPSED_KEY = 'rastro.panelCollapsed';
+// Mesmo ponto de quebra do survey.page.scss, abaixo do qual o painel do nó desce para baixo do desenho.
+const NARROW_QUERY = '(max-width: 1000px)';
 // UX-G-F09: a dica "Como funciona" da edição abre sozinha só na primeira vez.
 export const EDIT_HINT_SEEN_KEY = 'rastro.editHintSeen';
 // Falhas seguidas toleradas no polling antes de mostrar erro (rede piscando, API reiniciando).
@@ -203,6 +205,13 @@ export class SurveyPage {
   // Chamadas do .NET (LINQ, EF Core, cache...) escondidas por padrão; a escolha fica no navegador.
   protected readonly showFramework = signal(readShowFramework());
   protected readonly panelCollapsed = signal(readPanelCollapsed());
+  // Tela estreita com a visão de negócio: o painel do nó desce e ocupa 45% da altura, e a visão tem o painel do passo
+  // dela, também embaixo; os dois juntos deixavam o desenho com poucos pixels (passo de UX da release 0.11.0). Ali o
+  // painel do nó começa recolhido, sem mudar a preferência gravada; a aba "Painel" abre quando a pessoa pede.
+  private readonly narrow = signal(matchNarrow());
+  private readonly panelOpenedInBusiness = signal(false);
+  private readonly autoCollapse = computed(() => this.narrow() && this.showBusiness() && !this.panelOpenedInBusiness());
+  protected readonly panelHidden = computed(() => this.panelCollapsed() || this.autoCollapse());
 
   protected readonly frameworkCount = computed(() => (this.detail()?.graph?.nodes ?? []).filter(isFrameworkCall).length);
 
@@ -343,9 +352,12 @@ export class SurveyPage {
 
   protected readonly menuEditorLink = computed(() => {
     const node = this.menuNode();
-    const repository = this.detail()?.survey.repository;
+    // O passo de outro sistema abre no repositório dele (FlowNode.System), como no painel do nó.
+    const repository = node?.system ?? this.detail()?.survey.repository;
     return node?.location && repository ? this.editor.link(repository, node.location.file, node.location.line) : null;
   });
+
+  protected readonly menuEditorIsVsCode = computed(() => isVsCodeLink(this.menuEditorLink()));
 
   protected readonly menuCollapsed = computed(() => {
     const id = this.menu()?.nodeId;
@@ -381,7 +393,13 @@ export class SurveyPage {
 
   constructor() {
     this.editor.ensureLoaded();
+    const narrowQuery = matchNarrowQuery();
+    const onNarrow = (event: MediaQueryListEvent) => this.narrow.set(event.matches);
+    narrowQuery?.addEventListener('change', onNarrow);
     inject(DestroyRef).onDestroy(() => {
+      narrowQuery?.removeEventListener('change', onNarrow);
+      // Os modelos do editor valem só para este levantamento.
+      this.editor.clearSurveyLinks();
       clearTimeout(this.pollTimer);
       clearTimeout(this.validationTimer);
     });
@@ -407,7 +425,7 @@ export class SurveyPage {
       if (!passo || !graph || this.passoApplied === passo || !graph.nodes.some((n) => n.id === passo)) return;
       this.passoApplied = passo;
       untracked(() => {
-        if (this.panelCollapsed()) this.togglePanel();
+        if (this.panelHidden()) this.togglePanel();
         this.select(passo, false);
       });
     });
@@ -435,13 +453,15 @@ export class SurveyPage {
   protected onDirection(direction: LayoutDirection): void {
     // A visão de negócio pode ter mudado enquanto outro desenho estava na tela: o menu do nó consulta de novo.
     this.businessNodeIds.clear();
+    // O painel aberto pela aba na visão de negócio em tela estreita vale só enquanto ela está na tela.
+    this.panelOpenedInBusiness.set(false);
     saveLayoutDirection(direction);
     this.drawing.set(direction);
   }
 
   // Clique num passo do consolidado ou num bloco do mapa: o contexto é o painel do passo, então ele abre.
   protected pickInDrawing(id: string | null): void {
-    if (id && this.panelCollapsed()) this.togglePanel();
+    if (id && this.panelHidden()) this.togglePanel();
     this.select(id);
   }
 
@@ -490,6 +510,14 @@ export class SurveyPage {
   }
 
   protected togglePanel(): void {
+    if (this.autoCollapse()) {
+      // Abrir pela aba na tela estreita com a visão de negócio vale até sair dela.
+      this.panelOpenedInBusiness.set(true);
+      if (!this.panelCollapsed()) return;
+    } else if (this.narrow() && this.showBusiness() && !this.panelCollapsed()) {
+      this.panelOpenedInBusiness.set(false);
+      return;
+    }
     const next = !this.panelCollapsed();
     this.panelCollapsed.set(next);
     try {
@@ -1274,7 +1302,7 @@ export class SurveyPage {
   protected openMenuInEditor(): void {
     const link = this.menuEditorLink();
     this.closeMenu();
-    if (link) window.location.assign(link);
+    if (link) this.editor.open(link);
   }
 
   // "arquivo:linha", o mesmo que o "Copiar arquivo:linha" do painel copia.
@@ -1469,6 +1497,12 @@ export class SurveyPage {
           this.pollTimer = setTimeout(() => this.load(), POLL_MS);
         } else if (detail.survey.status === SurveyStatus.Completed) {
           this.loadLastValidation();
+          // Modelo do editor configurado (Rastro:Editor:UrlTemplate) para o menu e o painel do nó; sem a rota, fica o
+          // link do VS Code pela pasta cadastrada.
+          this.api.links(this.id()).subscribe({
+            next: (links) => this.editor.useSurveyLinks(links),
+            error: () => this.editor.clearSurveyLinks(),
+          });
           this.api.crossFlow(this.id()).subscribe({
             next: (findings) => this.crossFlow.set(findings),
             // Sem a comparação entre fluxos a tela segue; a seção só não aparece.
@@ -1510,6 +1544,19 @@ function readShowFramework(): boolean {
   } catch {
     return false;
   }
+}
+
+function matchNarrowQuery(): MediaQueryList | null {
+  try {
+    return window.matchMedia(NARROW_QUERY);
+  } catch {
+    // Sem matchMedia (ambiente sem janela): vale a tela larga.
+    return null;
+  }
+}
+
+function matchNarrow(): boolean {
+  return matchNarrowQuery()?.matches ?? false;
 }
 
 function readPanelCollapsed(): boolean {

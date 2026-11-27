@@ -288,7 +288,7 @@
     }
 
     @if (d.survey.status === SurveyStatus.Completed && graph(); as g) {
-      <div class="workspace" [class.is-panel-collapsed]="panelCollapsed()">
+      <div class="workspace" [class.is-panel-collapsed]="panelHidden()">
         @if (showConsolidated()) {
           <app-consolidated-view [detail]="d" [focus]="focusId() ? g : null" [selectedId]="selectedId()" (selectNode)="pickInDrawing($event)" (directionChange)="onDirection($event)" (summaryChange)="summary.set($event)" />
         } @else if (showMap()) {
@@ -301,9 +301,9 @@
           (nodeMenu)="openMenu($event)" (jumpTo)="select($event, false)" (toggleFold)="toggleCollapse($event)" (summaryChange)="summary.set($event)"
           (createEdge)="onCreateEdge($event)" (reassignEdge)="onReassignEdge($event)" (directionChange)="onDirection($event)" />
         }
-        <button type="button" class="panel-toggle" (click)="togglePanel()" [attr.aria-expanded]="!panelCollapsed()" aria-controls="node-panel"
-          [attr.aria-label]="(panelCollapsed() ? 'survey.panel.showLabel' : 'survey.panel.hideLabel') | translate"
-          [title]="(panelCollapsed() ? 'survey.panel.showTitle' : 'survey.panel.hideTitle') | translate"><span class="panel-toggle-arrow" aria-hidden="true">{{ panelCollapsed() ? '‹' : '›' }}</span><span class="panel-toggle-label" aria-hidden="true">{{ 'survey.panel.label' | translate }}</span></button>
+        <button type="button" class="panel-toggle" (click)="togglePanel()" [attr.aria-expanded]="!panelHidden()" aria-controls="node-panel"
+          [attr.aria-label]="(panelHidden() ? 'survey.panel.showLabel' : 'survey.panel.hideLabel') | translate"
+          [title]="(panelHidden() ? 'survey.panel.showTitle' : 'survey.panel.hideTitle') | translate"><span class="panel-toggle-arrow" aria-hidden="true">{{ panelHidden() ? '‹' : '›' }}</span><span class="panel-toggle-label" aria-hidden="true">{{ 'survey.panel.label' | translate }}</span></button>
         <app-node-panel id="node-panel" [surveyId]="d.survey.id" [repository]="d.survey.repository" [commitHash]="d.survey.commitHash" [segments]="d.survey.segments" [language]="d.survey.language"[graph]="g" [summary]="summary()" [selectedId]="selectedId()" [trail]="trail()" [deciding]="deciding()"
           [canFillHoles]="canFillHoles()" [filling]="filling()" [fillMessages]="fillMessages()"
           [canDescribe]="canDescribe()" [describing]="describing()" [describeMessage]="describeMessage()"
@@ -431,7 +431,7 @@
     @if (menuNode()?.location) {
       @if (menuEditorLink()) {
         <li role="none">
-          <button type="button" role="menuitem" (click)="openMenuInEditor()">{{ 'survey.menu.openVsCode' | translate }}</button>
+          <button type="button" role="menuitem" (click)="openMenuInEditor()">{{ (menuEditorIsVsCode() ? 'survey.menu.openVsCode' : 'survey.menu.openEditor') | translate }}</button>
         </li>
       }
       <li role="none">

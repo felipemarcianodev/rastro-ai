@@ -855,7 +855,10 @@
       "improvementsDebt": "Improvements and technical debt",
       "noHoles": "No gaps: the compiler resolved every call in this flow.",
       "deleteSurvey": "Delete trace…"
-    }
+    },
+    "openInOtherEditor": "Open in editor",
+    "openInOtherEditorTitle": "Opens in the configured editor, in the folder {folder}",
+    "editorOpeningOther": "Opening in the editor… If it does not open, check the editor and the folder in Settings."
   },
   "findings": {
     "legacy": "This trace predates the quality inspection. Trace the flow again to see the improvements.",
@@ -1294,7 +1297,8 @@
       "businessShow": "Show in the business view",
       "businessShowTitle": "Marks this step as a key step in the business view",
       "businessShown": "Step added to the business view.",
-      "businessSee": "View"
+      "businessSee": "View",
+      "openEditor": "Open in editor"
     },
     "toast": {
       "copied": "Copied."
