@@ -1978,7 +1978,12 @@
       "resurveyLabel": "Levantar de novo a faixa {title}",
       "retryLabel": "Tentar carregar de novo a faixa {title}"
     },
-    "renamed": "Quadro renomeado."
+    "renamed": "Quadro renomeado.",
+    "drawio": {
+      "open": "Abrir no draw.io",
+      "title": "Mostra o quadro dentro do editor draw.io: mova balões, edite textos e anote",
+      "back": "Voltar às faixas"
+    }
   },
   "drawingSwitcher": {
     "timeline": {

@@ -26,6 +26,12 @@
         <span class="muted">{{ 'boards.laneCount' | translate: { count: lanes().length } }}</span>
       </div>
       <div class="board-bar-side">
+        @if (drawioXml() !== null) {
+          <button type="button" id="board-drawio-back" class="btn btn-g btn-small" (click)="closeDrawio()">{{ 'board.drawio.back' | translate }}</button>
+        } @else {
+        @if (canDrawio()) {
+          <button type="button" id="board-drawio-btn" class="btn btn-g btn-small" (click)="openDrawio()" [disabled]="drawioOpening()" [attr.aria-busy]="drawioOpening()" [title]="'board.drawio.title' | translate">{{ 'board.drawio.open' | translate }}</button>
+        }
         @if (canSuggest()) {
           <button type="button" class="btn btn-g btn-small" (click)="suggest()" [disabled]="suggesting()" [attr.aria-busy]="suggesting()" [title]="'board.suggest.title' | translate">{{ (suggesting() ? 'business.suggest.running' : 'board.suggest.button') | translate }}</button>
         }
@@ -44,6 +50,7 @@
           }
         </span>
         <button type="button" id="board-add-btn" class="btn btn-p btn-small" (click)="openAdd()" [disabled]="!canAdd() || saving()" [title]="(canAdd() ? 'board.addLane.title' : 'board.addLane.full') | translate: { max: maxLanes }">{{ 'board.addLane.button' | translate }}</button>
+        }
         <button type="button" class="btn btn-g btn-small board-delete" (click)="confirmingDelete.set(true)">{{ 'board.delete' | translate }}</button>
       </div>
     </header>
@@ -67,6 +74,9 @@
       </div>
     }
 
+    @if (drawioXml(); as xml) {
+      <app-drawio-view class="board-drawio" [xml]="xml" [switcher]="false" [saveXml]="saveDrawio" />
+    } @else {
     <div class="board-tools">
       <details class="board-glossary">
         <summary>{{ 'board.glossary.summary' | translate: { count: glossaryCount() } }}@if (glossaryDirty()) { <span class="muted" role="status"> · {{ 'board.glossary.unsaved' | translate }}</span> }</summary>
@@ -155,6 +165,7 @@
         </section>
       }
     </div>
+    }
   </div>
 
   @if (feedback(); as f) {

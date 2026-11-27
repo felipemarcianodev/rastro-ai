@@ -148,6 +148,38 @@ export function readDrawioChanges(xml: string): DrawioChanges | null {
   };
 }
 
+// Um balão do código como o editor o devolve, com a faixa do quadro (Fase 68) e o texto atual.
+export interface DrawioBalloon extends DrawioCell {
+  lane: string | null;
+  text: string;
+}
+
+// Os balões do código (os com rastroId) com a faixa a que pertencem. No quadro o id do passo se repete entre faixas, então
+// quem lê precisa da faixa para não confundir. Nulo quando o XML não dá para ler.
+export function readDrawioBalloons(xml: string): DrawioBalloon[] | null {
+  const doc = parseXml(xml);
+  const root = doc ? rootOf(doc) : null;
+  if (!doc || !root) return null;
+  const balloons: DrawioBalloon[] = [];
+  for (const child of Array.from(root.children)) {
+    const rastroId = child.getAttribute('rastroId');
+    const geometry = rastroId ? geometryOf(child) : null;
+    if (!rastroId || !geometry) continue;
+    const box = { x: Number(geometry.getAttribute('x')), y: Number(geometry.getAttribute('y')), width: Number(geometry.getAttribute('width')), height: Number(geometry.getAttribute('height')) };
+    if (!Object.values(box).every(Number.isFinite) || box.width <= 0 || box.height <= 0) continue;
+    balloons.push({
+      rastroId,
+      x: round(box.x),
+      y: round(box.y),
+      width: round(box.width),
+      height: round(box.height),
+      lane: child.getAttribute('rastroLane') || null,
+      text: drawioLabelText(child.getAttribute('label') ?? child.getAttribute('value') ?? ''),
+    });
+  }
+  return balloons.slice(0, DRAWIO_MAX_CELLS);
+}
+
 // A anotação guarda só <mxCell>: o objeto com rótulo (UserObject ou object) vira a célula com o valor dele.
 function asMxCell(doc: Document, element: Element): Element {
   if (element.localName === 'mxCell') return element;

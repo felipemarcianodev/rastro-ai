@@ -1978,7 +1978,12 @@
       "resurveyLabel": "Trace again the lane {title}",
       "retryLabel": "Try again the lane {title}"
     },
-    "renamed": "Board renamed."
+    "renamed": "Board renamed.",
+    "drawio": {
+      "open": "Open in draw.io",
+      "title": "Shows the board inside the draw.io editor: move balloons, edit texts and annotate",
+      "back": "Back to the lanes"
+    }
   },
   "drawingSwitcher": {
     "timeline": {

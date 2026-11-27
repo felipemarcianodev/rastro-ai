@@ -68,7 +68,9 @@ enum DrawioState {
   host: { '(window:message)': 'onMessage($event)' },
   template: `
     <div class="drawio-bar">
-      <app-drawing-switcher [active]="LayoutDirection.Drawio" [drawioAvailable]="true" [restricted]="editing()" [allowDrawio]="true" [vertical]="false" (pick)="directionChange.emit($event)" />
+      @if (switcher()) {
+        <app-drawing-switcher [active]="LayoutDirection.Drawio" [drawioAvailable]="true" [restricted]="editing()" [allowDrawio]="true" [vertical]="false" (pick)="directionChange.emit($event)" />
+      }
       @if (surveyId()) {
         <button type="button" class="btn btn-g btn-small" (click)="confirmingReset.set(true)" [title]="'drawio.reset.title' | translate">{{ 'drawio.reset.button' | translate }}</button>
       }
@@ -111,6 +113,10 @@ export class DrawioViewComponent {
   readonly baseline = input<DrawioBaseline | null>(null);
   // Na edição do fluxo (Fase 67) o editor mexe no rascunho: só os arranjos do grafo ficam na barra e nada vai para a tabela.
   readonly editing = input(false);
+  // O quadro de fluxos (Fase 68) não tem um levantamento só: a página que abriu o editor grava (saveXml recebe o XML do
+  // editor depois do intervalo) e avisa o resultado por announceSaved e failSave. Sem a barra de desenhos do levantamento.
+  readonly saveXml = input<((xml: string) => void) | null>(null);
+  readonly switcher = input(true);
   readonly selectNode = output<string>();
   // O editor gravou uma mudança (autosave): a Fase 65 guarda a posição por aqui.
   readonly changed = output<string>();
@@ -251,10 +257,15 @@ export class DrawioViewComponent {
   // ---- Guardar o que o usuário mexeu (Fase 65) ----
 
   private scheduleSave(xml: string): void {
-    if (!this.surveyId()) return;
+    if (!this.surveyId() && !this.saveXml()) return;
     this.pendingXml = xml;
     clearTimeout(this.saveTimer);
     this.saveTimer = setTimeout(() => this.flush(), DRAWIO_SAVE_DEBOUNCE_MS);
+  }
+
+  // Grava já o que está pendente (a página que sai do editor não espera o intervalo).
+  flushPending(): void {
+    if (this.pendingXml) this.flush();
   }
 
   private flush(): void {
@@ -262,6 +273,11 @@ export class DrawioViewComponent {
     const xml = this.pendingXml;
     const id = this.surveyId();
     this.pendingXml = null;
+    const saveXml = this.saveXml();
+    if (saveXml) {
+      if (xml) saveXml(xml);
+      return;
+    }
     const changes = xml && id ? readDrawioChanges(xml) : null;
     if (!changes || !id) return;
     const source = this.source();
@@ -316,7 +332,12 @@ export class DrawioViewComponent {
     }
   }
 
-  private announceSaved(): void {
+  // O erro de gravação de quem grava por fora (o quadro): o mesmo aviso do levantamento.
+  failSave(): void {
+    this.saveError.set(SAVE_FAILED_KEY);
+  }
+
+  announceSaved(): void {
     this.saveError.set(null);
     this.saved.set(true);
     clearTimeout(this.savedTimer);
