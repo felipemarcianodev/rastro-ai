@@ -1453,19 +1453,29 @@ O pedido, em duas partes:
   - **Não verificado:** a janela Photino (WebView2) e o WebKit do macOS e do Linux; o pacote gerado de ponta a ponta (fica para a release).
   - **Testes:** backend 1138/1138 (API-DRW-001 a 003); frontend 848/848; build sem aviso.
 
-### Fase 65: mover no draw.io `[ ]` (depende da 64)
+### Fase 65: mover no draw.io `[x]` (depende da 64)
 
 - [ ] Mover, redimensionar e dobrar no draw.io grava a posição pelo `autosave` (com intervalo, como o salvamento da Fase 58), no mesmo lugar que o desenho de origem usa: as tabelas de layout da visão de negócio e do quadro e, para o grafo e o mapa, um escopo novo na mesma tabela (migration, documentada no mesmo PR).
 - [ ] Voltar ao desenho de origem mostra as posições movidas no draw.io, e vice-versa.
 - [ ] "Reorganizar" apaga as posições daquele desenho, como hoje.
+- **Backend (Fases 65 e 66):** migration `DrawioLayout`, com `drawio_layouts` (chave levantamento e origem, FK com cascata para o levantamento; `cells_json` com as posições dos balões com `rastroId` e `annotations_xml` com as células soltas). Rotas `GET`, `PUT` (204) e `DELETE` (204) em `api/surveys/{id}/drawio/{source}` (0 grafo, 1 mapa, 2 visão de negócio); limites e código `DRAWIO_LAYOUT_INVALID`.
 - **Aceite:** mover no draw.io, recarregar e ver no lugar, no draw.io e no desenho de origem; conflito (duas abas) resolvido pela última gravação, com aviso.
 
-### Fase 66: editar texto, tipo e anotar no draw.io `[ ]` (depende da 65)
+### Fase 66: editar texto, tipo e anotar no draw.io `[x]` (depende da 65)
 
 - [ ] Texto editado num balão da visão de negócio vai pela rota de texto da Fase 59 (texto do usuário, confirmado); o tipo, pela rota de tipo.
 - [ ] Caixa, seta e texto livres viram anotações do desenho: tabela própria por levantamento e desenho (migration), mostradas só no draw.io e nas exportações, nunca no fluxo, no prompt nem na IA.
 - [ ] Apagar no draw.io um balão que é passo do fluxo não apaga nada fora do modo de edição: o balão volta, com o aviso de que o fluxo vem do código.
 - **Aceite:** texto e tipo editados no draw.io aparecem na visão de negócio e no MCP; anotações sobrevivem a recarregar e não aparecem no prompt.
+- **Registro das Fases 65 e 66 (2026-11-27), feitas juntas:**
+  - **Mudança no desenho da fase:** o grafo e o mapa não guardavam posição (só a visão de negócio), então, em vez de um escopo novo na tabela de layout, as posições e as anotações do draw.io ficam numa tabela própria, por levantamento e desenho de origem (`drawio_layouts`, ver o item do backend acima). Ao abrir, o Rastro gera o `.drawio` do código de novo e aplica por cima o que foi guardado: o balão que saiu do fluxo é ignorado, e o fluxo que mudou não fica com desenho velho. Não se guarda o XML inteiro.
+  - **Mover:** o `autosave` grava, com intervalo de 800 ms, as posições dos balões com `rastroId` e as anotações; na origem visão de negócio, também a posição na própria visão (pela rota da Fase 58), convertida pela diferença entre o XML gerado e a geometria da tela. Leitura do guardado que falha abre o editor sem gravar, para não apagar o que já estava guardado. "Reorganizar" com o diálogo do tema volta ao desenho gerado. Avisos "Desenho salvo" e de erro.
+  - **Texto:** na origem visão de negócio, o texto editado num balão vai pela rota de texto da Fase 59, como texto do usuário, confirmado; compara só o texto do passo, sem a linha da referência.
+  - **Tipo:** trocar o tipo pelo draw.io não foi feito (a forma e a cor do balão no draw.io não dizem o tipo do Rastro sem ambiguidade); o tipo continua pelo painel do passo.
+  - **Anotações:** formas e texto sem `rastroId` são guardados como células soltas, aplicados de novo ao abrir, e nunca entram no fluxo, no prompt nem na IA. Balão do fluxo apagado no editor não apaga nada: aviso de que ele volta quando o desenho abrir de novo.
+  - **Verificado no navegador, com o draw.io de verdade, clique de verdade e toda requisição para fora bloqueada:** arrastar o balão de início gravou o desenho e a posição na visão de negócio; uma forma da coluna virou anotação guardada; ao reabrir, o balão estava 164 px à direita e a anotação voltou; a visão de negócio mostrou o balão no lugar novo; editar o texto de uma recusa no draw.io virou texto do usuário confirmado na visão de negócio; o `autosave` chega sem compressão; console sem erro. Prints em `docs/telas/fase-65/`.
+  - **Não verificado:** a janela Photino e o WebKit; o "Reorganizar" volta ao XML gerado quando o desenho abriu, e não ao código atual (o desenho de origem já não está na tela).
+  - **Testes:** backend 1161/1161 (API-DRWL-001 a 011); frontend 875/875; build sem aviso.
 
 ### Fase 67: criar e mudar o fluxo pelo draw.io `[ ]` (depende da 66)
 
