@@ -1399,7 +1399,7 @@ O pedido, em duas partes:
 
 ### Decisões que o plano propõe (o dono decide na Fase 62)
 
-1. **De onde o draw.io carrega.** O editor do draw.io (jgraph/drawio, licença Apache-2.0) é uma aplicação web inteira, que a página abre num `iframe` e com quem conversa por mensagens (`postMessage`, modo `embed` com `proto=json`). As opções:
+1. **De onde o draw.io carrega.** O editor do draw.io (jgraph/drawio, licença Apache-2.0) é uma aplicação web inteira, que a página abre num `iframe` e com a qual conversa por mensagens (`postMessage`, modo `embed` com `proto=json`). As opções:
    - **A. Do site diagrams.net** (`embed.diagrams.net`): nada a mais no pacote, mas precisa de internet e põe um script de terceiro numa página que mostra o código do cliente. Vai contra a ADR-002 (o código não sai da máquina) e não funciona sem rede.
    - **B. Dentro do pacote do Rastro**, servido pela própria API (`127.0.0.1`): funciona sem rede e nada sai da máquina, mas o pacote cresce (o tamanho exato se mede na Fase 62).
    - **C. Baixado uma vez para `~/.rastro`**, na primeira vez que a pessoa abre o draw.io, com versão fixa e hash conferido: o pacote não cresce, mas o primeiro uso precisa de rede, e a origem do arquivo vira um ponto a proteger.
