@@ -10,6 +10,7 @@ import {
   BoardDetail,
   BoardLayout,
   BoardSummary,
+  DrawioStatus,
   BoardUpdateRequest,
   BusinessFlow,
   BusinessKind,
@@ -324,6 +325,11 @@ export class RastroApi {
 
   suggestBoardLabels(id: string): Observable<BusinessLabelSuggestion> {
     return this.http.post<BusinessLabelSuggestion>(`/api/boards/${id}/labels/suggest`, {});
+  }
+
+  // O draw.io dentro do Rastro está nesta instalação? (Fase 64)
+  drawio(): Observable<DrawioStatus> {
+    return this.http.get<DrawioStatus>('/api/drawio');
   }
 
   // Modelos de link de cada repositório do levantamento (Fase 56).

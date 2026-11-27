@@ -148,7 +148,9 @@ Limit of the template reader: the screen's branches come from a lightweight read
 
 At `surveys/:id/visao` the flow appears summarized in a few steps, in plain sentences, as a Mermaid `flowchart`: the entry, the branches with the text of each path, the external calls and the early returns. Generation is deterministic, with no AI. The Mermaid text sits next to the preview and can be edited; clicking a step opens the color picker (fill, border and text), which becomes a `classDef` in the text itself. The edited version is saved with the trace, and "Generate again" keeps the colors and texts of the steps that still exist.
 
-The view is also the fourth drawing of the flow: the button that switches the drawing goes through horizontal, timeline, tree and consolidated (or the "Consolidated view" button in the bar). There, clicking a step opens the step panel, with the code, the links and the path from the entry. Dragging the background moves the drawing and the mouse wheel zooms around the cursor. "Edit text and colors" leads to the edit screen, where "View in the flow" returns to the chosen step.
+The view is also one of the drawings of the flow: the drawing bar of the flow panel has one button per drawing (vertical graph, horizontal graph, tree, by systems, business view and Mermaid), and `?desenho=<slug>` in the address opens a trace straight on a drawing. There, clicking a step opens the step panel, with the code, the links and the path from the entry. Dragging the background moves the drawing and the mouse wheel zooms around the cursor. "Edit text and colors" leads to the edit screen, where "View in the flow" returns to the chosen step.
+
+The **draw.io** button of that bar opens the drawing that was on screen (graph, map by systems or business view) in the draw.io editor, inside Rastro; clicking a box opens the step panel. The editor ships in the package (draw.io 32.6.10, Apache-2.0, served by the API itself at `/drawio/` on `127.0.0.1`), runs in isolated mode (`stealth`, `offline`) and needs no network: nothing leaves the machine.
 
 ## Database schema
 
@@ -225,7 +227,7 @@ cd extractor-ts && npm ci && npm test
 
 The backend integration test really runs the Angular extractor: it needs Node and `npm ci` done in `extractor-ts`.
 
-Local package: `powershell -File scripts/empacotar.ps1` generates `artifacts/rastro-ai.<version>.nupkg` (front end embedded in the API's `wwwroot`), and `dotnet tool install -g rastro-ai --add-source artifacts` installs it for testing.
+Local package: `powershell -File scripts/empacotar.ps1` generates `artifacts/rastro-ai.<version>.nupkg` (front end embedded in the API's `wwwroot`), and `dotnet tool install -g rastro-ai --add-source artifacts` installs it for testing. The package includes the draw.io editor, about 18 MB more (from about 35 MB to about 53 MB). Whoever runs the API from the source code must run once `powershell -File scripts/preparar-drawio.ps1` (downloads the pinned version, checks the SHA-256 and extracts it to `backend/src/Rastro.Api/drawio/`, outside git); without it, the draw.io button does not appear. `scripts/empacotar.ps1` already calls that script.
 
 **Docker (optional):** `docker compose -f docker/docker-compose.yml up -d --build` starts it at http://localhost:7400, with the database in the `rastro-data` volume and the repositories mounted read-only (`REPOS_DIR`, `REPO_0_NAME` and `REPO_0_FOLDER`).
 
@@ -245,4 +247,4 @@ Built in pairs with Claude (Claude Code), phase by phase, with a plan, tests and
 
 [MIT](LICENSE).
 
-Third-party components shipped in the package under a license other than MIT: [Photino.NET and Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), the own window. Security flaws: see [SECURITY.md](SECURITY.md).
+Third-party components shipped in the package under a license other than MIT: [Photino.NET and Photino.Native](https://github.com/tryphotino/photino.NET) (Apache-2.0), the own window, and [draw.io (jgraph/drawio)](https://github.com/jgraph/drawio) (Apache-2.0), the diagram editor, with its license in `LICENSE-drawio.txt`. Security flaws: see [SECURITY.md](SECURITY.md).

@@ -64,7 +64,7 @@ What cannot be read (a URL built outside the code, a class chosen only at run ti
 
 The flow also has a **map**, at the level of a C2 diagram: one lane per system, a few blocks in each, the decisions that change the outcome, the calls between systems, and the end-to-end paths. Clicking a block shows only that stretch. Decisions become **rules** in plain sentences, with the source in the code, and Rastro answers ready-made **questions** about the flow; with provider mode on, it also answers free-form questions, which use the "Suggestions" use and send the provider the question, the map, the rules, and up to 8 code excerpts.
 
-Each trace has a summary view in a few steps, in plain sentences, as a Mermaid diagram that you edit next to the preview. Click a step to choose its color. The edited version is saved with the trace. In the flow, the view is also one of the drawings of the button that switches the drawing: clicking a step opens the panel with its context, dragging moves the drawing, and the mouse wheel zooms. The Export menu of a trace also downloads the graph or the map by systems as a draw.io file (`.drawio`), with the positions on screen and the `repository · file:line` of each step.
+Each trace has a summary view in a few steps, in plain sentences, as a Mermaid diagram that you edit next to the preview. Click a step to choose its color. The edited version is saved with the trace. In the flow, the view is also one of the drawings of the drawing bar (vertical graph, horizontal graph, tree, by systems, business view and Mermaid; `?desenho=<slug>` in the address opens a trace straight on one): clicking a step opens the panel with its context, dragging moves the drawing, and the mouse wheel zooms. The Export menu of a trace also downloads the graph or the map by systems as a draw.io file (`.drawio`), with the positions on screen and the `repository · file:line` of each step. The **draw.io** button of the bar opens the drawing that was on screen in the draw.io editor, inside Rastro; clicking a box opens the step panel. The editor ships in this package (about 18 MB more), is served by the Rastro API itself on `127.0.0.1`, runs in isolated mode and needs no network: nothing leaves the machine.
 
 ## Database schema
 
@@ -98,7 +98,7 @@ Everything the AI proposes arrives marked as inferred and only enters the flow w
 
 ## License
 
-Open source, MIT license: <https://github.com/felipemarcianodev/rastro-ai>.
+Open source, MIT license: <https://github.com/felipemarcianodev/rastro-ai>. The package also ships [draw.io (jgraph/drawio) 32.6.10](https://github.com/jgraph/drawio) (Apache-2.0), with its license in `LICENSE-drawio.txt`.
 
 ## Language
 

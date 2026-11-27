@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, ElementRef, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+import { DrawioStatusService } from '../../core/drawio-status.service';
 import { LAYOUT_DIRECTION_GLYPH, LayoutDirection, isOutsideCanvas } from '../../core/graph/layout';
 
 // Ordem dos botões: os três arranjos do grafo, depois os desenhos que a página faz no lugar do canvas.
@@ -10,6 +11,7 @@ export const DRAWING_SWITCHER_ORDER: readonly LayoutDirection[] = [
   LayoutDirection.Map,
   LayoutDirection.Business,
   LayoutDirection.Consolidated,
+  LayoutDirection.Drawio,
 ];
 
 // Nome de cada desenho (aria-label do botão e texto lido na troca) e a dica do title: chaves de tradução.
@@ -20,6 +22,7 @@ export const DRAWING_LABEL_KEY: Record<LayoutDirection, string> = {
   [LayoutDirection.Map]: 'survey.view.map.label',
   [LayoutDirection.Business]: 'survey.view.business.label',
   [LayoutDirection.Consolidated]: 'drawingSwitcher.mermaid.label',
+  [LayoutDirection.Drawio]: 'drawingSwitcher.drawio.label',
 };
 
 export const DRAWING_TITLE_KEY: Record<LayoutDirection, string> = {
@@ -29,6 +32,7 @@ export const DRAWING_TITLE_KEY: Record<LayoutDirection, string> = {
   [LayoutDirection.Map]: 'survey.view.map.title',
   [LayoutDirection.Business]: 'survey.view.business.title',
   [LayoutDirection.Consolidated]: 'survey.view.consolidated.title',
+  [LayoutDirection.Drawio]: 'drawingSwitcher.drawio.title',
 };
 
 // Barra de desenhos do painel: um botão por tipo de desenho, com o ativo marcado. Fica no canto do desenho,
@@ -39,7 +43,7 @@ export const DRAWING_TITLE_KEY: Record<LayoutDirection, string> = {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="drawing-switcher" [class.is-vertical]="vertical()" role="toolbar" [attr.aria-label]="'survey.group.drawing' | translate" (keydown)="onKeydown($event)">
-      @for (direction of directions; track direction) {
+      @for (direction of visible(); track direction) {
         <button type="button" class="btn btn-icon drawing-switcher-item"
           [class.is-pressed]="direction === active()"
           [attr.aria-pressed]="direction === active()"
@@ -64,7 +68,14 @@ export class DrawingSwitcherComponent {
   readonly vertical = input(false);
   readonly pick = output<LayoutDirection>();
 
-  protected readonly directions = DRAWING_SWITCHER_ORDER;
+  // O botão do draw.io só aparece quando ele está na instalação (a página lê o status uma vez): por padrão vale o
+  // status compartilhado, e o input existe para quem precisa forçar (teste, tela sem a página).
+  readonly drawioAvailable = input<boolean | null>(null);
+  private readonly drawioStatus = inject(DrawioStatusService);
+  protected readonly visible = computed(() => {
+    const drawio = this.drawioAvailable() ?? this.drawioStatus.available();
+    return DRAWING_SWITCHER_ORDER.filter((direction) => drawio || direction !== LayoutDirection.Drawio);
+  });
   protected readonly labelKey = DRAWING_LABEL_KEY;
   protected readonly titleKey = DRAWING_TITLE_KEY;
   protected readonly glyph = LAYOUT_DIRECTION_GLYPH;

@@ -57,8 +57,10 @@ import { HostLinkOf, hostLinkResolver } from '../../core/graph/link-template';
 import { MERMAID_MIME, SVG_MIME, mermaidFenced } from '../../core/graph/export';
 import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { BusinessViewComponent } from './business-view.component';
+import { DrawioViewComponent } from './drawio-view.component';
 import { AddToBoardDialogComponent } from '../boards/add-to-board-dialog.component';
-import { LayoutDirection, directionFromSlug, readLayoutDirection, saveLayoutDirection } from '../../core/graph/layout';
+import { LayoutDirection, directionFromSlug, readDrawioOrigin, readLayoutDirection, saveDrawioOrigin, saveLayoutDirection } from '../../core/graph/layout';
+import { DrawioStatusService } from '../../core/drawio-status.service';
 import { DRAWING_LABEL_KEY } from './drawing-switcher.component';
 import { FlowSummary } from '../../core/graph/summary';
 import { NodePanelComponent } from './node-panel.component';
@@ -74,6 +76,9 @@ const SEARCH_FOCUS_DELAY_MS = 120;
 const SEARCH_LIST_LIMIT = 8;
 const CANVAS_BACK_DELAY_MS = 150;
 const EXPORT_MESSAGE_MS = 4000;
+// Abertura direta no draw.io: quantas vezes tentar (o desenho de origem pode ainda estar carregando) e o intervalo.
+const DRAWIO_OPEN_ATTEMPTS = 10;
+const DRAWIO_OPEN_RETRY_MS = 500;
 // Aviso do menu de exportar e do menu do nó; a ação opcional (ex.: "Ver") fecha o aviso ao ser usada.
 interface ExportMessage {
   ok: boolean;
@@ -94,7 +99,7 @@ const POLL_TOLERATED_FAILURES = 2;
 
 @Component({
   selector: 'app-survey-page',
-  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, BusinessViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, AddToBoardDialogComponent, DialogDirective, AiDisclosureComponent],
+  imports: [RouterLink, TranslatePipe, FormsModule, FlowCanvasComponent, ConsolidatedViewComponent, FlowMapViewComponent, BusinessViewComponent, DrawioViewComponent, NodePanelComponent, ValidationDialogComponent, C4DialogComponent, ConfirmDialogComponent, AddToBoardDialogComponent, DialogDirective, AiDisclosureComponent],
   templateUrl: './survey.page.html',
   styleUrl: './survey.page.scss',
   host: { '(document:keydown.escape)': 'onEscape()', '(document:keydown)': 'onKeydown($event)' },
@@ -113,6 +118,7 @@ export class SurveyPage {
   private readonly canvas = viewChild(FlowCanvasComponent);
   private readonly mapView = viewChild(FlowMapViewComponent);
   private readonly businessView = viewChild(BusinessViewComponent);
+  private readonly drawioFrame = viewChild(DrawioViewComponent);
   private pollTimer?: ReturnType<typeof setTimeout>;
   private failures = 0;
 
@@ -163,7 +169,7 @@ export class SurveyPage {
   protected readonly selectedId = signal<string | null>(null);
   // Desenho consolidado (Fase 28) e mapa (Fase 31): o quarto e o quinto desenho do botão, no lugar
   // do canvas. Na edição e na comparação o canvas volta, porque só ele mostra o rascunho e as diferenças.
-  private readonly drawing = signal(readLayoutDirection());
+  private readonly drawing = signal(readLayoutDirection() === LayoutDirection.Drawio ? readDrawioOrigin() : readLayoutDirection());
   protected readonly consolidated = computed(() => this.drawing() === LayoutDirection.Consolidated);
   protected readonly mapped = computed(() => this.drawing() === LayoutDirection.Map);
   // Visão de negócio (Fase 57): o sexto desenho, também no lugar do canvas.
@@ -171,6 +177,14 @@ export class SurveyPage {
   protected readonly showConsolidated = computed(() => this.consolidated() && !this.editing() && !this.comparison());
   protected readonly showMap = computed(() => this.mapped() && !this.editing() && !this.comparison());
   protected readonly showBusiness = computed(() => this.business() && !this.editing() && !this.comparison());
+  // Draw.io dentro do Rastro (Fase 64): o sétimo desenho, no lugar do canvas, aberto com o XML do desenho de origem.
+  protected readonly showDrawio = computed(() => this.drawing() === LayoutDirection.Drawio && !this.editing() && !this.comparison());
+  protected readonly drawioXml = signal('');
+  private readonly drawioStatus = inject(DrawioStatusService);
+  // Abertura por ?desenho=drawio ou pela escolha guardada: abre o desenho de origem e troca quando ele tem XML.
+  private readonly drawioPending = signal(false);
+  private drawioAttempts = 0;
+  private drawioTimer?: ReturnType<typeof setTimeout>;
   // Resumo do fluxo (Fase 23): vem do canvas, que o monta junto com o desenho.
   protected readonly summary = signal<FlowSummary | null>(null);
   protected readonly resurveying = signal(false);
@@ -338,7 +352,7 @@ export class SurveyPage {
     const focus = this.focusId();
     const focused = graph && focus ? focusOn(graph, focus) : graph;
     // O consolidado, o mapa e a visão de negócio não recolhem passos: o painel precisa achar qualquer passo deles.
-    if (this.showConsolidated() || this.showMap() || this.showBusiness()) return focused;
+    if (this.showConsolidated() || this.showMap() || this.showBusiness() || this.showDrawio()) return focused;
     return focused ? collapseAfter(focused, this.collapsed()) : focused;
   });
 
@@ -399,7 +413,10 @@ export class SurveyPage {
       this.editor.clearSurveyLinks();
       clearTimeout(this.pollTimer);
       clearTimeout(this.validationTimer);
+      clearTimeout(this.drawioTimer);
     });
+    this.drawioStatus.load();
+    this.startDrawioFromChoice(readLayoutDirection());
 
     // Levantamento para comparar: carrega quando a rota traz ?comparar=.
     effect(() => {
@@ -433,7 +450,22 @@ export class SurveyPage {
       if (wanted === null) return;
       untracked(() => {
         saveLayoutDirection(wanted);
-        this.drawing.set(wanted);
+        if (wanted === LayoutDirection.Drawio) this.startDrawioFromChoice(wanted);
+        else this.drawing.set(wanted);
+      });
+    });
+
+    // Draw.io pedido na abertura: com o status lido e o desenho de origem na tela, tenta trocar (algumas vezes, com
+    // limite). Sem o draw.io na instalação, fica no desenho de origem.
+    effect(() => {
+      if (!this.drawioPending() || !this.drawioStatus.loaded() || !this.graph()) return;
+      untracked(() => {
+        if (!this.drawioStatus.available()) {
+          this.drawioPending.set(false);
+          saveLayoutDirection(this.drawing());
+          return;
+        }
+        this.tryOpenDrawio();
       });
     });
 
@@ -458,6 +490,87 @@ export class SurveyPage {
 
   // Troca de desenho pelo botão do canvas, do consolidado ou do mapa (Fases 28 e 31).
   protected onDirection(direction: LayoutDirection): void {
+    // O draw.io abre com o XML do desenho que está na tela: gera primeiro, troca depois.
+    if (direction === LayoutDirection.Drawio && this.drawing() !== LayoutDirection.Drawio) {
+      this.openDrawio();
+      return;
+    }
+    this.applyDirection(direction);
+  }
+
+  // Escolha do draw.io na barra: o desenho da tela vira a origem e o XML dele, o conteúdo do editor.
+  private openDrawio(): void {
+    const origin = this.drawing();
+    if (this.showConsolidated()) {
+      this.restoreChoice();
+      this.showExport({ ok: false, text: this.i18n.t('survey.export.onlyGraph') });
+      return;
+    }
+    this.originXml((xml) => {
+      if (!xml) {
+        this.restoreChoice();
+        this.showExport({ ok: false, text: this.notDrawnText() });
+        return;
+      }
+      this.enterDrawio(origin, xml);
+    });
+  }
+
+  private enterDrawio(origin: LayoutDirection, xml: string): void {
+    saveDrawioOrigin(origin);
+    this.drawioXml.set(xml);
+    this.applyDirection(LayoutDirection.Drawio);
+  }
+
+  // O botão do canvas já gravou o draw.io como escolha: se a troca não acontece, a escolha volta ao desenho da tela.
+  private restoreChoice(): void {
+    saveLayoutDirection(this.drawing());
+  }
+
+  // Abertura com o draw.io como escolha: mostra o desenho de origem guardado e marca a troca como pendente.
+  private startDrawioFromChoice(choice: LayoutDirection): void {
+    if (choice !== LayoutDirection.Drawio) return;
+    this.drawioAttempts = 0;
+    this.drawing.set(readDrawioOrigin());
+    this.drawioPending.set(true);
+  }
+
+  private tryOpenDrawio(): void {
+    clearTimeout(this.drawioTimer);
+    const origin = this.drawing();
+    const giveUp = () => {
+      this.drawioPending.set(false);
+      saveLayoutDirection(origin);
+      this.showExport({ ok: false, text: this.notDrawnText() });
+    };
+    this.originXml((xml) => {
+      if (xml) {
+        this.drawioPending.set(false);
+        this.enterDrawio(origin, xml);
+      } else if (++this.drawioAttempts >= DRAWIO_OPEN_ATTEMPTS) {
+        giveUp();
+      } else {
+        this.drawioTimer = setTimeout(() => this.tryOpenDrawio(), DRAWIO_OPEN_RETRY_MS);
+      }
+    });
+  }
+
+  // O XML do desenho que está na tela, com os links do host em cada balão (o mesmo caminho do menu Exportar).
+  private originXml(done: (xml: string | null) => void): void {
+    const id = this.detail()?.survey.id;
+    if (!id || !this.drawioView()) {
+      done(null);
+      return;
+    }
+    const name = this.exportName();
+    this.api.links(id).subscribe({
+      next: (links) => done(this.drawioView()?.exportDrawio(name, hostLinkResolver(links)) ?? null),
+      // Sem os links, o desenho abre do mesmo jeito, só sem o link de cada balão.
+      error: () => done(this.drawioView()?.exportDrawio(name) ?? null),
+    });
+  }
+
+  private applyDirection(direction: LayoutDirection): void {
     // A visão de negócio pode ter mudado enquanto outro desenho estava na tela: o menu do nó consulta de novo.
     this.businessNodeIds.clear();
     // O painel aberto pela aba na visão de negócio em tela estreita vale só enquanto ela está na tela.
@@ -485,7 +598,7 @@ export class SurveyPage {
 
   // Mapa por sistemas e consolidado não têm o desenho do grafo: PNG, SVG e Mermaid só valem no grafo e na
   // visão de negócio. O draw.io vale também no mapa, mas não no consolidado.
-  protected readonly exportNeedsGraph = computed(() => this.showMap() || this.showConsolidated());
+  protected readonly exportNeedsGraph = computed(() => this.showMap() || this.showConsolidated() || this.showDrawio());
   protected readonly drawioNeedsGraph = computed(() => this.showConsolidated());
 
   // Atalho do painel: liga o mapa do fluxo e abre a aba Perguntas.
@@ -712,6 +825,11 @@ export class SurveyPage {
   protected exportDrawio(): void {
     if (this.drawioNeedsGraph()) return;
     this.closePopovers();
+    // No desenho draw.io, baixa o que está no editor agora (com as mudanças já feitas lá).
+    if (this.showDrawio()) {
+      this.saveDrawioFile(this.drawioFrame()?.exportDrawio() ?? null, false);
+      return;
+    }
     const id = this.detail()?.survey.id;
     // Sem nada desenhado, avisa já: não vale pedir os links à API.
     if (!id || !this.drawioView()) {
@@ -732,8 +850,11 @@ export class SurveyPage {
   }
 
   private downloadDrawio(linkOf: HostLinkOf | undefined, withoutLinks = false): void {
+    this.saveDrawioFile(this.drawioView()?.exportDrawio(this.exportName(), linkOf) ?? null, withoutLinks);
+  }
+
+  private saveDrawioFile(xml: string | null, withoutLinks: boolean): void {
     const name = this.exportName();
-    const xml = this.drawioView()?.exportDrawio(name, linkOf);
     if (!xml) {
       this.showExport({ ok: false, text: this.notDrawnText() });
       return;

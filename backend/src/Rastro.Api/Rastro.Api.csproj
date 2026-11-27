@@ -39,6 +39,12 @@
     <None Include="..\..\..\extractor-ts\package.json" Link="extractor-ts\package.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- draw.io dentro do pacote (ADR-011): a pasta é preparada por scripts/preparar-drawio.ps1 (fora do git) e viaja
+       com o executável. Sem a pasta (CI de PR, código-fonte sem o script), a API diz que o draw.io não está aqui. -->
+  <ItemGroup>
+    <None Include="drawio\**" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <!-- O MSBuild vem do SDK instalado (MSBuildLocator); nunca copiar os assemblies dele para a saída. -->
     <PackageReference Include="Microsoft.Build.Framework" Version="17.14.28" ExcludeAssets="runtime" PrivateAssets="all" />

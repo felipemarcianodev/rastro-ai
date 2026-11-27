@@ -1436,7 +1436,7 @@ O pedido, em duas partes:
   - **Verificado no navegador, com clique de verdade:** os seis botões trocam o desenho e o foco fica no ativo; as setas e o Enter; `?desenho=mapa`; em 360 px e em 1440 por 600, nenhum botão cortado e nenhuma rolagem horizontal; console sem erro. Prints em `docs/telas/fase-63/`.
   - **Testes:** frontend 836/836 (o componente novo, a página sem o seletor, o `?desenho=` e o foco depois da troca); build sem aviso.
 
-### Fase 64: o draw.io dentro do Rastro, para ver `[ ]` (depende da 62)
+### Fase 64: o draw.io dentro do Rastro, para ver `[x]` (depende da 62)
 
 - [ ] O draw.io na forma decidida na ADR-011, servido pela API em `127.0.0.1`, sem nenhuma requisição para fora (cabeçalho de segurança de conteúdo restringindo a origem).
 - [ ] Componente do desenho draw.io: abre o `iframe`, confere a origem de cada mensagem, carrega o `.drawio` do desenho de origem (grafo, mapa por sistemas ou visão de negócio; o quadro de fluxos na Fase 68), com o tema claro ou escuro, o idioma da tela e os links para o código.
@@ -1444,6 +1444,14 @@ O pedido, em duas partes:
 - [ ] Clique num balão abre o painel do nó do Rastro (o id volta pela mensagem).
 - [ ] Documentação do ambiente do cliente no mesmo PR: README e README do pacote nos três idiomas (o que vem no pacote, o tamanho), `SECURITY.md` (o que a página carrega, que nada sai da máquina), `visao.md`.
 - **Aceite:** o fluxo do próprio Rastro aberto no draw.io dentro da janela e do navegador, sem rede (conferido com a rede desligada), com o painel do nó funcionando.
+- **Registro (2026-11-27):**
+  - **Pacote:** `scripts/preparar-drawio.ps1` baixa o `draw.war` da versão de `scripts/drawio/drawio.json`, confere o SHA-256, extrai só a lista escolhida para `backend/src/Rastro.Api/drawio/` (fora do git), junta a licença (`LICENSE-drawio.txt`) e o nosso `PostConfig.js`; o `empacotar.ps1` chama o script, e o csproj leva a pasta para a saída e para o pacote. O script recusa apagar a pasta se achar código-fonte nela: no Windows, a pasta `drawio` e uma pasta de código `Drawio` são a mesma, e na primeira versão ele apagou o `DrawioHosting.cs` (por isso o código fica em `Editor/`).
+  - **API:** serve a pasta em `/drawio/` com cabeçalho de segurança de conteúdo próprio (só a mesma origem) e `nosniff`; `GET api/drawio` diz se o draw.io está na instalação e a versão. Sem a pasta, a rota diz que não está, e a tela não mostra o botão.
+  - **PostConfig.js do Rastro:** o arquivo que o draw.io reserva para quem hospeda o próprio editor. Mantém o original e registra um plugin que avisa a tela o balão escolhido (`rastroId` e `rastroNode`, gravados agora em cada balão pelos geradores de `.drawio`). Como o `PostConfig.js` roda antes de o editor nascer, ele cria a fila de plugins pelo próprio `App.initPluginCallback` e soma um no `App.embedModePluginsCount`, como o draw.io faz com os plugins dele (a primeira versão chamava `Draw.loadPlugin` antes de ele existir).
+  - **Tela:** botão draw.io por último na barra de desenhos, só quando a API diz que o draw.io está; ele abre no editor o `.drawio` do desenho que estava na tela (grafo, mapa por sistemas ou visão de negócio), com os links para o código; o editor fica num `iframe` de mesma origem, com a barra de desenhos numa faixa no alto (por cima, ela cobria a coluna de formas), no idioma e no tema da tela; aceita mensagem só da mesma origem e do próprio `iframe`; clique num balão abre o painel do nó; carregando e erro com "Tentar de novo"; `?desenho=drawio` abre o desenho de origem guardado e troca para o draw.io; no menu Exportar, só o `.drawio` (o XML atual do editor).
+  - **Verificado no navegador, com clique de verdade e toda requisição para fora de `127.0.0.1` bloqueada:** o editor abre com a visão de negócio, o grafo e o mapa; clicar num balão abre o painel do nó; nenhum arquivo do draw.io faltando; nenhuma requisição para fora; console sem erro. Prints em `docs/telas/fase-64/`.
+  - **Não verificado:** a janela Photino (WebView2) e o WebKit do macOS e do Linux; o pacote gerado de ponta a ponta (fica para a release).
+  - **Testes:** backend 1138/1138 (API-DRW-001 a 003); frontend 848/848; build sem aviso.
 
 ### Fase 65: mover no draw.io `[ ]` (depende da 64)
 

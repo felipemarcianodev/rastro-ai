@@ -9,3 +9,5 @@ dist/
 .env
 artifacts/
 backend/src/Rastro.Api/wwwroot/
+# draw.io (ADR-011): baixado e conferido por scripts/preparar-drawio.ps1, nunca versionado.
+backend/src/Rastro.Api/drawio/

@@ -1,0 +1,30 @@
+{
+  "comment": "Draw.io dentro do Rastro (ADR-011). Versão e hash fixos; subir a versão é um PR com o hash novo e o teste de que o editor abre sem rede. O script preparar-drawio.ps1 baixa, confere o SHA-256 e extrai só a lista abaixo.",
+  "version": "32.6.10",
+  "url": "https://github.com/jgraph/drawio/releases/download/v32.6.10/draw.war",
+  "sha256": "a57b06b3b6a876a351dacfe65d027d9509319cd030e9bacf6ae04a034d66a38f",
+  "include": [
+    "index.html",
+    "favicon.ico",
+    "js/PreConfig.js",
+    "js/PostConfig.js",
+    "js/bootstrap.js",
+    "js/main.js",
+    "js/app.min.js",
+    "js/extensions.min.js",
+    "js/shapes-14-6-5.min.js",
+    "js/stencils.min.js",
+    "js/mermaid/",
+    "js/elk/",
+    "js/orgchart/",
+    "mxgraph/",
+    "styles/",
+    "images/",
+    "img/",
+    "stencils/",
+    "shapes/",
+    "resources/dia.txt",
+    "resources/dia_pt-br.txt",
+    "resources/dia_es.txt"
+  ]
+}

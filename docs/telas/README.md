@@ -145,3 +145,6 @@ Os fluxos abaixo são do [Mirante](https://github.com/felipemarcianodev/apresent
 | Fase 63 | Mapa por sistemas com a barra de desenhos em linha, e a barra do levantamento sem o seletor | [fase-63/02-mapa-com-a-barra-de-desenhos.png](fase-63/02-mapa-com-a-barra-de-desenhos.png) |
 | Fase 63 | Visão de negócio com a barra de desenhos | [fase-63/03-visao-de-negocio-com-a-barra.png](fase-63/03-visao-de-negocio-com-a-barra.png) |
 | Fase 63 | O grafo em 360 px, com a barra de desenhos inteira | [fase-63/04-grafo-360.png](fase-63/04-grafo-360.png) |
+| Fase 64 | A visão de negócio aberta no draw.io dentro do Rastro, com a barra de desenhos no alto e o editor em português, sem rede | [fase-64/01-visao-de-negocio-no-drawio.png](fase-64/01-visao-de-negocio-no-drawio.png) |
+| Fase 64 | O grafo horizontal no draw.io (o desenho inteiro enquadrado) | [fase-64/02-grafo-no-drawio.png](fase-64/02-grafo-no-drawio.png) |
+| Fase 64 | Clique num balão do draw.io abre o painel do nó do Rastro | [fase-64/03-clique-no-balao-abre-o-painel.png](fase-64/03-clique-no-balao-abre-o-painel.png) |
