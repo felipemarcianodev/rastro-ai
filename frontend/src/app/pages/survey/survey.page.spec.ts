@@ -759,6 +759,28 @@ describe('SurveyPage', () => {
     lastFixture!.detectChanges();
   }
 
+  // WEB-DRIO-040 (passo de UX da release 0.12.0): em tela estreita o draw.io ficava espremido pelo painel do nó.
+  it('telaEstreitaComODrawio_painelDoNoComecaRecolhido', async () => {
+    TestBed.resetTestingModule();
+    drawioInstalled = true;
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.panelCollapsed');
+    const real = window.matchMedia.bind(window);
+    spyOn(window, 'matchMedia').and.callFake((query: string) =>
+      query === '(max-width: 1000px)' ? ({ matches: true, addEventListener: () => undefined, removeEventListener: () => undefined } as unknown as MediaQueryList) : real(query));
+    graphOverride = graphWith(1, 0);
+    const el = open(SurveyStatus.Completed);
+    await showBusiness(el);
+
+    pickDrawing(el, LayoutDirection.Drawio);
+    answerDrawing();
+
+    expect(el.querySelector('app-drawio-view')).not.toBeNull();
+    expect(el.querySelector('.workspace')!.classList).toContain('is-panel-collapsed');
+    expect(localStorage.getItem('rastro.panelCollapsed')).toBeNull();
+    localStorage.removeItem('rastro.layoutDirection');
+  });
+
   // WEB-DRIO-020 (Fase 64)
   it('drawio_comOBotaoNaBarra_trocaComOXmlDoDesenhoAnterior_eGuardaAOrigem', async () => {
     TestBed.resetTestingModule();
