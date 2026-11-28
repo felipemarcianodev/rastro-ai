@@ -54,6 +54,8 @@ public static class DrawioHosting
                 var headers = context.Context.Response.Headers;
                 headers.ContentSecurityPolicy = ContentSecurityPolicy;
                 headers.XContentTypeOptions = "nosniff";
+                // Ao subir a versão do draw.io, a página dele também não pode ficar guardada.
+                PageCache.Apply(context);
             },
         });
     }

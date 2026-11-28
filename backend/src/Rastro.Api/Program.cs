@@ -112,10 +112,12 @@ app.MapControllers();
 var hasEmbeddedScreen = File.Exists(Path.Combine(app.Environment.WebRootPath ?? string.Empty, "index.html"));
 if (hasEmbeddedScreen)
 {
+    // O index.html sai com "no-cache" (PageCache): sem isso, a janela seguia na tela da versão anterior.
+    var screenFiles = new StaticFileOptions { OnPrepareResponse = Rastro.Api.PageCache.Apply };
     app.UseDefaultFiles();
-    app.UseStaticFiles();
+    app.UseStaticFiles(screenFiles);
     app.MapFallback("api/{**rest}", () => Results.NotFound());
-    app.MapFallbackToFile("index.html");
+    app.MapFallbackToFile(Rastro.Api.PageCache.PageFile, screenFiles);
     app.Lifetime.ApplicationStarted.Register(() =>
     {
         // Idioma lido na hora: o config.json pode ter mudado desde que o processo subiu.

@@ -1538,6 +1538,7 @@ Na 0.12.0, o dono clicava no draw.io e ele não abria: aparecia só o aviso "Dis
 - [x] Clicar no draw.io a partir do Mermaid abre o draw.io com o grafo horizontal, que mostra o mesmo fluxo.
 - [x] Visão de negócio vazia (só a entrada), pelo botão ou pela escolha guardada, abre o draw.io com o grafo. Mapa que não desenha cai no grafo depois das tentativas, em vez de desistir. A volta é sempre para o grafo, que nunca cai de novo nesse caminho.
 - [x] Testes `WEB-DRIO-041` a `043`.
+- [x] A janela continuava mostrando a tela antiga depois de o pacote ser atualizado. A API mandava o `index.html` sem `Cache-Control`, e o WebView2 reaproveitava do disco a página guardada, que apontava para o `main` da versão anterior; no Chrome, que nunca tinha guardado a página, a correção aparecia. O `index.html` da tela e o do draw.io passam a sair com `Cache-Control: no-cache` (a janela confere a versão a cada abertura, pelo ETag); os arquivos com hash no nome seguem como estão. Quem já tem a página guardada a recebe nova assim que o guardado vence ou o cache da janela é limpo. Testes `API-CACHE-001` e `002`.
 
 ## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
 
