@@ -188,7 +188,7 @@ export class BusinessViewComponent {
   // Espera o fluxo e a posição salva: o desenho abre já no lugar, sem os balões pularem depois.
   protected readonly loading = computed(() => !this.error() && (!this.flow() || !this.layoutReady()));
   // Só a entrada (ou nada): sem decisão, notificação ou chamada para mostrar.
-  protected readonly empty = computed(() => !!this.flow() && this.flow()!.steps.length <= 1);
+  readonly empty = computed(() => !!this.flow() && this.flow()!.steps.length <= 1);
   private readonly reload = signal(0);
   private readonly links = signal<readonly RepositoryLinks[]>([]);
   protected readonly stepId = signal<string | null>(null);

@@ -1531,6 +1531,14 @@ O pedido, em duas partes:
 - Conflito entre a edição no draw.io e no desenho de origem abertos ao mesmo tempo.
 - O draw.io muda o formato entre versões: versão fixa e atualização só com teste.
 
+## Draw.io que não abria a partir do Mermaid `[x]` (pedido do dono em 2026-11-28)
+
+Na 0.12.0, o dono clicava no draw.io e ele não abria: aparecia só o aviso "Disponível no grafo e na visão de negócio". O registro da janela confirmou que o draw.io nunca chegou a abrir nela, e o último desenho guardado era o Mermaid. O botão aparece ativo no Mermaid, mas a página recusava, porque o Mermaid não vira `.drawio`. No teste apareceu um segundo caso da mesma família: com a visão de negócio guardada como origem do draw.io, um fluxo sem decisão nem notificação tentava por 5 segundos e desistia com "A visão de negócio ainda não está desenhada. Espere ela aparecer e tente de novo.", e esperar não resolvia.
+
+- [x] Clicar no draw.io a partir do Mermaid abre o draw.io com o grafo horizontal, que mostra o mesmo fluxo.
+- [x] Visão de negócio vazia (só a entrada), pelo botão ou pela escolha guardada, abre o draw.io com o grafo. Mapa que não desenha cai no grafo depois das tentativas, em vez de desistir. A volta é sempre para o grafo, que nunca cai de novo nesse caminho.
+- [x] Testes `WEB-DRIO-041` a `043`.
+
 ## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
 
 O Dependabot propôs o Roslyn 5.12 (`Microsoft.CodeAnalysis.CSharp.Workspaces` e `Workspaces.MSBuild`). Ele exige o MSBuild 18.7.1, e o MSBuild vem do SDK do .NET instalado na máquina de quem usa (MSBuildLocator): o SDK 10.0.1xx traz o MSBuild 18.0, o 10.0.2xx traz o 18.3, e só a faixa 10.0.3xx em diante atende. O dono decidiu ficar no Roslyn 5.9 por ora, e o Dependabot deixou de propor versão nova do Roslyn.

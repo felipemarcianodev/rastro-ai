@@ -13,6 +13,8 @@ const SURVEY_ID = 's1';
 let graphOverride: FlowGraph | undefined;
 // O draw.io está na instalação do teste? (GET /api/drawio)
 let drawioInstalled = false;
+// A visão de negócio que a API do teste devolve (sem valor: a de BUSINESS_FLOW).
+let businessOverride: BusinessFlow | undefined;
 
 function graphWith(methods: number, unresolved: number): FlowGraph {
   const nodes = [
@@ -82,7 +84,7 @@ function open(status: SurveyStatus, validations: ValidationView[] = [], inputs: 
     const url = request.request.url;
     if (url.endsWith(`/api/surveys/${SURVEY_ID}`)) request.flush(detail(status));
     else if (url.endsWith('/validations')) request.flush(validations);
-    else if (url.endsWith('/business')) request.flush(BUSINESS_FLOW);
+    else if (url.endsWith('/business')) request.flush(businessOverride ?? BUSINESS_FLOW);
     else if (url.endsWith('/business/layout')) request.flush({ steps: [], edges: [] });
     else if (url.endsWith('/api/drawio')) request.flush({ available: drawioInstalled, version: drawioInstalled ? '99.0.0' : null });
     else if (url.endsWith('/draft') || url.endsWith('/staleness')) request.flush(null);
@@ -137,6 +139,7 @@ describe('SurveyPage', () => {
   afterEach(() => {
     graphOverride = undefined;
     drawioInstalled = false;
+    businessOverride = undefined;
   });
 
   it('mostra o botão Mapa do banco com a rota do repositório, em qualquer status', () => {
@@ -987,6 +990,108 @@ describe('SurveyPage', () => {
     expect(el.querySelector('app-drawio-view')).not.toBeNull();
     expect(pressedDrawings(el)).toEqual([LayoutDirection.Drawio]);
     expect(readDrawioOrigin()).toBe(LayoutDirection.Business);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+  });
+
+  // Espera a página trocar para o draw.io (o canvas do grafo nasce e desenha em seguida), respondendo o que ela pede.
+  async function waitDrawio(el: HTMLElement, answer: () => void): Promise<void> {
+    for (let i = 0; i < 12 && !el.querySelector('app-drawio-view'); i++) {
+      answer();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      answer();
+      await new Promise((resolve) => setTimeout(resolve, 400));
+    }
+    answer();
+  }
+
+  // Responde o pedido de links do grafo (a abertura gera o XML com eles) e o guardado do draw.io.
+  function answerGraphDrawio(): void {
+    const http = TestBed.inject(HttpTestingController);
+    http.match((r) => r.url.endsWith('/links')).forEach((r) => r.flush([]));
+    http.match((r) => r.method === 'GET' && /\/drawio\/\d$/.test(r.url)).forEach((r) => r.flush({ cells: [], annotations: null, updatedAt: null }));
+    lastFixture!.detectChanges();
+  }
+
+  // Visão de negócio só com a entrada: o fluxo não tem decisão nem notificação para desenhar.
+  const EMPTY_BUSINESS: BusinessFlow = { ...BUSINESS_FLOW, steps: [BUSINESS_FLOW.steps[0]], edges: [] };
+
+  // Responde a visão de negócio vazia, além do que o grafo e o draw.io pedem.
+  function answerEmptyBusiness(): void {
+    const http = TestBed.inject(HttpTestingController);
+    http.match((r) => r.url.endsWith('/business')).forEach((r) => r.flush(EMPTY_BUSINESS));
+    http.match((r) => r.url.endsWith('/business/layout')).forEach((r) => r.flush({ steps: [], edges: [] }));
+    answerGraphDrawio();
+  }
+
+  // WEB-DRIO-041: no Mermaid o botão do draw.io só avisava "Disponível no grafo e na visão de negócio" e não abria.
+  it('drawio_aPartirDoMermaid_abreComOGrafo', async () => {
+    TestBed.resetTestingModule();
+    drawioInstalled = true;
+    graphOverride = graphWith(1, 0);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+    const el = open(SurveyStatus.Completed);
+    pickDrawing(el, LayoutDirection.Consolidated);
+    lastFixture!.detectChanges();
+
+    pickDrawing(el, LayoutDirection.Drawio);
+    lastFixture!.detectChanges();
+    await waitDrawio(el, answerGraphDrawio);
+
+    expect(el.querySelector('app-drawio-view')).not.toBeNull();
+    expect(el.querySelector('.menu-toast')).toBeNull();
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Drawio]);
+    expect(readDrawioOrigin()).toBe(LayoutDirection.Horizontal);
+    expect(page().drawioXml()).toContain('rastroNode="m0"');
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+  });
+
+  // WEB-DRIO-042: visão de negócio vazia e o botão do draw.io: abre com o grafo em vez de dizer "ainda não está desenhada".
+  it('drawio_aPartirDaVisaoDeNegocioVazia_abreComOGrafo', async () => {
+    TestBed.resetTestingModule();
+    drawioInstalled = true;
+    graphOverride = graphWith(1, 0);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+    businessOverride = EMPTY_BUSINESS;
+    const el = open(SurveyStatus.Completed);
+    pickDrawing(el, LayoutDirection.Business);
+    lastFixture!.detectChanges();
+    answerEmptyBusiness();
+    await lastFixture!.whenStable();
+    lastFixture!.detectChanges();
+
+    pickDrawing(el, LayoutDirection.Drawio);
+    lastFixture!.detectChanges();
+    await waitDrawio(el, answerEmptyBusiness);
+
+    expect(el.querySelector('app-drawio-view')).not.toBeNull();
+    expect(el.querySelector('.menu-toast')).toBeNull();
+    expect(readDrawioOrigin()).toBe(LayoutDirection.Horizontal);
+    localStorage.removeItem('rastro.layoutDirection');
+    localStorage.removeItem('rastro.drawioOrigin');
+  });
+
+  // WEB-DRIO-043: draw.io guardado com origem na visão de negócio, num fluxo sem ela: desistia em 5 s com um aviso que
+  // mandava esperar. Agora abre com o grafo.
+  it('drawio_escolhaGuardadaComVisaoDeNegocioVazia_abreComOGrafo', async () => {
+    TestBed.resetTestingModule();
+    drawioInstalled = true;
+    graphOverride = graphWith(1, 0);
+    businessOverride = EMPTY_BUSINESS;
+    saveLayoutDirection(LayoutDirection.Drawio);
+    saveDrawioOrigin(LayoutDirection.Business);
+    const el = open(SurveyStatus.Completed);
+
+    await waitDrawio(el, answerEmptyBusiness);
+
+    expect(el.querySelector('app-drawio-view')).not.toBeNull();
+    expect(el.querySelector('.menu-toast')).toBeNull();
+    expect(pressedDrawings(el)).toEqual([LayoutDirection.Drawio]);
+    expect(readDrawioOrigin()).toBe(LayoutDirection.Horizontal);
+    expect(page().drawioXml()).toContain('rastroNode="m0"');
     localStorage.removeItem('rastro.layoutDirection');
     localStorage.removeItem('rastro.drawioOrigin');
   });
