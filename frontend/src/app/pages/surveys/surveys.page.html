@@ -114,6 +114,9 @@
         </p>
       }
       <p class="visually-hidden" role="status">{{ announcement() }}</p>
+      @if (deleteError(); as error) {
+        <p class="notice is-error delete-error" role="alert">{{ error }}</p>
+      }
       @if (visible().length === 0) {
         <div class="empty">
           <p>{{ 'surveys.noMatch' | translate }}</p>
@@ -156,6 +159,10 @@
             <span class="row-actions">
               <a class="btn btn-g btn-small" [routerLink]="['/surveys', survey.id]" [attr.aria-label]="'surveys.openLabel' | translate: { entryPoint: survey.entryPoint }"
                 [attr.aria-describedby]="'row-summary-' + survey.id">{{ 'surveys.open' | translate }}</a>
+              @if (canDelete(survey)) {
+                <button type="button" class="btn btn-g btn-small row-delete" (click)="askDelete(survey)"
+                  [attr.aria-label]="'surveys.deleteLabel' | translate: { entryPoint: survey.entryPoint }">{{ 'surveys.delete' | translate }}</button>
+              }
             </span>
           </li>
         }
@@ -164,6 +171,13 @@
   </section>
   }
 </div>
+
+@if (removing(); as survey) {
+  <app-confirm-dialog [title]="'survey.confirm.deleteTitle' | translate"
+    [text]="'survey.confirm.deleteText' | translate: { entryPoint: survey.entryPoint }"
+    [confirmLabel]="(deleting() ? 'survey.confirm.deleting' : 'survey.confirm.delete') | translate" [busy]="deleting()"
+    (confirm)="confirmDelete()" (cancel)="removing.set(null)" />
+}
 
 @if (formOpen()) {
   <div class="overlay" appDialog (click)="dismissForm()" (dialogClose)="closeForm()">

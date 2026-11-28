@@ -1531,6 +1531,14 @@ O pedido, em duas partes:
 - Conflito entre a edição no draw.io e no desenho de origem abertos ao mesmo tempo.
 - O draw.io muda o formato entre versões: versão fixa e atualização só com teste.
 
+## Excluir levantamento pela lista da tela inicial `[x]` (pedido do dono em 2026-11-28)
+
+O dono quer limpar a lista: levantamento que falhou ou ficou antigo só se excluía abrindo cada um. A rota `DELETE api/surveys/{id}` já existe e a tela do levantamento já a usa; falta oferecer na lista, como a tela de quadros faz.
+
+- [x] Botão "Excluir" em cada linha da lista, ao lado de "Abrir", com o nome do levantamento no rótulo para o leitor de tela. Não aparece em levantamento na fila ou em análise (a API recusa, com `SURVEY_RUNNING`).
+- [x] Confirmação no diálogo do tema, com os mesmos textos da tela do levantamento. Confirmado, a linha sai da lista (e da seleção para o quadro) e aparece o aviso "Levantamento de ... excluído."; se a API recusar, o aviso de erro fica na lista e a linha continua.
+- [x] Testes da tela.
+
 ## Roslyn 5.12 e o SDK mínimo `[ ]` (decisão do dono em 2026-11-16)
 
 O Dependabot propôs o Roslyn 5.12 (`Microsoft.CodeAnalysis.CSharp.Workspaces` e `Workspaces.MSBuild`). Ele exige o MSBuild 18.7.1, e o MSBuild vem do SDK do .NET instalado na máquina de quem usa (MSBuildLocator): o SDK 10.0.1xx traz o MSBuild 18.0, o 10.0.2xx traz o 18.3, e só a faixa 10.0.3xx em diante atende. O dono decidiu ficar no Roslyn 5.9 por ora, e o Dependabot deixou de propor versão nova do Roslyn.

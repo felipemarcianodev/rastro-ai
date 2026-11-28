@@ -1011,6 +1011,8 @@
     "clearFilters": "Limpar a busca e o filtro",
     "open": "Abrir",
     "openLabel": "Abrir o levantamento {entryPoint}",
+    "delete": "Excluir",
+    "deleteLabel": "Excluir o levantamento {entryPoint}",
     "finished": "{entryPoint}: {status}",
     "registered": "Repositório \"{name}\" cadastrado.",
     "form": {

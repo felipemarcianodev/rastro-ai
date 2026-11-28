@@ -1011,6 +1011,8 @@
     "clearFilters": "Clear search and filter",
     "open": "Open",
     "openLabel": "Open trace {entryPoint}",
+    "delete": "Delete",
+    "deleteLabel": "Delete trace {entryPoint}",
     "finished": "{entryPoint}: {status}",
     "registered": "Repository \"{name}\" registered.",
     "form": {

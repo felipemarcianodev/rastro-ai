@@ -21,9 +21,12 @@ import {
 } from '../../core/models';
 import { RastroApi, apiErrorMessage } from '../../core/rastro-api.service';
 import { BoardCreateDialogComponent } from '../boards/board-create-dialog.component';
+import { ConfirmDialogComponent } from '../survey/confirm-dialog.component';
 import { RegisterRepositoryComponent } from '../settings/register-repository.component';
 
 const POLL_MS = 2500;
+// Por quanto tempo o aviso "Levantamento de ... excluído." fica na tela.
+const DELETED_NOTICE_MS = 5000;
 // Caminho de projeto TypeScript escolhido no lugar de uma solution (tsconfig.json, tsconfig.app.json).
 const TSCONFIG_SUFFIX = '.json';
 // Ponto de entrada que parece de componente Angular: "DetalhePedidoComponent.cancelar".
@@ -102,7 +105,7 @@ export function matchesSearch(survey: SurveySummary, query: string): boolean {
 
 @Component({
   selector: 'app-surveys-page',
-  imports: [FormsModule, RouterLink, TranslatePipe, DialogDirective, RegisterRepositoryComponent, BoardCreateDialogComponent],
+  imports: [FormsModule, RouterLink, TranslatePipe, DialogDirective, RegisterRepositoryComponent, BoardCreateDialogComponent, ConfirmDialogComponent],
   templateUrl: './surveys.page.html',
   styleUrl: './surveys.page.scss',
 })
@@ -122,6 +125,11 @@ export class SurveysPage implements OnInit {
   protected readonly listError = signal<string | null>(null);
   // Aviso de exclusão vindo da página do levantamento (estado da navegação): guarda o ponto de entrada.
   protected readonly deletedNotice = signal<string | null>(null);
+  // Exclusão pela própria lista: o levantamento a confirmar, o pedido em andamento e o erro da API.
+  protected readonly removing = signal<SurveySummary | null>(null);
+  protected readonly deleting = signal(false);
+  protected readonly deleteError = signal<string | null>(null);
+  private deletedTimer?: ReturnType<typeof setTimeout>;
   protected readonly repositories = signal<RepositoryItem[]>([]);
   protected readonly reposState = signal<'loading' | 'error' | 'ready'>('loading');
   protected readonly reposError = signal<string | null>(null);
@@ -307,15 +315,51 @@ export class SurveysPage implements OnInit {
   }
 
   constructor() {
-    inject(DestroyRef).onDestroy(() => clearTimeout(this.pollTimer));
+    inject(DestroyRef).onDestroy(() => {
+      clearTimeout(this.pollTimer);
+      clearTimeout(this.deletedTimer);
+    });
+  }
+
+  private showDeleted(entryPoint: string): void {
+    clearTimeout(this.deletedTimer);
+    this.deletedNotice.set(entryPoint);
+    this.deletedTimer = setTimeout(() => this.deletedNotice.set(null), DELETED_NOTICE_MS);
+  }
+
+  // Na fila ou em análise a API recusa a exclusão (SURVEY_RUNNING): o botão só aparece no que já terminou.
+  protected canDelete(survey: SurveySummary): boolean {
+    return survey.status === SurveyStatus.Completed || survey.status === SurveyStatus.Failed;
+  }
+
+  protected askDelete(survey: SurveySummary): void {
+    this.deleteError.set(null);
+    this.removing.set(survey);
+  }
+
+  protected confirmDelete(): void {
+    const survey = this.removing();
+    if (!survey) return;
+    this.deleting.set(true);
+    this.api.deleteSurvey(survey.id).subscribe({
+      next: () => {
+        this.deleting.set(false);
+        this.removing.set(null);
+        this.surveys.update((list) => (list ?? []).filter((s) => s.id !== survey.id));
+        this.picked.update((list) => list.filter((id) => id !== survey.id));
+        this.showDeleted(survey.entryPoint);
+      },
+      error: (error) => {
+        this.deleting.set(false);
+        this.removing.set(null);
+        this.deleteError.set(this.i18n.t('survey.deleteFailed', { message: apiErrorMessage(error) }));
+      },
+    });
   }
 
   ngOnInit(): void {
     const deleted = (history.state as { deleted?: string } | null)?.deleted;
-    if (deleted) {
-      this.deletedNotice.set(deleted);
-      setTimeout(() => this.deletedNotice.set(null), 5000);
-    }
+    if (deleted) this.showDeleted(deleted);
     this.retry = (history.state as { retry?: CreateSurveyRequest } | null)?.retry ?? null;
     if (this.retry) {
       this.entryPoint = this.retry.entryPoint;
