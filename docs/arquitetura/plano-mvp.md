@@ -1391,7 +1391,7 @@ As Fases 54 a 61 estão **EXECUTADAS**. Pendências:
 - [ ] Na criação do quadro pela lista, a página uma vez não foi para o quadro novo; não reproduzido.
 - [x] Release com as Fases 54 a 61 pela skill `gerar-release`: versão 0.11.0, publicada no nuget.org em 2026-11-27 com a aprovação do dono. O passo de UX da release (todas as rotas em 1440 e 360 px, nas paletas Papel, Carta náutica e Planta técnica e no tema escuro) achou e corrigiu, antes da versão: o tema e a paleta só se aplicavam depois de abrir as Configurações (o serviço só era criado ali); o título da barra do levantamento chegava a 0 px em 1440 com os botões novos; o enquadramento da visão de negócio ia a 2%, abaixo do mínimo de 25%; e a lista de quadros vazia tinha dois botões primários.
 
-## Draw.io dentro do Rastro e seletor de desenho no painel (Fases 62 a 68) (pedido do dono em 2026-11-27)
+## Draw.io dentro do Rastro e seletor de desenho no painel (Fases 62 a 68) `[x]` (pedido do dono em 2026-11-27; concluído na versão 0.12.0)
 
 O pedido, em duas partes:
 - trazer o draw.io para dentro do Rastro: além de exportar, ver o fluxo, mover, editar e criar no próprio draw.io, com tudo o que a tela já faz hoje;
@@ -1492,9 +1492,9 @@ O pedido, em duas partes:
   - **Limites:** desfazer no Rastro não desfaz o desenho dentro do draw.io, e o contrário também; mudar o rascunho pelo painel com o draw.io aberto não redesenha o editor (o desenho de origem não está na tela para gerar o XML de novo); o balão de entrada apagado no editor só volta ao reabrir.
   - **Testes:** frontend 889/889; build sem aviso; backend sem mudança.
 
-### Fase 68: paridade, quadro de fluxos e fim do plano `[ ]` (depende da 67)
+### Fase 68: paridade, quadro de fluxos e fim do plano `[x]` (depende da 67)
 
-- [ ] Lista do que a tela faz hoje em cada desenho (painel do nó, busca, trilha, recorte, legenda, minimapa, teclado, exportações, links para o código, quadro de fluxos) e, para cada item, onde ele vale no draw.io ou por que não vale.
+- [x] Lista do que a tela faz hoje em cada desenho (painel do nó, busca, trilha, recorte, legenda, minimapa, teclado, exportações, links para o código, quadro de fluxos) e, para cada item, onde ele vale no draw.io ou por que não vale.
 - [x] Lista de paridade (2026-11-27), o que a tela faz hoje e onde vale no draw.io:
 
   | O que a tela faz | No draw.io dentro do Rastro |
@@ -1514,7 +1514,8 @@ O pedido, em duas partes:
   | Quadro de fluxos | vale: as faixas como molduras, com mover e anotar (ver o item abaixo) |
 - [x] Quadro de fluxos no draw.io: as faixas como molduras, com mover e anotar.
   - **Registro (2026-11-27):** botão "Abrir no draw.io" na tela do quadro (só com o draw.io na instalação), que mostra no editor o `.drawio` do quadro (uma moldura por faixa, os passos, o glossário e a legenda); "Voltar às faixas" volta à tela de hoje. Cada balão leva a faixa (`rastroLane`), e mover grava a posição pela rota de layout do quadro, por faixa; o texto editado vai pela rota de texto do levantamento da faixa; as anotações ficam numa coluna nova do quadro (migration `QuadroDrawio`, `GET` e `PUT api/boards/{id}/drawio`, com as mesmas regras das anotações do levantamento). Verificado no navegador com o draw.io de verdade e a rede de fora bloqueada: um quadro com dois fluxos do próprio Rastro abriu no editor; arrastar uma recusa gravou a posição na faixa certa; uma forma solta virou anotação guardada e voltou ao reabrir; nada saiu da máquina; console sem erro. Prints em `docs/telas/fase-68/`. O clique num balão do quadro só seleciona (a tela do quadro não tem ação de abrir o passo). Testes: backend 1171/1171; frontend 900/900.
-- [ ] Levantamento de UX completo, correções e release pela skill `gerar-release`. O passo de UX da release 0.12.0 (todas as rotas em 1440 e 360 px, nas paletas Papel, Carta náutica e Planta técnica e no tema escuro, com o draw.io e o quadro no draw.io; 96 telas, sem rolagem horizontal nem erro no console) achou um defeito, corrigido antes da versão: em tela estreita, o draw.io ficava espremido pelo painel do nó, que agora começa recolhido, como na visão de negócio.
+- [x] Levantamento de UX completo, correções e release pela skill `gerar-release`. O passo de UX da release 0.12.0 (todas as rotas em 1440 e 360 px, nas paletas Papel, Carta náutica e Planta técnica e no tema escuro, com o draw.io e o quadro no draw.io; 96 telas, sem rolagem horizontal nem erro no console) achou um defeito, corrigido antes da versão: em tela estreita, o draw.io ficava espremido pelo painel do nó, que agora começa recolhido, como na visão de negócio.
+  - **Registro da release (2026-11-28):** a correção entrou no PR #151 e a versão no #152; a tag `v0.12.0` disparou o workflow de release, que baixou o draw.io da versão fixa, conferiu o SHA-256 e montou o pacote. Backend, frontend e publicação passaram, e a `rastro-ai` 0.12.0 está listada no nuget.org. Fica sem teste real, como previsto nos riscos, a janela no WebKit do macOS e do Linux.
 
 ### Fora de escopo
 
