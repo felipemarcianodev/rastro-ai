@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Rastro.Api;
 using Rastro.Api.Editor;
 
 namespace Rastro.Tests.Api;
@@ -59,6 +60,19 @@ public class DrawioEndpointTests(ApiFixture fixture) : IDisposable
         Assert.Contains("connect-src 'self'", DrawioHosting.ContentSecurityPolicy);
         Assert.Equal("nosniff", page.Headers.GetValues("X-Content-Type-Options").Single());
         Assert.Equal(HttpStatusCode.OK, script.StatusCode);
+    }
+
+    [Fact] // API-CACHE-001
+    public async Task PaginaDoDrawio_SaiComNoCache_eOScriptNao()
+    {
+        CreateFolder();
+        var client = ClientWithFolder(_folder);
+
+        var page = await client.GetAsync("/drawio/index.html");
+        var script = await client.GetAsync("/drawio/js/app.min.js");
+
+        Assert.Equal(PageCache.NoCache, page.Headers.CacheControl?.ToString());
+        Assert.Null(script.Headers.CacheControl);
     }
 
     [Fact] // API-DRW-003

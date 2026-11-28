@@ -63,7 +63,7 @@ import { FlowMapViewComponent, MapTab } from './flow-map-view.component';
 import { BusinessViewComponent } from './business-view.component';
 import { DrawioViewComponent } from './drawio-view.component';
 import { AddToBoardDialogComponent } from '../boards/add-to-board-dialog.component';
-import { LayoutDirection, directionFromSlug, readDrawioOrigin, readLayoutDirection, saveDrawioOrigin, saveLayoutDirection } from '../../core/graph/layout';
+import { LayoutDirection, directionFromSlug, isOutsideCanvas, readDrawioOrigin, readLayoutDirection, saveDrawioOrigin, saveLayoutDirection } from '../../core/graph/layout';
 import { DrawioStatusService } from '../../core/drawio-status.service';
 import { DRAWING_LABEL_KEY } from './drawing-switcher.component';
 import { FlowSummary } from '../../core/graph/summary';
@@ -529,12 +529,16 @@ export class SurveyPage {
   // Escolha do draw.io na barra: o desenho da tela vira a origem e o XML dele, o conteúdo do editor.
   private openDrawio(): void {
     const origin = this.drawing();
+    // O Mermaid não vira .drawio: o draw.io abre com o grafo, que mostra o mesmo fluxo.
     if (this.showConsolidated()) {
-      this.restoreChoice();
-      this.showExport({ ok: false, text: this.i18n.t('survey.export.onlyGraph') });
+      this.openDrawioFromGraph();
       return;
     }
     this.originXml((xml) => {
+      if (this.businessIsEmpty()) {
+        this.openDrawioFromGraph();
+        return;
+      }
       if (!xml) {
         this.restoreChoice();
         this.showExport({ ok: false, text: this.notDrawnText() });
@@ -646,7 +650,11 @@ export class SurveyPage {
       this.showExport({ ok: false, text: this.notDrawnText() });
     };
     this.originXml((xml) => {
-      if (xml) {
+      // Visão de negócio vazia (só a entrada), ou mapa e visão de negócio que não desenham depois das tentativas:
+      // esperar não resolve, e o grafo tem o fluxo. A volta é sempre para o grafo, que nunca cai aqui de novo.
+      if (this.businessIsEmpty() || (!xml && isOutsideCanvas(origin) && this.drawioAttempts + 1 >= DRAWIO_OPEN_ATTEMPTS)) {
+        this.openDrawioFromGraph();
+      } else if (xml) {
         this.drawioPending.set(false);
         this.enterDrawio(origin, xml);
       } else if (++this.drawioAttempts >= DRAWIO_OPEN_ATTEMPTS) {
@@ -655,6 +663,20 @@ export class SurveyPage {
         this.drawioTimer = setTimeout(() => this.tryOpenDrawio(), DRAWIO_OPEN_RETRY_MS);
       }
     });
+  }
+
+  // Abre o draw.io pelo grafo horizontal: troca o desenho e tenta como na abertura direta, até o canvas ter o XML.
+  private openDrawioFromGraph(): void {
+    clearTimeout(this.drawioTimer);
+    this.drawioAttempts = 0;
+    this.applyDirection(LayoutDirection.Horizontal);
+    if (this.drawioPending()) this.drawioTimer = setTimeout(() => this.tryOpenDrawio(), DRAWIO_OPEN_RETRY_MS);
+    else this.drawioPending.set(true);
+  }
+
+  // Visão de negócio na tela, já carregada e sem nada além da entrada: não tem desenho para o draw.io.
+  private businessIsEmpty(): boolean {
+    return this.showBusiness() && !!this.businessView()?.empty();
   }
 
   // O XML do desenho que está na tela, com os links do host em cada balão (o mesmo caminho do menu Exportar).
