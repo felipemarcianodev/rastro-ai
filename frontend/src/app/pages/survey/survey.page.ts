@@ -243,12 +243,13 @@ export class SurveyPage {
   // Chamadas do .NET (LINQ, EF Core, cache...) escondidas por padrão; a escolha fica no navegador.
   protected readonly showFramework = signal(readShowFramework());
   protected readonly panelCollapsed = signal(readPanelCollapsed());
-  // Tela estreita com a visão de negócio: o painel do nó desce e ocupa 45% da altura, e a visão tem o painel do passo
-  // dela, também embaixo; os dois juntos deixavam o desenho com poucos pixels (passo de UX da release 0.11.0). Ali o
-  // painel do nó começa recolhido, sem mudar a preferência gravada; a aba "Painel" abre quando a pessoa pede.
+  // Tela estreita com a visão de negócio ou o draw.io: o painel do nó desce e ocupa 45% da altura, e o desenho ficava
+  // com poucos pixels (passos de UX das releases 0.11.0 e 0.12.0). Ali o painel do nó começa recolhido, sem mudar a
+  // preferência gravada; a aba "Painel" abre quando a pessoa pede.
   private readonly narrow = signal(matchNarrow());
   private readonly panelOpenedInBusiness = signal(false);
-  private readonly autoCollapse = computed(() => this.narrow() && this.showBusiness() && !this.panelOpenedInBusiness());
+  private readonly squeezedDrawing = computed(() => this.showBusiness() || this.showDrawio());
+  private readonly autoCollapse = computed(() => this.narrow() && this.squeezedDrawing() && !this.panelOpenedInBusiness());
   protected readonly panelHidden = computed(() => this.panelCollapsed() || this.autoCollapse());
 
   protected readonly frameworkCount = computed(() => (this.detail()?.graph?.nodes ?? []).filter(isFrameworkCall).length);
@@ -723,10 +724,10 @@ export class SurveyPage {
 
   protected togglePanel(): void {
     if (this.autoCollapse()) {
-      // Abrir pela aba na tela estreita com a visão de negócio vale até sair dela.
+      // Abrir pela aba na tela estreita com a visão de negócio ou o draw.io vale até sair dele.
       this.panelOpenedInBusiness.set(true);
       if (!this.panelCollapsed()) return;
-    } else if (this.narrow() && this.showBusiness() && !this.panelCollapsed()) {
+    } else if (this.narrow() && this.squeezedDrawing() && !this.panelCollapsed()) {
       this.panelOpenedInBusiness.set(false);
       return;
     }
