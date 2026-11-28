@@ -1011,6 +1011,8 @@
     "clearFilters": "Limpiar la búsqueda y el filtro",
     "open": "Abrir",
     "openLabel": "Abrir el rastreo {entryPoint}",
+    "delete": "Eliminar",
+    "deleteLabel": "Eliminar el rastreo {entryPoint}",
     "finished": "{entryPoint}: {status}",
     "registered": "Repositorio \"{name}\" registrado.",
     "form": {

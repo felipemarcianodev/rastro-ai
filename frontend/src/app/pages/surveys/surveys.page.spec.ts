@@ -957,4 +957,82 @@ describe('SurveysPage, escolha para o quadro (Fase 60)', () => {
       http.match(() => true).forEach((request) => request.flush([]));
     });
   });
+
+  // Excluir pela lista (pedido do dono em 2026-11-28): o que falhou ou ficou antigo sai sem abrir cada levantamento.
+  describe('excluir pela lista', () => {
+    function openList(): { fixture: ComponentFixture<SurveysPage>; el: HTMLElement; http: HttpTestingController } {
+      TestBed.configureTestingModule({ imports: [SurveysPage], providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])] });
+      const fixture = TestBed.createComponent(SurveysPage);
+      fixture.detectChanges();
+      const http = TestBed.inject(HttpTestingController);
+      http.expectOne('/api/surveys').flush([
+        survey('1', 'A.Pronto', SurveyStatus.Completed),
+        survey('2', 'B.Falhou', SurveyStatus.Failed),
+        survey('3', 'C.Rodando', SurveyStatus.Running),
+        survey('4', 'D.NaFila', SurveyStatus.Pending),
+      ]);
+      http.expectOne('/api/repositories').flush([]);
+      fixture.detectChanges();
+      return { fixture, el: fixture.nativeElement as HTMLElement, http };
+    }
+
+    const deleteButton = (el: HTMLElement, entryPoint: string) =>
+      el.querySelector<HTMLButtonElement>(`.row-delete[aria-label="Excluir o levantamento ${entryPoint}"]`);
+
+    // WEB-LIST-DEL-001
+    it('soPronto_eComFalha_temOBotaoExcluir_comONomeNoRotulo', () => {
+      const { el, http } = openList();
+
+      expect(deleteButton(el, 'A.Pronto')?.textContent?.trim()).toBe('Excluir');
+      expect(deleteButton(el, 'B.Falhou')).not.toBeNull();
+      expect(deleteButton(el, 'C.Rodando')).toBeNull();
+      expect(deleteButton(el, 'D.NaFila')).toBeNull();
+      http.match(() => true).forEach((request) => request.flush([]));
+    });
+
+    // WEB-LIST-DEL-002
+    it('confirmar_apagaPelaApi_tiraALinhaEASelecao_eAvisa', () => {
+      const { fixture, el, http } = openList();
+      el.querySelector<HTMLInputElement>('.row-pick input')!.click();
+      fixture.detectChanges();
+
+      deleteButton(el, 'A.Pronto')!.click();
+      fixture.detectChanges();
+      expect(el.querySelector('[role="alertdialog"]')?.textContent).toContain('A.Pronto');
+      el.querySelector<HTMLButtonElement>('[role="alertdialog"] .btn-danger')!.click();
+      fixture.detectChanges();
+      http.expectOne((r) => r.method === 'DELETE' && r.url === '/api/surveys/1').flush(null);
+      fixture.detectChanges();
+
+      expect(el.querySelector('[role="alertdialog"]')).toBeNull();
+      expect(Array.from(el.querySelectorAll('.row-entry')).map((r) => r.textContent)).toEqual(['B.Falhou', 'C.Rodando', 'D.NaFila']);
+      expect(el.querySelector('.pick-bar')).toBeNull();
+      expect(el.querySelector('.saved-notice')?.textContent).toContain('Levantamento de A.Pronto excluído.');
+      http.match(() => true).forEach((request) => request.flush([]));
+    });
+
+    // WEB-LIST-DEL-003
+    it('cancelar_naoChamaAApi_eErroDaApi_deixaALinhaEAvisa', () => {
+      const { fixture, el, http } = openList();
+
+      deleteButton(el, 'B.Falhou')!.click();
+      fixture.detectChanges();
+      el.querySelector<HTMLButtonElement>('[role="alertdialog"] .btn-g')!.click();
+      fixture.detectChanges();
+      expect(el.querySelector('[role="alertdialog"]')).toBeNull();
+      http.expectNone((r) => r.method === 'DELETE');
+
+      deleteButton(el, 'B.Falhou')!.click();
+      fixture.detectChanges();
+      el.querySelector<HTMLButtonElement>('[role="alertdialog"] .btn-danger')!.click();
+      fixture.detectChanges();
+      http.expectOne((r) => r.method === 'DELETE' && r.url === '/api/surveys/2').flush({ code: 'SURVEY_RUNNING' }, { status: 409, statusText: 'Conflict' });
+      fixture.detectChanges();
+
+      expect(el.querySelector('[role="alertdialog"]')).toBeNull();
+      expect(Array.from(el.querySelectorAll('.row-entry')).map((r) => r.textContent)).toContain('B.Falhou');
+      expect(el.querySelector('.delete-error')?.textContent).toContain('Não excluiu:');
+      http.match(() => true).forEach((request) => request.flush([]));
+    });
+  });
 });
